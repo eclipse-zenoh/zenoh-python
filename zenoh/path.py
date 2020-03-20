@@ -18,8 +18,10 @@ class Path(object):
         self.__path_regex = re.compile('^[^?#*]+$')
         if not self.is_valid(path):
             raise ValueError("Invalid Path: {}".format(path))
-        self.path = path
-
+        self._path = path
+    @property
+    def path(self):
+        return self._path
     @staticmethod
     def to_path(p):
         if isinstance(p, Path):
