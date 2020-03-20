@@ -89,7 +89,7 @@ class Change(object):
         return 'Path: {} Kind: {} Time: {} Value: {}'.format(
             self.path,
             self.kind,
-            self.time,
+            self.timestamp,
             self.value)
 
     def __repr__(self):
