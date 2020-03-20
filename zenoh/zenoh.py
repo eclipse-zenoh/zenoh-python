@@ -43,9 +43,9 @@ class Zenoh(object):
         '''
         zprops = {} if properties is None else {
             zenoh.net.ZN_USER_KEY if k == "user" else
-            zenoh.net.ZN_PASSWORD_KEY: val
+            zenoh.net.ZN_PASSWD_KEY: val
             for k, val in properties.items()
-            if k == "user" or key == "password"}
+            if k == "user" or k == "password"}
 
         return Zenoh(Session.open(locator, zprops))
 
