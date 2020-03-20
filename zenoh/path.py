@@ -16,9 +16,19 @@ import re
 class Path(object):
     def __init__(self, path):
         self.__path_regex = re.compile('^[^?#*]+$')
-        if not self.is_valid(path):
-            raise ValueError("Invalid Path: {}".format(path))
         self.path = path
+   
+    # Getter function
+    @property
+    def path(self):
+        return self._path
+   
+    # Setter function
+    @path.setter   
+    def path(self, path): 
+        if not self.is_valid(path):
+            raise ValueError("Invalid Path: {!r}".format(path))
+        self._path = path
 
     @staticmethod
     def to_path(p):
