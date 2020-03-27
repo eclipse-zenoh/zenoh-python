@@ -36,26 +36,26 @@ class Path(object):
             and not path.startswith('//')
 
     def is_absolute(self):
-        if self.path.startswith('/'):
+        if self._path.startswith('/'):
             return True
         return False
 
     def is_prefix(self, prefix):
-        return self.path.startswith(prefix)
+        return self._path.startswith(prefix)
 
     def to_string(self):
-        return self.path
+        return self._path
 
     def __len__(self):
-        return len(self.path)
+        return len(self._path)
 
     def __eq__(self, second_path):
         if isinstance(second_path, self.__class__):
-            return self.path == second_path.path
+            return self._path == second_path.path
         return False
 
     def __str__(self):
-        return self.path
+        return self._path
 
     def __repr__(self):
         return self.__str__()
