@@ -51,11 +51,11 @@ class Path(object):
 
     def __eq__(self, second_path):
         if isinstance(second_path, self.__class__):
-            return self._path == second_path_.path
+            return self._path == second_path._path
         return False
 
     def __str__(self):
-        return self._ path
+        return self._path
 
     def __repr__(self):
         return self.__str__()
