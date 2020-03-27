@@ -19,6 +19,7 @@ class Path(object):
         if not self.is_valid(path):
             raise ValueError("Invalid Path: {}".format(path))
         self._path = path
+
     @property
     def path(self):
         return self._path
