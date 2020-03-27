@@ -23,6 +23,7 @@ class Path(object):
     @property
     def path(self):
         return self._path
+
     @staticmethod
     def to_path(p):
         if isinstance(p, Path):
