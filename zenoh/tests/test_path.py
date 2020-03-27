@@ -33,17 +33,6 @@ class PathTests(unittest.TestCase):
         self.assertTrue(p.is_prefix('/this/is/a/path'))
         self.assertFalse(p.is_prefix('/that/is/a/path'))
 
-    def test_path_remove_prefix(self):
-        p = Path('/this/is/a/path/with/a/prefix')
-        self.assertTrue(p.is_prefix('/this/is/a/path'))
-        p.remove_prefix('/this/is/a/path')
-        self.assertEqual(p.to_string(), '/with/a/prefix')
-
-    def test_path_remove_prefix_no_prefix(self):
-        p = Path('/this/is/a/path/with/a/prefix')
-        p.remove_prefix('/that/is/a/path')
-        self.assertEqual(p.to_string(), '/this/is/a/path/with/a/prefix')
-
     def test_to_path(self):
         p = '/test'
         p2 = Path('/test')
