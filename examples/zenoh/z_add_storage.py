@@ -11,27 +11,39 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
+import argparse
+from zenoh import Zenoh, Workspace
 
-selector = '/demo/example/**'
-if len(sys.argv) > 1:
-    selector = sys.argv[1]
+### --- Command line argument parsing --- --- --- --- --- --- 
+parser = argparse.ArgumentParser(prog='z_add_storage', description='Adds a storage')
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/zenoh/examples/**',
+                    type=str,
+                    help='the selector associated with this storage')
 
-storage_id = 'Demo'
-if len(sys.argv) > 2:
-    storage_id = sys.argv[2]
+parser.add_argument('--id', '-i', dest='id',
+                    default='zenoh-examples-storage',
+                    type=str,
+                    help='the storage identifier')
 
-locator = None
-if len(sys.argv) > 3:
-    locator = sys.argv[3]
+parser.add_argument('--locator', '-l', dest='locator',
+                    default=None,
+                    type=str,
+                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
 
-print('Login to Zenoh (locator={})...'.format(locator))
-z = Zenoh.login(locator)
+args = parser.parse_args()
+
+
+### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+print('Login to Zenoh...')
+z = Zenoh.login(args.locator)
 
 a = z.admin()
 
-print('Add storage {} with selector {}'.format(storage_id, selector))
-properties = {'selector': selector}
-a.add_storage(storage_id, properties)
+print('Add storage {} with selector {}'.format(args.id, args.selector))
+properties = {'selector': args.selector}
+a.add_storage(args.id, properties)
 
 z.logout()
+
+

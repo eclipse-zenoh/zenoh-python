@@ -55,7 +55,7 @@ class Zenoh(object):
         '''
         self.rt.close()
 
-    def workspace(self, path, executor=None):
+    def workspace(self, path='/', executor=None):
         '''
         Creates a :class:`Workspace` using the
         provided path. All relative Selector or Path used with this

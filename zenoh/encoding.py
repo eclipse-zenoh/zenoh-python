@@ -43,6 +43,20 @@ class Encoding(Enum):
     The value is a JSON structure in an UTF-8 string.
     '''
 
+    SQL = 0x04
+    '''
+    The value has an SQL encoding.
+    '''
+
+    INT = 0x06
+    '''
+    The value is a python int.
+    '''
+    
+    FLOAT = 0x07
+    '''
+    The value is a python float.
+    '''
 
 class TranscodingFallback(Enum):
     FAIL = 0x01

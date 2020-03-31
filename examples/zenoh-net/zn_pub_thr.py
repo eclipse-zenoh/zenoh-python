@@ -13,24 +13,40 @@
 import sys
 from zenoh.net import Session
 
-if __name__ == '__main__':
-    locator = None
-    if len(sys.argv) < 2:
-        print('USAGE:\n\tzn_pub_thr <payload-size> [<zenoh-locator>]\n\n')
-        sys.exit(-1)
-    size = int(sys.argv[1])
-    print("Running throughput test for payload of {} bytes".format(size))
-    if len(sys.argv) > 2:
-        locator = sys.argv[2]
+### --- Command line argument parsing --- --- --- --- --- --- 
+parser = argparse.ArgumentParser(prog='zn_pub_thr', description='Publisher for zenoh-net throughput example')
+parser.add_argument('--payload-size', '-s', dest='size',
+                    default='256',
+                    type=int,
+                    help='the size in bytes of the payload used for the throughput test')
 
-    s = Session.open(locator)
-    pub = s.declare_publisher('/test/thr')
+parser.add_argument('--locator', '-l', dest='locator',
+                    default=None,
+                    type=str,
+                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
 
-    bs = bytearray()
-    for i in range(0, size):
-        bs.append(i % 10)
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/throughput/data',
+                    type=str,
+                    help='the resource used to write throughput data')
 
-    while True:
-        s.stream_data(pub, bytes(bs))
+args = parser.parse_args()
 
-    s.close()
+locator = args.locator
+size = args.size
+path = args.path
+
+### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
+
+print("Running throughput test for payload of {} bytes".format(size))
+s = Session.open(locator)
+pub = s.declare_publisher(path)
+
+bs = bytearray()
+for i in range(0, size):
+    bs.append(i % 10)
+
+while True:
+    s.stream_data(pub, bytes(bs))
+
+s.close()
