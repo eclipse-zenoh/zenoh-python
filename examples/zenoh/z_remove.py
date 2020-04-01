@@ -11,23 +11,33 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
+import argparse
 from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 
-# If not specified as 1st argument, use a relative path
-# (to the workspace below): 'zenoh-python-put'
-path = 'zenoh-python-put'
-if len(sys.argv) > 1:
-    path = sys.argv[1]
+### --- Command line argument parsing --- --- --- --- --- --- 
+parser = argparse.ArgumentParser(prog='z_remove', description='Removes a resource')
+parser.add_argument('--path', '-p', dest='path',
+                    required=True,
+                    type=str,
+                    help='the resource to remove')
 
-locator = None
-if len(sys.argv) > 2:
-    locator = sys.argv[2]
+parser.add_argument('--locator', '-l', dest='locator',
+                    default=None,
+                    type=str,
+                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
 
-print('Login to Zenoh (locator={})...'.format(locator))
+
+args = parser.parse_args()
+
+locator = args.locator
+path = args.path
+
+
+### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+print('Login to Zenoh...')
 z = Zenoh.login(locator)
 
-print('Use Workspace on "/demo/example"')
-w = z.workspace('/demo/example')
+w = z.workspace()
 
 print('Remove {}'.format(path))
 w.remove(path)

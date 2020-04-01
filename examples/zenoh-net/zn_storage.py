@@ -12,10 +12,30 @@
 
 import sys
 import time
+import argparse
 from zenoh.net import Session, zn_rname_intersect
 
-store = {}
+### --- Command line argument parsing --- --- --- --- --- --- 
+parser = argparse.ArgumentParser(prog='zn_storage', description='Implements and register a zenoh storage')
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/zenoh/examples/**',
+                    type=str,
+                    help='the selector associated with this storage')
 
+parser.add_argument('--locator', '-l', dest='locator',
+                    default=None,
+                    type=str,
+                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+
+args = parser.parse_args()
+
+selector = args.selector
+locator = args.locator
+
+### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
+
+
+store = {}
 
 def listener(rname, data, info):
     print(">> [Storage listener] Received ('{}': '{}')"
@@ -33,24 +53,16 @@ def query_handler(path_selector, content_selector, send_replies):
     send_replies(replies)
 
 
-if __name__ == '__main__':
-    uri = "/demo/example/**"
-    if len(sys.argv) > 1:
-        uri = sys.argv[1]
+print("Openning session...")
+s = Session.open(locator)
 
-    locator = None
-    if len(sys.argv) > 2:
-        locator = sys.argv[2]
+print("Declaring Storage on '{}'...".format(selector))
+sto = s.declare_storage(selector, listener, query_handler)
 
-    print("Openning session...")
-    s = Session.open(locator)
+print('Press "q" at any time to terminate...')
+c = '\0'
+while c != 'q':
+    c = sys.stdin.read(1)
 
-    print("Declaring Storage on '{}'...".format(uri))
-    sto = s.declare_storage(uri, listener, query_handler)
-
-    c = '\0'
-    while c != 'q':
-        c = sys.stdin.read(1)
-
-    s.undeclare_storage(sto)
-    s.close()
+s.undeclare_storage(sto)
+s.close()

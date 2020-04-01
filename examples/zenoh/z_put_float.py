@@ -11,17 +11,15 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-import time
-import binascii
 import argparse
-from zenoh.net import (
-    Session,
-    ZN_USER_KEY, ZN_PASSWD_KEY,
-    ZN_INFO_PEER_KEY, ZN_INFO_PID_KEY, ZN_INFO_PEER_PID_KEY
-)
+from zenoh import Zenoh, Workspace
 
 ### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='zn_info', description='Shows how to retrieve peers information')
+parser = argparse.ArgumentParser(prog='z_put_float', description='Produces float values')
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/native/float',
+                    type=str,
+                    help='the path representing the float resource')
 
 parser.add_argument('--locator', '-l', dest='locator',
                     default=None,
@@ -30,20 +28,15 @@ parser.add_argument('--locator', '-l', dest='locator',
 
 args = parser.parse_args()
 
-locator = args.locator
+### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+z = Zenoh.login(args.locator)
+w = z.workspace()
 
-### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
+while (True):
+  v = input("Insert value (\'.\' to exit): ")
+  if v != '.':    
+    w.put(args.path, float(v))
+  else:
+    z.logout()
+    break
 
-print("Openning session...")
-s = Session.open(locator, {ZN_USER_KEY: "user".encode(),
-                 ZN_PASSWD_KEY: "password".encode()})
-
-info = s.info()
-peer = info[ZN_INFO_PEER_KEY]
-pid = info[ZN_INFO_PID_KEY]
-peer_pid = info[ZN_INFO_PEER_PID_KEY]
-print("LOCATOR :  {}".format(peer.decode("utf-8")))
-print("PID :      {}".format(binascii.hexlify(pid).decode("ascii")))
-print("PEER PID : {}".format(binascii.hexlify(peer_pid).decode("ascii")))
-
-s.close()
