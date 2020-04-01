@@ -20,10 +20,10 @@ from zenoh.net import Session, SubscriberMode
 ### --- Command line argument parsing --- --- --- --- --- --- 
 parser = argparse.ArgumentParser(prog='zb_sub_thr', description='The zenoh-net throughput subscriber')
 
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/zenoh/examples/**',
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/throughput/data',
                     type=str,
-                    help='The subscriber selector')
+                    help='The subscriber path')
 
 parser.add_argument('--locator', '-l', dest='locator',
                     default=None,
@@ -33,7 +33,7 @@ parser.add_argument('--locator', '-l', dest='locator',
 args = parser.parse_args()
 
 locator = args.locator
-selector = args.selector
+path = args.path
 
 ### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
 
@@ -63,7 +63,7 @@ def listener(rname, data, info):
 
 
 s = Session.open(locator)
-sub = s.declare_subscriber(selector, SubscriberMode.push(), listener)
+sub = s.declare_subscriber(path, SubscriberMode.push(), listener)
 
 time.sleep(60)
 

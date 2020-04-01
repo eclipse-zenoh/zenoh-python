@@ -19,7 +19,7 @@ from zenoh.net import Session
 ### --- Command line argument parsing --- --- --- --- --- --- 
 parser = argparse.ArgumentParser(prog='z_stream', description='Illustrates the use of a zenoh-net publisher')
 parser.add_argument('--path', '-p', dest='path',
-                    default='/zenoh/examples/python-stream',
+                    default='/zenoh/examples/python/stream/hello',
                     type=str,
                     help='the path representing the  URI')
 
@@ -29,7 +29,7 @@ parser.add_argument('--locator', '-l', dest='locator',
                     help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
 
 parser.add_argument('--msg', '-m', dest='msg',
-                    default='Zenitude from zenoh!',
+                    default='Zenitude streamed from zenoh-python!',
                     type=str,
                     help='The quote associated with the welcoming resource')
 

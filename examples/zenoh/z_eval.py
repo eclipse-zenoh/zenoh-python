@@ -20,7 +20,7 @@ from zenoh import Change, ChangeKind, Encoding, Value
 ### --- Command line argument parsing --- --- --- --- --- --- 
 parser = argparse.ArgumentParser(prog='z_eval', description='Shows how to use zenoh evaluated/computed resources')
 parser.add_argument('--path', '-p', dest='path',
-                    default='/zenoh/examples/python-eval',
+                    default='/zenoh/examples/python/eval',
                     type=str,
                     help='the path representing the  URI')
 

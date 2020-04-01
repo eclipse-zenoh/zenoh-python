@@ -17,7 +17,7 @@ from zenoh import Zenoh, Workspace
 ### --- Command line argument parsing --- --- --- --- --- --- 
 parser = argparse.ArgumentParser(prog='z_put', description='Produces welcome messages')
 parser.add_argument('--path', '-p', dest='path',
-                    default='/zenoh/examples/hello',
+                    default='/zenoh/examples/python/put/hello',
                     type=str,
                     help='the path representing the  URI')
 
@@ -27,7 +27,7 @@ parser.add_argument('--locator', '-l', dest='locator',
                     help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
 
 parser.add_argument('--msg', '-m', dest='msg',
-                    default='Zenitude from zenoh!',
+                    default='Zenitude put from zenoh-python!',
                     type=str,
                     help='The quote associated with the welcoming resource')
 
