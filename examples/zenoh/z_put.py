@@ -36,7 +36,6 @@ args = parser.parse_args()
 
 ### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
 print('Login to Zenoh...')
-
 z = Zenoh.login(args.locator)
 w = z.workspace(args.path)
 

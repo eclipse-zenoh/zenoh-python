@@ -52,5 +52,6 @@ print('Press "q" at any time to terminate...')
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
+    
 s.undeclare_eval(e)
 s.close()
