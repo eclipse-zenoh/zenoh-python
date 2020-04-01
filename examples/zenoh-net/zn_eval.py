@@ -18,7 +18,7 @@ from zenoh.net import Session, DataInfo, ZN_PUT
 ### --- Command line argument parsing --- --- --- --- --- --- 
 parser = argparse.ArgumentParser(prog='zn_eval', description='Shows how to use zenoh-net evaluated/computed resources')
 parser.add_argument('--path', '-p', dest='path',
-                    default='/zenoh/examples/python-eval',
+                    default='/zenoh/examples/python/eval',
                     type=str,
                     help='the path representing the  URI')
 

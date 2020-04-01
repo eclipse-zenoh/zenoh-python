@@ -19,10 +19,10 @@ from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 ### --- Command line argument parsing --- --- --- --- --- --- 
 parser = argparse.ArgumentParser(prog='z_sub_thr', description='The zenoh throughput subscriber')
 
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/zenoh/examples/**',
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/throughput/data',
                     type=str,
-                    help='The subscriber selector')
+                    help='The subscriber path')
 
 parser.add_argument('--locator', '-l', dest='locator',
                     default=None,
@@ -32,7 +32,7 @@ parser.add_argument('--locator', '-l', dest='locator',
 args = parser.parse_args()
 
 locator = args.locator
-selector = args.selector
+path = args.path
 
 ### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
 
@@ -66,8 +66,8 @@ z = Zenoh.login(locator)
 
 w = z.workspace()
 
-print("Subscribe on {}".format(selector))
-subid = w.subscribe(selector, listener)
+print("Subscribe on {}".format(path))
+subid = w.subscribe(path, listener)
 
 time.sleep(60)
 
