@@ -15,27 +15,30 @@ import time
 import argparse
 from zenoh.net import Session, zn_rname_intersect
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='zn_storage', description='Implements and register a zenoh storage')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zn_storage',
+    description='Implements and register a zenoh storage')
 parser.add_argument('--selector', '-s', dest='selector',
                     default='/zenoh/examples/**',
                     type=str,
                     help='the selector associated with this storage')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 args = parser.parse_args()
 
 selector = args.selector
 locator = args.locator
 
-### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
-
-
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 store = {}
+
 
 def listener(rname, data, info):
     print(">> [Storage listener] Received ('{}': '{}')"

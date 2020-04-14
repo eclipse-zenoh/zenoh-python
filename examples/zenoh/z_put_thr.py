@@ -15,22 +15,25 @@ import sys
 import argparse
 from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='z_put_thr', description='Publisher for zenoh throughput example')
-parser.add_argument('--payload-size', '-s', dest='size',
-                    default='256',
-                    type=int,
-                    help='the size in bytes of the payload used for the throughput test')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='z_put_thr', description='Publisher for zenoh throughput example')
+parser.add_argument(
+    '--payload-size', '-s', dest='size',
+    default='256', type=int,
+    help='the size in bytes of the payload used for the throughput test')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None, type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
-parser.add_argument('--path', '-p', dest='path',
-                    default='/zenoh/examples/throughput/data',
-                    type=str,
-                    help='the resource used to write throughput data')
+parser.add_argument(
+    '--path', '-p', dest='path',
+    default='/zenoh/examples/throughput/data',
+    type=str,
+    help='the resource used to write throughput data')
 
 args = parser.parse_args()
 
@@ -38,7 +41,7 @@ locator = args.locator
 size = args.size
 path = args.path
 
-### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 print("Running throughput test for payload of {} bytes".format(size))
 data = bytearray()
 for i in range(0, size):

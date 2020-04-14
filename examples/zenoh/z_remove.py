@@ -14,17 +14,20 @@ import sys
 import argparse
 from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='z_remove', description='Removes a resource')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(prog='z_remove',
+                                 description='Removes a resource')
 parser.add_argument('--path', '-p', dest='path',
                     required=True,
                     type=str,
                     help='the resource to remove')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 
 args = parser.parse_args()
@@ -33,7 +36,7 @@ locator = args.locator
 path = args.path
 
 
-### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 print('Login to Zenoh...')
 z = Zenoh.login(locator)
 

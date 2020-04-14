@@ -14,29 +14,31 @@ import sys
 import argparse
 from zenoh import Zenoh, Workspace
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='z_put_float', description='Produces float values')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(prog='z_put_float',
+                                 description='Produces float values')
 parser.add_argument('--path', '-p', dest='path',
                     default='/zenoh/examples/native/float',
                     type=str,
                     help='the path representing the float resource')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 args = parser.parse_args()
 
-### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 z = Zenoh.login(args.locator)
 w = z.workspace()
 
 while (True):
-  v = input("Insert value (\'.\' to exit): ")
-  if v != '.':    
-    w.put(args.path, float(v))
-  else:
-    z.logout()
-    break
-
+    v = input("Insert value (\'.\' to exit): ")
+    if v != '.':
+        w.put(args.path, float(v))
+    else:
+        z.logout()
+        break

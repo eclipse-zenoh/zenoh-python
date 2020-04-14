@@ -17,24 +17,28 @@ from zenoh import Zenoh, Selector, Path, Workspace
 from zenoh import Change, ChangeKind, Encoding, Value
 
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='z_eval', description='Shows how to use zenoh evaluated/computed resources')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='z_eval',
+    description='Shows how to use zenoh evaluated/computed resources')
 parser.add_argument('--path', '-p', dest='path',
                     default='/zenoh/examples/python/eval',
                     type=str,
                     help='the path representing the  URI')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 args = parser.parse_args()
 
 path = args.path
 locator = args.locator
 
-### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
 print('Login to Zenoh...')
 z = Zenoh.login(locator)
@@ -42,7 +46,7 @@ z = Zenoh.login(locator)
 # Note that we give a ThreadPool to the workspace here, for our eval_callback
 # below to be called in a separate thread rather that in Zenoh I/O thread.
 # Thus, the callback can perform some Zenoh operations (e.g.: get)
-w = z.workspace(executor = concurrent.futures.ThreadPoolExecutor())
+w = z.workspace(executor=concurrent.futures.ThreadPoolExecutor())
 
 
 def eval_callback(path, properties):
