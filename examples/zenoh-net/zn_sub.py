@@ -16,27 +16,30 @@ import argparse
 from zenoh.net import Session, SubscriberMode
 
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='zn_sub', description='An example illustrating zenoh subscribers')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zn_sub',
+    description='An example illustrating zenoh subscribers')
 parser.add_argument('--selector', '-s', dest='selector',
                     default='/zenoh/examples/**',
                     type=str,
                     help='The selector specifying the subscription')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 
 args = parser.parse_args()
 
 locator = args.locator
-selector= args.selector
-
-### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+selector = args.selector
 
 
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def listener(rname, data, info):
     print(">> [Subscription listener] Received ('{}': '{}') at {}"
           .format(rname, data.decode("utf-8"), info.tstamp))

@@ -19,26 +19,30 @@ from zenoh.net import (
     ZN_EVAL_DATA, ZN_EVAL_FINAL
 )
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='zn_query', description='Issues a query for a selector specified by the command-line')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zn_query',
+    description='Issues a query for a selector specified by the command-line')
 
 parser.add_argument('--selector', '-s', dest='selector',
                     default='/zenoh/examples/**',
                     type=str,
                     help='The selector to be used for issuing the query')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 
 args = parser.parse_args()
 selector = args.selector
 locator = args.locator
 
-### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
 
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 def reply_handler(reply):
     if reply.kind == ZN_STORAGE_DATA:
         print(">> [Reply handler] received -Storage Data- ('{}': '{}')"

@@ -52,11 +52,12 @@ class Encoding(Enum):
     '''
     The value is a python int.
     '''
-    
+
     FLOAT = 0x07
     '''
     The value is a python float.
     '''
+
 
 class TranscodingFallback(Enum):
     FAIL = 0x01

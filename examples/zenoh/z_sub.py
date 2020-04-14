@@ -15,25 +15,29 @@ import argparse
 from zenoh import Zenoh, Selector, Path, Workspace
 from zenoh import Change, ChangeKind, Encoding, Value
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='z_sub', description='An example illustrating zenoh subscribers')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='z_sub',
+    description='An example illustrating zenoh subscribers')
 parser.add_argument('--selector', '-s', dest='selector',
                     default='/zenoh/examples/**',
                     type=str,
                     help='The selector specifying the subscription')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 
 args = parser.parse_args()
 
 locator = args.locator
-selector= args.selector
+selector = args.selector
 
-### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
 
 print('Login to zenoh...')
@@ -45,7 +49,7 @@ w = z.workspace()
 def listener(changes):
     for change in changes:
         v = change.get_value()
-        if change.get_kind() == ChangeKind.PUT:            
+        if change.get_kind() == ChangeKind.PUT:
             print('>> [Subscription listener] Received PUT on "{}": {} [{}]'
                   .format(change.get_path(), v.get_value(), v.get_encoding()))
         elif change.get_kind() == ChangeKind.UPDATE:

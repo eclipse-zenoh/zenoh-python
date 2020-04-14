@@ -14,17 +14,22 @@ import sys
 import argparse
 from zenoh.net import Session
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='zn_pub_thr', description='Publisher for zenoh-net throughput example')
-parser.add_argument('--payload-size', '-s', dest='size',
-                    default='256',
-                    type=int,
-                    help='the size in bytes of the payload used for the throughput test')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zn_pub_thr',
+    description='Publisher for zenoh-net throughput example')
+parser.add_argument(
+    '--payload-size', '-s', dest='size',
+    default='256',
+    type=int,
+    help='the size in bytes of the payload used for the throughput test')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 parser.add_argument('--path', '-p', dest='path',
                     default='/zenoh/examples/throughput/data',
@@ -37,7 +42,7 @@ locator = args.locator
 size = args.size
 path = args.path
 
-### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 print("Running throughput test for payload of {} bytes".format(size))
 s = Session.open(locator)

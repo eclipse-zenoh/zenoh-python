@@ -15,24 +15,28 @@ import time
 import argparse
 from zenoh.net import Session, DataInfo, ZN_PUT
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='zn_eval', description='Shows how to use zenoh-net evaluated/computed resources')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zn_eval',
+    description='Shows how to use zenoh-net evaluated/computed resources')
 parser.add_argument('--path', '-p', dest='path',
                     default='/zenoh/examples/python/eval',
                     type=str,
                     help='the path representing the  URI')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 args = parser.parse_args()
 
 path = args.path
 locator = args.locator
 
-### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
 def query_handler(path_selector, content_selector, send_replies):
@@ -52,6 +56,6 @@ print('Press "q" at any time to terminate...')
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
-    
+
 s.undeclare_eval(e)
 s.close()

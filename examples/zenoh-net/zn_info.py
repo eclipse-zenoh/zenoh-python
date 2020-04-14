@@ -20,19 +20,23 @@ from zenoh.net import (
     ZN_INFO_PEER_KEY, ZN_INFO_PID_KEY, ZN_INFO_PEER_PID_KEY
 )
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='zn_info', description='Shows how to retrieve peers information')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zn_info',
+    description='Shows how to retrieve peers information')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 args = parser.parse_args()
 
 locator = args.locator
 
-### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 print("Openning session...")
 s = Session.open(locator, {ZN_USER_KEY: "user".encode(),
