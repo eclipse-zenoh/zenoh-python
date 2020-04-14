@@ -14,8 +14,9 @@ import sys
 import argparse
 from zenoh import Zenoh, Workspace
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='z_add_storage', description='Adds a storage')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='z_add_storage', description='Adds a storage')
 parser.add_argument('--selector', '-s', dest='selector',
                     default='/zenoh/examples/**',
                     type=str,
@@ -26,15 +27,17 @@ parser.add_argument('--id', '-i', dest='id',
                     type=str,
                     help='the storage identifier')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 args = parser.parse_args()
 
 
-### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 print('Login to Zenoh...')
 z = Zenoh.login(args.locator)
 
@@ -45,5 +48,3 @@ properties = {'selector': args.selector}
 a.add_storage(args.id, properties)
 
 z.logout()
-
-

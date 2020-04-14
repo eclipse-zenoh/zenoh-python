@@ -17,25 +17,29 @@ import argparse
 from zenoh.net import Session, SubscriberMode
 
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='zb_sub_thr', description='The zenoh-net throughput subscriber')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zb_sub_thr',
+    description='The zenoh-net throughput subscriber')
 
 parser.add_argument('--path', '-p', dest='path',
                     default='/zenoh/examples/throughput/data',
                     type=str,
                     help='The subscriber path')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 args = parser.parse_args()
 
 locator = args.locator
 path = args.path
 
-### zenoh-net code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 N = 100000
 
@@ -59,7 +63,6 @@ def listener(rname, data, info):
         stop = datetime.datetime.now()
         print_stats(start, stop)
         count = 0
-
 
 
 s = Session.open(locator)

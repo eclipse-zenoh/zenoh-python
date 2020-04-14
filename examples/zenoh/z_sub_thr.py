@@ -16,25 +16,28 @@ import datetime
 import argparse
 from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 
-### --- Command line argument parsing --- --- --- --- --- --- 
-parser = argparse.ArgumentParser(prog='z_sub_thr', description='The zenoh throughput subscriber')
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(prog='z_sub_thr',
+                                 description='The zenoh throughput subscriber')
 
 parser.add_argument('--path', '-p', dest='path',
                     default='/zenoh/examples/throughput/data',
                     type=str,
                     help='The subscriber path')
 
-parser.add_argument('--locator', '-l', dest='locator',
-                    default=None,
-                    type=str,
-                    help='The locator to be used to boostrap the zenoh session. By default dynamic discovery is used')
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
 args = parser.parse_args()
 
 locator = args.locator
 path = args.path
 
-### zenoh code  --- --- --- --- --- --- --- --- --- --- --- 
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
 N = 100000
 
@@ -45,6 +48,7 @@ stop = None
 
 def print_stats(start, stop):
     print("{:.6f} msgs/sec".format(N / (stop - start).total_seconds()))
+
 
 # Listener function triggered each time there is a change on a resource whose
 # path matches the selector
