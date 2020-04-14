@@ -27,6 +27,11 @@ jobs:
         make all
         sudo make install
 
+    - name: Install and run zenoh container
+      run: |
+        docker pull adlinktech/eclipse-zenoh:latest
+        docker run -p 7447:7447/tcp -p 7447:7447/udp -p 8000:8000/tcp adlinktech/eclipse-zenoh:latest &
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
