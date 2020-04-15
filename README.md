@@ -1,11 +1,10 @@
 ![zenoh banner](./zenoh-dragon.png)
 
-[![Build Status](https://travis-ci.com/eclipse-zenoh/zenoh-python.svg?branch=master)](https://travis-ci.com/eclipse-zenoh/zenoh-python)
-[![License](https://img.shields.io/badge/License-EPL%202.0-blue)](https://choosealicense.com/licenses/epl-2.0/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![codecov](https://codecov.io/gh/eclipse-zenoh/zenoh-python/branch/master/graph/badge.svg)](https://codecov.io/gh/eclipse-zenoh/zenoh-python)
+![Build](https://github.com/eclipse-zenoh/zenoh-python/workflows/Python%20package/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/zenoh-python/badge/?version=latest)](https://zenoh-python.readthedocs.io/en/latest/?badge=latest)
 [![Gitter](https://badges.gitter.im/atolab/zenoh.svg)](https://gitter.im/atolab/zenoh?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![License](https://img.shields.io/badge/License-EPL%202.0-blue)](https://choosealicense.com/licenses/epl-2.0/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Eclipse zenoh Python API
 
