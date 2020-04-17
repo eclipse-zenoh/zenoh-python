@@ -28,6 +28,8 @@
    python3 <example.py>
    ```
 
+   Each example accepts the -h or --help option that provides a description of its arguments and their default values.
+
 ## Examples description
 
 ### z_add_storage
@@ -36,15 +38,8 @@
 
    Usage:
    ```bash
-   python3 z_add_storage.py [selector] [storage-id] [locator]
+   python3 z_add_storage.py [--selector SELECTOR] [--id ID] [--locator LOCATOR]
    ```
-   where the optional arguments are:
-   - **selector** :  the selector matching the keys (path) that have to be stored.  
-                     Default value: `/demo/example/**`
-   - **storage-id** : the storage identifier.  
-                      Default value: `Demo` 
-   - **locator** : the locator of the Zenoh router to connect.  
-                   Default value: none, meaning the Zenoh router is found via multicast.
 
    Note that his example doesn't specify the Backend that Zenoh has to use for storage creation.  
    Therefore, Zenoh will automatically select the memory backend, meaning the storage will be in memory
@@ -60,15 +55,8 @@
 
    Usage:
    ```bash
-   python3 z_put.py [path] [value] [locator]
+   python3 z_put.py [--path PATH] [--locator LOCATOR] [--msg MSG]
    ```
-   where the optional arguments are:
-   - **path** : the path used as a key for the value.  
-                Default value: `/demo/example/zenoh-python-put` 
-   - **value** : the value (as a string).  
-                Default value: `"Put from Zenoh Python!"` 
-   - **locator** : the locator of the Zenoh router to connect.  
-                   Default value: none, meaning the Zenoh router is found via multicast.
 
 ### z_get
 
@@ -79,13 +67,8 @@
 
    Usage:
    ```bash
-   python3 z_get.py [selector] [locator]
+   python3 z_get.py [--selector SELECTOR] [--locator LOCATOR]
    ```
-   where the optional arguments are:
-   - **selector** : the selector that all replies shall match.  
-                    Default value: `/demo/example/**` 
-   - **locator** : the locator of the Zenoh router to connect.  
-                   Default value: none, meaning the Zenoh router is found via multicast.
 
 ### z_remove
 
@@ -95,13 +78,8 @@
 
    Usage:
    ```bash
-   python3 z_remove [path] [locator]
+   python3 z_remove [--path PATH] [--locator LOCATOR]
    ```
-   where the optional arguments are:
-   - **path** : the key to be removed.  
-                Default value: `/demo/example/zenoh-python-put` 
-   - **locator** : the locator of the Zenoh router to connect.  
-                   Default value: none, meaning the Zenoh router is found via multicast.
 
 ### z_sub
 
@@ -111,13 +89,9 @@
 
    Usage:
    ```bash
-   python3 z_sub.py [selector] [locator]
+   python3 z_sub.py [--selector SELECTOR] [--locator LOCATOR]
    ```
    where the optional arguments are:
-   - **selector** : the subscription selector.  
-                    Default value: `/demo/example/**` 
-   - **locator** : the locator of the Zenoh router to connect.  
-                   Default value: none, meaning the Zenoh router is found via multicast.
 
 ### z_eval
 
@@ -128,13 +102,9 @@
 
    Usage:
    ```bash
-   python3 z_eval.py [selector] [locator]
+   python3 z_eval.py [--path PATH] [--locator LOCATOR]
    ```
    where the optional arguments are:
-   - **path** : the eval path.  
-                Default value: `/demo/example/zenoh-python-eval` 
-   - **locator** : the locator of the Zenoh router to connect.  
-                   Default value: none, meaning the Zenoh router is found via multicast.
 
 ### z_pub_thr & z_sub_thr
 
@@ -145,17 +115,10 @@
 
    Publisher usage:
    ```bash
-   python3 z_pub_thr.py <payload-size> [locator]
+   python3 z_pub_thr.py [--size SIZE] [--locator LOCATOR] [--path PATH]
    ```
-   where the arguments are:
-   - **payload-size** : the size of the payload in bytes.  
-   - **locator** : the locator of the Zenoh router to connect.  
-                   Default value: none, meaning the Zenoh router is found via multicast.
 
    Subscriber usage:
    ```bash
-   python3 z_sub_thr.py [locator]
+   python3 z_sub_thr.py [--path PATH] [--locator LOCATOR]
    ```
-   where the optional arguments are:
-   - **locator** : the locator of the Zenoh router to connect.  
-                   Default value: none, meaning the Zenoh router is found via multicast.

@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(
     prog='zn_pub_thr',
     description='Publisher for zenoh-net throughput example')
 parser.add_argument(
-    '--payload-size', '-s', dest='size',
+    '--size', '-s', dest='size',
     default='256',
     type=int,
     help='the size in bytes of the payload used for the throughput test')

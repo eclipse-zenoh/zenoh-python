@@ -21,10 +21,11 @@ parser = argparse.ArgumentParser(
     prog='zn_pull',
     description='Illustrates the use of a pull subscriber')
 
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/zenoh/examples/**',
-                    type=str,
-                    help='The selector to be used for issuing the query')
+parser.add_argument(
+    '--selector', '-s', dest='selector',
+    default='/zenoh/examples/**',
+    type=str,
+    help='The selector to be used for issuing the pull subscription')
 
 parser.add_argument(
     '--locator', '-l', dest='locator',
@@ -32,7 +33,6 @@ parser.add_argument(
     type=str,
     help='The locator to be used to boostrap the zenoh session.'
          ' By default dynamic discovery is used')
-
 
 args = parser.parse_args()
 selector = args.selector
@@ -44,30 +44,6 @@ def listener(rname, data, info):
     print(">> [Subscription listener] Received ('{}': '{}')"
           .format(rname, data.decode("utf-8")))
 
-
-# --- Command line argument parsing --- --- --- --- --- ---
-parser = argparse.ArgumentParser(
-    prog='zn_pull',
-    description='Illustrates the use of a pull subscriber')
-
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/zenoh/examples/**',
-                    type=str,
-                    help='The selector to be used for issuing the query')
-
-parser.add_argument(
-    '--locator', '-l', dest='locator',
-    default=None,
-    type=str,
-    help='The locator to be used to boostrap the zenoh session.'
-         ' By default dynamic discovery is used')
-
-
-args = parser.parse_args()
-selector = args.selector
-locator = args.locator
-
-# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 print("Openning session...")
 s = Session.open(locator)
