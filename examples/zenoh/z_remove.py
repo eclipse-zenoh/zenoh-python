@@ -18,7 +18,7 @@ from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 parser = argparse.ArgumentParser(prog='z_remove',
                                  description='Removes a resource')
 parser.add_argument('--path', '-p', dest='path',
-                    required=True,
+                    default='/zenoh/examples/python/put/hello',
                     type=str,
                     help='the resource to remove')
 
