@@ -21,10 +21,11 @@ parser = argparse.ArgumentParser(
     prog='zn_pull',
     description='Illustrates the use of a pull subscriber')
 
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/zenoh/examples/**',
-                    type=str,
-                    help='The selector to be used for issuing the pull subscription')
+parser.add_argument(
+    '--selector', '-s', dest='selector',
+    default='/zenoh/examples/**',
+    type=str,
+    help='The selector to be used for issuing the pull subscription')
 
 parser.add_argument(
     '--locator', '-l', dest='locator',
