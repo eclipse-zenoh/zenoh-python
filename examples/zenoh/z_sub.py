@@ -50,8 +50,8 @@ def listener(changes):
     for change in changes:
         v = change.get_value()
         if change.get_kind() == ChangeKind.PUT:
-            print('>> [Subscription listener] Received PUT on "{}": {} [{}]'
-                  .format(change.get_path(), v.get_value(), v.get_encoding()))
+            print('>> [Subscription listener] Received PUT on "{}": {} [{}] {}'
+                  .format(change.get_path(), v.get_value(), v.get_encoding(), type(v.get_value())))
         elif change.get_kind() == ChangeKind.UPDATE:
             print('>> [Subscription listener] Received UPDATE on "{}": {} [{}]'
                   .format(change.get_path(), v.get_value()))

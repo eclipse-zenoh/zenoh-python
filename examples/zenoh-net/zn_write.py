@@ -32,7 +32,7 @@ parser.add_argument(
          ' By default dynamic discovery is used')
 
 parser.add_argument('--msg', '-m', dest='msg',
-                    default='Zenitude written from zenoh-python!',
+                    default='Zenitude written from zenoh-net-python!',
                     type=str,
                     help='The quote associated with the welcoming resource')
 
