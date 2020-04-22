@@ -15,17 +15,28 @@
 WD := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))));
 
 all:
-	echo "Nothing to do";
+	python3 setup.py sdist bdist_wheel
 
 install:
 	python3 setup.py install --record zenoh_files.txt
 
-
-dist:
-	python3 setup.py sdist bdist_wheel
+all-cross:
+	python3 setup.py bdist_wheel --universal --plat-name macosx-10.9-x86_64
+	./zenoh-c/dockcross/dockcross-manylinux2010-x86 bash -c " \
+		/opt/python/cp35-cp35m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
+		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
+		/opt/python/cp37-cp37m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
+		/opt/python/cp38-cp38/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
+		for i in dist/dockcross-x86/*; do auditwheel repair $i -w dist; done "
+	./zenoh-c/dockcross/dockcross-manylinux2010-x64 bash -c " \
+		/opt/python/cp35-cp35m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
+		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
+		/opt/python/cp37-cp37m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
+		/opt/python/cp38-cp38/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
+		for i in dist/dockcross-x64/*; do auditwheel repair $i -w dist; done "
 
 clean:
-	rm -rf ./build ./dist ./zenoh.egg-info .coverage;
+	rm -rf ./build ./_skbuild ./dist ./zenoh.egg-info .coverage;
 	rm -rf zenoh_api.log .tox zenoh.egg-info ./zenoh/__pycache__/ ./zenoh/*/__pycache__/ ./zenoh/*/*/__pycache__/;
 
 test:

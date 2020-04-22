@@ -10,6 +10,7 @@ TODO
 .Python
 build/
 _build/
+_skbuild/
 develop-eggs/
 dist/
 downloads/
