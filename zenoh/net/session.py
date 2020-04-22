@@ -147,7 +147,6 @@ class Session(object):
     zenohc_native_lib = None
 
     def __init__(self, locator, properties={}):
-        print("******* zenohc_lib_path :  {}".format(zenohc_lib_path))
         if Session.zenohc_native_lib is None:
             Session.zenohc_native_lib = CDLL(zenohc_lib_path)
 
