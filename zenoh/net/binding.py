@@ -58,7 +58,10 @@ def get_lib_ext():
     else:
         return '.dll'
 
+
 system = platform.system()
+
+
 if system in ['windows', 'Windows', 'win32']:
     zenohc_lib = 'zenohc' + get_lib_ext()
 else:
