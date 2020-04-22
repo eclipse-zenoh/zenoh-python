@@ -31,6 +31,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install scikit-build
 
     - name: Install zenoh-python
       run: python setup.py install
