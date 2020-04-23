@@ -59,6 +59,18 @@ def get_lib_ext():
         return '.dll'
 
 
+def get_user_lib_path():
+    system = platform.system()
+    if system == 'Linux':
+        return '/usr/local/lib'
+    elif system == 'Darwin':
+        return '/usr/local/lib'
+    elif system in ['windows', 'Windows', 'win32']:
+        return os.environ['ZENOH_HOME']
+    else:
+        return '/usr/local/lib'
+
+
 system = platform.system()
 
 
@@ -67,7 +79,13 @@ if system in ['windows', 'Windows', 'win32']:
 else:
     zenohc_lib = 'libzenohc' + get_lib_ext()
 
+
 zenohc_lib_path = os.path.join(os.path.dirname(__file__), '..', zenohc_lib)
+if not os.path.exists(zenohc_lib_path):
+    print('* WARNING : {} not found along with zenoh python installation '
+          '(not present in the wheel?). Try to load it from {}'
+          .format(zenohc_lib, get_user_lib_path()))
+    zenohc_lib_path = os.path.join(get_user_lib_path(), zenohc_lib)
 
 
 # zenoh-c result types

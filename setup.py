@@ -21,10 +21,11 @@ def read(fname):
 
 
 setup(
-    name='eclipse-zenoh',
+    name='zenoh',
     version='0.4.2.dev3',
     packages=['zenoh', 'zenoh.net', 'zenoh.core'],
     author='ADLINK zenoh team',
+    author_email='zenoh@adlink-labs.tech',
     description="Python client API for Eclipse zenoh",
     long_description=read('README.md'),
     long_description_content_type="text/markdown",
