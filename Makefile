@@ -27,20 +27,19 @@ all-cross:
 		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
 		/opt/python/cp37-cp37m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
 		/opt/python/cp38-cp38/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
-		for i in dist/dockcross-x86/*; do auditwheel repair $i -w dist; done "
+		for i in dist/dockcross-x86/*; do auditwheel repair \$$i -w dist; done "
 	./zenoh-c/dockcross/dockcross-manylinux2010-x64 bash -c " \
 		/opt/python/cp35-cp35m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
 		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
 		/opt/python/cp37-cp37m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
 		/opt/python/cp38-cp38/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
-		for i in dist/dockcross-x64/*; do auditwheel repair $i -w dist; done "
+		for i in dist/dockcross-x64/*; do auditwheel repair \$$i -w dist; done "
 
 clean:
-	rm -rf ./build ./_skbuild ./dist ./zenoh.egg-info .coverage;
-	rm -rf zenoh_api.log .tox zenoh.egg-info ./zenoh/__pycache__/ ./zenoh/*/__pycache__/ ./zenoh/*/*/__pycache__/;
+	rm -rf ./build ./_skbuild ./dist ./zenoh.egg-info .coverage zenoh/include zenoh/libzenohc.* zenoh/zenohc.*;
+	rm -rf zenoh_api.log .tox ./zenoh/__pycache__/ ./zenoh/*/__pycache__/ ./zenoh/*/*/__pycache__/;
 
-test:
-	rm -rf ./tox
+test: clean
 	tox
 
 doc:

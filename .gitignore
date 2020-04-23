@@ -13,6 +13,9 @@ _build/
 _skbuild/
 develop-eggs/
 dist/
+zenoh/include
+zenoh/libzenohc.*
+zenoh/zenohc.*
 downloads/
 eggs/
 .eggs/
