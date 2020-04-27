@@ -14,32 +14,34 @@ that is able to scale down to extremely constrainded devices and networks.
 The Python API is for pure clients, in other terms does not support peer-to-peer communication, can be easily
 tested with our demo instace available at **demo.zenoh.io**.
 
-## Dependencies
-The zenoh-python API depends on the [zenoh-c](https://github.com/eclipse-zenoh/zenoh-c) API. Thus the first thing to do is to ensure that 
-**zenoh-c** in installed on your machine. To do so, please follow the instructions provided [here](https://github.com/eclipse-zenoh/zenoh-c/blob/master/README.md).
+-------------------------------
+## How to install it
 
-## Installing the Python API from Sources
-To install the API you can do:
+Eclipse zenoh-python library is available on [Pypi.org](https://pypi.org/project/zenoh/).  
+Install the latest available version using `pip`:
+```
+pip install zenoh==0.4.2.dev3
+```
 
-    $ python3 setup.py install
+### Supported Python versions and platforms
 
-Notice that on some platforms, such as Linux, you will need to do this as *sudo*.
+zenoh-python has been tested with Python 3.5, 3.6, 3.7 and 3.8. 
 
-<!-- ## Installing the API from PyPi
-You can also install the [zenoh](http://zenoh.io)'s python API from PyPi by  simply doing:
+It relies on the [zenoh-c](https://github.com/eclipse-zenoh/zenoh-c) API which is currently supported on the following platforms:
+ * Linux
+ * MacOS X
 
-    pip3 install zenoh -->
-    
-## Running the Examples
-To run the bundled examples without installing any additional software you can the **zenoh** demo instance 
-available at **demo.zenoh.io**. To do so, simply run as follows:
+Notice that the Python wheels available on [Pypi.org](https://pypi.org/project/zenoh/) are pre-compiled for:
+ * All MacOS X >= 10.9
+ * Most of the 32-bits Linux distriutions thanks to manylinux2010_i686
+ * Most of the 64-bits Linux distriutions thanks to manylinux2010_x86_64
 
-    $ cd zenoh-python/example
-    $ python3 sub.py -z demo.zenoh.io
+On other Linux architectures such as Raspberry, the `pip` tool will be able to download the sources distribution and to compile it.
 
-From another terminal:
+-------------------------------
+## How to test it
 
-    $ cd zenoh-python/example
-    $ python3 sub.py -z demo.zenoh.io
+Run a zenoh router on your local host, following the instructions in [eclipse-zenoh/zenoh](https://github.com/eclipse-zenoh/zenoh#how-to-test-it)
 
+Then, run the zenoh-python examples following the instructions in [examples/zenoh/README.md](https://github.com/eclipse-zenoh/zenoh-python/blob/master/examples/zenoh/README.md)
 
