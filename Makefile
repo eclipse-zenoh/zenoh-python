@@ -12,7 +12,9 @@
 
 # -*-Makefile-*-
 
-WD := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))));
+# zenoh-python/ directory
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
 
 all:
 	python3 setup.py sdist bdist_wheel
@@ -20,15 +22,33 @@ all:
 install:
 	python3 setup.py install --record zenoh_files.txt
 
+DOCKCROSS_x86_IMAGE=dockcross/manylinux2010-x86
+DOCKCROSS_x64_IMAGE=dockcross/manylinux2010-x64
+
+DOCKER_OK := $(shell docker version 2> /dev/null)
+DOCKCROSS_x86_INFO := $(shell docker image inspect $(DOCKCROSS_x86_IMAGE) 2> /dev/null)
+DOCKCROSS_x64_INFO := $(shell docker image inspect $(DOCKCROSS_x64_IMAGE) 2> /dev/null)
+
+check-docker:
+ifndef DOCKER_OK
+	$(error "Docker is not available. Please install Docker")
+endif
+ifeq ($(DOCKCROSS_x86_INFO),[])
+	docker pull $(DOCKCROSS_x86_IMAGE)
+endif
+ifeq ($(DOCKCROSS_x64_INFO),[])
+	docker pull $(DOCKCROSS_x64_IMAGE)
+endif
+
 all-cross:
 	python3 setup.py bdist_wheel --universal --plat-name macosx-10.9-x86_64
-	./zenoh-c/dockcross/dockcross-manylinux2010-x86 bash -c " \
+	docker run --rm -v $(ROOT_DIR):/workdir -w /workdir $(DOCKCROSS_x86_IMAGE) bash -c " \
 		/opt/python/cp35-cp35m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
 		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
 		/opt/python/cp37-cp37m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
 		/opt/python/cp38-cp38/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
 		for i in dist/dockcross-x86/*; do auditwheel repair \$$i -w dist; done "
-	./zenoh-c/dockcross/dockcross-manylinux2010-x64 bash -c " \
+	docker run --rm -v $(ROOT_DIR):/workdir -w /workdir $(DOCKCROSS_x64_IMAGE) bash -c " \
 		/opt/python/cp35-cp35m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
 		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
 		/opt/python/cp37-cp37m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \

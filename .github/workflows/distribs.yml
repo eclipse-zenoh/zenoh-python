@@ -84,10 +84,13 @@ jobs:
         with:
           submodules: true
 
+      - name: get dockcross/${{ matrix.dockcross-version }} image
+        run: docker pull dockcross/${{ matrix.dockcross-version }}
+
       - name: ${{ matrix.dockcross-version }} distrib for Python ${{ matrix.python-version }}
         run: |
-          ./zenoh-c/dockcross/dockcross-${{ matrix.dockcross-version }} /opt/python/${{ matrix.python-version }}/bin/python setup.py bdist_wheel --dist-dir dist-${{ matrix.dockcross-version }}
-          ./zenoh-c/dockcross/dockcross-${{ matrix.dockcross-version }} auditwheel repair dist-${{ matrix.dockcross-version }}/* -w dist
+          docker run --rm -v $GITHUB_WORKSPACE:/workdir -w /workdir dockcross/${{ matrix.dockcross-version }} /opt/python/${{ matrix.python-version }}/bin/python setup.py bdist_wheel --dist-dir dist-${{ matrix.dockcross-version }}
+          docker run --rm -v $GITHUB_WORKSPACE:/workdir -w /workdir dockcross/${{ matrix.dockcross-version }} auditwheel repair dist-${{ matrix.dockcross-version }}/* -w dist
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1.0.0
