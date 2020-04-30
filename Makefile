@@ -41,7 +41,6 @@ ifeq ($(DOCKCROSS_x64_INFO),[])
 endif
 
 all-cross:
-	python3 setup.py bdist_wheel --universal --plat-name macosx-10.9-x86_64
 	docker run --rm -v $(ROOT_DIR):/workdir -w /workdir $(DOCKCROSS_x86_IMAGE) bash -c " \
 		/opt/python/cp35-cp35m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
 		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
