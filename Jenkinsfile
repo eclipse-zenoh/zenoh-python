@@ -9,13 +9,14 @@ pipeline {
   stages {
     stage('Checkout Git TAG') {
       steps {
+        cleanWs()
         checkout([$class: 'GitSCM',
                   branches: [[name: "${params.TAG}"]],
                   doGenerateSubmoduleConfigurations: false,
                   extensions: [],
                   gitTool: 'Default',
                   submoduleCfg: [],
-                  userRemoteConfigs: [[url: 'https://github.com/atolab/eclipse-zenoh-java.git']]
+                  userRemoteConfigs: [[url: 'https://github.com/atolab/eclipse-zenoh-python.git']]
                 ])
       }
     }
