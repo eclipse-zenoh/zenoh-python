@@ -12,8 +12,15 @@ pipeline {
         cleanWs()
         checkout([$class: 'GitSCM',
                   branches: [[name: "${params.TAG}"]],
-                  doGenerateSubmoduleConfigurations: true,
-                  extensions: [],
+                  doGenerateSubmoduleConfigurations: false,
+                  extensions: [[$class: 'SubmoduleOption',
+                    depth: 1,
+                    disableSubmodules: false,
+                    parentCredentials: false,
+                    recursiveSubmodules: true,
+                    reference: '',
+                    shallow: true,
+                    trackingSubmodules: true]],
                   gitTool: 'Default',
                   submoduleCfg: [],
                   userRemoteConfigs: [[url: 'https://github.com/atolab/eclipse-zenoh-python.git']]
