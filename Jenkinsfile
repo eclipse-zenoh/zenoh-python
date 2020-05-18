@@ -12,7 +12,7 @@ pipeline {
         cleanWs()
         checkout([$class: 'GitSCM',
                   branches: [[name: "${params.TAG}"]],
-                  doGenerateSubmoduleConfigurations: false,
+                  doGenerateSubmoduleConfigurations: true,
                   extensions: [],
                   gitTool: 'Default',
                   submoduleCfg: [],
@@ -31,7 +31,7 @@ pipeline {
 
   post {
     success {
-        archiveArtifacts artifacts: 'zenoh/target/zenoh-*.jar, examples/*/target/zenoh-*.jar', fingerprint: true
+        archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
     }
   }
 }
