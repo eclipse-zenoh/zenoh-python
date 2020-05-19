@@ -17,10 +17,10 @@ tested with our demo instace available at **demo.zenoh.io**.
 -------------------------------
 ## How to install it
 
-Eclipse zenoh-python library is available on [Pypi.org](https://pypi.org/project/zenoh/).  
+Eclipse zenoh-python library is available on [Pypi.org](https://pypi.org/project/eclipse-zenoh/).  
 Install the latest available version using `pip`:
 ```
-pip install zenoh==0.4.2.dev3
+pip install eclipse-zenoh
 ```
 
 ### Supported Python versions and platforms
