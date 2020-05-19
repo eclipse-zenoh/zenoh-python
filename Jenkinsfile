@@ -23,7 +23,7 @@ pipeline {
                     trackingSubmodules: true]],
                   gitTool: 'Default',
                   submoduleCfg: [],
-                  userRemoteConfigs: [[url: 'https://github.com/atolab/eclipse-zenoh-python.git']]
+                  userRemoteConfigs: [[url: 'https://github.com/eclipse-zenoh/zenoh-python.git']]
                 ])
       }
     }
