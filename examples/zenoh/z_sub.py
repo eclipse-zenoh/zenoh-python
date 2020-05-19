@@ -55,7 +55,7 @@ def listener(changes):
                           v.get_encoding(), type(v.get_value())))
         elif change.get_kind() == ChangeKind.UPDATE:
             print('>> [Subscription listener] Received UPDATE on "{}": {} [{}]'
-                  .format(change.get_path(), v.get_value()))
+                  .format(change.get_path(), v.get_value(), v.get_encoding()))
         elif change.get_kind() == ChangeKind.REMOVE:
             print('>> [Subscription listener] Received REMOVE on "{}"'
                   .format(change.get_path()))
