@@ -11,13 +11,12 @@
 [Eclipse zenoh](http://zenoh.io) is an extremely efficient and fault-tolerant [Named Data Networking](http://named-data.net) (NDN) protocol 
 that is able to scale down to extremely constrainded devices and networks. 
 
-The Python API is for pure clients, in other terms does not support peer-to-peer communication, can be easily
-tested with our demo instace available at **demo.zenoh.io**.
+The Python API is for pure clients, in other terms does not support peer-to-peer communication, can be easily tested against a zenoh router running in a Docker container (see https://github.com/eclipse-zenoh/zenoh#how-to-test-it). 
 
 -------------------------------
 ## How to install it
 
-Eclipse zenoh-python library is available on [Pypi.org](https://pypi.org/project/eclipse-zenoh/).  
+The Eclipse zenoh-python library is available on [Pypi.org](https://pypi.org/project/eclipse-zenoh/).  
 Install the latest available version using `pip`:
 ```
 pip install eclipse-zenoh
@@ -39,9 +38,24 @@ Notice that the Python wheels available on [Pypi.org](https://pypi.org/project/z
 On other Linux architectures such as Raspberry, the `pip` tool will be able to download the sources distribution and to compile it.
 
 -------------------------------
-## How to test it
+## How to build it 
 
-Run a zenoh router on your local host, following the instructions in [eclipse-zenoh/zenoh](https://github.com/eclipse-zenoh/zenoh#how-to-test-it)
+The zenoh-python repository uses the [zenoh-c](https://github.com/eclipse-zenoh/zenoh-c) repository as a sub-module. Thus, be sure to also clone this submodule.  
+Also make sure to have [cmake >= 3.0](https://cmake.org) available on your host.
+
+For convenience, a top-level Makefile is available. Just do the following to build and install:
+
+  ```bash
+  $ cd /path/to/zenoh-python
+  $ make
+  $ make install # on linux use **sudo**
+  ```
+
+
+-------------------------------
+## Running the Examples
+
+The simplest way to run some of the example is to get a Docker image of the **zenoh** network router (see https://github.com/eclipse-zenoh/zenoh#how-to-test-it) and then to run the examples on your machine.
 
 Then, run the zenoh-python examples following the instructions in [examples/zenoh/README.md](https://github.com/eclipse-zenoh/zenoh-python/blob/master/examples/zenoh/README.md)
 
