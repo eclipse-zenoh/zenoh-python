@@ -3,8 +3,7 @@ pipeline {
   parameters {
     gitParameter name: 'TAG', 
                  type: 'PT_TAG',
-                 description: "A Git tag (default: ${BRANCH_NAME} or ${env.BRANCH_NAME})",
-                 defaultValue: "${BRANCH_NAME}"
+                 defaultValue: "master"
   }
 
   stages {
@@ -46,8 +45,9 @@ pipeline {
       steps {
         sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
+          ssh genie.zenoh@projects-storage.eclipse.org rm -fr /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
           ssh genie.zenoh@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
-          scp dist/*.whl  genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}/
+          scp dist/*.whl dist/*.tar.gz genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}/
           '''
         }
       }
@@ -56,7 +56,7 @@ pipeline {
       steps {
         sh '''
           . ~/.zshrc
-          python3 -m twine upload --repository eclipse-zenoh dist/*.whl
+          python3 -m twine upload --repository eclipse-zenoh dist/*.whl dist/*.tar.gz
         '''
       }
     }
@@ -64,7 +64,7 @@ pipeline {
 
   post {
     success {
-        archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
+        archiveArtifacts artifacts: 'dist/*.whl, dist/*.tar.gz', fingerprint: true
     }
   }
 }
