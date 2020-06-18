@@ -15,9 +15,12 @@
 # zenoh-python/ directory
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
+ifneq ($(PLAT_NAME),)
+       PLAT_NAME_OPT := --plat-name $(PLAT_NAME)
+endif
 
 all:
-	python3 setup.py sdist bdist_wheel
+	python3 setup.py sdist bdist_wheel  $(PLAT_NAME_OPT)
 
 install:
 	python3 setup.py install --record zenoh_files.txt

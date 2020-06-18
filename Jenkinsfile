@@ -1,9 +1,9 @@
 pipeline {
-  agent { label 'UbuntuVM' }
+  agent { label 'MacMini' }
   parameters {
     gitParameter name: 'TAG', 
                  type: 'PT_TAG',
-                 defaultValue: 'master'
+                 defaultValue: "master"
   }
 
   stages {
@@ -30,6 +30,13 @@ pipeline {
     stage('Release build') {
       steps {
         sh '''
+          . ~/.zshrc
+          export PLAT_NAME=macosx-10.9-x86_64
+          for PYTHON_ENV in zenoh-cp35 zenoh-cp36 zenoh-cp37 zenoh-cp38; do
+            conda activate ${PYTHON_ENV}
+            make
+          done
+
           make all-cross
         '''
       }
@@ -38,8 +45,9 @@ pipeline {
       steps {
         sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
+          ssh genie.zenoh@projects-storage.eclipse.org rm -fr /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
           ssh genie.zenoh@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
-          scp dist/*.whl  genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}/
+          scp dist/*.whl dist/*.tar.gz genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}/
           '''
         }
       }
@@ -47,7 +55,8 @@ pipeline {
     stage('Deploy on pypi.org') {
       steps {
         sh '''
-          python3 -m twine upload --repository eclipse-zenoh dist/*.whl
+          . ~/.zshrc
+          python3 -m twine upload --repository eclipse-zenoh dist/*.whl dist/*.tar.gz
         '''
       }
     }
@@ -55,7 +64,7 @@ pipeline {
 
   post {
     success {
-        archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
+        archiveArtifacts artifacts: 'dist/*.whl, dist/*.tar.gz', fingerprint: true
     }
   }
 }
