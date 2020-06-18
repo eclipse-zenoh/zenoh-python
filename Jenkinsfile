@@ -30,6 +30,7 @@ pipeline {
     stage('Release build') {
       steps {
         sh '''
+          . ~/.zshrc
           export PLAT_NAME=macosx-10.9-x86_64
           for PYTHON_ENV in zenoh-cp35 zenoh-cp36 zenoh-cp37 zenoh-cp38; do
             conda activate ${PYTHON_ENV}
@@ -53,6 +54,7 @@ pipeline {
     stage('Deploy on pypi.org') {
       steps {
         sh '''
+          . ~/.zshrc
           python3 -m twine upload --repository eclipse-zenoh dist/*.whl
         '''
       }
