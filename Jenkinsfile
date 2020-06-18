@@ -3,8 +3,8 @@ pipeline {
   parameters {
     gitParameter name: 'TAG', 
                  type: 'PT_TAG',
-                 description: 'A Git tag (default: ${BRANCH_NAME})'
-                 defaultValue: '${BRANCH_NAME}'
+                 description: 'A Git tag (default: ${ev.BRANCH_NAME})'
+                 defaultValue: '${env.BRANCH_NAME}'
   }
 
   stages {
