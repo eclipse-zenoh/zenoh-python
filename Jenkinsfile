@@ -1,5 +1,5 @@
 pipeline {
-  agent { label 'UbuntuVM' }
+  agent { label 'MacMini' }
   parameters {
     gitParameter name: 'TAG', 
                  type: 'PT_TAG',
@@ -30,6 +30,12 @@ pipeline {
     stage('Release build') {
       steps {
         sh '''
+          export PLAT_NAME=macosx-10.9-x86_64
+          for PYTHON_ENV in zenoh-cp35 zenoh-cp36 zenoh-cp37 zenoh-cp38; do
+            conda activate ${PYTHON_ENV}
+            make
+          done
+
           make all-cross
         '''
       }
