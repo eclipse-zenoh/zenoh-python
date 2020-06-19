@@ -33,22 +33,12 @@ class Workspace(object):
         self.executor = executor
 
     def __to_absolute(self, path):
-        if path.startswith('/'):
-            return path
-        else:
-            return self.path.to_string() + '/' + path
+        return path if path.startswith('/') else self.path.to_string() + '/' + path
 
     def __to_value(self, v):
-        if type(v) is Value:
-            return v
-        if type(v) is str:
-            return Value(v, Encoding.STRING)
-        if type(v) is bytes:
-            return Value(v, Encoding.RAW)
-        if type(v) is int:
-            return Value(str(v), Encoding.INT)
-        if type(v) is float:
-            return Value(str(v), Encoding.FLOAT)
+        return dict([(Value,v), (str,Value(v, Encoding.STRING)),
+            (bytes, Value(v, Encoding.RAW)), (int, Value(str(v), Encoding.INT)),
+            (float,Value(str(v), Encoding.FLOAT))])[type(v)]
 
     def put(self, path, value):
         '''
@@ -97,10 +87,7 @@ class Workspace(object):
             q.put(reply_value)
 
         def contains_key(kvs, key):
-            for (k, _) in kvs:
-                if(k == key):
-                    return True
-            return False
+            return any(True for (k, _) in kvs if(k == key))
 
         selector = Selector.to_selector(self.__to_absolute(selector))
 

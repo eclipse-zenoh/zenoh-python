@@ -19,25 +19,21 @@ import os
 class APILogger:
     class __SingletonLogger:
         def __init__(self, level, debug_flag):
-
             log_format = '[%(asctime)s] - [%(levelname)s] > %(message)s'
-
             self.logger = logging.getLogger('zenoh.python.api')
-
             self.logger.setLevel(level)
             formatter = logging.Formatter(log_format)
             if not debug_flag:
                 platform = sys.platform
-                if platform == 'linux':
-                    handler = logging.handlers.SysLogHandler('/dev/log')
-                elif platform == 'darwin':
-                    handler = logging.handlers.SysLogHandler('/var/run/syslog')
-                elif platform in ['windows', 'Windows', 'win32']:
-                    handler = logging.handlers.SysLogHandler()
+                dict_plat = dict([('linux', '/dev/log'), ('darwin', '/var/run/syslog'), \
+                    ('windows', ''), ('Windows', ''), ('win32', '')])
+                handler = logging.handlers.SysLogHandler(dict_plat[platform])
+                del dict_plat
             else:
                 handler = logging.StreamHandler(sys.stdout)
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
+            del handler, log_format, formatter
 
         def info(self, caller, message):
             self.logger.info('< {} > {}'.format(caller, message))
