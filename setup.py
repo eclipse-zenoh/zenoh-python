@@ -22,7 +22,7 @@ def read(fname):
 
 setup(
     name='eclipse-zenoh',
-    version='0.4.2-M1',
+    version='0.4.2.M1',
     packages=['zenoh', 'zenoh.net', 'zenoh.core'],
     author='ADLINK zenoh team',
     author_email='zenoh@adlink-labs.tech',
