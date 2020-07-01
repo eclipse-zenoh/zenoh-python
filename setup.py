@@ -12,7 +12,7 @@
 # Contributors:
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
-from setuptools import setup
+from skbuild import setup
 import os
 
 
@@ -21,21 +21,25 @@ def read(fname):
 
 
 setup(
-    name='zenoh',
-    version='0.4.0',
+    name='eclipse-zenoh',
+    version='0.4.2rc1',
     packages=['zenoh', 'zenoh.net', 'zenoh.core'],
-    author='kydos',
-    description="Python client API for zenoh",
+    author='ADLINK zenoh team',
+    author_email='zenoh@adlink-labs.tech',
+    description="Python client API for Eclipse zenoh",
     long_description=read('README.md'),
     long_description_content_type="text/markdown",
     url='https://github.com/eclipse-zenoh/zenoh-python',
     install_requires=['hexdump', 'mvar', 'papero==0.2.7'],
     classifiers=[
-        "Programming Language :: Python :: 3",
-        "Intended Audience :: Developers",
-        "Development Status :: 2 - Beta",
-        "Topic :: System :: Networking",
+        'Programming Language :: Python :: 3',
+        'Intended Audience :: Developers',
+        'Development Status :: 4 - Beta',
+        'Topic :: System :: Networking',
         'License :: OSI Approved :: Apache Software License',
         'License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)',
-        "Operating System :: OS Independent"]
+        'Operating System :: POSIX :: Linux',
+        'Operating System :: MacOS :: MacOS X'],
+    cmake_source_dir='zenoh-c',
+    cmake_args=['-DCMAKE_MAKE_PROGRAM=make']
     )

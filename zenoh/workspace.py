@@ -38,6 +38,18 @@ class Workspace(object):
         else:
             return self.path.to_string() + '/' + path
 
+    def __to_value(self, v):
+        if type(v) is Value:
+            return v
+        if type(v) is str:
+            return Value(v, Encoding.STRING)
+        if type(v) is bytes:
+            return Value(v, Encoding.RAW)
+        if type(v) is int:
+            return Value(str(v), Encoding.INT)
+        if type(v) is float:
+            return Value(str(v), Encoding.FLOAT)
+
     def put(self, path, value):
         '''
         Put a path/value into Zenoh.
@@ -45,6 +57,7 @@ class Workspace(object):
         :param path: the path. Can be absolute or relative to the workspace.
         :param value: the :class:`Value`.
         '''
+        value = self.__to_value(value)
         self.rt.write_data(
             self.__to_absolute(path),
             value.as_zn_payload(),

@@ -12,26 +12,41 @@
 
 import sys
 import time
+import argparse
 from zenoh.net import Session
 
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zn_write',
+    description='Illustrates the use of a zenoh-net write')
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/python/write/hello',
+                    type=str,
+                    help='the path representing the  URI')
 
-if __name__ == '__main__':
-    uri = "/demo/example/zenoh-python-write"
-    if len(sys.argv) > 1:
-        uri = sys.argv[1]
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
-    value = "Write from Python!"
-    if len(sys.argv) > 2:
-        value = sys.argv[2]
+parser.add_argument('--msg', '-m', dest='msg',
+                    default='Zenitude written from zenoh-net-python!',
+                    type=str,
+                    help='The quote associated with the welcoming resource')
 
-    locator = None
-    if len(sys.argv) > 3:
-        locator = sys.argv[3]
+args = parser.parse_args()
+msg = args.msg
+path = args.path
+locator = args.locator
 
-    print("Openning session...")
-    s = Session.open(locator)
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-    print("Writing Data ('{}': '{}')...".format(uri, value))
-    s.write_data(uri, bytes(value, encoding='utf8'))
+print("Openning session...")
+s = Session.open(locator)
 
-    s.close()
+print("Writing Data ('{}': '{}')...".format(path, msg))
+s.write_data(path, bytes(msg, encoding='utf8'))
+
+s.close()

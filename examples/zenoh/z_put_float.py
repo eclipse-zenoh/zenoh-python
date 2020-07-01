@@ -15,17 +15,12 @@ import argparse
 from zenoh import Zenoh, Workspace
 
 # --- Command line argument parsing --- --- --- --- --- ---
-parser = argparse.ArgumentParser(
-    prog='z_add_storage', description='Adds a storage')
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/zenoh/examples/**',
+parser = argparse.ArgumentParser(prog='z_put_float',
+                                 description='Produces float values')
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/native/float',
                     type=str,
-                    help='the selector associated with this storage')
-
-parser.add_argument('--id', '-i', dest='id',
-                    default='zenoh-examples-storage',
-                    type=str,
-                    help='the storage identifier')
+                    help='the path representing the float resource')
 
 parser.add_argument(
     '--locator', '-l', dest='locator',
@@ -36,15 +31,14 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-
 # zenoh code  --- --- --- --- --- --- --- --- --- --- ---
-print('Login to Zenoh...')
 z = Zenoh.login(args.locator)
+w = z.workspace()
 
-a = z.admin()
-
-print('Add storage {} with selector {}'.format(args.id, args.selector))
-properties = {'selector': args.selector}
-a.add_storage(args.id, properties)
-
-z.logout()
+while (True):
+    v = input("Insert value (\'.\' to exit): ")
+    if v != '.':
+        w.put(args.path, float(v))
+    else:
+        z.logout()
+        break

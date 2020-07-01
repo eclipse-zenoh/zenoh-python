@@ -12,30 +12,47 @@
 
 import time
 import sys
-from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 import argparse
+from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 
-locator = None
-if len(sys.argv) < 2:
-    print('USAGE:\n\tzn_put_thr <payload-size> [<zenoh-locator>]\n\n')
-    sys.exit(-1)
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='z_put_thr', description='Publisher for zenoh throughput example')
+parser.add_argument(
+    '--size', '-s', dest='size',
+    default='256', type=int,
+    help='the size in bytes of the payload used for the throughput test')
 
-length = int(sys.argv[1])
-print("Running throughput test for payload of {} bytes".format(length))
-if len(sys.argv) > 2:
-    locator = sys.argv[2]
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None, type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
-path = '/test/thr'
+parser.add_argument(
+    '--path', '-p', dest='path',
+    default='/zenoh/examples/throughput/data',
+    type=str,
+    help='the resource used to write throughput data')
 
+args = parser.parse_args()
+
+locator = args.locator
+size = args.size
+path = args.path
+
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
+print("Running throughput test for payload of {} bytes".format(size))
 data = bytearray()
-for i in range(0, length):
+for i in range(0, size):
     data.append(i % 10)
-v = Value(data, encoding=Encoding.RAW)
+
+v = Value(data)
 
 print('Login to Zenoh...')
 z = Zenoh.login(locator)
-print("Use Workspace on '/'")
-w = z.workspace('/')
+w = z.workspace()
 
+print('Press Ctrl-C to stop the publisher...')
 while True:
     w.put(path, v)

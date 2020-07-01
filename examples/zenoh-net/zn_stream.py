@@ -13,33 +13,48 @@
 import sys
 import time
 import itertools
+import argparse
 from zenoh.net import Session
 
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='z_stream',
+    description='Illustrates the use of a zenoh-net publisher')
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/python/stream/hello',
+                    type=str,
+                    help='the path representing the  URI')
 
-if __name__ == '__main__':
-    uri = "/demo/example/zenoh-python-stream"
-    if len(sys.argv) > 1:
-        uri = sys.argv[1]
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
-    value = "Stream from Python!"
-    if len(sys.argv) > 2:
-        value = sys.argv[2]
+parser.add_argument('--msg', '-m', dest='msg',
+                    default='Zenitude streamed from zenoh-net-python!',
+                    type=str,
+                    help='The quote associated with the welcoming resource')
 
-    locator = None
-    if len(sys.argv) > 3:
-        locator = sys.argv[3]
+args = parser.parse_args()
+msg = args.msg
+path = args.path
+locator = args.locator
 
-    print("Openning session...")
-    s = Session.open(locator)
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-    print("Declaring Publisher on '{}'...".format(uri))
-    pub = s.declare_publisher(uri)
+print("Openning session...")
+s = Session.open(locator)
 
-    for idx in itertools.count():
-        time.sleep(1)
-        buf = "[{:4d}] {}".format(idx, value)
-        print("Streaming Data ('{}': '{}')...".format(uri, buf))
-        s.stream_data(pub, bytes(buf, encoding='utf8'))
+print("Declaring Publisher on '{}'...".format(path))
+pub = s.declare_publisher(path)
 
-    s.undeclare_publisher(pub)
-    s.close()
+for idx in itertools.count():
+    time.sleep(1)
+    buf = "[{:4d}] {}".format(idx, msg)
+    print("Streaming Data ('{}': '{}')...".format(path, buf))
+    s.stream_data(pub, bytes(buf, encoding='utf8'))
+
+s.undeclare_publisher(pub)
+s.close()

@@ -11,25 +11,39 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
+import argparse
 from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
 
-selector = '/demo/example/**'
-if len(sys.argv) > 1:
-    selector = sys.argv[1]
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='z_get',
+    description='Issues a query for a selector specified by the command-line')
 
-locator = None
-if len(sys.argv) > 2:
-    locator = sys.argv[2]
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/zenoh/examples/**',
+                    type=str,
+                    help='The selector to be used for issuing the query')
 
-print('Login to Zenoh (locator={})...'.format(locator))
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
+
+
+args = parser.parse_args()
+selector = args.selector
+locator = args.locator
+
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
+print('Login to Zenoh...')
 z = Zenoh.login(locator)
-
-print('Use Workspace on "/"')
-w = z.workspace('/')
+w = z.workspace()
 
 print('Get from {}'.format(selector))
 for data in w.get(selector):
-    print('  {} : {}'.format(data.path, data.value))
+    print('  {} : {} - {}'.format(data.path, data.value, data.value.encoding))
 
 
 z.logout()

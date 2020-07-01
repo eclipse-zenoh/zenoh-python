@@ -12,24 +12,56 @@
 
 # -*-Makefile-*-
 
-WD := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))));
+# zenoh-python/ directory
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
+ifneq ($(PLAT_NAME),)
+       PLAT_NAME_OPT := --plat-name $(PLAT_NAME)
+endif
 
 all:
-	echo "Nothing to do";
+	python3 setup.py sdist bdist_wheel  $(PLAT_NAME_OPT)
 
 install:
 	python3 setup.py install --record zenoh_files.txt
 
+DOCKCROSS_x86_IMAGE=dockcross/manylinux2010-x86
+DOCKCROSS_x64_IMAGE=dockcross/manylinux2010-x64
 
-dist:
-	python3 setup.py sdist bdist_wheel
+DOCKER_OK := $(shell docker version 2> /dev/null)
+DOCKCROSS_x86_INFO := $(shell docker image inspect $(DOCKCROSS_x86_IMAGE) 2> /dev/null)
+DOCKCROSS_x64_INFO := $(shell docker image inspect $(DOCKCROSS_x64_IMAGE) 2> /dev/null)
+
+check-docker:
+ifndef DOCKER_OK
+	$(error "Docker is not available. Please install Docker")
+endif
+ifeq ($(DOCKCROSS_x86_INFO),[])
+	docker pull $(DOCKCROSS_x86_IMAGE)
+endif
+ifeq ($(DOCKCROSS_x64_INFO),[])
+	docker pull $(DOCKCROSS_x64_IMAGE)
+endif
+
+all-cross:
+	docker run --rm -v $(ROOT_DIR):/workdir -w /workdir $(DOCKCROSS_x86_IMAGE) bash -c " \
+		/opt/python/cp35-cp35m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
+		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
+		/opt/python/cp37-cp37m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
+		/opt/python/cp38-cp38/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x86 && \
+		for i in dist/dockcross-x86/*; do auditwheel repair \$$i -w dist; done "
+	docker run --rm -v $(ROOT_DIR):/workdir -w /workdir $(DOCKCROSS_x64_IMAGE) bash -c " \
+		/opt/python/cp35-cp35m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
+		/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
+		/opt/python/cp37-cp37m/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
+		/opt/python/cp38-cp38/bin/python setup.py bdist_wheel --dist-dir dist/dockcross-x64 && \
+		for i in dist/dockcross-x64/*; do auditwheel repair \$$i -w dist; done "
 
 clean:
-	rm -rf ./build ./dist ./zenoh.egg-info .coverage;
-	rm -rf zenoh_api.log .tox zenoh.egg-info ./zenoh/__pycache__/ ./zenoh/*/__pycache__/ ./zenoh/*/*/__pycache__/;
+	rm -rf ./build ./_skbuild ./dist ./zenoh.egg-info .coverage zenoh/include zenoh/libzenohc.* zenoh/zenohc.*;
+	rm -rf zenoh_api.log .tox ./zenoh/__pycache__/ ./zenoh/*/__pycache__/ ./zenoh/*/*/__pycache__/;
 
-test:
-	rm -rf ./tox
+test: clean
 	tox
 
 doc:

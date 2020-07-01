@@ -11,29 +11,39 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-from zenoh import Zenoh, Selector, Path, Workspace, Encoding, Value
+import argparse
+from zenoh import Zenoh, Workspace
 
-# If not specified as 1st argument, use a relative path
-# (to the workspace below): 'zenoh-python-put'
-path = 'zenoh-python-put'
-if len(sys.argv) > 1:
-    path = sys.argv[1]
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(prog='z_put',
+                                 description='Produces welcome messages')
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/python/put/hello',
+                    type=str,
+                    help='the path representing the  URI')
 
-value = 'Put from Zenoh Python!'
-if len(sys.argv) > 2:
-    value = sys.argv[2]
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
 
-locator = None
-if len(sys.argv) > 3:
-    locator = sys.argv[3]
+parser.add_argument('--msg', '-m', dest='msg',
+                    default='Zenitude put from zenoh-python!',
+                    type=str,
+                    help='The quote associated with the welcoming resource')
 
-print('Login to Zenoh (locator={})...'.format(locator))
-z = Zenoh.login(locator)
+args = parser.parse_args()
 
-print('Use Workspace on "/demo/example"')
-w = z.workspace('/demo/example')
 
-print('Put on {} : {}'.format(path, value))
-w.put(path, Value(value, encoding=Encoding.STRING))
+# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
+print('Login to Zenoh...')
+z = Zenoh.login(args.locator)
+w = z.workspace(args.path)
 
+z = Zenoh.login(args.locator)
+
+w = z.workspace()
+w.put(args.path, args.msg)
 z.logout()

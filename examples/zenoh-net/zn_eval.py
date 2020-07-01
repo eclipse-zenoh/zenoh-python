@@ -12,34 +12,50 @@
 
 import sys
 import time
+import argparse
 from zenoh.net import Session, DataInfo, ZN_PUT
+
+# --- Command line argument parsing --- --- --- --- --- ---
+parser = argparse.ArgumentParser(
+    prog='zn_eval',
+    description='Shows how to use zenoh-net evaluated/computed resources')
+parser.add_argument('--path', '-p', dest='path',
+                    default='/zenoh/examples/python/eval',
+                    type=str,
+                    help='the path representing the  URI')
+
+parser.add_argument(
+    '--locator', '-l', dest='locator',
+    default=None,
+    type=str,
+    help='The locator to be used to boostrap the zenoh session.'
+         ' By default dynamic discovery is used')
+
+args = parser.parse_args()
+
+path = args.path
+locator = args.locator
+
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
 def query_handler(path_selector, content_selector, send_replies):
     print(">> [Query handler] Handling '{}?{}'"
           .format(path_selector, content_selector))
-    k, v = "/demo/example/zenoh-python-eval", "Eval from Python!".encode()
+    k, v = path, "Eval from Python!".encode()
     send_replies([(k, (v, DataInfo(kind=ZN_PUT)))])
 
 
-if __name__ == '__main__':
-    uri = "/demo/example/zenoh-python-eval"
-    if len(sys.argv) > 1:
-        uri = sys.argv[1]
+print("Openning zenoh session...")
+s = Session.open(locator)
 
-    locator = None
-    if len(sys.argv) > 2:
-        locator = sys.argv[2]
+print("Declaring Eval on '{}'...".format(path))
+e = s.declare_eval(path, query_handler)
 
-    print("Openning session...")
-    s = Session.open(locator)
+print('Press "q" at any time to terminate...')
+c = '\0'
+while c != 'q':
+    c = sys.stdin.read(1)
 
-    print("Declaring Eval on '{}'...".format(uri))
-    eva = s.declare_eval(uri, query_handler)
-
-    c = '\0'
-    while c != 'q':
-        c = sys.stdin.read(1)
-
-    s.undeclare_eval(eva)
-    s.close()
+s.undeclare_eval(e)
+s.close()
