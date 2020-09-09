@@ -27,6 +27,7 @@ fn net(_: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<properties>()?;
     m.add_class::<whatami>()?;
     m.add_class::<Config>()?;
+    m.add_class::<ResKey>()?;
     m.add_class::<Session>()?;
     m.add_wrapped(wrap_pyfunction!(open))?;
     Ok(())
