@@ -1,0 +1,51 @@
+#
+# Copyright (c) 2017, 2020 ADLINK Technology Inc.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+#
+# Contributors:
+#   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+#
+[package]
+name = "zenoh-python"
+version = "0.5.0"
+authors = ["kydos <angelo@icorsaro.net>",
+           "Julien Enoch <julien@enoch.fr>",
+           "Olivier Hécart <olivier.hecart@adlinktech.com",
+		   "Luca Cominardi <luca.cominardi@adlinktech.com>"]
+edition = "2018"
+
+[package.metadata.maturin]
+classifier = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Intended Audience :: Developers",
+    "Development Status :: 4 - Beta",
+    "Topic :: System :: Networking",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X"
+]
+
+[lib]
+name = "zenoh"
+crate-type = ["cdylib"]
+
+[dependencies]
+zenoh = { path = "../zenoh/zenoh" }  # TODO: version only
+env_logger = "0.7.1"
+
+[dependencies.async-std]
+version = "~1.6.0"
+features = ["unstable", "attributes"]
+
+[dependencies.pyo3]
+version = "0.11.1"
+features = ["extension-module"]
+

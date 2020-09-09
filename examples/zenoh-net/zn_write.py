@@ -13,40 +13,54 @@
 import sys
 import time
 import argparse
-from zenoh.net import Session
+import zenoh
+from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
     prog='zn_write',
-    description='Illustrates the use of a zenoh-net write')
+    description='zenoh-net write example')
+parser.add_argument('--mode', '-m', dest='mode',
+                    default='peer',
+                    choices=['peer', 'client'],
+                    type=str,
+                    help='The zenoh session mode.')
+parser.add_argument('--peer', '-e', dest='peer',
+                    metavar='LOCATOR',
+                    action='append',
+                    type=str,
+                    help='Peer locators used to initiate the zenoh session.')
+parser.add_argument('--listener', '-l', dest='listener',
+                    metavar='LOCATOR',
+                    action='append',
+                    type=str,
+                    help='Locators to listen on.')
 parser.add_argument('--path', '-p', dest='path',
-                    default='/zenoh/examples/python/write/hello',
+                    default='/demo/example/zenoh-python-write',
                     type=str,
-                    help='the path representing the  URI')
-
-parser.add_argument(
-    '--locator', '-l', dest='locator',
-    default=None,
-    type=str,
-    help='The locator to be used to boostrap the zenoh session.'
-         ' By default dynamic discovery is used')
-
-parser.add_argument('--msg', '-m', dest='msg',
-                    default='Zenitude written from zenoh-net-python!',
+                    help='The name of the resource to write.')
+parser.add_argument('--value', '-v', dest='value',
+                    default='Write from Python!',
                     type=str,
-                    help='The quote associated with the welcoming resource')
+                    help='The value of the resource to write.')
 
 args = parser.parse_args()
-msg = args.msg
+config = Config(
+    mode=Config.parse_mode(args.mode),
+    peers=args.peer,
+    listeners=args.listener)
 path = args.path
-locator = args.locator
+value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-print("Openning session...")
-s = Session.open(locator)
+# initiate logging
+zenoh.init_logger()
 
-print("Writing Data ('{}': '{}')...".format(path, msg))
-s.write_data(path, bytes(msg, encoding='utf8'))
+print("Openning session...")
+s = zenoh.net.open(config)
+
+print("Writing Data ('{}': '{}')...".format(path, value))
+s.write(path, bytes(value, encoding='utf8'))
 
 s.close()
