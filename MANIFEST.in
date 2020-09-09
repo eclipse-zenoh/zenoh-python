@@ -1,3 +1,0 @@
-include README.md LICENSE NOTICE.md CONTRIBUTING.md CONTRIBUTORS.md requirements.txt pyproject.toml zenoh-dragon.png
-recursive-include zenoh-c *
-
