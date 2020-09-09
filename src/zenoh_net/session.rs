@@ -13,8 +13,10 @@
 //
 use async_std::task;
 use pyo3::prelude::*;
+use pyo3::types::PyBytes;
 
 use crate::{to_pyerr, ZError};
+use zenoh::net::ZInt;
 
 #[pyclass]
 pub(crate) struct Session {
@@ -23,14 +25,23 @@ pub(crate) struct Session {
 
 #[pymethods]
 impl Session {
-    fn write(&self, resource: String, payload: Vec<u8>) -> PyResult<()> {
-        let s = self.as_ref()?;
-        task::block_on(s.write(&resource.into(), payload.into())).map_err(to_pyerr)
-    }
-
     fn close(&mut self) -> PyResult<()> {
         let s = self.take()?;
         task::block_on(s.close()).map_err(to_pyerr)
+    }
+
+    fn info<'p>(&self, py: Python<'p>) -> PyResult<Vec<(ZInt, &'p PyBytes)>> {
+        let s = self.as_ref()?;
+        let props = task::block_on(s.info());
+        Ok(props
+            .iter()
+            .map(|(k, v)| (*k, PyBytes::new(py, v.as_slice())))
+            .collect())
+    }
+
+    fn write(&self, resource: String, payload: Vec<u8>) -> PyResult<()> {
+        let s = self.as_ref()?;
+        task::block_on(s.write(&resource.into(), payload.into())).map_err(to_pyerr)
     }
 }
 

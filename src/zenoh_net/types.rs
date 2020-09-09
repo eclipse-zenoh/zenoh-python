@@ -16,7 +16,47 @@ use pyo3::prelude::*;
 use std::time::Duration;
 use zenoh::net::ZInt;
 
-// Use a class with class attributes for module zenoh.net.whatami
+// zenoh.net.properties (use a class with class attributes for it)
+#[allow(non_camel_case_types)]
+#[pyclass]
+pub(crate) struct properties {}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl properties {
+    #[classattr]
+    fn ZN_USER_KEY() -> ZInt {
+        zenoh::net::properties::ZN_USER_KEY
+    }
+
+    #[classattr]
+    fn ZN_PASSWD_KEY() -> ZInt {
+        zenoh::net::properties::ZN_PASSWD_KEY
+    }
+
+    #[classattr]
+    fn ZN_INFO_PID_KEY() -> ZInt {
+        zenoh::net::properties::ZN_INFO_PID_KEY
+    }
+
+    #[classattr]
+    fn ZN_INFO_PEER_PID_KEY() -> ZInt {
+        zenoh::net::properties::ZN_INFO_PEER_PID_KEY
+    }
+
+    #[classattr]
+    fn ZN_INFO_ROUTER_PID_KEY() -> ZInt {
+        zenoh::net::properties::ZN_INFO_ROUTER_PID_KEY
+    }
+
+    #[staticmethod]
+    fn to_str(i: ZInt) -> PyResult<String> {
+        zenoh::net::properties::to_str(i)
+            .map_err(|e| PyErr::new::<exceptions::ValueError, _>(e.to_string()))
+    }
+}
+
+// zenoh.net.whatami (use a class with class attributes for it)
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct whatami {}
@@ -35,6 +75,7 @@ impl whatami {
     }
 }
 
+// zenoh.net.Config
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Config {
@@ -52,7 +93,6 @@ impl Config {
         scouting_delay: Option<f64>,
         add_timestamp: Option<bool>,
     ) -> Config {
-        println!("*** CONFIG new {:?} {:?}", mode, peers);
         let mut c = zenoh::net::Config::default();
         if let Some(m) = mode {
             c = c.mode(m);

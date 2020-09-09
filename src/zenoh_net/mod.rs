@@ -24,6 +24,7 @@ use session::*;
 // module zenoh.net
 #[pymodule]
 fn net(_: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<properties>()?;
     m.add_class::<whatami>()?;
     m.add_class::<Config>()?;
     m.add_class::<Session>()?;
