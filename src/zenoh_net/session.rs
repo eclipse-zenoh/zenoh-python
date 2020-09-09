@@ -15,8 +15,9 @@ use async_std::task;
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 
+use super::ResKey;
 use crate::{to_pyerr, ZError};
-use zenoh::net::ZInt;
+use zenoh::net::{ResourceId, ZInt};
 
 #[pyclass]
 pub(crate) struct Session {
@@ -39,9 +40,14 @@ impl Session {
             .collect())
     }
 
-    fn write(&self, resource: String, payload: Vec<u8>) -> PyResult<()> {
+    fn write(&self, resource: &ResKey, payload: Vec<u8>) -> PyResult<()> {
         let s = self.as_ref()?;
-        task::block_on(s.write(&resource.into(), payload.into())).map_err(to_pyerr)
+        task::block_on(s.write(&resource.k, payload.into())).map_err(to_pyerr)
+    }
+
+    fn declare_resource(&self, resource: &ResKey) -> PyResult<ResourceId> {
+        let s = self.as_ref()?;
+        task::block_on(s.declare_resource(&resource.k)).map_err(to_pyerr)
     }
 }
 

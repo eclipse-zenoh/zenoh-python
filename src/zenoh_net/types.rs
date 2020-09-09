@@ -14,7 +14,7 @@
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use std::time::Duration;
-use zenoh::net::ZInt;
+use zenoh::net::{ResourceId, ZInt};
 
 // zenoh.net.properties (use a class with class attributes for it)
 #[allow(non_camel_case_types)]
@@ -120,5 +120,48 @@ impl Config {
         zenoh::net::Config::parse_mode(mode).map_err(|_| {
             PyErr::new::<exceptions::ValueError, _>(format!("Invalid Config mode: '{}'", mode))
         })
+    }
+}
+
+// zenoh.net.ResKey (enum simulated via a Python class)
+#[pyclass]
+pub(crate) struct ResKey {
+    pub(crate) k: zenoh::net::ResKey,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl ResKey {
+    #[staticmethod]
+    fn RName(name: String) -> ResKey {
+        ResKey {
+            k: zenoh::net::ResKey::RName(name),
+        }
+    }
+
+    #[staticmethod]
+    fn RId(id: ResourceId) -> ResKey {
+        ResKey {
+            k: zenoh::net::ResKey::RId(id),
+        }
+    }
+
+    #[staticmethod]
+    fn RIdWithSuffix(id: ResourceId, suffix: String) -> ResKey {
+        ResKey {
+            k: zenoh::net::ResKey::RIdWithSuffix(id, suffix),
+        }
+    }
+
+    fn rid(&self) -> ResourceId {
+        self.k.rid()
+    }
+
+    fn is_numerical(&self) -> bool {
+        self.k.is_numerical()
+    }
+
+    fn to_string(&self) -> String {
+        self.k.to_string()
     }
 }
