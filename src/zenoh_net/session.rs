@@ -11,12 +11,11 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
+use super::types::*;
+use crate::{to_pyerr, ZError};
 use async_std::task;
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
-
-use super::ResKey;
-use crate::{to_pyerr, ZError};
 use zenoh::net::{ResourceId, ZInt};
 
 #[pyclass]
@@ -48,6 +47,25 @@ impl Session {
     fn declare_resource(&self, resource: &ResKey) -> PyResult<ResourceId> {
         let s = self.as_ref()?;
         task::block_on(s.declare_resource(&resource.k)).map_err(to_pyerr)
+    }
+
+    fn undeclare_resource(&self, rid: ResourceId) -> PyResult<()> {
+        let s = self.as_ref()?;
+        task::block_on(s.undeclare_resource(rid)).map_err(to_pyerr)
+    }
+
+    fn declare_publisher(&self, resource: &ResKey) -> PyResult<Publisher> {
+        let s = self.as_ref()?;
+        let zn_pub = task::block_on(s.declare_publisher(&resource.k)).map_err(to_pyerr)?;
+
+        // Note: this is a workaround for pyo3 not supporting lifetime in PyClass. See https://github.com/PyO3/pyo3/issues/502.
+        // We extend zenoh::net::Publisher's lifetime to 'static to be wrapped in Publisher PyClass
+        let static_zn_pub = unsafe {
+            std::mem::transmute::<zenoh::net::Publisher<'_>, zenoh::net::Publisher<'static>>(zn_pub)
+        };
+        Ok(Publisher {
+            p: Some(static_zn_pub),
+        })
     }
 }
 
