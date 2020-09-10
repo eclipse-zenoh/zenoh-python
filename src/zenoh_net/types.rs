@@ -11,6 +11,8 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
+use crate::to_pyerr;
+use async_std::task;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use std::time::Duration;
@@ -163,5 +165,29 @@ impl ResKey {
 
     fn to_string(&self) -> String {
         self.k.to_string()
+    }
+}
+
+impl From<ResKey> for zenoh::net::ResKey {
+    fn from(r: ResKey) -> zenoh::net::ResKey {
+        r.k
+    }
+}
+
+// zenoh.net.Publisher
+#[pyclass(unsendable)]
+pub(crate) struct Publisher {
+    // Note: because pyo3 doesn't supporting lifetime in PyClass, a workaround is to
+    // extend the lifetime of wrapped struct to 'static.
+    pub(crate) p: Option<zenoh::net::Publisher<'static>>,
+}
+
+#[pymethods]
+impl Publisher {
+    fn undeclare(&mut self) -> PyResult<()> {
+        match self.p.take() {
+            Some(p) => task::block_on(p.undeclare()).map_err(to_pyerr),
+            None => Ok(()),
+        }
     }
 }
