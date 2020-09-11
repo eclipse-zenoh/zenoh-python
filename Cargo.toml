@@ -39,6 +39,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 zenoh = { path = "../zenoh/zenoh" }  # TODO: version only
+uhlc = "0.2"
+futures = "0.3.5"
+log = "0.4"
 env_logger = "0.7.1"
 
 [dependencies.async-std]

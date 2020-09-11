@@ -11,6 +11,8 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
+#![recursion_limit = "256"]
+
 use pyo3::create_exception;
 use pyo3::prelude::*;
 use pyo3::{exceptions, wrap_pyfunction, wrap_pymodule};

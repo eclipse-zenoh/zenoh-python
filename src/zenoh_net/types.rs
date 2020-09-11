@@ -12,9 +12,13 @@
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use crate::to_pyerr;
+use async_std::sync::{Receiver, Sender};
 use async_std::task;
+use log::warn;
 use pyo3::exceptions;
 use pyo3::prelude::*;
+use pyo3::types::{PyBytes, PyDateTime};
+use pyo3::PyObjectProtocol;
 use std::time::Duration;
 use zenoh::net::{ResourceId, ZInt};
 
@@ -125,7 +129,8 @@ impl Config {
     }
 }
 
-// zenoh.net.ResKey (enum simulated via a Python class)
+// zenoh.net.ResKey (enum simulated via a Python class with static methods,
+// waiting for https://github.com/PyO3/pyo3/issues/417 to be fixed)
 #[pyclass]
 pub(crate) struct ResKey {
     pub(crate) k: zenoh::net::ResKey,
@@ -162,15 +167,242 @@ impl ResKey {
     fn is_numerical(&self) -> bool {
         self.k.is_numerical()
     }
+}
 
-    fn to_string(&self) -> String {
-        self.k.to_string()
+#[pyproto]
+impl PyObjectProtocol for ResKey {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.k.to_string())
     }
 }
 
 impl From<ResKey> for zenoh::net::ResKey {
     fn from(r: ResKey) -> zenoh::net::ResKey {
         r.k
+    }
+}
+
+// zenoh.net.PeerId
+#[pyclass]
+pub(crate) struct PeerId {
+    pub(crate) p: zenoh::net::PeerId,
+}
+
+#[pyproto]
+impl PyObjectProtocol for PeerId {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.p.to_string())
+    }
+}
+
+// zenoh.net.Timestamp
+#[pyclass]
+pub(crate) struct Timestamp {
+    pub(crate) t: zenoh::Timestamp,
+}
+
+#[pymethods]
+impl Timestamp {
+    #[getter]
+    fn time<'p>(&self, py: Python<'p>) -> PyResult<&'p PyDateTime> {
+        let f = self.t.get_time().to_duration().as_secs_f64();
+        PyDateTime::from_timestamp(py, f, None)
+    }
+
+    #[getter]
+    fn id(&self) -> PyResult<&[u8]> {
+        Ok(self.t.get_id().as_slice())
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Timestamp {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.t.to_string())
+    }
+}
+
+// zenoh.net.DataInfo
+#[pyclass]
+pub(crate) struct DataInfo {
+    pub(crate) i: zenoh::net::DataInfo,
+}
+
+#[pymethods]
+impl DataInfo {
+    #[getter]
+    fn source_id(&self) -> PyResult<Option<PeerId>> {
+        Ok(self.i.source_id.as_ref().map(|p| PeerId { p: p.clone() }))
+    }
+
+    #[getter]
+    fn source_sn(&self) -> PyResult<Option<ZInt>> {
+        Ok(self.i.source_sn)
+    }
+
+    #[getter]
+    fn first_router_id(&self) -> PyResult<Option<PeerId>> {
+        Ok(self
+            .i
+            .first_router_id
+            .as_ref()
+            .map(|p| PeerId { p: p.clone() }))
+    }
+
+    #[getter]
+    fn first_router_sn(&self) -> PyResult<Option<ZInt>> {
+        Ok(self.i.first_router_sn)
+    }
+
+    #[getter]
+    fn timestamp(&self) -> PyResult<Option<Timestamp>> {
+        Ok(self
+            .i
+            .timestamp
+            .as_ref()
+            .map(|t| Timestamp { t: t.clone() }))
+    }
+
+    #[getter]
+    fn kind(&self) -> PyResult<Option<ZInt>> {
+        Ok(self.i.kind)
+    }
+
+    #[getter]
+    fn encoding(&self) -> PyResult<Option<ZInt>> {
+        Ok(self.i.encoding)
+    }
+}
+
+// zenoh.net.Sample
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Sample {
+    pub(crate) s: zenoh::net::Sample,
+}
+
+impl pyo3::conversion::ToPyObject for Sample {
+    fn to_object(&self, py: Python) -> pyo3::PyObject {
+        pyo3::IntoPy::into_py(pyo3::Py::new(py, self.clone()).unwrap(), py)
+    }
+}
+
+#[pymethods]
+impl Sample {
+    #[getter]
+    fn res_name(&self) -> PyResult<&str> {
+        Ok(self.s.res_name.as_str())
+    }
+
+    #[getter]
+    fn payload<'a>(&self, py: Python<'a>) -> PyResult<&'a PyBytes> {
+        Ok(PyBytes::new(py, self.s.payload.to_vec().as_slice()))
+    }
+
+    #[getter]
+    fn data_info(&self) -> PyResult<Option<DataInfo>> {
+        Ok(self.s.data_info.as_ref().map(|i| DataInfo { i: i.clone() }))
+    }
+}
+
+// zenoh.net.Reliability (enum simulated via a Python class with attribute,
+// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Reliability {
+    pub(crate) r: zenoh::net::Reliability,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl Reliability {
+    #[classattr]
+    fn BestEffort() -> Reliability {
+        Reliability {
+            r: zenoh::net::Reliability::BestEffort,
+        }
+    }
+
+    #[classattr]
+    fn Reliable() -> Reliability {
+        Reliability {
+            r: zenoh::net::Reliability::Reliable,
+        }
+    }
+}
+
+// zenoh.net.SubMode (enum simulated via a Python class with attribute,
+// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct SubMode {
+    pub(crate) m: zenoh::net::SubMode,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl SubMode {
+    #[classattr]
+    fn Push() -> SubMode {
+        SubMode {
+            m: zenoh::net::SubMode::Push,
+        }
+    }
+
+    #[classattr]
+    fn Pull() -> SubMode {
+        SubMode {
+            m: zenoh::net::SubMode::Pull,
+        }
+    }
+}
+
+// zenoh.net.Period
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Period {
+    pub(crate) p: zenoh::net::Period,
+}
+
+#[pymethods]
+impl Period {
+    #[new]
+    fn new(origin: ZInt, period: ZInt, duration: ZInt) -> Period {
+        Period {
+            p: zenoh::net::Period {
+                origin,
+                period,
+                duration,
+            },
+        }
+    }
+}
+
+// zenoh.net.SubInfo
+#[pyclass]
+pub(crate) struct SubInfo {
+    pub(crate) i: zenoh::net::SubInfo,
+}
+
+#[pymethods]
+impl SubInfo {
+    #[new]
+    fn new(
+        reliability: Option<Reliability>,
+        mode: Option<SubMode>,
+        period: Option<Period>,
+    ) -> SubInfo {
+        let mut i = zenoh::net::SubInfo::default();
+        if let Some(r) = reliability {
+            i.reliability = r.r;
+        }
+        if let Some(m) = mode {
+            i.mode = m.m;
+        }
+        if let Some(p) = period {
+            i.period = Some(p.p);
+        }
+        SubInfo { i }
     }
 }
 
@@ -189,5 +421,24 @@ impl Publisher {
             Some(p) => task::block_on(p.undeclare()).map_err(to_pyerr),
             None => Ok(()),
         }
+    }
+}
+
+// zenoh.net.Subscriber
+#[pyclass]
+pub(crate) struct Subscriber {
+    pub(crate) undeclare_tx: Sender<bool>,
+    pub(crate) finished_rx: Receiver<bool>,
+}
+
+#[pymethods]
+impl Subscriber {
+    fn undeclare(&self) {
+        task::block_on(async {
+            self.undeclare_tx.send(true).await;
+            if let Err(e) = self.finished_rx.recv().await {
+                warn!("Error undeclaring subscriber: {}", e);
+            }
+        });
     }
 }
