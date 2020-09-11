@@ -28,6 +28,16 @@ fn net(_: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<whatami>()?;
     m.add_class::<Config>()?;
     m.add_class::<ResKey>()?;
+    m.add_class::<PeerId>()?;
+    m.add_class::<Timestamp>()?;
+    m.add_class::<DataInfo>()?;
+    m.add_class::<Sample>()?;
+    m.add_class::<Reliability>()?;
+    m.add_class::<SubMode>()?;
+    m.add_class::<Period>()?;
+    m.add_class::<SubInfo>()?;
+    m.add_class::<Publisher>()?;
+    m.add_class::<Subscriber>()?;
     m.add_class::<Session>()?;
     m.add_wrapped(wrap_pyfunction!(open))?;
     Ok(())

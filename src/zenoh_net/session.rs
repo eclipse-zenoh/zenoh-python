@@ -13,9 +13,13 @@
 //
 use super::types::*;
 use crate::{to_pyerr, ZError};
+use async_std::sync::channel;
 use async_std::task;
+use futures::prelude::*;
+use futures::select;
+use log::warn;
 use pyo3::prelude::*;
-use pyo3::types::PyBytes;
+use pyo3::types::{PyBytes, PyTuple};
 use zenoh::net::{ResourceId, ZInt};
 
 #[pyclass]
@@ -65,6 +69,62 @@ impl Session {
         };
         Ok(Publisher {
             p: Some(static_zn_pub),
+        })
+    }
+
+    fn declare_subscriber(
+        &self,
+        resource: &ResKey,
+        info: &SubInfo,
+        callback: &PyAny,
+    ) -> PyResult<Subscriber> {
+        let s = self.as_ref()?;
+        let zn_sub =
+            task::block_on(s.declare_subscriber(&resource.k, &info.i)).map_err(to_pyerr)?;
+        // Note: workaround to allow moving of zn_sub into the task below.
+        // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
+        let mut static_zn_sub = unsafe {
+            std::mem::transmute::<zenoh::net::Subscriber<'_>, zenoh::net::Subscriber<'static>>(
+                zn_sub,
+            )
+        };
+
+        // Note: callback cannot be passed as such in task below because it's not Send
+        let cb_obj: Py<PyAny> = callback.into();
+
+        let (undeclare_tx, undeclare_rx) = channel::<bool>(1);
+        let (finished_tx, finished_rx) = channel::<bool>(1);
+        // Note: This is done to ensure that even if the call-back into Python
+        // does any blocking call we do not incour the risk of blocking
+        // any of the task resolving futures.
+        let _ = task::spawn_blocking(move || {
+            task::block_on(async move {
+                loop {
+                    select!(
+                        s = static_zn_sub.stream().next().fuse() => {
+                            // Acquire Python GIL to call the callback
+                            let gil = Python::acquire_gil();
+                            let py = gil.python();
+                            let cb_args = PyTuple::new(py, &[Sample { s: s.unwrap() }]);
+                            if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
+                                warn!("Error calling subscriber callback:");
+                                e.print(py);
+                            }
+                        },
+                        _ = undeclare_rx.recv().fuse() => {
+                            if let Err(e) = static_zn_sub.undeclare().await {
+                                warn!("Error undeclaring subscriber: {}", e);
+                            }
+                            finished_tx.send(true).await;
+                            return()
+                        }
+                    )
+                }
+            })
+        });
+        Ok(Subscriber {
+            undeclare_tx,
+            finished_rx,
         })
     }
 }
