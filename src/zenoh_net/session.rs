@@ -92,7 +92,7 @@ impl Session {
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
 
-        let (undeclare_tx, undeclare_rx) = channel::<bool>(1);
+        let (undeclare_tx, undeclare_rx) = channel::<ZnSubOps>(8);
         // Note: This is done to ensure that even if the call-back into Python
         // does any blocking call we do not incour the risk of blocking
         // any of the task resolving futures.
@@ -110,11 +110,21 @@ impl Session {
                                 e.print(py);
                             }
                         },
-                        _ = undeclare_rx.recv().fuse() => {
-                            if let Err(e) = static_zn_sub.undeclare().await {
-                                warn!("Error undeclaring subscriber: {}", e);
+                        op = undeclare_rx.recv().fuse() => {
+                            match op {
+                                Ok(ZnSubOps::Pull) => {
+                                    if let Err(e) = static_zn_sub.pull().await {
+                                        warn!("Error pulling the subscriber: {}", e);
+                                    }
+                                },
+                                Ok(ZnSubOps::Undeclare) => {
+                                    if let Err(e) = static_zn_sub.undeclare().await {
+                                        warn!("Error undeclaring subscriber: {}", e);
+                                    }
+                                    return()
+                                },
+                                _ => return ()
                             }
-                            return()
                         }
                     )
                 }
