@@ -125,6 +125,59 @@ impl Session {
             loop_handle: Some(loop_handle),
         })
     }
+
+    fn declare_queryable(
+        &self,
+        resource: &ResKey,
+        kind: ZInt,
+        callback: &PyAny,
+    ) -> PyResult<Queryable> {
+        let s = self.as_ref()?;
+        let zn_quer = task::block_on(s.declare_queryable(&resource.k, kind)).map_err(to_pyerr)?;
+        // Note: workaround to allow moving of zn_quer into the task below.
+        // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
+        let mut static_zn_quer = unsafe {
+            std::mem::transmute::<zenoh::net::Queryable<'_>, zenoh::net::Queryable<'static>>(
+                zn_quer,
+            )
+        };
+
+        // Note: callback cannot be passed as such in task below because it's not Send
+        let cb_obj: Py<PyAny> = callback.into();
+
+        let (undeclare_tx, undeclare_rx) = channel::<bool>(1);
+        // Note: This is done to ensure that even if the call-back into Python
+        // does any blocking call we do not incour the risk of blocking
+        // any of the task resolving futures.
+        let loop_handle = task::spawn_blocking(move || {
+            task::block_on(async move {
+                loop {
+                    select!(
+                        q = static_zn_quer.stream().next().fuse() => {
+                            // Acquire Python GIL to call the callback
+                            let gil = Python::acquire_gil();
+                            let py = gil.python();
+                            let cb_args = PyTuple::new(py, &[Query { q: async_std::sync::Arc::new(q.unwrap()) }]);
+                            if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
+                                warn!("Error calling queryable callback:");
+                                e.print(py);
+                            }
+                        },
+                        _ = undeclare_rx.recv().fuse() => {
+                            if let Err(e) = static_zn_quer.undeclare().await {
+                                warn!("Error undeclaring queryable: {}", e);
+                            }
+                            return()
+                        }
+                    )
+                }
+            })
+        });
+        Ok(Queryable {
+            undeclare_tx,
+            loop_handle: Some(loop_handle),
+        })
+    }
 }
 
 impl Session {

@@ -23,9 +23,43 @@ use session::*;
 
 // module zenoh.net
 #[pymodule]
-fn net(_: Python, m: &PyModule) -> PyResult<()> {
+fn net(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<properties>()?;
+    // force addition of "zenoh.net.properties" module
+    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
+    py.run(
+        "\
+import sys
+sys.modules['zenoh.net.properties'] = properties
+        ",
+        None,
+        Some(m.dict()),
+    )?;
+
     m.add_class::<whatami>()?;
+    // force addition of "zenoh.net.whatami" module
+    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
+    py.run(
+        "\
+import sys
+sys.modules['zenoh.net.whatami'] = whatami
+        ",
+        None,
+        Some(m.dict()),
+    )?;
+
+    m.add_class::<queryable>()?;
+    // force addition of "zenoh.net.queryable" module
+    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
+    py.run(
+        "\
+import sys
+sys.modules['zenoh.net.queryable'] = queryable
+        ",
+        None,
+        Some(m.dict()),
+    )?;
+
     m.add_class::<Config>()?;
     m.add_class::<ResKey>()?;
     m.add_class::<PeerId>()?;
@@ -38,6 +72,8 @@ fn net(_: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<SubInfo>()?;
     m.add_class::<Publisher>()?;
     m.add_class::<Subscriber>()?;
+    m.add_class::<Query>()?;
+    m.add_class::<Queryable>()?;
     m.add_class::<Session>()?;
     m.add_wrapped(wrap_pyfunction!(open))?;
     Ok(())

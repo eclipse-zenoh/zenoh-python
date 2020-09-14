@@ -223,6 +223,7 @@ impl PyObjectProtocol for Timestamp {
 
 // zenoh.net.DataInfo
 #[pyclass]
+#[derive(Clone)]
 pub(crate) struct DataInfo {
     pub(crate) i: zenoh::net::DataInfo,
 }
@@ -288,6 +289,17 @@ impl pyo3::conversion::ToPyObject for Sample {
 
 #[pymethods]
 impl Sample {
+    #[new]
+    fn new(res_name: String, payload: Vec<u8>, data_info: Option<DataInfo>) -> Sample {
+        Sample {
+            s: zenoh::net::Sample {
+                res_name,
+                payload: payload.into(),
+                data_info: data_info.map(|info| info.i),
+            },
+        }
+    }
+
     #[getter]
     fn res_name(&self) -> PyResult<&str> {
         Ok(self.s.res_name.as_str())
@@ -432,6 +444,81 @@ pub(crate) struct Subscriber {
 
 #[pymethods]
 impl Subscriber {
+    fn undeclare(&mut self) {
+        if let Some(handle) = self.loop_handle.take() {
+            task::block_on(async {
+                self.undeclare_tx.send(true).await;
+                handle.await;
+            });
+        }
+    }
+}
+
+// zenoh.net.queryable (use a class with class attributes for it)
+#[allow(non_camel_case_types)]
+#[pyclass]
+pub(crate) struct queryable {}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl queryable {
+    #[classattr]
+    fn ALL_KINDS() -> ZInt {
+        zenoh::net::queryable::ALL_KINDS
+    }
+
+    #[classattr]
+    fn STORAGE() -> ZInt {
+        zenoh::net::queryable::STORAGE
+    }
+
+    #[classattr]
+    fn EVAL() -> ZInt {
+        zenoh::net::queryable::EVAL
+    }
+}
+
+// zenoh.net.Query
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Query {
+    pub(crate) q: async_std::sync::Arc<zenoh::net::Query>,
+}
+
+impl pyo3::conversion::ToPyObject for Query {
+    fn to_object(&self, py: Python) -> pyo3::PyObject {
+        pyo3::IntoPy::into_py(pyo3::Py::new(py, self.clone()).unwrap(), py)
+    }
+}
+
+#[pymethods]
+impl Query {
+    #[getter]
+    fn res_name<'p>(&self) -> PyResult<&str> {
+        Ok(self.q.res_name.as_str())
+    }
+
+    #[getter]
+    fn predicate<'p>(&self) -> PyResult<&str> {
+        Ok(self.q.predicate.as_str())
+    }
+
+    fn reply(&self, msg: Sample) {
+        task::block_on(async {
+            self.q.reply(msg.s).await;
+        });
+    }
+}
+
+// zenoh.net.Queryable
+#[pyclass]
+pub(crate) struct Queryable {
+    pub(crate) undeclare_tx: Sender<bool>,
+    pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
+}
+
+#[pymethods]
+impl Queryable {
     fn undeclare(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
