@@ -93,11 +93,10 @@ impl Session {
         let cb_obj: Py<PyAny> = callback.into();
 
         let (undeclare_tx, undeclare_rx) = channel::<bool>(1);
-        let (finished_tx, finished_rx) = channel::<bool>(1);
         // Note: This is done to ensure that even if the call-back into Python
         // does any blocking call we do not incour the risk of blocking
         // any of the task resolving futures.
-        let _ = task::spawn_blocking(move || {
+        let loop_handle = task::spawn_blocking(move || {
             task::block_on(async move {
                 loop {
                     select!(
@@ -115,7 +114,6 @@ impl Session {
                             if let Err(e) = static_zn_sub.undeclare().await {
                                 warn!("Error undeclaring subscriber: {}", e);
                             }
-                            finished_tx.send(true).await;
                             return()
                         }
                     )
@@ -124,7 +122,7 @@ impl Session {
         });
         Ok(Subscriber {
             undeclare_tx,
-            finished_rx,
+            loop_handle: Some(loop_handle),
         })
     }
 }

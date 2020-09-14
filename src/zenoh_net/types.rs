@@ -12,9 +12,8 @@
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use crate::to_pyerr;
-use async_std::sync::{Receiver, Sender};
+use async_std::sync::Sender;
 use async_std::task;
-use log::warn;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDateTime};
@@ -428,17 +427,17 @@ impl Publisher {
 #[pyclass]
 pub(crate) struct Subscriber {
     pub(crate) undeclare_tx: Sender<bool>,
-    pub(crate) finished_rx: Receiver<bool>,
+    pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
 }
 
 #[pymethods]
 impl Subscriber {
-    fn undeclare(&self) {
-        task::block_on(async {
-            self.undeclare_tx.send(true).await;
-            if let Err(e) = self.finished_rx.recv().await {
-                warn!("Error undeclaring subscriber: {}", e);
-            }
-        });
+    fn undeclare(&mut self) {
+        if let Some(handle) = self.loop_handle.take() {
+            task::block_on(async {
+                self.undeclare_tx.send(true).await;
+                handle.await;
+            });
+        }
     }
 }
