@@ -60,6 +60,18 @@ sys.modules['zenoh.net.queryable'] = queryable
         Some(m.dict()),
     )?;
 
+    m.add_class::<resource_name>()?;
+    // force addition of "zenoh.net.resource_name" module
+    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
+    py.run(
+        "\
+import sys
+sys.modules['zenoh.net.resource_name'] = resource_name
+        ",
+        None,
+        Some(m.dict()),
+    )?;
+
     m.add_class::<Config>()?;
     m.add_class::<ResKey>()?;
     m.add_class::<PeerId>()?;

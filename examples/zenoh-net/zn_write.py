@@ -58,9 +58,9 @@ value = args.value
 zenoh.init_logger()
 
 print("Openning session...")
-s = zenoh.net.open(config)
+session = zenoh.net.open(config)
 
 print("Writing Data ('{}': '{}')...".format(path, value))
-s.write(ResKey.RName(path), bytes(value, encoding='utf8'))
+session.write(ResKey.RName(path), bytes(value, encoding='utf8'))
 
-s.close()
+session.close()

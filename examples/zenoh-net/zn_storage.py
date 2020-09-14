@@ -14,13 +14,13 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, Sample
-from zenoh.net.queryable import EVAL
+from zenoh.net import Config, ResKey, SubInfo, Reliability, SubMode, Sample, resource_name
+from zenoh.net.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
     prog='zn_write',
-    description='zenoh-net eval example')
+    description='zenoh-net storage example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',
                     choices=['peer', 'client'],
@@ -36,30 +36,36 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-eval',
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/demo/example/**',
                     type=str,
-                    help='The name of the resource to evaluate.')
-parser.add_argument('--value', '-v', dest='value',
-                    default='Eval from Python!',
-                    type=str,
-                    help='The value to reply to queries.')
+                    help='The selection of resources to subscribe.')
 
 args = parser.parse_args()
 config = Config(
     mode=Config.parse_mode(args.mode),
     peers=args.peer,
     listeners=args.listener)
-path = args.path
-value = args.value
+selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
+store = {}
 
-def eval_callback(query):
-    print(">> [Query handler] Handling '{}{}'".format(
-        query.res_name, query.predicate))
-    query.reply(Sample(res_name=path, payload=value.encode()))
+
+def listener(sample):
+    print(">> [Storage listener] Received ('{}': '{}')"
+          .format(sample.res_name, sample.payload.decode("utf-8")))
+    store[sample.res_name] = (sample.payload, sample.data_info)
+
+
+def query_handler(query):
+    print(">> [Query handler   ] Handling '{}?{}'"
+          .format(query.res_name, query.predicate))
+    replies = []
+    for stored_name, (data, data_info) in store.items():
+        if resource_name.intersect(query.res_name, stored_name):
+            query.reply(Sample(stored_name, data, data_info))
 
 
 # initiate logging
@@ -68,14 +74,20 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.net.open(config)
 
-print("Declaring Queryable on '{}'...".format(path))
+sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
+
+print("Declaring Subscriber on '{}'...".format(selector))
+sub = session.declare_subscriber(ResKey.RName(selector), sub_info, listener)
+
+print("Declaring Queryable on '{}'...".format(selector))
 queryable = session.declare_queryable(
-    ResKey.RName(path), EVAL, eval_callback)
+    ResKey.RName(selector), STORAGE, query_handler)
 
 print("Press q to stop...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
+sub.undeclare()
 queryable.undeclare()
 session.close()

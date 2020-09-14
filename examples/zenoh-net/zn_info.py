@@ -19,7 +19,7 @@ from zenoh.net import Config
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
     prog='zn_write',
-    description='zenoh-net write example')
+    description='zenoh-net info example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',
                     choices=['peer', 'client'],
@@ -48,10 +48,10 @@ config = Config(
 zenoh.init_logger()
 
 print("Openning session...")
-s = zenoh.net.open(config)
+session = zenoh.net.open(config)
 
-info = s.info()
+info = session.info()
 for key, value in info:
     print("{} : {}".format(zenoh.net.properties.to_str(key), value.hex().upper()))
 
-s.close()
+session.close()
