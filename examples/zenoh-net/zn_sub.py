@@ -19,7 +19,7 @@ from zenoh.net import Config, ResKey, SubInfo, Reliability, SubMode
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
     prog='zn_write',
-    description='zenoh-net write example')
+    description='zenoh-net sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',
                     choices=['peer', 'client'],
@@ -60,12 +60,12 @@ def listener(sample):
 zenoh.init_logger()
 
 print("Openning session...")
-s = zenoh.net.open(config)
+session = zenoh.net.open(config)
 
 print("Declaring Subscriber on '{}'...".format(selector))
 sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 
-sub = s.declare_subscriber(ResKey.RName(selector), sub_info, listener)
+sub = session.declare_subscriber(ResKey.RName(selector), sub_info, listener)
 
 print("Press q to stop...")
 c = '\0'
@@ -73,4 +73,4 @@ while c != 'q':
     c = sys.stdin.read(1)
 
 sub.undeclare()
-s.close()
+session.close()

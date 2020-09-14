@@ -19,7 +19,7 @@ from zenoh.net import Config, ResKey
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
     prog='zn_write',
-    description='zenoh-net write example')
+    description='zenoh-net throughput pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',
                     choices=['peer', 'client'],

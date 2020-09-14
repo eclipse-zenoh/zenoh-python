@@ -14,13 +14,12 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, Sample
-from zenoh.net.queryable import EVAL
+from zenoh.net import Config, ResKey
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
     prog='zn_write',
-    description='zenoh-net eval example')
+    description='zenoh-net pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',
                     choices=['peer', 'client'],
@@ -37,13 +36,13 @@ parser.add_argument('--listener', '-l', dest='listener',
                     type=str,
                     help='Locators to listen on.')
 parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-eval',
+                    default='/demo/example/zenoh-python-pub',
                     type=str,
-                    help='The name of the resource to evaluate.')
+                    help='The name of the resource to publish.')
 parser.add_argument('--value', '-v', dest='value',
-                    default='Eval from Python!',
+                    default='Pub from Python!',
                     type=str,
-                    help='The value to reply to queries.')
+                    help='The value of the resource to publish.')
 
 args = parser.parse_args()
 config = Config(
@@ -55,27 +54,21 @@ value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-
-def eval_callback(query):
-    print(">> [Query handler] Handling '{}{}'".format(
-        query.res_name, query.predicate))
-    query.reply(Sample(res_name=path, payload=value.encode()))
-
-
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
 session = zenoh.net.open(config)
 
-print("Declaring Queryable on '{}'...".format(path))
-queryable = session.declare_queryable(
-    ResKey.RName(path), EVAL, eval_callback)
+print("Declaring Resource " + path)
+rid = session.declare_resource(ResKey.RName(path))
+print(" => RId {}".format(rid))
 
-print("Press q to stop...")
-c = '\0'
-while c != 'q':
-    c = sys.stdin.read(1)
+print("Declaring Publisher on {}".format(rid))
+reskey = ResKey.RId(rid)
+publisher = session.declare_publisher(reskey)
 
-queryable.undeclare()
+print("Writing Data ('{}': '{}')...".format(rid, value))
+session.write(reskey, bytes(value, encoding='utf8'))
+
 session.close()

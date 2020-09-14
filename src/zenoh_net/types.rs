@@ -21,7 +21,7 @@ use pyo3::PyObjectProtocol;
 use std::time::Duration;
 use zenoh::net::{ResourceId, ZInt};
 
-// zenoh.net.properties (use a class with class attributes for it)
+// zenoh.net.properties (simulate the package as a class, and consts as class attributes)
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct properties {}
@@ -61,7 +61,7 @@ impl properties {
     }
 }
 
-// zenoh.net.whatami (use a class with class attributes for it)
+// zenoh.net.whatami (simulate the package as a class, and consts as class attributes)
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct whatami {}
@@ -77,6 +77,20 @@ impl whatami {
     #[classattr]
     fn CLIENT() -> ZInt {
         zenoh::net::whatami::CLIENT
+    }
+}
+
+// zenoh.net.resource_name (simulate the package as a class with static methodss)
+#[allow(non_camel_case_types)]
+#[pyclass]
+pub(crate) struct resource_name {}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl resource_name {
+    #[staticmethod]
+    fn intersect(s1: &str, s2: &str) -> bool {
+        zenoh::net::utils::resource_name::intersect(s1, s2)
     }
 }
 
@@ -128,7 +142,7 @@ impl Config {
     }
 }
 
-// zenoh.net.ResKey (enum simulated via a Python class with static methods,
+// zenoh.net.ResKey (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/417 to be fixed)
 #[pyclass]
 pub(crate) struct ResKey {
@@ -316,7 +330,7 @@ impl Sample {
     }
 }
 
-// zenoh.net.Reliability (enum simulated via a Python class with attribute,
+// zenoh.net.Reliability (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 #[pyclass]
 #[derive(Clone)]
@@ -342,7 +356,7 @@ impl Reliability {
     }
 }
 
-// zenoh.net.SubMode (enum simulated via a Python class with attribute,
+// zenoh.net.SubMode (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 #[pyclass]
 #[derive(Clone)]
