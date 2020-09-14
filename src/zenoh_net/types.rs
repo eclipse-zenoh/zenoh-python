@@ -449,19 +449,30 @@ impl Publisher {
     }
 }
 
+pub(crate) enum ZnSubOps {
+    Pull,
+    Undeclare,
+}
+
 // zenoh.net.Subscriber
 #[pyclass]
 pub(crate) struct Subscriber {
-    pub(crate) undeclare_tx: Sender<bool>,
+    pub(crate) undeclare_tx: Sender<ZnSubOps>,
     pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
 }
 
 #[pymethods]
 impl Subscriber {
+    fn pull(&self) {
+        task::block_on(async {
+            self.undeclare_tx.send(ZnSubOps::Pull).await;
+        });
+    }
+
     fn undeclare(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
-                self.undeclare_tx.send(true).await;
+                self.undeclare_tx.send(ZnSubOps::Undeclare).await;
                 handle.await;
             });
         }
