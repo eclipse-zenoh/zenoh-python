@@ -60,7 +60,7 @@ Steps:
  * Build zenoh-python using **maturin**
     ```bash
    cd zenoh-python
-   maturin develop
+   maturin develop --release
    ```
 
 Maturin will automatically build the zenoh Rust API, as well as the zenoh-python API and install it in your Python virtual environement.
