@@ -51,9 +51,9 @@ selector = args.selector
 
 
 def listener(sample):
-    timestamp = 'None' if sample.data_info is None else sample.data_info.timestamp
-    print(">> [Subscription listener] Received ('{}': '{}') at {}"
-          .format(sample.res_name, sample.payload.decode("utf-8"), timestamp.time))
+    time = '(not specified)' if sample.data_info is None else sample.data_info.timestamp.time
+    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
+          .format(sample.res_name, sample.payload.decode("utf-8"), time))
 
 
 # initiate logging
