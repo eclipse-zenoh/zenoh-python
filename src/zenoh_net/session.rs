@@ -188,6 +188,43 @@ impl Session {
             loop_handle: Some(loop_handle),
         })
     }
+
+    fn query(
+        &self,
+        resource: &ResKey,
+        predicate: &str,
+        callback: &PyAny,
+        target: Option<QueryTarget>,
+        consolidation: Option<QueryConsolidation>,
+    ) -> PyResult<()> {
+        let s = self.as_ref()?;
+        let mut zn_recv = task::block_on(s.query(
+            &resource.k,
+            predicate,
+            target.unwrap_or_default().t,
+            consolidation.unwrap_or_default().c,
+        ))
+        .map_err(to_pyerr)?;
+
+        // Note: callback cannot be passed as such in task below because it's not Send
+        let cb_obj: Py<PyAny> = callback.into();
+
+        let _ = task::spawn_blocking(move || {
+            task::block_on(async move {
+                while let Some(reply) = zn_recv.next().await {
+                    // Acquire Python GIL to call the callback
+                    let gil = Python::acquire_gil();
+                    let py = gil.python();
+                    let cb_args = PyTuple::new(py, &[Reply { r: reply }]);
+                    if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
+                        warn!("Error calling queryable callback:");
+                        e.print(py);
+                    }
+                }
+            })
+        });
+        Ok(())
+    }
 }
 
 impl Session {

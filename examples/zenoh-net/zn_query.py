@@ -14,12 +14,13 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, SubInfo, Reliability, SubMode
+from zenoh.net import Config, ResKey, QueryTarget
+from zenoh.net.queryable import ALL_KINDS
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_pull',
-    description='zenoh-net pull example')
+    prog='zn_query',
+    description='zenoh-net query example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',
                     choices=['peer', 'client'],
@@ -38,7 +39,7 @@ parser.add_argument('--listener', '-l', dest='listener',
 parser.add_argument('--selector', '-s', dest='selector',
                     default='/demo/example/**',
                     type=str,
-                    help='The selection of resources to pull.')
+                    help='The selection of resources to query.')
 
 args = parser.parse_args()
 config = Config(
@@ -50,10 +51,10 @@ selector = args.selector
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-def listener(sample):
-    time = '(not specified)' if sample.data_info is None else sample.data_info.timestamp.time
-    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
-          .format(sample.res_name, sample.payload.decode("utf-8"), time))
+def query_callback(reply):
+    time = '(not specified)' if reply.data.data_info is None else reply.data.data_info.timestamp.time
+    print(">> [Reply handler] received ('{}': '{}') published at {}"
+          .format(reply.data.res_name, reply.data.payload.decode("utf-8"), time))
 
 
 # initiate logging
@@ -62,16 +63,9 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.net.open(config)
 
-print("Declaring Subscriber on '{}'...".format(selector))
-sub_info = SubInfo(Reliability.Reliable, SubMode.Pull)
+print("Sending Query '{}'...".format(selector))
+session.query(ResKey.RName(selector), '', query_callback)
 
-sub = session.declare_subscriber(ResKey.RName(selector), sub_info, listener)
+time.sleep(1)
 
-print("Press <enter> to pull data...")
-c = sys.stdin.read(1)
-while c != 'q':
-    sub.pull()
-    c = sys.stdin.read(1)
-
-sub.undeclare()
 session.close()

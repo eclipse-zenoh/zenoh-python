@@ -19,7 +19,7 @@ from zenoh.net.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_write',
+    prog='zn_storage',
     description='zenoh-net storage example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',

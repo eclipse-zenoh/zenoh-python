@@ -86,6 +86,10 @@ sys.modules['zenoh.net.resource_name'] = resource_name
     m.add_class::<Subscriber>()?;
     m.add_class::<Query>()?;
     m.add_class::<Queryable>()?;
+    m.add_class::<Target>()?;
+    m.add_class::<QueryTarget>()?;
+    m.add_class::<QueryConsolidation>()?;
+    m.add_class::<Reply>()?;
     m.add_class::<Session>()?;
     m.add_wrapped(wrap_pyfunction!(open))?;
     Ok(())
