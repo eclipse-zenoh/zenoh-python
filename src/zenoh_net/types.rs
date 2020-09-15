@@ -57,7 +57,7 @@ impl properties {
     #[staticmethod]
     fn to_str(i: ZInt) -> PyResult<String> {
         zenoh::net::properties::to_str(i)
-            .map_err(|e| PyErr::new::<exceptions::ValueError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<exceptions::PyValueError, _>(e.to_string()))
     }
 }
 
@@ -183,7 +183,7 @@ impl Config {
     #[staticmethod]
     fn parse_mode(mode: &str) -> PyResult<ZInt> {
         zenoh::net::Config::parse_mode(mode).map_err(|_| {
-            PyErr::new::<exceptions::ValueError, _>(format!("Invalid Config mode: '{}'", mode))
+            PyErr::new::<exceptions::PyValueError, _>(format!("Invalid Config mode: '{}'", mode))
         })
     }
 }
@@ -572,12 +572,12 @@ impl pyo3::conversion::ToPyObject for Query {
 #[pymethods]
 impl Query {
     #[getter]
-    fn res_name<'p>(&self) -> PyResult<&str> {
+    fn res_name(&self) -> PyResult<&str> {
         Ok(self.q.res_name.as_str())
     }
 
     #[getter]
-    fn predicate<'p>(&self) -> PyResult<&str> {
+    fn predicate(&self) -> PyResult<&str> {
         Ok(self.q.predicate.as_str())
     }
 
