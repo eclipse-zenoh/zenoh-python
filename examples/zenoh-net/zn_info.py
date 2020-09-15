@@ -18,7 +18,7 @@ from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_write',
+    prog='zn_info',
     description='zenoh-net info example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',

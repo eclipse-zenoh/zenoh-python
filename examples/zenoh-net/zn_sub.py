@@ -18,7 +18,7 @@ from zenoh.net import Config, ResKey, SubInfo, Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_write',
+    prog='zn_sub',
     description='zenoh-net sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',

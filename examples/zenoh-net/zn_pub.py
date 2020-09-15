@@ -18,7 +18,7 @@ from zenoh.net import Config, ResKey
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_write',
+    prog='zn_pub',
     description='zenoh-net pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',

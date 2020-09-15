@@ -479,7 +479,7 @@ impl Subscriber {
     }
 }
 
-// zenoh.net.queryable (use a class with class attributes for it)
+// zenoh.net.queryable (simulate the package as a class, and consts as class attributes)
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct queryable {}
@@ -550,6 +550,151 @@ impl Queryable {
                 self.undeclare_tx.send(true).await;
                 handle.await;
             });
+        }
+    }
+}
+
+// zenoh.net.Target (simulate the enum as a class with static methods for the cases,
+// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Target {
+    pub(crate) t: zenoh::net::Target,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl Target {
+    #[staticmethod]
+    fn BestMatching() -> Target {
+        Target {
+            t: zenoh::net::Target::BestMatching,
+        }
+    }
+
+    #[staticmethod]
+    fn Complete(n: ZInt) -> Target {
+        Target {
+            t: zenoh::net::Target::Complete { n },
+        }
+    }
+
+    #[staticmethod]
+    fn All() -> Target {
+        Target {
+            t: zenoh::net::Target::All,
+        }
+    }
+
+    #[staticmethod]
+    fn None() -> Target {
+        Target {
+            t: zenoh::net::Target::None,
+        }
+    }
+}
+
+// zenoh.net.QueryTarget
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct QueryTarget {
+    pub(crate) t: zenoh::net::QueryTarget,
+}
+
+#[pymethods]
+impl QueryTarget {
+    #[new]
+    fn new(kind: Option<ZInt>, target: Option<Target>) -> QueryTarget {
+        let mut t = zenoh::net::QueryTarget::default();
+        if let Some(k) = kind {
+            t.kind = k;
+        }
+        if let Some(target) = target {
+            t.target = target.t;
+        }
+        QueryTarget { t }
+    }
+}
+
+impl Default for QueryTarget {
+    fn default() -> Self {
+        QueryTarget {
+            t: zenoh::net::QueryTarget::default(),
+        }
+    }
+}
+
+// zenoh.net.QueryConsolidation (simulate the enum as a class with static methods for the cases,
+// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct QueryConsolidation {
+    pub(crate) c: zenoh::net::QueryConsolidation,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl QueryConsolidation {
+    #[classattr]
+    fn None() -> QueryConsolidation {
+        QueryConsolidation {
+            c: zenoh::net::QueryConsolidation::None,
+        }
+    }
+
+    #[classattr]
+    fn LastHop() -> QueryConsolidation {
+        QueryConsolidation {
+            c: zenoh::net::QueryConsolidation::LastHop,
+        }
+    }
+
+    #[classattr]
+    fn Incremental() -> QueryConsolidation {
+        QueryConsolidation {
+            c: zenoh::net::QueryConsolidation::Incremental,
+        }
+    }
+}
+
+impl Default for QueryConsolidation {
+    fn default() -> Self {
+        QueryConsolidation {
+            c: zenoh::net::QueryConsolidation::default(),
+        }
+    }
+}
+
+// zenoh.net.Reply
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Reply {
+    pub(crate) r: zenoh::net::Reply,
+}
+
+impl pyo3::conversion::ToPyObject for Reply {
+    fn to_object(&self, py: Python) -> pyo3::PyObject {
+        pyo3::IntoPy::into_py(pyo3::Py::new(py, self.clone()).unwrap(), py)
+    }
+}
+
+#[pymethods]
+impl Reply {
+    #[getter]
+    fn data(&self) -> Sample {
+        Sample {
+            s: self.r.data.clone(),
+        }
+    }
+
+    #[getter]
+    fn source_kind(&self) -> ZInt {
+        self.r.source_kind
+    }
+
+    fn replier_id(&self) -> PeerId {
+        PeerId {
+            p: self.r.replier_id.clone(),
         }
     }
 }
