@@ -70,6 +70,11 @@ pub(crate) struct whatami {}
 #[pymethods]
 impl whatami {
     #[classattr]
+    fn ROUTER() -> ZInt {
+        zenoh::net::whatami::ROUTER
+    }
+
+    #[classattr]
     fn PEER() -> ZInt {
         zenoh::net::whatami::PEER
     }
@@ -77,6 +82,47 @@ impl whatami {
     #[classattr]
     fn CLIENT() -> ZInt {
         zenoh::net::whatami::CLIENT
+    }
+
+    #[staticmethod]
+    fn to_str(i: ZInt) -> PyResult<String> {
+        Ok(zenoh::net::whatami::to_str(i))
+    }
+}
+
+// zenoh.net.Hello
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Hello {
+    pub(crate) h: zenoh::net::Hello,
+}
+
+#[pymethods]
+impl Hello {
+    #[getter]
+    fn pid(&self) -> PyResult<Option<PeerId>> {
+        Ok(self.h.pid.as_ref().map(|p| PeerId { p: p.clone() }))
+    }
+
+    #[getter]
+    fn whatami(&self) -> PyResult<Option<ZInt>> {
+        Ok(self.h.whatami)
+    }
+
+    #[getter]
+    fn locators(&self) -> PyResult<Option<Vec<String>>> {
+        Ok(self
+            .h
+            .locators
+            .as_ref()
+            .map(|v| v.iter().map(|l| l.to_string()).collect()))
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Hello {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.h.to_string())
     }
 }
 
@@ -139,6 +185,13 @@ impl Config {
         zenoh::net::Config::parse_mode(mode).map_err(|_| {
             PyErr::new::<exceptions::ValueError, _>(format!("Invalid Config mode: '{}'", mode))
         })
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Config {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.c.to_string())
     }
 }
 
