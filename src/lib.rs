@@ -38,7 +38,7 @@ sys.modules['zenoh.net'] = net
     Ok(())
 }
 
-create_exception!(zenoh, ZError, exceptions::Exception);
+create_exception!(zenoh, ZError, exceptions::PyException);
 
 fn to_pyerr(err: zenoh::ZError) -> PyErr {
     PyErr::new::<ZError, _>(err.to_string())
