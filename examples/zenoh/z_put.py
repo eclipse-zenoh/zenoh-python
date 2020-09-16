@@ -14,12 +14,13 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, SubInfo, Reliability, SubMode
+from zenoh import Zenoh, Value
+from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_sub',
-    description='zenoh-net sub example')
+    prog='z_put',
+    description='zenoh put example')
 parser.add_argument('--mode', '-m', dest='mode',
                     default='peer',
                     choices=['peer', 'client'],
@@ -35,42 +36,35 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/demo/example/**',
+parser.add_argument('--path', '-p', dest='path',
+                    default='/demo/example/zenoh-python-put',
                     type=str,
-                    help='The selection of resources to subscribe.')
+                    help='The name of the resource to put.')
+parser.add_argument('--value', '-v', dest='value',
+                    default='Put from Python!',
+                    type=str,
+                    help='The value of the resource to put.')
 
 args = parser.parse_args()
 config = Config(
     mode=Config.parse_mode(args.mode),
     peers=args.peer,
     listeners=args.listener)
-selector = args.selector
+path = args.path
+value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
-
-
-def listener(sample):
-    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else sample.data_info.timestamp.time
-    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
-          .format(sample.res_name, sample.payload.decode("utf-8"), time))
-
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(config)
+zenoh = Zenoh(config)
 
-print("Declaring Subscriber on '{}'...".format(selector))
-sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
+print("New workspace...")
+workspace = zenoh.workspace()
 
-sub = session.declare_subscriber(ResKey.RName(selector), sub_info, listener)
+print("Put Data ('{}': '{}')...".format(path, value))
+workspace.put(path, value)
 
-print("Press q to stop...")
-c = '\0'
-while c != 'q':
-    c = sys.stdin.read(1)
-
-sub.undeclare()
-session.close()
+zenoh.close()
