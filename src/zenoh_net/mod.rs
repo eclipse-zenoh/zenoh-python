@@ -17,12 +17,13 @@ use async_std::task;
 use futures::prelude::*;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use zenoh::net::ZInt;
 
-mod types;
+pub(crate) mod types;
 use types::*;
 mod session;
 use session::*;
-use zenoh::net::ZInt;
+mod encoding;
 
 // module zenoh.net
 #[pymodule]
@@ -70,6 +71,18 @@ sys.modules['zenoh.net.queryable'] = queryable
         "\
 import sys
 sys.modules['zenoh.net.resource_name'] = resource_name
+        ",
+        None,
+        Some(m.dict()),
+    )?;
+
+    m.add_class::<encoding::encoding>()?;
+    // force addition of "zenoh.net.encoding" module
+    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
+    py.run(
+        "\
+import sys
+sys.modules['zenoh.net.encoding'] = encoding
         ",
         None,
         Some(m.dict()),
