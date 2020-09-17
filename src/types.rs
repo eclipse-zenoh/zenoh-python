@@ -12,6 +12,9 @@
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use crate::zenoh_net::Timestamp;
+use async_std::sync::Sender;
+use async_std::task;
+use pyo3::class::basic::CompareOp;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
@@ -93,6 +96,7 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
     }
 }
 
+// zenoh.Value
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Value {
@@ -187,6 +191,7 @@ impl PyObjectProtocol for Value {
     }
 }
 
+// zenoh.Data
 #[pyclass]
 pub(crate) struct Data {
     pub(crate) d: zenoh::Data,
@@ -210,6 +215,172 @@ impl Data {
     fn timestamp(&self) -> Timestamp {
         Timestamp {
             t: self.d.timestamp.clone(),
+        }
+    }
+}
+
+// zenoh.ChangeKind (simulate the enum as a class with static methods for the cases,
+// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct ChangeKind {
+    pub(crate) k: ZInt,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl ChangeKind {
+    #[classattr]
+    fn PUT() -> ChangeKind {
+        ChangeKind {
+            k: zenoh::net::data_kind::PUT,
+        }
+    }
+
+    #[classattr]
+    fn PATCH() -> ChangeKind {
+        ChangeKind {
+            k: zenoh::net::data_kind::PATCH,
+        }
+    }
+
+    #[classattr]
+    fn DELETE() -> ChangeKind {
+        ChangeKind {
+            k: zenoh::net::data_kind::DELETE,
+        }
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for ChangeKind {
+    fn __str__(&self) -> PyResult<&str> {
+        match self.k {
+            zenoh::net::data_kind::PUT => Ok("PUT"),
+            zenoh::net::data_kind::PATCH => Ok("PATCH"),
+            zenoh::net::data_kind::DELETE => Ok("DELETE"),
+            _ => Ok("PUT"),
+        }
+    }
+
+    fn __format__(&self, _format_spec: &str) -> PyResult<&str> {
+        self.__str__()
+    }
+
+    fn __richcmp__(&self, other: Self, op: CompareOp) -> PyResult<bool> {
+        match op {
+            CompareOp::Eq => Ok(self.k == other.k),
+            CompareOp::Ne => Ok(self.k != other.k),
+            CompareOp::Lt => Ok(self.k < other.k),
+            CompareOp::Le => Ok(self.k <= other.k),
+            CompareOp::Gt => Ok(self.k > other.k),
+            CompareOp::Ge => Ok(self.k >= other.k),
+        }
+    }
+}
+
+// zenoh.Change
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Change {
+    pub(crate) c: zenoh::Change,
+}
+
+impl pyo3::conversion::ToPyObject for Change {
+    fn to_object(&self, py: Python) -> pyo3::PyObject {
+        pyo3::IntoPy::into_py(pyo3::Py::new(py, self.clone()).unwrap(), py)
+    }
+}
+
+#[pymethods]
+impl Change {
+    #[getter]
+    fn path(&self) -> String {
+        self.c.path.to_string()
+    }
+
+    #[getter]
+    fn value(&self) -> Option<Value> {
+        self.c.value.as_ref().map(|v| Value { v: v.clone() })
+    }
+
+    #[getter]
+    fn timestamp(&self) -> Timestamp {
+        Timestamp {
+            t: self.c.timestamp.clone(),
+        }
+    }
+
+    #[getter]
+    fn kind(&self) -> ChangeKind {
+        ChangeKind {
+            k: self.c.kind.clone() as ZInt,
+        }
+    }
+}
+
+// zenoh.Subscriber
+#[pyclass]
+pub(crate) struct Subscriber {
+    pub(crate) close_tx: Sender<bool>,
+    pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
+}
+
+#[pymethods]
+impl Subscriber {
+    fn close(&mut self) {
+        if let Some(handle) = self.loop_handle.take() {
+            task::block_on(async {
+                self.close_tx.send(true).await;
+                handle.await;
+            });
+        }
+    }
+}
+
+// zenoh.GetRequest
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct GetRequest {
+    pub(crate) r: zenoh::GetRequest,
+}
+
+impl pyo3::conversion::ToPyObject for GetRequest {
+    fn to_object(&self, py: Python) -> pyo3::PyObject {
+        pyo3::IntoPy::into_py(pyo3::Py::new(py, self.clone()).unwrap(), py)
+    }
+}
+
+#[pymethods]
+impl GetRequest {
+    #[getter]
+    fn selector(&self) -> String {
+        self.r.selector.to_string()
+    }
+
+    fn reply(&self, path: String, value: &PyAny) -> PyResult<()> {
+        let p = path_of_string(path)?;
+        let v = zvalue_of_pyany(value)?;
+        task::block_on(async { self.r.reply(p, v).await });
+        Ok(())
+    }
+}
+
+// zenoh.Eval
+#[pyclass]
+pub(crate) struct Eval {
+    pub(crate) close_tx: Sender<bool>,
+    pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
+}
+
+#[pymethods]
+impl Eval {
+    fn close(&mut self) {
+        if let Some(handle) = self.loop_handle.take() {
+            task::block_on(async {
+                self.close_tx.send(true).await;
+                handle.await;
+            });
         }
     }
 }

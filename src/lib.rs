@@ -46,6 +46,9 @@ sys.modules['zenoh.net'] = net
     m.add_class::<Zenoh>()?;
     m.add_class::<Workspace>()?;
     m.add_class::<Value>()?;
+    m.add_class::<Data>()?;
+    m.add_class::<Change>()?;
+    m.add_class::<GetRequest>()?;
 
     Ok(())
 }
