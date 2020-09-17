@@ -18,10 +18,8 @@ use pyo3::create_exception;
 use pyo3::prelude::*;
 use pyo3::{exceptions, wrap_pyfunction, wrap_pymodule};
 use std::collections::HashMap;
-use std::convert::TryFrom;
 
 mod zenoh_net;
-use zenoh_net::types::*;
 use zenoh_net::*;
 
 mod types;
