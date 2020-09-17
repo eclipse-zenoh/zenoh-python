@@ -37,62 +37,45 @@ pub(crate) fn selector_of_string(s: String) -> PyResult<zenoh::Selector> {
         .map_err(|e| PyErr::new::<exceptions::PyValueError, _>(e.to_string()))
 }
 
-pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
-    match obj.get_type().name().as_ref() {
-        "Value" => {
-            let v: Value = obj.extract()?;
-            Ok(v.v)
-        }
-        "bytes" => {
-            let buf: Vec<u8> = obj.extract()?;
-            Ok(zenoh::Value::Raw(
-                zenoh::net::encoding::APP_OCTET_STREAM,
-                buf.into(),
-            ))
-        }
-        "str" => {
-            let s: String = obj.extract()?;
-            Ok(zenoh::Value::StringUTF8(s))
-        }
-        "dict" => {
-            let props: HashMap<String, String> = obj.extract()?;
-            Ok(zenoh::Value::Properties(zenoh::Properties::from(props)))
-        }
-        "int" => {
-            let i: i64 = obj.extract()?;
-            Ok(zenoh::Value::Integer(i))
-        }
-        "float" => {
-            let f: f64 = obj.extract()?;
-            Ok(zenoh::Value::Float(f))
-        }
-        "tuple" => {
-            let tuple: &PyTuple = obj.downcast()?;
-            if tuple.len() == 2
-                && tuple.get_item(0).get_type().name() == "str"
-                && tuple.get_item(1).get_type().name() == "bytes"
-            {
-                let encoding_descr: String = tuple.get_item(0).extract()?;
-                let buf: Vec<u8> = tuple.get_item(1).extract()?;
-                if let Ok(encoding) = zenoh::net::encoding::from_str(&encoding_descr) {
-                    Ok(zenoh::Value::Raw(encoding, buf.into()))
-                } else {
-                    Ok(zenoh::Value::Custom {
-                        encoding_descr,
-                        data: buf.into(),
-                    })
-                }
-            } else {
-                Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-                    "Cannot convert type '{:?}' to a zenoh Value",
-                    tuple
-                )))
-            }
-        }
-        x => Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-            "Cannot convert type '{}' to a zenoh Value",
-            x
-        ))),
+// zenoh.Selector
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Selector {
+    pub(crate) s: zenoh::Selector,
+}
+
+#[pymethods]
+impl Selector {
+    #[getter]
+    fn path_expr(&self) -> &str {
+        self.s.path_expr.as_str()
+    }
+
+    #[getter]
+    fn predicate(&self) -> &str {
+        &self.s.predicate
+    }
+
+    #[getter]
+    fn filter(&self) -> Option<&str> {
+        self.s.filter.as_ref().map(|s| s.as_str())
+    }
+
+    #[getter]
+    fn properties(&self) -> HashMap<String, String> {
+        self.s.properties.0.clone()
+    }
+
+    #[getter]
+    fn fragment(&self) -> Option<&str> {
+        self.s.fragment.as_ref().map(|s| s.as_str())
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Selector {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.s.to_string())
     }
 }
 
@@ -188,6 +171,65 @@ impl Value {
 impl PyObjectProtocol for Value {
     fn __str__(&self) -> PyResult<String> {
         Ok(format!("{:?}", self.v))
+    }
+}
+
+pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
+    match obj.get_type().name().as_ref() {
+        "Value" => {
+            let v: Value = obj.extract()?;
+            Ok(v.v)
+        }
+        "bytes" => {
+            let buf: Vec<u8> = obj.extract()?;
+            Ok(zenoh::Value::Raw(
+                zenoh::net::encoding::APP_OCTET_STREAM,
+                buf.into(),
+            ))
+        }
+        "str" => {
+            let s: String = obj.extract()?;
+            Ok(zenoh::Value::StringUTF8(s))
+        }
+        "dict" => {
+            let props: HashMap<String, String> = obj.extract()?;
+            Ok(zenoh::Value::Properties(zenoh::Properties::from(props)))
+        }
+        "int" => {
+            let i: i64 = obj.extract()?;
+            Ok(zenoh::Value::Integer(i))
+        }
+        "float" => {
+            let f: f64 = obj.extract()?;
+            Ok(zenoh::Value::Float(f))
+        }
+        "tuple" => {
+            let tuple: &PyTuple = obj.downcast()?;
+            if tuple.len() == 2
+                && tuple.get_item(0).get_type().name() == "str"
+                && tuple.get_item(1).get_type().name() == "bytes"
+            {
+                let encoding_descr: String = tuple.get_item(0).extract()?;
+                let buf: Vec<u8> = tuple.get_item(1).extract()?;
+                if let Ok(encoding) = zenoh::net::encoding::from_str(&encoding_descr) {
+                    Ok(zenoh::Value::Raw(encoding, buf.into()))
+                } else {
+                    Ok(zenoh::Value::Custom {
+                        encoding_descr,
+                        data: buf.into(),
+                    })
+                }
+            } else {
+                Err(PyErr::new::<exceptions::PyValueError, _>(format!(
+                    "Cannot convert type '{:?}' to a zenoh Value",
+                    tuple
+                )))
+            }
+        }
+        x => Err(PyErr::new::<exceptions::PyValueError, _>(format!(
+            "Cannot convert type '{}' to a zenoh Value",
+            x
+        ))),
     }
 }
 
@@ -354,8 +396,10 @@ impl pyo3::conversion::ToPyObject for GetRequest {
 #[pymethods]
 impl GetRequest {
     #[getter]
-    fn selector(&self) -> String {
-        self.r.selector.to_string()
+    fn selector(&self) -> Selector {
+        Selector {
+            s: self.r.selector.clone(),
+        }
     }
 
     fn reply(&self, path: String, value: &PyAny) -> PyResult<()> {
