@@ -20,7 +20,7 @@ use pyo3::wrap_pyfunction;
 use zenoh::net::ZInt;
 
 pub(crate) mod types;
-use types::*;
+pub(crate) use types::*;
 mod session;
 use session::*;
 mod encoding;

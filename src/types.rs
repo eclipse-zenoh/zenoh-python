@@ -11,9 +11,11 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
+use crate::zenoh_net::Timestamp;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use pyo3::PyObjectProtocol;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use zenoh::net::ZInt;
@@ -97,8 +99,34 @@ pub(crate) struct Value {
     pub(crate) v: zenoh::Value,
 }
 
+#[allow(non_snake_case)]
 #[pymethods]
 impl Value {
+    #[getter]
+    fn encoding(&self) -> ZInt {
+        self.v.encoding()
+    }
+
+    fn encoding_descr(&self) -> String {
+        self.v.encoding_descr()
+    }
+
+    fn content(&self, py: Python) -> PyObject {
+        use zenoh::Value::*;
+        match &self.v {
+            Raw(_, buf) => buf.to_vec().into_py(py),
+            Custom {
+                encoding_descr: _,
+                data,
+            } => data.to_vec().into_py(py),
+            StringUTF8(s) => s.into_py(py),
+            Properties(zenoh::Properties(p)) => p.clone().into_py(py),
+            Json(s) => s.into_py(py),
+            Integer(i) => i.into_py(py),
+            Float(f) => f.into_py(py),
+        }
+    }
+
     #[staticmethod]
     fn Raw(encoding: ZInt, buffer: Vec<u8>) -> Value {
         Value {
@@ -131,6 +159,13 @@ impl Value {
     }
 
     #[staticmethod]
+    fn Json(s: String) -> Value {
+        Value {
+            v: zenoh::Value::Json(s),
+        }
+    }
+
+    #[staticmethod]
     fn Integer(i: i64) -> Value {
         Value {
             v: zenoh::Value::Integer(i),
@@ -141,6 +176,40 @@ impl Value {
     fn Float(f: f64) -> Value {
         Value {
             v: zenoh::Value::Float(f),
+        }
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Value {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.v))
+    }
+}
+
+#[pyclass]
+pub(crate) struct Data {
+    pub(crate) d: zenoh::Data,
+}
+
+#[pymethods]
+impl Data {
+    #[getter]
+    fn path(&self) -> String {
+        self.d.path.to_string()
+    }
+
+    #[getter]
+    fn value(&self) -> Value {
+        Value {
+            v: self.d.value.clone(),
+        }
+    }
+
+    #[getter]
+    fn timestamp(&self) -> Timestamp {
+        Timestamp {
+            t: self.d.timestamp.clone(),
         }
     }
 }

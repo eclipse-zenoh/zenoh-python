@@ -14,6 +14,7 @@
 use crate::to_pyerr;
 use crate::types::*;
 use async_std::task;
+use futures::prelude::*;
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -27,5 +28,22 @@ impl Workspace {
         let p = path_of_string(path)?;
         let v = zvalue_of_pyany(value)?;
         task::block_on(self.w.put(&p, v)).map_err(to_pyerr)
+    }
+
+    fn delete(&self, path: String) -> PyResult<()> {
+        let p = path_of_string(path)?;
+        task::block_on(self.w.delete(&p)).map_err(to_pyerr)
+    }
+
+    fn get(&self, selector: String) -> PyResult<Vec<Data>> {
+        let s = selector_of_string(selector)?;
+        task::block_on(async {
+            let mut data_stream = self.w.get(&s).await.map_err(to_pyerr)?;
+            let mut result = vec![];
+            while let Some(d) = data_stream.next().await {
+                result.push(Data { d })
+            }
+            Ok(result)
+        })
     }
 }
