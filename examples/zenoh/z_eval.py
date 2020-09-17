@@ -63,7 +63,23 @@ workspace = zenoh.workspace()
 def eval_callback(get_request):
     print(">> [Eval listener] received get with selector: {}".format(
         get_request.selector))
-    name = 'Python!'
+
+    # The returned Value is a StringValue with a 'name' part which is set in 3 possible ways,
+    # depending the properties specified in the selector. For example, with the
+    # following selectors:
+    # - "/zenoh/example/eval" : no properties are set, a default value is used for the name
+    # - "/zenoh/example/eval?(name=Bob)" : "Bob" is used for the name
+    # - "/zenoh/example/eval?(name=/zenoh/example/name)" : the Eval function does a GET
+    #      on "/zenoh/example/name" an uses the 1st result for the name
+    # properties.get('name', 'Zenoh Python!')
+    name = get_request.selector.properties.get('name', 'Python!')
+    if name.startswith('/'):
+        print('   >> Get name to use from Zenoh at path: {}'.format(name))
+        dataset = workspace.get(name)
+        print('   >> get result: {}'.format(dataset))
+        if len(dataset) > 0:
+            name = dataset[0].value.content
+
     print('   >> Replying string: "Eval from {}"'.format(name))
     get_request.reply(path, 'Eval from {}'.format(name))
 
