@@ -78,7 +78,7 @@ def eval_callback(get_request):
         dataset = workspace.get(name)
         print('   >> get result: {}'.format(dataset))
         if len(dataset) > 0:
-            name = dataset[0].value.content()
+            name = dataset[0].value.get_content()
 
     print('   >> Replying string: "Eval from {}"'.format(name))
     get_request.reply(path, 'Eval from {}'.format(name))

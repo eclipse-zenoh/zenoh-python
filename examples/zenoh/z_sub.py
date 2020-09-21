@@ -53,7 +53,7 @@ selector = args.selector
 
 def listener(change):
     print(">> [Subscription listener] received {:?} for {} : {} with timestamp {}"
-          .format(change.kind, change.path, '' if change.value is None else change.value.content(), change.timestamp))
+          .format(change.kind, change.path, '' if change.value is None else change.value.get_content(), change.timestamp))
 
 
 # initiate logging

@@ -77,6 +77,14 @@ impl PyObjectProtocol for Selector {
     fn __str__(&self) -> PyResult<String> {
         Ok(self.s.to_string())
     }
+
+    fn __repr__(&self) -> PyResult<String> {
+        self.__str__()
+    }
+
+    fn __format__(&self, _format_spec: &str) -> PyResult<String> {
+        self.__str__()
+    }
 }
 
 // zenoh.Value
@@ -98,7 +106,7 @@ impl Value {
         self.v.encoding_descr()
     }
 
-    fn content(&self, py: Python) -> PyObject {
+    fn get_content(&self, py: Python) -> PyObject {
         use zenoh::Value::*;
         match &self.v {
             Raw(_, buf) => buf.to_vec().into_py(py),
@@ -171,6 +179,14 @@ impl Value {
 impl PyObjectProtocol for Value {
     fn __str__(&self) -> PyResult<String> {
         Ok(format!("{:?}", self.v))
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        self.__str__()
+    }
+
+    fn __format__(&self, _format_spec: &str) -> PyResult<String> {
+        self.__str__()
     }
 }
 
@@ -261,6 +277,21 @@ impl Data {
     }
 }
 
+#[pyproto]
+impl PyObjectProtocol for Data {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.d))
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        self.__str__()
+    }
+
+    fn __format__(&self, _format_spec: &str) -> PyResult<String> {
+        self.__str__()
+    }
+}
+
 // zenoh.ChangeKind (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 #[pyclass]
@@ -303,6 +334,10 @@ impl PyObjectProtocol for ChangeKind {
             zenoh::net::data_kind::DELETE => Ok("DELETE"),
             _ => Ok("PUT"),
         }
+    }
+
+    fn __repr__(&self) -> PyResult<&str> {
+        self.__str__()
     }
 
     fn __format__(&self, _format_spec: &str) -> PyResult<&str> {
