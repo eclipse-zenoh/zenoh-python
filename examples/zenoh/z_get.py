@@ -62,6 +62,6 @@ workspace = zenoh.workspace()
 print("Get Data from '{}'...".format(selector))
 for data in workspace.get(selector):
     print('  {} : {}  (encoding: {} , timestamp: {})'.format(
-        data.path, data.value.content(), data.value.encoding_descr(), data.timestamp))
+        data.path, data.value.get_content(), data.value.encoding_descr(), data.timestamp))
 
 zenoh.close()

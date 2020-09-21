@@ -63,12 +63,13 @@ session = zenoh.net.open(config)
 print("Declaring Resource " + path)
 rid = session.declare_resource(ResKey.RName(path))
 print(" => RId {}".format(rid))
+reskey = ResKey.RId(rid)
 
 print("Declaring Publisher on {}".format(rid))
-reskey = ResKey.RId(rid)
 publisher = session.declare_publisher(reskey)
 
 print("Writing Data ('{}': '{}')...".format(rid, value))
 session.write(reskey, bytes(value, encoding='utf8'))
 
+publisher.undeclare()
 session.close()
