@@ -17,3 +17,9 @@ Cargo.lock
 
 # MacOS Related
 .DS_Store
+
+# others
+*.log
+*.BAK
+*.bak
+
