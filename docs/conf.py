@@ -48,7 +48,6 @@ release = '0.5.0-dev1'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
-    'rinoh.frontend.sphinx',
     'sphinx_rtd_theme'
 ]
 
