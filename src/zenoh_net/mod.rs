@@ -25,7 +25,7 @@ mod session;
 use session::*;
 mod encoding;
 
-// module zenoh.net
+/// The module of the zenoh-net API.
 #[pymodule]
 fn net(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<properties>()?;

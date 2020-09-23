@@ -27,6 +27,7 @@ use types::*;
 mod workspace;
 use workspace::*;
 
+/// The module of the zenoh API.
 #[pymodule]
 fn zenoh(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(net))?;
@@ -64,13 +65,16 @@ fn init_logger() {
     env_logger::init();
 }
 
+/// The zenoh client API.
 #[pyclass]
+#[text_signature = "(config, properties=None)"]
 pub(crate) struct Zenoh {
     z: Option<zenoh::Zenoh>,
 }
 
 #[pymethods]
 impl Zenoh {
+    /// Creates a zenoh API, establishing a zenoh-net session with discovered peers and/or routers.
     #[new]
     fn new(config: Config, properties: Option<HashMap<String, String>>) -> PyResult<Zenoh> {
         let props: Option<zenoh::Properties> = properties.map(|p| p.into());
@@ -83,6 +87,7 @@ impl Zenoh {
         task::block_on(z.close()).map_err(to_pyerr)
     }
 
+    #[text_signature = "(prefix=None)"]
     fn workspace(&self, prefix: Option<String>) -> PyResult<Workspace> {
         let p = prefix.map(|s| path_of_string(s)).transpose()?;
         let z = self.as_ref()?;
