@@ -12,11 +12,11 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 #
 [package]
-name = "zenoh-python"
-version = "0.5.0"
+name = "eclipse-zenoh"
+version = "0.5.0-dev1"
 authors = ["kydos <angelo@icorsaro.net>",
            "Julien Enoch <julien@enoch.fr>",
-           "Olivier Hécart <olivier.hecart@adlinktech.com",
+           "Olivier Hécart <olivier.hecart@adlinktech.com>",
 		   "Luca Cominardi <luca.cominardi@adlinktech.com>"]
 edition = "2018"
 
@@ -32,13 +32,14 @@ classifier = [
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X"
 ]
+maintainer = "ADLINK zenoh team, <zenoh@adlink-labs.tech>"
 
 [lib]
 name = "zenoh"
 crate-type = ["cdylib"]
 
 [dependencies]
-zenoh = { path = "../zenoh/zenoh" }  # TODO: version only
+zenoh = "0.5.0-beta.2"
 uhlc = "0.2"
 futures = "0.3.5"
 log = "0.4"
@@ -46,7 +47,7 @@ env_logger = "0.7.1"
 
 [dependencies.async-std]
 version = "1.6.4"
-features = ["unstable", "attributes"]
+features = ["attributes"]
 
 [dependencies.pyo3]
 version = "0.12"
