@@ -37,7 +37,32 @@ pub(crate) fn selector_of_string(s: String) -> PyResult<zenoh::Selector> {
         .map_err(|e| PyErr::new::<exceptions::PyValueError, _>(e.to_string()))
 }
 
-// zenoh.Selector
+/// A zenoh Selector is the conjunction of a path expression identifying a set
+/// of paths and some optional parts allowing to refine the set of paths and associated values.
+///
+/// Structure of a selector::
+///
+///    /s1/s2/.../sn?x>1&y<2&...&z=4(p1=v1;p2=v2;...;pn=vn)#a;b;x;y;...;z
+///    |           | |             | |                   |  |           |
+///    |-- expr ---| |--- filter --| |---- properties ---|  |--fragment-|
+///
+/// where:
+///
+/// * **expr**: is a [`PathExpr`].
+///
+/// * **filter**: a list of predicates separated by ``&`` allowing to perform filtering on the values
+///   associated with the matching keys. Each predicate has the form "`field`-`operator`-`value`" value where:
+///
+///    * *field* is the name of a field in the value (is applicable and is existing. otherwise the predicate is false)
+///    * *operator* is one of a comparison operators: ``<`` , ``>`` , ``<=`` , ``>=`` , ``=`` , ``!=``
+///    * *value* is the the value to compare the field’s value with
+///
+/// * **fragment**: a list of fields names allowing to return a sub-part of each value.
+///   This feature only applies to structured values using a “self-describing” encoding, such as JSON or XML.
+///   It allows to select only some fields within the structure. A new structure with only the selected fields
+///   will be used in place of the original value.
+///
+/// **NOTE**: *the filters and fragments are not yet supported in current zenoh version.*
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Selector {
@@ -46,26 +71,32 @@ pub(crate) struct Selector {
 
 #[pymethods]
 impl Selector {
+    /// the path expression part of this Selector (before ``?`` character).
     #[getter]
     fn path_expr(&self) -> &str {
         self.s.path_expr.as_str()
     }
 
+    /// the predicate part of this Selector, as used in zenoh-net.
+    /// I.e. all characters after ``?`` (or an empty String if no such character).
     #[getter]
     fn predicate(&self) -> &str {
         &self.s.predicate
     }
 
+    /// the filter part of this Selector, if any (all characters after ``?`` and before ``(`` or ``#``)
     #[getter]
     fn filter(&self) -> Option<&str> {
         self.s.filter.as_ref().map(|s| s.as_str())
     }
 
+    /// the properties part of this Selector (all characters between parenthesis and after ``?``)
     #[getter]
     fn properties(&self) -> HashMap<String, String> {
         self.s.properties.0.clone()
     }
 
+    /// the fragment part of this Selector, if any (all characters after ``#``)
     #[getter]
     fn fragment(&self) -> Option<&str> {
         self.s.fragment.as_ref().map(|s| s.as_str())
@@ -87,7 +118,7 @@ impl PyObjectProtocol for Selector {
     }
 }
 
-// zenoh.Value
+/// A user value that is associated with a path in zenoh.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Value {
@@ -97,15 +128,24 @@ pub(crate) struct Value {
 #[allow(non_snake_case)]
 #[pymethods]
 impl Value {
+    /// the encoding flag of the Value.
+    ///
+    /// :type: int
     #[getter]
     fn encoding(&self) -> ZInt {
         self.v.encoding()
     }
 
+    /// Returns the encoding description of the Value.
+    ///
+    /// :rtype: str
     fn encoding_descr(&self) -> String {
         self.v.encoding_descr()
     }
 
+    /// Returns the typed content of the value.
+    ///
+    /// :rtype: depend on the encoding flag (e.g. str for a StringUTF8 Value, int for an Integer Value ...)
     fn get_content(&self, py: Python) -> PyObject {
         use zenoh::Value::*;
         match &self.v {
@@ -122,14 +162,31 @@ impl Value {
         }
     }
 
+    /// Creates a Value from a bytes buffer and an encoding flag.
+    /// See :class:`zenoh.net.encoding` for available flags.
+    ///
+    /// :param encoding: the encoding flag
+    /// :param buffer: the bytes buffer
+    /// :type encoding: int
+    /// :type buffer: bytes
     #[staticmethod]
+    #[text_signature = "(encoding, buffer)"]
     fn Raw(encoding: ZInt, buffer: Vec<u8>) -> Value {
         Value {
             v: zenoh::Value::Raw(encoding, buffer.into()),
         }
     }
 
+    /// Creates a Value as a bytes buffer and an encoding description (free string).
+    ///
+    /// Note: this is equivalent to ``Value.Raw(zenoh.net.encoding.APP_CUSTOM, buffer)`` where buffer contains the encoding description and the data.
+    ///
+    /// :param encoding_descr: the encoding description
+    /// :param buffer: the bytes buffer
+    /// :type encoding_descr: str
+    /// :type buffer: bytes
     #[staticmethod]
+    #[text_signature = "(encoding_descr, buffer)"]
     fn Custom(encoding_descr: String, buffer: Vec<u8>) -> Value {
         Value {
             v: zenoh::Value::Custom {
@@ -139,35 +196,70 @@ impl Value {
         }
     }
 
+    /// A String value.
+    ///
+    /// Note: this is equivalent to ``Value.Raw(zenoh.net.encoding.STRING, buffer)`` where buffer contains the String
+    ///
+    /// :param s: the string
+    /// :type s: str
     #[staticmethod]
+    #[text_signature = "(s)"]
     fn StringUTF8(s: String) -> Value {
         Value {
             v: zenoh::Value::StringUTF8(s),
         }
     }
 
+    /// A Properties value.
+    ///
+    /// Note: this is equivalent to  ``Value.Raw(zenoh.net.encoding.APP_PROPERTIES, buffer)`` where buffer contains the Properties encoded as a String
+    ///
+    /// :param p: the properties
+    /// :type p: dict of str:str
     #[staticmethod]
+    #[text_signature = "(p)"]
     fn Properties(p: HashMap<String, String>) -> Value {
         Value {
             v: zenoh::Value::Properties(zenoh::Properties::from(p)),
         }
     }
 
+    /// A Json value (string format).
+    ///
+    /// Note: this is equivalent to ``Value.Raw(zenoh.net.encoding.APP_JSON, buffer)`` where buffer contains the Json string
+    ///
+    /// :param s: the Json string
+    /// :type s: str
     #[staticmethod]
+    #[text_signature = "(s)"]
     fn Json(s: String) -> Value {
         Value {
             v: zenoh::Value::Json(s),
         }
     }
 
+    /// An Integer value.
+    ///
+    /// Note: this is equivalent to ``Value.Raw(zenoh.net.encoding.APP_INTEGER, buffer)`` where buffer contains the integer encoded as a String
+    ///
+    /// :param i: the integer
+    /// :type i: int
     #[staticmethod]
+    #[text_signature = "(i)"]
     fn Integer(i: i64) -> Value {
         Value {
             v: zenoh::Value::Integer(i),
         }
     }
 
+    /// An Float value.
+    ///
+    /// Note: this is equivalent to ``Value.Raw(zenoh.net.encoding.APP_FLOAT, buffer)`` where buffer contains the float encoded as a String
+    ///
+    /// :param f: the float
+    /// :type f: float
     #[staticmethod]
+    #[text_signature = "(f)"]
     fn Float(f: f64) -> Value {
         Value {
             v: zenoh::Value::Float(f),
@@ -249,7 +341,10 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
     }
 }
 
-// zenoh.Data
+/// A Data returned as a result of a :meth:`zenoh.Workspace.get` operation.
+///
+/// It contains the :attr:`path`, its associated :attr:`value` and a :attr:`timestamp` which corresponds to the time
+/// at which the path/value has been put into zenoh.
 #[pyclass]
 pub(crate) struct Data {
     pub(crate) d: zenoh::Data,
@@ -257,11 +352,13 @@ pub(crate) struct Data {
 
 #[pymethods]
 impl Data {
+    /// :type: str
     #[getter]
     fn path(&self) -> String {
         self.d.path.to_string()
     }
 
+    /// :type: Value
     #[getter]
     fn value(&self) -> Value {
         Value {
@@ -269,6 +366,7 @@ impl Data {
         }
     }
 
+    /// :type: Timestamp
     #[getter]
     fn timestamp(&self) -> Timestamp {
         Timestamp {
@@ -294,6 +392,8 @@ impl PyObjectProtocol for Data {
 
 // zenoh.ChangeKind (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+//
+/// The kind of a :class:`Change`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct ChangeKind {
@@ -303,6 +403,7 @@ pub(crate) struct ChangeKind {
 #[allow(non_snake_case)]
 #[pymethods]
 impl ChangeKind {
+    /// if the :class:`Change` was caused by a ``put`` operation.
     #[classattr]
     fn PUT() -> ChangeKind {
         ChangeKind {
@@ -310,6 +411,7 @@ impl ChangeKind {
         }
     }
 
+    /// if the :class:`Change` was caused by a ``patch`` operation.
     #[classattr]
     fn PATCH() -> ChangeKind {
         ChangeKind {
@@ -317,6 +419,7 @@ impl ChangeKind {
         }
     }
 
+    /// if the :class:`Change` was caused by a ``delete`` operation.
     #[classattr]
     fn DELETE() -> ChangeKind {
         ChangeKind {
@@ -356,7 +459,9 @@ impl PyObjectProtocol for ChangeKind {
     }
 }
 
-// zenoh.Change
+/// The notification of a change occured on a path/value and reported to a subscription.
+///
+/// See :meth:`zenoh.Workspace.subscribe`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Change {
@@ -371,16 +476,25 @@ impl pyo3::conversion::ToPyObject for Change {
 
 #[pymethods]
 impl Change {
+    /// the path related to this change.
+    ///
+    /// :type: str
     #[getter]
     fn path(&self) -> String {
         self.c.path.to_string()
     }
 
+    /// the new Value if the kind is :attr:`ChangeKind.DELETE`. ``None`` if the kind is :attr:`ChangeKind.DELETE`.
+    ///
+    /// :type: :class:`Value` or ``None``
     #[getter]
     fn value(&self) -> Option<Value> {
         self.c.value.as_ref().map(|v| Value { v: v.clone() })
     }
 
+    /// the Timestamp of the change
+    ///
+    /// :type: Timestamp
     #[getter]
     fn timestamp(&self) -> Timestamp {
         Timestamp {
@@ -388,6 +502,9 @@ impl Change {
         }
     }
 
+    /// the kind of change (:attr:`ChangeKind.PUT` or :attr:`ChangeKind.DELETE`).
+    ///
+    /// :type: ChangeKind
     #[getter]
     fn kind(&self) -> ChangeKind {
         ChangeKind {
@@ -396,7 +513,7 @@ impl Change {
     }
 }
 
-// zenoh.Subscriber
+/// A handle returned as a result of :meth:`Workspace.subscribe` method.
 #[pyclass]
 pub(crate) struct Subscriber {
     pub(crate) close_tx: Sender<bool>,
@@ -405,6 +522,7 @@ pub(crate) struct Subscriber {
 
 #[pymethods]
 impl Subscriber {
+    /// Closes the subscription.
     fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
@@ -415,7 +533,7 @@ impl Subscriber {
     }
 }
 
-// zenoh.GetRequest
+/// A *GET* request received by an evaluation function (see :meth:`Workspace::register_eval`).
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct GetRequest {
@@ -430,6 +548,9 @@ impl pyo3::conversion::ToPyObject for GetRequest {
 
 #[pymethods]
 impl GetRequest {
+    /// The selector used by this GetRequest
+    ///
+    /// :type: Selector
     #[getter]
     fn selector(&self) -> Selector {
         Selector {
@@ -437,6 +558,22 @@ impl GetRequest {
         }
     }
 
+    /// Send a path/value as a reply to the requester.
+    ///
+    /// Note that the *value* parameter also accepts the following types that can be converted to a :class:`Value`:
+    ///
+    /// * **bytes** for a ``Value.Raw(APP_OCTET_STREAM, bytes)``
+    /// * **str** for a ``Value.StringUTF8(str)``
+    /// * **int** for a ``Value.Integer(int)``
+    /// * **float** for a ``Value.Float(int)``
+    /// * **dict of str:str** for a ``Value.Properties(dict)``
+    /// * **(str, bytes)** for a ``Value.Custom(str, bytes)``
+    ///
+    /// :param path: the path
+    /// :type path: str
+    /// :param value: the value as a :class:`Value`
+    /// :type value: Value
+    #[text_signature = "(self, path, value)"]
     fn reply(&self, path: String, value: &PyAny) -> PyResult<()> {
         let p = path_of_string(path)?;
         let v = zvalue_of_pyany(value)?;
@@ -445,7 +582,7 @@ impl GetRequest {
     }
 }
 
-// zenoh.Eval
+/// A handle returned as a result of :meth:`Workspace.register_eval` method.
 #[pyclass]
 pub(crate) struct Eval {
     pub(crate) close_tx: Sender<bool>,
@@ -454,6 +591,7 @@ pub(crate) struct Eval {
 
 #[pymethods]
 impl Eval {
+    /// Closes the eval.
     fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {

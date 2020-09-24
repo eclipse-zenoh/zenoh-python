@@ -19,16 +19,12 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Path setup --------------------------------------------------------------
+# -- Project setup --------------------------------------------------------------
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('../src/'))
-
+# NOTE: as zenoh-python is developped in Rust, it must be compiled and install in Python environment
+# in order to be imported here (and the Sphinx autodoc extension to load the doc from the compiled code)
+# For readthedocs.org, zenoh-python is added in docs/requirements.txt so it get it from pypi.org
+import zenoh
 
 # -- Project information -----------------------------------------------------
 
@@ -47,6 +43,7 @@ release = '0.5.0-dev1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx_rtd_theme'
 ]

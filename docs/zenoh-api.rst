@@ -12,13 +12,17 @@
 ..   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 ..
 
-===================
+
 Zenoh API Reference
 ===================
 
+.. automodule:: zenoh
+    :members: init_logger
+
+
 Zenoh
 -----
-.. autoclass:: zenoh.ZenohXXX
+.. autoclass:: zenoh.Zenoh
     :members:
 
 Workspace
@@ -26,38 +30,49 @@ Workspace
 .. autoclass:: zenoh.Workspace
     :members:
 
-.. Admin
-.. -----
-.. .. autoclass:: zenoh.Admin
-..     :members:
-.. 
-.. Value
-.. -----
-.. .. autoclass:: zenoh.Value
-..     :members: get_value, get_encoding
-.. 
-.. Encoding
-.. --------
-.. .. autoclass:: zenoh.Encoding
-..     :members:
-.. 
-.. Change
-.. ------
-.. .. autoclass:: zenoh.Change
-..     :members:
-.. 
-.. ChangeKind
-.. ----------
-.. .. autoclass:: zenoh.ChangeKind
-..     :members:
-.. 
-.. Data
-.. ----
-.. .. autoclass:: zenoh.Data
-..     :members:
-.. 
-.. Timestamp
-.. ---------
-.. .. autoclass:: zenoh.core.Timestamp
-..     :members:
+Subscriber
+----------
+.. autoclass:: zenoh.Subscriber
+    :members:
 
+Eval
+----
+.. autoclass:: zenoh.Eval
+    :members:
+
+Value
+-----
+.. autoclass:: zenoh.Value
+    :members:
+
+Data
+----
+.. autoclass:: zenoh.Data
+    :members:
+
+Selector
+--------
+.. autoclass:: zenoh.Selector
+    :members:
+
+ChangeKind
+----------
+.. autoclass:: zenoh.ChangeKind
+    :members:
+
+    .. autoattribute:: PUT
+        :annotation:
+    .. autoattribute:: PATCH
+        :annotation:
+    .. autoattribute:: DELETE
+        :annotation:
+
+Change
+------
+.. autoclass:: zenoh.Change
+    :members:
+
+GetRequest
+----------
+.. autoclass:: zenoh.GetRequest
+    :members:
