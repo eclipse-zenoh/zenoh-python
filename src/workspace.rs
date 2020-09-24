@@ -21,6 +21,21 @@ use log::warn;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 
+/// A Workspace to operate on zenoh.
+///
+/// A Workspace has an optional path prefix from which relative paths or selectors can be used.
+///
+/// :Example:
+///
+/// >>> import zenoh
+/// >>> z = zenoh.Zenoh(zenoh.net.Config())
+/// >>> ### Create a Workspace using prefix '/demo/example'
+/// >>> w = z.workspace('/demo/example')
+/// >>> ### Put using a relative path: '/demo/example/' + 'hello'
+/// >>> w.put('hello', 'Hello World!')
+/// >>> ### Note that absolute paths and selectors can still be used:
+/// >>> w.put('/demo/exmaple/hello2', 'Hello World!')
+/// >>> z.close()
 #[pyclass]
 pub(crate) struct Workspace {
     pub(crate) w: zenoh::Workspace<'static>,
@@ -28,17 +43,79 @@ pub(crate) struct Workspace {
 
 #[pymethods]
 impl Workspace {
+    /// Put a path/value into zenoh.
+    ///
+    /// The corresponding :class:`Change` will be received by all matching subscribers and all matching storages.
+    /// Note that the path can be absolute or relative to this Workspace.
+    ///
+    /// The *value* parameter also accepts the following types that can be converted to a :class:`Value`:
+    ///
+    /// * **bytes** for a ``Value.Raw(APP_OCTET_STREAM, bytes)``
+    /// * **str** for a ``Value.StringUTF8(str)``
+    /// * **int** for a ``Value.Integer(int)``
+    /// * **float** for a ``Value.Float(int)``
+    /// * **dict of str:str** for a ``Value.Properties(dict)``
+    /// * **(str, bytes)** for a ``Value.Custom(str, bytes)``
+    ///
+    /// :param path: the path
+    /// :type path: str
+    /// :param value: the value as a :class:`Value`
+    /// :type value: Value
+    ///
+    /// :Example:
+    ///
+    /// >>> import zenoh
+    /// >>> z = zenoh.Zenoh(zenoh.net.Config())
+    /// >>> w = z.workspace()
+    /// >>> w.put('/demo/exmaple/hello', 'Hello World!')
+    /// >>> z.close()
+    #[text_signature = "(self, path, value)"]
     fn put(&self, path: String, value: &PyAny) -> PyResult<()> {
         let p = path_of_string(path)?;
         let v = zvalue_of_pyany(value)?;
         task::block_on(self.w.put(&p, v)).map_err(to_pyerr)
     }
 
+    /// Delete a path and its value from zenoh.
+    ///
+    /// The corresponding :class:`Change` will be received by all matching subscribers and all matching storages.
+    /// Note that the path can be absolute or relative to this Workspace.
+    ///
+    /// :param path: the path
+    /// :type path: str
+    ///
+    /// :Example:
+    ///
+    /// >>> import zenoh
+    /// >>> z = zenoh.Zenoh(zenoh.net.Config())
+    /// >>> w = z.workspace()
+    /// >>> w.delete('/demo/exmaple/hello')
+    /// >>> z.close()
+    #[text_signature = "(self, path)"]
     fn delete(&self, path: String) -> PyResult<()> {
         let p = path_of_string(path)?;
         task::block_on(self.w.delete(&p)).map_err(to_pyerr)
     }
 
+    /// Get a selection of path/value from zenoh.
+    ///
+    /// The selection is returned as a list of :class:`Data`.
+    /// Note that the selector can be absolute or relative to this Workspace.
+    ///
+    /// :param selector: the selector
+    /// :type selector: str
+    /// :rtype: list of Data
+    ///
+    /// :Example:
+    ///
+    /// >>> import zenoh
+    /// >>> z = zenoh.Zenoh(zenoh.net.Config())
+    /// >>> w = z.workspace()
+    /// >>> for data in w.get('/demo/example/**'):
+    /// ...     print('  {} : {}  (encoding: {} , timestamp: {})'.format(
+    /// ...         data.path, data.value.get_content(), data.value.encoding_descr(), data.timestamp))
+    /// >>> z.close()
+    #[text_signature = "(self, selector)"]
     fn get(&self, selector: String) -> PyResult<Vec<Data>> {
         let s = selector_of_string(selector)?;
         task::block_on(async {
@@ -51,6 +128,31 @@ impl Workspace {
         })
     }
 
+    /// Subscribe to changes for a selection of path/value (specified via a selector) from zenoh.
+    ///
+    /// The callback function will receive each :class:`Change` for a path matching the selector.
+    /// Note that the selector can be absolute or relative to this Workspace.
+    ///
+    /// :param selector: the selector
+    /// :type selector: str
+    /// :param callback: the subscription callback
+    /// :type callback: function(:class:`Change`)
+    /// :rtype: zenoh.Subscriber
+    ///
+    /// :Example:
+    ///
+    /// >>> import zenoh, time
+    /// >>> def listener(change):
+    /// ...    print(">> [Subscription listener] received {:?} for {} : {} with timestamp {}"
+    /// ...    .format(change.kind, change.path, '' if change.value is None else change.value.get_content(), change.timestamp))
+    /// >>>
+    /// >>> z = zenoh.Zenoh(zenoh.net.Config())
+    /// >>> w = z.workspace()
+    /// >>> sub = w.subscribe('/demo/example/**', listener)
+    /// >>> time.sleep(60)
+    /// >>> sub.close()
+    /// >>> z.close()
+    #[text_signature = "(self, selector, callback)"]
     fn subscribe(&self, selector: String, callback: &PyAny) -> PyResult<Subscriber> {
         let s = selector_of_string(selector)?;
         let stream = task::block_on(self.w.subscribe(&s)).map_err(to_pyerr)?;
@@ -97,6 +199,33 @@ impl Workspace {
         })
     }
 
+    /// Registers an evaluation function under the provided path expression.
+    ///
+    /// The callback function will receive a :class:`GetRequest` for each get operation
+    /// called with a selector that patches the path expression. The callback implementation
+    /// has to send replies via :meth:`GetRequest.reply`.
+    /// Note that the path expression can be absolute or relative to this Workspace.
+    ///
+    /// :param path_expr: the path expression
+    /// :type path_expr: str
+    /// :param callback: the eval callback
+    /// :type callback: function(:class:`GetRequest`)
+    /// :rtype: zenoh.Eval
+    ///
+    /// :Example:
+    ///
+    /// >>> import zenoh, time
+    /// >>> def eval_callback(get_request):
+    /// ...    print(">> [Eval listener] received get with selector: {}".format(get_request.selector))
+    /// ...    get_request.reply('/demo/example/eval', 'Result for get on {}'.format(get_request.selector))
+    /// >>>
+    /// >>> z = zenoh.Zenoh(zenoh.net.Config())
+    /// >>> w = z.workspace()
+    /// >>> eval = w.register_eval('/demo/example/eval', eval_callback)
+    /// >>> time.sleep(60)
+    /// >>> eval.close()
+    /// >>> z.close()
+    #[text_signature = "(self, path_expr, callback)"]
     fn register_eval(&self, path_expr: String, callback: &PyAny) -> PyResult<Eval> {
         let p = pathexpr_of_string(path_expr)?;
         let stream = task::block_on(self.w.register_eval(&p)).map_err(to_pyerr)?;

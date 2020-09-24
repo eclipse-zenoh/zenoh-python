@@ -28,6 +28,47 @@ mod workspace;
 use workspace::*;
 
 /// The module of the zenoh API.
+///
+/// See the :class:`zenoh.Zenoh` class for details
+///
+/// Quick start examples:
+/// ^^^^^^^^^^^^^^^^^^^^^
+///
+/// Put a key/value into zenoh
+/// """"""""""""""""""""""""""
+///
+/// >>> import zenoh
+/// >>> z = zenoh.Zenoh(zenoh.net.Config())
+/// >>> w = z.workspace()
+/// >>> w.put('/demo/example/hello', 'Hello World!')
+/// >>> z.close()
+///
+/// Subscribe for keys/values changes from zenoh
+/// """"""""""""""""""""""""""""""""""""""""""""
+///
+/// >>> import zenoh, time
+/// >>> def listener(change):
+/// ...    print(">> [Subscription listener] received {:?} for {} : {} with timestamp {}"
+/// ...    .format(change.kind, change.path, '' if change.value is None else change.value.get_content(), change.timestamp))
+/// >>>
+/// >>> z = zenoh.Zenoh(zenoh.net.Config())
+/// >>> w = z.workspace()
+/// >>> sub = w.subscribe('/demo/example/**', listener)
+/// >>> time.sleep(60)
+/// >>> sub.close()
+/// >>> z.close()
+///
+/// Get keys/values from zenoh
+/// """"""""""""""""""""""""""
+///
+/// >>> import zenoh
+/// >>> z = zenoh.Zenoh(zenoh.net.Config())
+/// >>> w = z.workspace()
+/// >>> for data in w.get('/demo/example/**'):
+/// ...     print('  {} : {}  (encoding: {} , timestamp: {})'.format(
+/// ...         data.path, data.value.get_content(), data.value.encoding_descr(), data.timestamp))
+/// >>> z.close()
+///
 #[pymodule]
 fn zenoh(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(net))?;
@@ -46,10 +87,14 @@ sys.modules['zenoh.net'] = net
 
     m.add_class::<Zenoh>()?;
     m.add_class::<Workspace>()?;
+    m.add_class::<Selector>()?;
     m.add_class::<Value>()?;
     m.add_class::<Data>()?;
+    m.add_class::<ChangeKind>()?;
     m.add_class::<Change>()?;
+    m.add_class::<types::Subscriber>()?;
     m.add_class::<GetRequest>()?;
+    m.add_class::<Eval>()?;
 
     Ok(())
 }
@@ -60,12 +105,28 @@ fn to_pyerr(err: zenoh::ZError) -> PyErr {
     PyErr::new::<ZError, _>(err.to_string())
 }
 
+/// Initialize the logger used by the Rust implementation of this API.
+///
+/// Once initialized, you can configure the logs displayed by the API using the ``RUST_LOG`` environment variable.
+/// For instance, start python with the *debug* logs available::
+///
+///    $ RUST_LOG=debug python
+///
+/// More details on the RUST_LOG configuration on https://docs.rs/env_logger/latest/env_logger
+///
 #[pyfunction]
 fn init_logger() {
     env_logger::init();
 }
 
 /// The zenoh client API.
+///
+/// Creates a zenoh API, establishing a zenoh-net session with discovered peers and/or routers.
+///
+/// :param config: The configuration of the zenoh session
+/// :param properties: Optional properties
+/// :type config: zenoh.net.Config
+/// :type properties: dict of str:str, optional
 #[pyclass]
 #[text_signature = "(config, properties=None)"]
 pub(crate) struct Zenoh {
@@ -74,7 +135,6 @@ pub(crate) struct Zenoh {
 
 #[pymethods]
 impl Zenoh {
-    /// Creates a zenoh API, establishing a zenoh-net session with discovered peers and/or routers.
     #[new]
     fn new(config: Config, properties: Option<HashMap<String, String>>) -> PyResult<Zenoh> {
         let props: Option<zenoh::Properties> = properties.map(|p| p.into());
@@ -82,11 +142,24 @@ impl Zenoh {
         Ok(Zenoh { z: Some(z) })
     }
 
+    /// Closes the zenoh API and the associated zenoh-net session
     fn close(&mut self) -> PyResult<()> {
         let z = self.take()?;
         task::block_on(z.close()).map_err(to_pyerr)
     }
 
+    /// Creates a [`Workspace`] with an optional [`Path`] as `prefix`.
+    ///
+    /// :param prefix: an optional prefix
+    /// :type prefix: str
+    /// :return: a Workspace
+    /// :rtype: Workspace
+    ///
+    /// :Example:
+    ///
+    /// >>> z = zenoh.Zenoh(zenoh.net.Config())
+    /// >>> w = z.workspace()
+    ///
     #[text_signature = "(prefix=None)"]
     fn workspace(&self, prefix: Option<String>) -> PyResult<Workspace> {
         let p = prefix.map(|s| path_of_string(s)).transpose()?;
