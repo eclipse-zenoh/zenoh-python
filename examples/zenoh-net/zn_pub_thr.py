@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey
+from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -57,10 +57,9 @@ for i in range(0, size):
 
 session = zenoh.net.open(config)
 
-reskey = ResKey.RId(
-    session.declare_resource(ResKey.RName('/test/thr')))
+rid = session.declare_resource('/test/thr')
 
-pub = session.declare_publisher(reskey)
+pub = session.declare_publisher(rid)
 
 while True:
-    session.write(reskey, data)
+    session.write(rid, data)

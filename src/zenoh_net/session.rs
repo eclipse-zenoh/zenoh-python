@@ -22,6 +22,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyTuple};
 use zenoh::net::{ResourceId, ZInt};
 
+/// A zenoh-net session.
 #[pyclass]
 pub(crate) struct Session {
     s: Option<zenoh::net::Session>,
@@ -29,11 +30,23 @@ pub(crate) struct Session {
 
 #[pymethods]
 impl Session {
+    /// Close the zenoh-net Session.
     fn close(&mut self) -> PyResult<()> {
         let s = self.take()?;
         task::block_on(s.close()).map_err(to_pyerr)
     }
 
+    /// Get informations about the zenoh-net Session.
+    ///
+    /// :rtype: list of (int, bytes)
+    ///
+    /// :Example:
+    ///
+    /// >>> import zenoh
+    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> info = s.info()
+    /// >>> for key, value in info:
+    /// ...    print("{} : {}".format(zenoh.net.properties.to_str(key), value.hex().upper()))
     fn info<'p>(&self, py: Python<'p>) -> PyResult<Vec<(ZInt, &'p PyBytes)>> {
         let s = self.as_ref()?;
         let props = task::block_on(s.info());
@@ -43,24 +56,43 @@ impl Session {
             .collect())
     }
 
-    fn write(&self, resource: &ResKey, payload: Vec<u8>) -> PyResult<()> {
+    /// Write data.
+    ///
+    /// :param resource: The resource key to write
+    /// :type resource: str
+    /// :param payload: The value to write
+    /// :type payload: bytes
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh
+    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s.write(ResKey.RName('/resource/name'), bytes('value', encoding='utf8'))
+    /// >>> s.close()
+    fn write(&self, resource: &PyAny, payload: Vec<u8>) -> PyResult<()> {
         let s = self.as_ref()?;
-        task::block_on(s.write(&resource.k, payload.into())).map_err(to_pyerr)
+        let k = znreskey_of_pyany(resource)?;
+        task::block_on(s.write(&k, payload.into())).map_err(to_pyerr)
     }
 
-    fn declare_resource(&self, resource: &ResKey) -> PyResult<ResourceId> {
+    /// TODO
+    fn declare_resource(&self, resource: &PyAny) -> PyResult<ResourceId> {
         let s = self.as_ref()?;
-        task::block_on(s.declare_resource(&resource.k)).map_err(to_pyerr)
+        let k = znreskey_of_pyany(resource)?;
+        task::block_on(s.declare_resource(&k)).map_err(to_pyerr)
     }
 
+    /// TODO
     fn undeclare_resource(&self, rid: ResourceId) -> PyResult<()> {
         let s = self.as_ref()?;
         task::block_on(s.undeclare_resource(rid)).map_err(to_pyerr)
     }
 
-    fn declare_publisher(&self, resource: &ResKey) -> PyResult<Publisher> {
+    /// TODO
+    fn declare_publisher(&self, resource: &PyAny) -> PyResult<Publisher> {
         let s = self.as_ref()?;
-        let zn_pub = task::block_on(s.declare_publisher(&resource.k)).map_err(to_pyerr)?;
+        let k = znreskey_of_pyany(resource)?;
+        let zn_pub = task::block_on(s.declare_publisher(&k)).map_err(to_pyerr)?;
 
         // Note: this is a workaround for pyo3 not supporting lifetime in PyClass. See https://github.com/PyO3/pyo3/issues/502.
         // We extend zenoh::net::Publisher's lifetime to 'static to be wrapped in Publisher PyClass
@@ -72,15 +104,17 @@ impl Session {
         })
     }
 
+    /// TODO
     fn declare_subscriber(
         &self,
-        resource: &ResKey,
+        resource: &PyAny,
         info: &SubInfo,
         callback: &PyAny,
     ) -> PyResult<Subscriber> {
         let s = self.as_ref()?;
+        let k = znreskey_of_pyany(resource)?;
         let zn_sub =
-            task::block_on(s.declare_subscriber(&resource.k, &info.i)).map_err(to_pyerr)?;
+            task::block_on(s.declare_subscriber(&k, &info.i)).map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_sub into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
         let mut static_zn_sub = unsafe {
@@ -136,14 +170,16 @@ impl Session {
         })
     }
 
+    /// TODO
     fn declare_queryable(
         &self,
-        resource: &ResKey,
+        resource: &PyAny,
         kind: ZInt,
         callback: &PyAny,
     ) -> PyResult<Queryable> {
         let s = self.as_ref()?;
-        let zn_quer = task::block_on(s.declare_queryable(&resource.k, kind)).map_err(to_pyerr)?;
+        let k = znreskey_of_pyany(resource)?;
+        let zn_quer = task::block_on(s.declare_queryable(&k, kind)).map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_quer into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
         let mut static_zn_quer = unsafe {
@@ -189,17 +225,19 @@ impl Session {
         })
     }
 
+    /// TODO
     fn query(
         &self,
-        resource: &ResKey,
+        resource: &PyAny,
         predicate: &str,
         callback: &PyAny,
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
     ) -> PyResult<()> {
         let s = self.as_ref()?;
+        let k = znreskey_of_pyany(resource)?;
         let mut zn_recv = task::block_on(s.query(
-            &resource.k,
+            &k,
             predicate,
             target.unwrap_or_default().t,
             consolidation.unwrap_or_default().c,

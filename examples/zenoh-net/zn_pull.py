@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, SubInfo, Reliability, SubMode
+from zenoh.net import Config, SubInfo, Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -65,7 +65,7 @@ session = zenoh.net.open(config)
 print("Declaring Subscriber on '{}'...".format(selector))
 sub_info = SubInfo(Reliability.Reliable, SubMode.Pull)
 
-sub = session.declare_subscriber(ResKey.RName(selector), sub_info, listener)
+sub = session.declare_subscriber(selector, sub_info, listener)
 
 print("Press <enter> to pull data...")
 c = sys.stdin.read(1)

@@ -16,12 +16,13 @@ use async_std::sync::Sender;
 use async_std::task;
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDateTime};
+use pyo3::types::{PyBytes, PyDateTime, PyTuple};
 use pyo3::PyObjectProtocol;
 use std::time::Duration;
 use zenoh::net::{ResourceId, ZInt};
 
 // zenoh.net.properties (simulate the package as a class, and consts as class attributes)
+/// TODO
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct properties {}
@@ -29,31 +30,37 @@ pub(crate) struct properties {}
 #[allow(non_snake_case)]
 #[pymethods]
 impl properties {
+    /// TODO
     #[classattr]
     fn ZN_USER_KEY() -> ZInt {
         zenoh::net::properties::ZN_USER_KEY
     }
 
+    /// TODO
     #[classattr]
     fn ZN_PASSWD_KEY() -> ZInt {
         zenoh::net::properties::ZN_PASSWD_KEY
     }
 
+    /// TODO
     #[classattr]
     fn ZN_INFO_PID_KEY() -> ZInt {
         zenoh::net::properties::ZN_INFO_PID_KEY
     }
 
+    /// TODO
     #[classattr]
     fn ZN_INFO_PEER_PID_KEY() -> ZInt {
         zenoh::net::properties::ZN_INFO_PEER_PID_KEY
     }
 
+    /// TODO
     #[classattr]
     fn ZN_INFO_ROUTER_PID_KEY() -> ZInt {
         zenoh::net::properties::ZN_INFO_ROUTER_PID_KEY
     }
 
+    /// TODO
     #[staticmethod]
     fn to_str(i: ZInt) -> PyResult<String> {
         zenoh::net::properties::to_str(i)
@@ -62,6 +69,7 @@ impl properties {
 }
 
 // zenoh.net.whatami (simulate the package as a class, and consts as class attributes)
+/// TODO
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct whatami {}
@@ -69,28 +77,32 @@ pub(crate) struct whatami {}
 #[allow(non_snake_case)]
 #[pymethods]
 impl whatami {
+    /// TODO
     #[classattr]
     fn ROUTER() -> ZInt {
         zenoh::net::whatami::ROUTER
     }
 
+    /// TODO
     #[classattr]
     fn PEER() -> ZInt {
         zenoh::net::whatami::PEER
     }
 
+    /// TODO
     #[classattr]
     fn CLIENT() -> ZInt {
         zenoh::net::whatami::CLIENT
     }
 
+    /// TODO
     #[staticmethod]
     fn to_str(i: ZInt) -> PyResult<String> {
         Ok(zenoh::net::whatami::to_str(i))
     }
 }
 
-// zenoh.net.Hello
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Hello {
@@ -99,16 +111,19 @@ pub(crate) struct Hello {
 
 #[pymethods]
 impl Hello {
+    /// TODO
     #[getter]
     fn pid(&self) -> PyResult<Option<PeerId>> {
         Ok(self.h.pid.as_ref().map(|p| PeerId { p: p.clone() }))
     }
 
+    /// TODO
     #[getter]
     fn whatami(&self) -> PyResult<Option<ZInt>> {
         Ok(self.h.whatami)
     }
 
+    /// TODO
     #[getter]
     fn locators(&self) -> PyResult<Option<Vec<String>>> {
         Ok(self
@@ -127,6 +142,7 @@ impl PyObjectProtocol for Hello {
 }
 
 // zenoh.net.resource_name (simulate the package as a class with static methodss)
+/// TODO
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct resource_name {}
@@ -134,13 +150,14 @@ pub(crate) struct resource_name {}
 #[allow(non_snake_case)]
 #[pymethods]
 impl resource_name {
+    /// TODO
     #[staticmethod]
     fn intersect(s1: &str, s2: &str) -> bool {
         zenoh::net::utils::resource_name::intersect(s1, s2)
     }
 }
 
-// zenoh.net.Config
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Config {
@@ -180,6 +197,7 @@ impl Config {
         Config { c }
     }
 
+    /// TODO
     #[staticmethod]
     fn parse_mode(mode: &str) -> PyResult<ZInt> {
         zenoh::net::Config::parse_mode(mode).map_err(|_| {
@@ -197,7 +215,10 @@ impl PyObjectProtocol for Config {
 
 // zenoh.net.ResKey (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/417 to be fixed)
+//
+/// TODO
 #[pyclass]
+#[derive(Clone)]
 pub(crate) struct ResKey {
     pub(crate) k: zenoh::net::ResKey,
 }
@@ -205,6 +226,7 @@ pub(crate) struct ResKey {
 #[allow(non_snake_case)]
 #[pymethods]
 impl ResKey {
+    /// TODO
     #[staticmethod]
     fn RName(name: String) -> ResKey {
         ResKey {
@@ -212,6 +234,7 @@ impl ResKey {
         }
     }
 
+    /// TODO
     #[staticmethod]
     fn RId(id: ResourceId) -> ResKey {
         ResKey {
@@ -219,6 +242,7 @@ impl ResKey {
         }
     }
 
+    /// TODO
     #[staticmethod]
     fn RIdWithSuffix(id: ResourceId, suffix: String) -> ResKey {
         ResKey {
@@ -226,10 +250,12 @@ impl ResKey {
         }
     }
 
+    /// TODO
     fn rid(&self) -> ResourceId {
         self.k.rid()
     }
 
+    /// TODO
     fn is_numerical(&self) -> bool {
         self.k.is_numerical()
     }
@@ -248,7 +274,44 @@ impl From<ResKey> for zenoh::net::ResKey {
     }
 }
 
-// zenoh.net.PeerId
+pub(crate) fn znreskey_of_pyany(obj: &PyAny) -> PyResult<zenoh::net::ResKey> {
+    match obj.get_type().name().as_ref() {
+        "ResKey" => {
+            let rk: ResKey = obj.extract()?;
+            Ok(rk.k)
+        }
+        "int" => {
+            let id: u64 = obj.extract()?;
+            Ok(zenoh::net::ResKey::RId(id))
+        }
+        "str" => {
+            let name: String = obj.extract()?;
+            Ok(zenoh::net::ResKey::RName(name))
+        }
+        "tuple" => {
+            let tuple: &PyTuple = obj.downcast()?;
+            if tuple.len() == 2
+                && tuple.get_item(0).get_type().name() == "int"
+                && tuple.get_item(1).get_type().name() == "str"
+            {
+                let id: u64 = tuple.get_item(0).extract()?;
+                let suffix: String = tuple.get_item(1).extract()?;
+                Ok(zenoh::net::ResKey::RIdWithSuffix(id, suffix))
+            } else {
+                Err(PyErr::new::<exceptions::PyValueError, _>(format!(
+                    "Cannot convert type '{:?}' to a zenoh-net ResKey",
+                    tuple
+                )))
+            }
+        }
+        x => Err(PyErr::new::<exceptions::PyValueError, _>(format!(
+            "Cannot convert type '{}' to a zenoh-net ResKey",
+            x
+        ))),
+    }
+}
+
+/// TODO
 #[pyclass]
 pub(crate) struct PeerId {
     pub(crate) p: zenoh::net::PeerId,
@@ -261,7 +324,7 @@ impl PyObjectProtocol for PeerId {
     }
 }
 
-// zenoh.net.Timestamp
+/// TODO
 #[pyclass]
 pub(crate) struct Timestamp {
     pub(crate) t: zenoh::Timestamp,
@@ -269,12 +332,14 @@ pub(crate) struct Timestamp {
 
 #[pymethods]
 impl Timestamp {
+    /// TODO
     #[getter]
     fn time<'p>(&self, py: Python<'p>) -> PyResult<&'p PyDateTime> {
         let f = self.t.get_time().to_duration().as_secs_f64();
         PyDateTime::from_timestamp(py, f, None)
     }
 
+    /// TODO
     #[getter]
     fn id(&self) -> PyResult<&[u8]> {
         Ok(self.t.get_id().as_slice())
@@ -288,7 +353,7 @@ impl PyObjectProtocol for Timestamp {
     }
 }
 
-// zenoh.net.DataInfo
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct DataInfo {
@@ -297,16 +362,19 @@ pub(crate) struct DataInfo {
 
 #[pymethods]
 impl DataInfo {
+    /// TODO
     #[getter]
     fn source_id(&self) -> PyResult<Option<PeerId>> {
         Ok(self.i.source_id.as_ref().map(|p| PeerId { p: p.clone() }))
     }
 
+    /// TODO
     #[getter]
     fn source_sn(&self) -> PyResult<Option<ZInt>> {
         Ok(self.i.source_sn)
     }
 
+    /// TODO
     #[getter]
     fn first_router_id(&self) -> PyResult<Option<PeerId>> {
         Ok(self
@@ -316,11 +384,13 @@ impl DataInfo {
             .map(|p| PeerId { p: p.clone() }))
     }
 
+    /// TODO
     #[getter]
     fn first_router_sn(&self) -> PyResult<Option<ZInt>> {
         Ok(self.i.first_router_sn)
     }
 
+    /// TODO
     #[getter]
     fn timestamp(&self) -> PyResult<Option<Timestamp>> {
         Ok(self
@@ -330,18 +400,20 @@ impl DataInfo {
             .map(|t| Timestamp { t: t.clone() }))
     }
 
+    /// TODO
     #[getter]
     fn kind(&self) -> PyResult<Option<ZInt>> {
         Ok(self.i.kind)
     }
 
+    /// TODO
     #[getter]
     fn encoding(&self) -> PyResult<Option<ZInt>> {
         Ok(self.i.encoding)
     }
 }
 
-// zenoh.net.Sample
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Sample {
@@ -367,16 +439,19 @@ impl Sample {
         }
     }
 
+    /// TODO
     #[getter]
     fn res_name(&self) -> PyResult<&str> {
         Ok(self.s.res_name.as_str())
     }
 
+    /// TODO
     #[getter]
     fn payload<'a>(&self, py: Python<'a>) -> PyResult<&'a PyBytes> {
         Ok(PyBytes::new(py, self.s.payload.to_vec().as_slice()))
     }
 
+    /// TODO
     #[getter]
     fn data_info(&self) -> PyResult<Option<DataInfo>> {
         Ok(self.s.data_info.as_ref().map(|i| DataInfo { i: i.clone() }))
@@ -385,6 +460,8 @@ impl Sample {
 
 // zenoh.net.Reliability (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+//
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Reliability {
@@ -394,6 +471,7 @@ pub(crate) struct Reliability {
 #[allow(non_snake_case)]
 #[pymethods]
 impl Reliability {
+    /// TODO
     #[classattr]
     fn BestEffort() -> Reliability {
         Reliability {
@@ -401,6 +479,7 @@ impl Reliability {
         }
     }
 
+    /// TODO
     #[classattr]
     fn Reliable() -> Reliability {
         Reliability {
@@ -411,6 +490,8 @@ impl Reliability {
 
 // zenoh.net.SubMode (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+//
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct SubMode {
@@ -420,6 +501,7 @@ pub(crate) struct SubMode {
 #[allow(non_snake_case)]
 #[pymethods]
 impl SubMode {
+    /// TODO
     #[classattr]
     fn Push() -> SubMode {
         SubMode {
@@ -427,6 +509,7 @@ impl SubMode {
         }
     }
 
+    /// TODO
     #[classattr]
     fn Pull() -> SubMode {
         SubMode {
@@ -435,7 +518,7 @@ impl SubMode {
     }
 }
 
-// zenoh.net.Period
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Period {
@@ -456,7 +539,7 @@ impl Period {
     }
 }
 
-// zenoh.net.SubInfo
+/// TODO
 #[pyclass]
 pub(crate) struct SubInfo {
     pub(crate) i: zenoh::net::SubInfo,
@@ -484,7 +567,7 @@ impl SubInfo {
     }
 }
 
-// zenoh.net.Publisher
+/// TODO
 #[pyclass(unsendable)]
 pub(crate) struct Publisher {
     // Note: because pyo3 doesn't supporting lifetime in PyClass, a workaround is to
@@ -494,6 +577,7 @@ pub(crate) struct Publisher {
 
 #[pymethods]
 impl Publisher {
+    /// TODO
     fn undeclare(&mut self) -> PyResult<()> {
         match self.p.take() {
             Some(p) => task::block_on(p.undeclare()).map_err(to_pyerr),
@@ -507,7 +591,7 @@ pub(crate) enum ZnSubOps {
     Undeclare,
 }
 
-// zenoh.net.Subscriber
+/// TODO
 #[pyclass]
 pub(crate) struct Subscriber {
     pub(crate) undeclare_tx: Sender<ZnSubOps>,
@@ -516,12 +600,14 @@ pub(crate) struct Subscriber {
 
 #[pymethods]
 impl Subscriber {
+    /// TODO
     fn pull(&self) {
         task::block_on(async {
             self.undeclare_tx.send(ZnSubOps::Pull).await;
         });
     }
 
+    /// TODO
     fn undeclare(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
@@ -533,6 +619,8 @@ impl Subscriber {
 }
 
 // zenoh.net.queryable (simulate the package as a class, and consts as class attributes)
+//
+/// TODO
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct queryable {}
@@ -556,7 +644,7 @@ impl queryable {
     }
 }
 
-// zenoh.net.Query
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Query {
@@ -571,16 +659,19 @@ impl pyo3::conversion::ToPyObject for Query {
 
 #[pymethods]
 impl Query {
+    /// TODO
     #[getter]
     fn res_name(&self) -> PyResult<&str> {
         Ok(self.q.res_name.as_str())
     }
 
+    /// TODO
     #[getter]
     fn predicate(&self) -> PyResult<&str> {
         Ok(self.q.predicate.as_str())
     }
 
+    /// TODO
     fn reply(&self, msg: Sample) {
         task::block_on(async {
             self.q.reply(msg.s).await;
@@ -588,7 +679,7 @@ impl Query {
     }
 }
 
-// zenoh.net.Queryable
+/// TODO
 #[pyclass]
 pub(crate) struct Queryable {
     pub(crate) undeclare_tx: Sender<bool>,
@@ -597,6 +688,7 @@ pub(crate) struct Queryable {
 
 #[pymethods]
 impl Queryable {
+    /// TODO
     fn undeclare(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
@@ -609,6 +701,8 @@ impl Queryable {
 
 // zenoh.net.Target (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+//
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Target {
@@ -618,6 +712,7 @@ pub(crate) struct Target {
 #[allow(non_snake_case)]
 #[pymethods]
 impl Target {
+    /// TODO
     #[staticmethod]
     fn BestMatching() -> Target {
         Target {
@@ -625,6 +720,7 @@ impl Target {
         }
     }
 
+    /// TODO
     #[staticmethod]
     fn Complete(n: ZInt) -> Target {
         Target {
@@ -632,6 +728,7 @@ impl Target {
         }
     }
 
+    /// TODO
     #[staticmethod]
     fn All() -> Target {
         Target {
@@ -639,6 +736,7 @@ impl Target {
         }
     }
 
+    /// TODO
     #[staticmethod]
     fn None() -> Target {
         Target {
@@ -647,7 +745,7 @@ impl Target {
     }
 }
 
-// zenoh.net.QueryTarget
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct QueryTarget {
@@ -679,6 +777,8 @@ impl Default for QueryTarget {
 
 // zenoh.net.QueryConsolidation (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+//
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct QueryConsolidation {
@@ -688,6 +788,7 @@ pub(crate) struct QueryConsolidation {
 #[allow(non_snake_case)]
 #[pymethods]
 impl QueryConsolidation {
+    /// TODO
     #[classattr]
     fn None() -> QueryConsolidation {
         QueryConsolidation {
@@ -695,6 +796,7 @@ impl QueryConsolidation {
         }
     }
 
+    /// TODO
     #[classattr]
     fn LastHop() -> QueryConsolidation {
         QueryConsolidation {
@@ -702,6 +804,7 @@ impl QueryConsolidation {
         }
     }
 
+    /// TODO
     #[classattr]
     fn Incremental() -> QueryConsolidation {
         QueryConsolidation {
@@ -718,7 +821,7 @@ impl Default for QueryConsolidation {
     }
 }
 
-// zenoh.net.Reply
+/// TODO
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Reply {
@@ -733,6 +836,7 @@ impl pyo3::conversion::ToPyObject for Reply {
 
 #[pymethods]
 impl Reply {
+    /// TODO
     #[getter]
     fn data(&self) -> Sample {
         Sample {
@@ -740,11 +844,13 @@ impl Reply {
         }
     }
 
+    /// TODO
     #[getter]
     fn source_kind(&self) -> ZInt {
         self.r.source_kind
     }
 
+    /// TODO
     fn replier_id(&self) -> PeerId {
         PeerId {
             p: self.r.replier_id.clone(),

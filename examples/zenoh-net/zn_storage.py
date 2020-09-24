@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, SubInfo, Reliability, SubMode, Sample, resource_name
+from zenoh.net import Config, SubInfo, Reliability, SubMode, Sample, resource_name
 from zenoh.net.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -77,11 +77,11 @@ session = zenoh.net.open(config)
 sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 
 print("Declaring Subscriber on '{}'...".format(selector))
-sub = session.declare_subscriber(ResKey.RName(selector), sub_info, listener)
+sub = session.declare_subscriber(selector, sub_info, listener)
 
 print("Declaring Queryable on '{}'...".format(selector))
 queryable = session.declare_queryable(
-    ResKey.RName(selector), STORAGE, query_handler)
+    selector, STORAGE, query_handler)
 
 print("Press q to stop...")
 c = '\0'

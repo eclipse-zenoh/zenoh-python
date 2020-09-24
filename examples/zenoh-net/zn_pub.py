@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey
+from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -61,15 +61,14 @@ print("Openning session...")
 session = zenoh.net.open(config)
 
 print("Declaring Resource " + path)
-rid = session.declare_resource(ResKey.RName(path))
+rid = session.declare_resource(path)
 print(" => RId {}".format(rid))
-reskey = ResKey.RId(rid)
 
 print("Declaring Publisher on {}".format(rid))
-publisher = session.declare_publisher(reskey)
+publisher = session.declare_publisher(rid)
 
 print("Writing Data ('{}': '{}')...".format(rid, value))
-session.write(reskey, bytes(value, encoding='utf8'))
+session.write(rid, bytes(value, encoding='utf8'))
 
 publisher.undeclare()
 session.close()

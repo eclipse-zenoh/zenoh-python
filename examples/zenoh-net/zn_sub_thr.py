@@ -15,7 +15,7 @@ import time
 import datetime
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, SubInfo, Reliability, SubMode
+from zenoh.net import Config, SubInfo, Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -90,10 +90,9 @@ zenoh.init_logger()
 
 session = zenoh.net.open(config)
 
-reskey = ResKey.RId(
-    session.declare_resource(ResKey.RName('/test/thr')))
+rid = session.declare_resource('/test/thr')
 
 sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-sub = session.declare_subscriber(reskey, sub_info, listener)
+sub = session.declare_subscriber(rid, sub_info, listener)
 
 time.sleep(600)
