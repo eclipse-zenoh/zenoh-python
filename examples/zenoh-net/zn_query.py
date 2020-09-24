@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, QueryTarget
+from zenoh.net import Config, QueryTarget
 from zenoh.net.queryable import ALL_KINDS
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -64,7 +64,7 @@ print("Openning session...")
 session = zenoh.net.open(config)
 
 print("Sending Query '{}'...".format(selector))
-session.query(ResKey.RName(selector), '', query_callback)
+session.query(selector, '', query_callback)
 
 time.sleep(1)
 

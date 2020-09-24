@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey, Sample
+from zenoh.net import Config, Sample
 from zenoh.net.queryable import EVAL
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -70,7 +70,7 @@ session = zenoh.net.open(config)
 
 print("Declaring Queryable on '{}'...".format(path))
 queryable = session.declare_queryable(
-    ResKey.RName(path), EVAL, eval_callback)
+    path, EVAL, eval_callback)
 
 print("Press q to stop...")
 c = '\0'

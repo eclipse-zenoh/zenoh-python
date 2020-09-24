@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, ResKey
+from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -61,6 +61,6 @@ print("Openning session...")
 session = zenoh.net.open(config)
 
 print("Writing Data ('{}': '{}')...".format(path, value))
-session.write(ResKey.RName(path), bytes(value, encoding='utf8'))
+session.write(path, bytes(value, encoding='utf8'))
 
 session.close()
