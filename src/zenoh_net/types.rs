@@ -22,7 +22,7 @@ use std::time::Duration;
 use zenoh::net::{ResourceId, ZInt};
 
 // zenoh.net.properties (simulate the package as a class, and consts as class attributes)
-/// TODO
+/// Constants defining the keys of the properties returned in :meth:`Session.info`.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct properties {}
@@ -30,37 +30,31 @@ pub(crate) struct properties {}
 #[allow(non_snake_case)]
 #[pymethods]
 impl properties {
-    /// TODO
     #[classattr]
     fn ZN_USER_KEY() -> ZInt {
         zenoh::net::properties::ZN_USER_KEY
     }
 
-    /// TODO
     #[classattr]
     fn ZN_PASSWD_KEY() -> ZInt {
         zenoh::net::properties::ZN_PASSWD_KEY
     }
 
-    /// TODO
     #[classattr]
     fn ZN_INFO_PID_KEY() -> ZInt {
         zenoh::net::properties::ZN_INFO_PID_KEY
     }
 
-    /// TODO
     #[classattr]
     fn ZN_INFO_PEER_PID_KEY() -> ZInt {
         zenoh::net::properties::ZN_INFO_PEER_PID_KEY
     }
 
-    /// TODO
     #[classattr]
     fn ZN_INFO_ROUTER_PID_KEY() -> ZInt {
         zenoh::net::properties::ZN_INFO_ROUTER_PID_KEY
     }
 
-    /// TODO
     #[staticmethod]
     fn to_str(i: ZInt) -> PyResult<String> {
         zenoh::net::properties::to_str(i)
@@ -69,7 +63,7 @@ impl properties {
 }
 
 // zenoh.net.whatami (simulate the package as a class, and consts as class attributes)
-/// TODO
+/// Constants defining the different configuration modes of a zenoh :class:`Session`.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct whatami {}
@@ -77,32 +71,28 @@ pub(crate) struct whatami {}
 #[allow(non_snake_case)]
 #[pymethods]
 impl whatami {
-    /// TODO
     #[classattr]
     fn ROUTER() -> ZInt {
         zenoh::net::whatami::ROUTER
     }
 
-    /// TODO
     #[classattr]
     fn PEER() -> ZInt {
         zenoh::net::whatami::PEER
     }
 
-    /// TODO
     #[classattr]
     fn CLIENT() -> ZInt {
         zenoh::net::whatami::CLIENT
     }
 
-    /// TODO
     #[staticmethod]
     fn to_str(i: ZInt) -> PyResult<String> {
         Ok(zenoh::net::whatami::to_str(i))
     }
 }
 
-/// TODO
+/// A Hello message received as a response to a :meth:`scout`
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Hello {
@@ -111,19 +101,25 @@ pub(crate) struct Hello {
 
 #[pymethods]
 impl Hello {
-    /// TODO
+    /// The PeerId of the Hello message sender
+    ///
+    /// :type: :class:`PeerId` or ``None``
     #[getter]
     fn pid(&self) -> PyResult<Option<PeerId>> {
         Ok(self.h.pid.as_ref().map(|p| PeerId { p: p.clone() }))
     }
 
-    /// TODO
+    /// The mode of the Hello message sender (bitmask of constants from :class:`whatami`)
+    ///
+    /// :type: int or ``None``
     #[getter]
     fn whatami(&self) -> PyResult<Option<ZInt>> {
         Ok(self.h.whatami)
     }
 
-    /// TODO
+    /// The locators list of the Hello message sender
+    ///
+    /// :type: list of str or ``None``
     #[getter]
     fn locators(&self) -> PyResult<Option<Vec<String>>> {
         Ok(self
@@ -142,7 +138,6 @@ impl PyObjectProtocol for Hello {
 }
 
 // zenoh.net.resource_name (simulate the package as a class with static methodss)
-/// TODO
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct resource_name {}
@@ -150,15 +145,36 @@ pub(crate) struct resource_name {}
 #[allow(non_snake_case)]
 #[pymethods]
 impl resource_name {
-    /// TODO
+    /// Return true if both resource names intersect.
+    ///
+    /// :param s1: the 1st resource name
+    /// :type s1: str
+    /// :param s2: the 2nd resource name
+    /// :type s2: str
     #[staticmethod]
+    #[text_signature = "(s1, s2)"]
     fn intersect(s1: &str, s2: &str) -> bool {
         zenoh::net::utils::resource_name::intersect(s1, s2)
     }
 }
 
-/// TODO
+/// Struct to pass to :meth:`zenoh.net.open` to configure the zenoh-net :class:`Session`.
+///
+/// :param mode: the Session mode, as a bitmask of constants from :class:`whatami`. (Default: :attr:`whatami.PEER`)
+/// :type mode: int
+/// :param peers: a list of peers locators to connect.
+/// :type peers: list of str
+/// :param listeners: a list of locators to listen for connections
+/// :type listeners: list of str
+/// :param multicast_interface: a network interface to use for multicast scouting
+/// :type multicast_interface: str
+/// :param scouting_delay: the delay of scouting (in seconds)
+/// :type scouting_delay: float
+/// :param add_timestamp: true if a timestamp must be added with each published data
+/// :type add_timestamp: bool
+/// :rtype: Session
 #[pyclass]
+#[text_signature = "(mode=zenoh.net.whatami.PEER, peers=None, listeners=None, multicast_interface=None, scouting_delay=0.25, add_timestamp=False)"]
 #[derive(Clone)]
 pub(crate) struct Config {
     pub(crate) c: zenoh::net::Config,
@@ -197,8 +213,13 @@ impl Config {
         Config { c }
     }
 
-    /// TODO
+    /// Parse a string representing a mode. Accepted values: 'peer', 'client', 'router'
+    ///
+    /// :param mode: the mode as a string
+    /// :type mode: str
+    /// :rtype: int
     #[staticmethod]
+    #[text_signature = "(mode)"]
     fn parse_mode(mode: &str) -> PyResult<ZInt> {
         zenoh::net::Config::parse_mode(mode).map_err(|_| {
             PyErr::new::<exceptions::PyValueError, _>(format!("Invalid Config mode: '{}'", mode))
@@ -216,7 +237,7 @@ impl PyObjectProtocol for Config {
 // zenoh.net.ResKey (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/417 to be fixed)
 //
-/// TODO
+/// A resource key
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct ResKey {
@@ -226,36 +247,50 @@ pub(crate) struct ResKey {
 #[allow(non_snake_case)]
 #[pymethods]
 impl ResKey {
-    /// TODO
+    /// Creates a resource key from a name.
+    ///
+    /// :param name: the resrouce name
+    /// :type name: str
     #[staticmethod]
+    #[text_signature = "(name)"]
     fn RName(name: String) -> ResKey {
         ResKey {
             k: zenoh::net::ResKey::RName(name),
         }
     }
 
-    /// TODO
+    /// Creates a resource key from a resource id returned by :meth:`Session.declare_resource`.
+    ///
+    /// :param id: the resrouce id
+    /// :type id: int
     #[staticmethod]
+    #[text_signature = "(id)"]
     fn RId(id: ResourceId) -> ResKey {
         ResKey {
             k: zenoh::net::ResKey::RId(id),
         }
     }
 
-    /// TODO
+    /// Creates a resource key from a resource id returned by :meth:`Session.declare_resource` and a suffix.
+    ///
+    /// :param id: the resrouce id
+    /// :type id: int
+    /// :param suffix: the suffix
+    /// :type suffix: str
     #[staticmethod]
+    #[text_signature = "(id, suffix)"]
     fn RIdWithSuffix(id: ResourceId, suffix: String) -> ResKey {
         ResKey {
             k: zenoh::net::ResKey::RIdWithSuffix(id, suffix),
         }
     }
 
-    /// TODO
+    /// Returns the resource id, or ``0`` if the resource key is a :meth:`RName`.
     fn rid(&self) -> ResourceId {
         self.k.rid()
     }
 
-    /// TODO
+    /// Returns ``True`` if the resource key is a :meth:`RId`.
     fn is_numerical(&self) -> bool {
         self.k.is_numerical()
     }
@@ -311,7 +346,7 @@ pub(crate) fn znreskey_of_pyany(obj: &PyAny) -> PyResult<zenoh::net::ResKey> {
     }
 }
 
-/// TODO
+/// A Peer id
 #[pyclass]
 pub(crate) struct PeerId {
     pub(crate) p: zenoh::net::PeerId,
@@ -324,7 +359,7 @@ impl PyObjectProtocol for PeerId {
     }
 }
 
-/// TODO
+/// A Timestamp composed of a time and the identifier of the timestamp source.
 #[pyclass]
 pub(crate) struct Timestamp {
     pub(crate) t: zenoh::Timestamp,
@@ -332,14 +367,18 @@ pub(crate) struct Timestamp {
 
 #[pymethods]
 impl Timestamp {
-    /// TODO
+    /// The time
+    ///
+    /// :type: datetime.datetime
     #[getter]
     fn time<'p>(&self, py: Python<'p>) -> PyResult<&'p PyDateTime> {
         let f = self.t.get_time().to_duration().as_secs_f64();
         PyDateTime::from_timestamp(py, f, None)
     }
 
-    /// TODO
+    /// The identifier of the timestamp source
+    ///
+    /// :type: bytes
     #[getter]
     fn id(&self) -> PyResult<&[u8]> {
         Ok(self.t.get_id().as_slice())
@@ -353,7 +392,7 @@ impl PyObjectProtocol for Timestamp {
     }
 }
 
-/// TODO
+/// Some informations about the associated data
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct DataInfo {
@@ -362,19 +401,25 @@ pub(crate) struct DataInfo {
 
 #[pymethods]
 impl DataInfo {
-    /// TODO
+    /// The :class:`PeerId` of the data source.
+    ///
+    /// :type: :class:`PeerId` or ``None``
     #[getter]
     fn source_id(&self) -> PyResult<Option<PeerId>> {
         Ok(self.i.source_id.as_ref().map(|p| PeerId { p: p.clone() }))
     }
 
-    /// TODO
+    /// The source sequence number of the data.
+    ///
+    /// :type: int or ``None``
     #[getter]
     fn source_sn(&self) -> PyResult<Option<ZInt>> {
         Ok(self.i.source_sn)
     }
 
-    /// TODO
+    /// The :class:`PeerId` of the 1st router that routed the data.
+    ///
+    /// :type: :class:`PeerId` or ``None``
     #[getter]
     fn first_router_id(&self) -> PyResult<Option<PeerId>> {
         Ok(self
@@ -384,13 +429,17 @@ impl DataInfo {
             .map(|p| PeerId { p: p.clone() }))
     }
 
-    /// TODO
+    /// The first router sequence number of the data.
+    ///
+    /// :type: int or ``None``
     #[getter]
     fn first_router_sn(&self) -> PyResult<Option<ZInt>> {
         Ok(self.i.first_router_sn)
     }
 
-    /// TODO
+    /// The :class:`Timestamp` of the data.
+    ///
+    /// :type: :class:`Timestamp` or ``None``
     #[getter]
     fn timestamp(&self) -> PyResult<Option<Timestamp>> {
         Ok(self
@@ -400,21 +449,33 @@ impl DataInfo {
             .map(|t| Timestamp { t: t.clone() }))
     }
 
-    /// TODO
+    /// The kind of the data.
+    ///
+    /// :type: int or ``None``
     #[getter]
     fn kind(&self) -> PyResult<Option<ZInt>> {
         Ok(self.i.kind)
     }
 
-    /// TODO
+    /// The encoding flag of the data.
+    ///
+    /// :type: int or ``None``
     #[getter]
     fn encoding(&self) -> PyResult<Option<ZInt>> {
         Ok(self.i.encoding)
     }
 }
 
-/// TODO
+/// A zenoh sample.
+///
+/// :param res_name: the resource name
+/// :type res_name: str
+/// :param payload: the data payload
+/// :type payload: bytes
+/// :param data_info: some information about the data
+/// :type data_info: DataInfo, optional
 #[pyclass]
+#[text_signature = "(res_name, payload, data_info=None)"]
 #[derive(Clone)]
 pub(crate) struct Sample {
     pub(crate) s: zenoh::net::Sample,
@@ -439,29 +500,50 @@ impl Sample {
         }
     }
 
-    /// TODO
+    /// The resource name
+    ///
+    /// :type: str
     #[getter]
     fn res_name(&self) -> PyResult<&str> {
         Ok(self.s.res_name.as_str())
     }
 
-    /// TODO
+    /// The data payload
+    ///
+    /// :type: bytes
     #[getter]
     fn payload<'a>(&self, py: Python<'a>) -> PyResult<&'a PyBytes> {
         Ok(PyBytes::new(py, self.s.payload.to_vec().as_slice()))
     }
 
-    /// TODO
+    /// Some information about the data
+    ///
+    /// :type: :class:`DataInfo` or ``None``
     #[getter]
     fn data_info(&self) -> PyResult<Option<DataInfo>> {
         Ok(self.s.data_info.as_ref().map(|i| DataInfo { i: i.clone() }))
     }
 }
 
+#[pyproto]
+impl PyObjectProtocol for Sample {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.s))
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        self.__str__()
+    }
+
+    fn __format__(&self, _format_spec: &str) -> PyResult<String> {
+        self.__str__()
+    }
+}
+
 // zenoh.net.Reliability (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
-/// TODO
+/// The kind of reliability
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Reliability {
@@ -471,7 +553,6 @@ pub(crate) struct Reliability {
 #[allow(non_snake_case)]
 #[pymethods]
 impl Reliability {
-    /// TODO
     #[classattr]
     fn BestEffort() -> Reliability {
         Reliability {
@@ -479,7 +560,6 @@ impl Reliability {
         }
     }
 
-    /// TODO
     #[classattr]
     fn Reliable() -> Reliability {
         Reliability {
@@ -491,7 +571,7 @@ impl Reliability {
 // zenoh.net.SubMode (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
-/// TODO
+/// The subscription mode.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct SubMode {
@@ -501,7 +581,6 @@ pub(crate) struct SubMode {
 #[allow(non_snake_case)]
 #[pymethods]
 impl SubMode {
-    /// TODO
     #[classattr]
     fn Push() -> SubMode {
         SubMode {
@@ -509,7 +588,6 @@ impl SubMode {
         }
     }
 
-    /// TODO
     #[classattr]
     fn Pull() -> SubMode {
         SubMode {
@@ -518,8 +596,9 @@ impl SubMode {
     }
 }
 
-/// TODO
+/// A time period.
 #[pyclass]
+#[text_signature = "(origin, period, duration)"]
 #[derive(Clone)]
 pub(crate) struct Period {
     pub(crate) p: zenoh::net::Period,
@@ -539,8 +618,16 @@ impl Period {
     }
 }
 
-/// TODO
+/// Informations to configure a subscription.
+///
+/// :param reliability: the reliability mode (default: :attr:`Reliability.Reliable`)
+/// :type reliability: Reliability, optional
+/// :param mode: the subscription mode (default: :attr:`SubMode.Push`)
+/// :type mode: SubMode, optional
+/// :param period: the pull period
+/// :type period: Period, optional
 #[pyclass]
+#[text_signature = "(reliability=None, mode=None, period=None)"]
 pub(crate) struct SubInfo {
     pub(crate) i: zenoh::net::SubInfo,
 }
@@ -567,7 +654,7 @@ impl SubInfo {
     }
 }
 
-/// TODO
+/// A publisher
 #[pyclass(unsendable)]
 pub(crate) struct Publisher {
     // Note: because pyo3 doesn't supporting lifetime in PyClass, a workaround is to
@@ -577,7 +664,7 @@ pub(crate) struct Publisher {
 
 #[pymethods]
 impl Publisher {
-    /// TODO
+    /// Undeclare the publisher.
     fn undeclare(&mut self) -> PyResult<()> {
         match self.p.take() {
             Some(p) => task::block_on(p.undeclare()).map_err(to_pyerr),
@@ -591,7 +678,7 @@ pub(crate) enum ZnSubOps {
     Undeclare,
 }
 
-/// TODO
+/// A subscriber
 #[pyclass]
 pub(crate) struct Subscriber {
     pub(crate) undeclare_tx: Sender<ZnSubOps>,
@@ -600,14 +687,14 @@ pub(crate) struct Subscriber {
 
 #[pymethods]
 impl Subscriber {
-    /// TODO
+    /// Pull available data for a pull-mode subscriber.
     fn pull(&self) {
         task::block_on(async {
             self.undeclare_tx.send(ZnSubOps::Pull).await;
         });
     }
 
-    /// TODO
+    /// Undeclare the subscriber.
     fn undeclare(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
@@ -620,7 +707,7 @@ impl Subscriber {
 
 // zenoh.net.queryable (simulate the package as a class, and consts as class attributes)
 //
-/// TODO
+/// Constants defining the different modes of a zenoh :class:`Queryable`.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct queryable {}
@@ -644,7 +731,7 @@ impl queryable {
     }
 }
 
-/// TODO
+/// Type received by a queryable callback. See :meth:`Session.declare_queryable`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Query {
@@ -659,27 +746,35 @@ impl pyo3::conversion::ToPyObject for Query {
 
 #[pymethods]
 impl Query {
-    /// TODO
+    /// The resrouce name of the query
+    ///
+    /// :type: str
     #[getter]
     fn res_name(&self) -> PyResult<&str> {
         Ok(self.q.res_name.as_str())
     }
 
-    /// TODO
+    /// The predicate of the query
+    ///
+    /// :type: str
     #[getter]
     fn predicate(&self) -> PyResult<&str> {
         Ok(self.q.predicate.as_str())
     }
 
-    /// TODO
-    fn reply(&self, msg: Sample) {
+    /// Send a reply to the query
+    ///
+    /// :param sample: the reply sample
+    /// :type: Sample
+    #[text_signature = "(self, sample)"]
+    fn reply(&self, sample: Sample) {
         task::block_on(async {
-            self.q.reply(msg.s).await;
+            self.q.reply(sample.s).await;
         });
     }
 }
 
-/// TODO
+/// An entity able to reply to queries.
 #[pyclass]
 pub(crate) struct Queryable {
     pub(crate) undeclare_tx: Sender<bool>,
@@ -688,7 +783,7 @@ pub(crate) struct Queryable {
 
 #[pymethods]
 impl Queryable {
-    /// TODO
+    /// Undeclare the queryable.
     fn undeclare(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
@@ -702,7 +797,7 @@ impl Queryable {
 // zenoh.net.Target (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
-/// TODO
+/// The queryables that should be target of a :class:`Query`
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Target {
@@ -712,7 +807,6 @@ pub(crate) struct Target {
 #[allow(non_snake_case)]
 #[pymethods]
 impl Target {
-    /// TODO
     #[staticmethod]
     fn BestMatching() -> Target {
         Target {
@@ -720,15 +814,14 @@ impl Target {
         }
     }
 
-    /// TODO
     #[staticmethod]
+    #[text_signature = "(n)"]
     fn Complete(n: ZInt) -> Target {
         Target {
             t: zenoh::net::Target::Complete { n },
         }
     }
 
-    /// TODO
     #[staticmethod]
     fn All() -> Target {
         Target {
@@ -736,7 +829,6 @@ impl Target {
         }
     }
 
-    /// TODO
     #[staticmethod]
     fn None() -> Target {
         Target {
@@ -745,8 +837,14 @@ impl Target {
     }
 }
 
-/// TODO
+/// The queryables that should be target of a :class:`Query`.
+///
+/// :param kind: the kind of queryable (one constant from :class:`queryable`)
+/// :type kind: int, optional
+/// :param target: a characteristic of the queryable.
+/// :type target: Target, optional
 #[pyclass]
+#[text_signature = "(kind=None, target=None)"]
 #[derive(Clone)]
 pub(crate) struct QueryTarget {
     pub(crate) t: zenoh::net::QueryTarget,
@@ -778,7 +876,7 @@ impl Default for QueryTarget {
 // zenoh.net.QueryConsolidation (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
-/// TODO
+/// The kind of consolidation that should be applied on replies to a :meth:`Session.query`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct QueryConsolidation {
@@ -788,7 +886,6 @@ pub(crate) struct QueryConsolidation {
 #[allow(non_snake_case)]
 #[pymethods]
 impl QueryConsolidation {
-    /// TODO
     #[classattr]
     fn None() -> QueryConsolidation {
         QueryConsolidation {
@@ -796,7 +893,6 @@ impl QueryConsolidation {
         }
     }
 
-    /// TODO
     #[classattr]
     fn LastHop() -> QueryConsolidation {
         QueryConsolidation {
@@ -804,7 +900,6 @@ impl QueryConsolidation {
         }
     }
 
-    /// TODO
     #[classattr]
     fn Incremental() -> QueryConsolidation {
         QueryConsolidation {
@@ -821,7 +916,7 @@ impl Default for QueryConsolidation {
     }
 }
 
-/// TODO
+/// Type received by a query callback. See :meth:`Session.query`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Reply {
@@ -836,7 +931,9 @@ impl pyo3::conversion::ToPyObject for Reply {
 
 #[pymethods]
 impl Reply {
-    /// TODO
+    /// The data
+    ///
+    /// :type: Sample
     #[getter]
     fn data(&self) -> Sample {
         Sample {
@@ -844,13 +941,17 @@ impl Reply {
         }
     }
 
-    /// TODO
+    /// The kind of reply source
+    ///
+    /// :type: int
     #[getter]
     fn source_kind(&self) -> ZInt {
         self.r.source_kind
     }
 
-    /// TODO
+    /// The identifier of reply source
+    ///
+    /// :type: PeerId
     fn replier_id(&self) -> PeerId {
         PeerId {
             p: self.r.replier_id.clone(),

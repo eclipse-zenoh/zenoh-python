@@ -16,6 +16,7 @@ use pyo3::prelude::*;
 use zenoh::net::ZInt;
 
 // zenoh.net.encoding (simulate the package as a class, and consts as class attributes)
+/// Constants defining the different encoding flags.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct encoding {}
@@ -37,14 +38,17 @@ impl encoding {
     fn APP_CUSTOM() -> ZInt {
         zenoh::net::encoding::APP_CUSTOM
     }
+
     #[classattr]
     fn TEXT_PLAIN() -> ZInt {
         zenoh::net::encoding::TEXT_PLAIN
     }
+
     #[classattr]
     fn STRING() -> ZInt {
         zenoh::net::encoding::STRING
     }
+
     #[classattr]
     fn APP_PROPERTIES() -> ZInt {
         zenoh::net::encoding::APP_PROPERTIES
