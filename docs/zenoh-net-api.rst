@@ -68,10 +68,20 @@ Reliability
 .. autoclass:: zenoh.net.Reliability
     :members:
 
+    .. autoattribute:: BestEffort
+            :annotation:
+    .. autoattribute:: Reliable
+            :annotation:
+
 SubMode
 -------
 .. autoclass:: zenoh.net.SubMode
     :members:
+
+    .. autoattribute:: Push
+            :annotation:
+    .. autoattribute:: Pull
+            :annotation:
 
 Period
 ------
@@ -113,6 +123,13 @@ QueryConsolidation
 .. autoclass:: zenoh.net.QueryConsolidation
     :members:
 
+    .. autoattribute:: None
+            :annotation:
+    .. autoattribute:: LastHop
+            :annotation:
+    .. autoattribute:: Incremental
+            :annotation:
+
 Reply
 -----
 .. autoclass:: zenoh.net.Reply
@@ -120,18 +137,32 @@ Reply
 
 module zenoh.net.properties
 ---------------------------
-.. automodule:: zenoh.net.properties
+.. autoclass:: zenoh.net.properties
     :members:
+
+    .. autoattribute:: ZN_USER_KEY
+    .. autoattribute:: ZN_PASSWD_KEY
+    .. autoattribute:: ZN_INFO_PID_KEY
+    .. autoattribute:: ZN_INFO_PEER_PID_KEY
+    .. autoattribute:: ZN_INFO_ROUTER_PID_KEY
 
 module zenoh.net.whatami
 ------------------------
-.. automodule:: zenoh.net.whatami
+.. autoclass:: zenoh.net.whatami
     :members:
+
+    .. autoattribute:: ROUTER
+    .. autoattribute:: PEER
+    .. autoattribute:: CLIENT
 
 module zenoh.net.queryable
 --------------------------
-.. automodule:: zenoh.net.queryable
+.. autoclass:: zenoh.net.queryable
     :members:
+
+    .. autoattribute:: ALL_KINDS
+    .. autoattribute:: EVAL
+    .. autoattribute:: STORAGE
 
 module zenoh.net.resource_name
 ------------------------------

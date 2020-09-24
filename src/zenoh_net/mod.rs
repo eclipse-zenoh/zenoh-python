@@ -25,9 +25,43 @@ mod session;
 use session::*;
 mod encoding;
 
-/// The module of the zenoh-net API.
+/// The network level zenoh API.
+///
+/// Examples:
+/// ^^^^^^^^^
+///
+/// Publish
+/// """""""
+///
+/// >>> import zenoh
+/// >>> s = zenoh.net.open(zenoh.net.Config())
+/// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
+///
+/// Subscribe
+/// """""""""
+///
+/// >>> import zenoh
+/// >>> from zenoh.net import SubInfo, Reliability, SubMode
+/// >>> def listener(sample):
+/// ...     print("Received : {}".format(sample))
+/// >>>
+/// >>> s = zenoh.net.open(zenoh.net.Config())
+/// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
+/// >>> sub = s.declare_subscriber('/resource/name', sub_info, listener)
+///
+/// Query
+/// """""
+///
+/// >>> import zenoh, time
+/// >>> from zenoh.net import QueryTarget, queryable
+/// >>> def query_callback(reply):
+/// ...     print("Received : {}".format(reply))
+/// >>>
+/// >>> s = zenoh.net.open(zenoh.net.Config())
+/// >>> s.query('/resource/name', 'predicate', query_callback)
+/// >>> time.sleep(1)
 #[pymodule]
-fn net(py: Python, m: &PyModule) -> PyResult<()> {
+pub(crate) fn net(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<properties>()?;
     // force addition of "zenoh.net.properties" module
     // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
@@ -88,6 +122,7 @@ sys.modules['zenoh.net.encoding'] = encoding
         Some(m.dict()),
     )?;
 
+    m.add_class::<Hello>()?;
     m.add_class::<Config>()?;
     m.add_class::<ResKey>()?;
     m.add_class::<PeerId>()?;
@@ -112,14 +147,45 @@ sys.modules['zenoh.net.encoding'] = encoding
     Ok(())
 }
 
+/// Open a zenoh-net Session.
+///
+/// :param config: The configuration of the zenoh-net session
+/// :type config: Config
+/// :rtype: Session
+///
+/// :Example:
+///
+/// >>> import zenoh
+/// >>> z = zenoh.Zenoh(zenoh.net.Config())
 #[pyfunction]
+#[text_signature = "(config)"]
 fn open(config: Config) -> PyResult<Session> {
     let s = task::block_on(zenoh::net::open(config.c, None)).map_err(to_pyerr)?;
     Ok(Session::new(s))
 }
 
+/// Scout for routers and/or peers.
+///
+/// This spawns a task that periodically sends scout messages for a specified duration and returns
+/// a list of received :class:`Hello` messages.
+///
+/// :param whatami: The kind of zenoh process to scout for
+/// :type whatami: int
+/// :param iface: The network interface to use for multicast (or "auto")
+/// :type iface: str
+/// :param scout_duration: the duration of scout (in seconds)
+/// :type scout_duration: float
+/// :rtype: list of :class:`Hello`
+///
+/// :Example:
+///
+/// >>> import zenoh
+/// >>> hellos = zenoh.net.scout(zenoh.net.whatami.PEER | zenoh.net.whatami.ROUTER, 'auto', 1.0)
+/// >>> for hello in hellos:
+/// >>>     print(hello)
 #[pyfunction]
-fn scout(whatami: ZInt, iface: &str, scout_period: f64) -> Vec<Hello> {
+#[text_signature = "(whatami, iface, scout_duration)"]
+fn scout(whatami: ZInt, iface: &str, scout_duration: f64) -> Vec<Hello> {
     task::block_on(async move {
         let mut result = Vec::<Hello>::new();
         let mut stream = zenoh::net::scout(whatami, iface).await;
@@ -128,7 +194,7 @@ fn scout(whatami: ZInt, iface: &str, scout_period: f64) -> Vec<Hello> {
                 result.push(Hello { h })
             }
         };
-        let timeout = async_std::task::sleep(std::time::Duration::from_secs_f64(scout_period));
+        let timeout = async_std::task::sleep(std::time::Duration::from_secs_f64(scout_duration));
         FutureExt::race(scout, timeout).await;
         result
     })

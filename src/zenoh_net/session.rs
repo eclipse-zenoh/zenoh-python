@@ -58,8 +58,14 @@ impl Session {
 
     /// Write data.
     ///
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    ///
+    /// * **int** for a ``ResKey.Rid(int)``
+    /// * **str** for a ``ResKey.RName(str)``
+    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    ///
     /// :param resource: The resource key to write
-    /// :type resource: str
+    /// :type resource: ResKey
     /// :param payload: The value to write
     /// :type payload: bytes
     ///
@@ -67,28 +73,81 @@ impl Session {
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.net.open(zenoh.net.Config())
-    /// >>> s.write(ResKey.RName('/resource/name'), bytes('value', encoding='utf8'))
-    /// >>> s.close()
+    /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
+    #[text_signature = "(self, resource, payload)"]
     fn write(&self, resource: &PyAny, payload: Vec<u8>) -> PyResult<()> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
         task::block_on(s.write(&k, payload.into())).map_err(to_pyerr)
     }
 
-    /// TODO
+    /// Associate a numerical Id with the given resource key.
+    ///
+    /// This numerical Id will be used on the network to save bandwidth and
+    /// ease the retrieval of the concerned resource in the routing tables.
+    ///
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    ///
+    /// * **int** for a ``ResKey.Rid(int)``
+    /// * **str** for a ``ResKey.RName(str)``
+    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    ///
+    /// :param resource: The resource key to map to a numerical Id
+    /// :type resource: ResKey
+    /// :rtype: int
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh
+    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> rid = s.declare_resource('/resource/name')
+    #[text_signature = "(self, resource)"]
     fn declare_resource(&self, resource: &PyAny) -> PyResult<ResourceId> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
         task::block_on(s.declare_resource(&k)).map_err(to_pyerr)
     }
 
-    /// TODO
+    /// Undeclare the *numerical Id/resource key* association previously declared
+    /// with :meth:`declare_resource`.
+    ///
+    /// :param rid: The numerical Id to unmap
+    /// :type rid: ResKey
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh
+    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> rid = s.declare_resource('/resource/name')
+    /// >>> s.undeclare_resource(rid)
+    #[text_signature = "(self, rid)"]
     fn undeclare_resource(&self, rid: ResourceId) -> PyResult<()> {
         let s = self.as_ref()?;
         task::block_on(s.undeclare_resource(rid)).map_err(to_pyerr)
     }
 
-    /// TODO
+    /// Declare a Publisher for the given resource key.
+    ///
+    /// Written resources that match the given key will only be sent on the network
+    /// if matching subscribers exist in the system.
+    ///
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    ///
+    /// * **int** for a ``ResKey.Rid(int)``
+    /// * **str** for a ``ResKey.RName(str)``
+    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    ///
+    /// :param resource: The resource key to publish
+    /// :type resource: ResKey
+    /// :rtype: Publisher
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh
+    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> rid = s.declare_publisher('/resource/name')
+    /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
+    #[text_signature = "(self, resource)"]
     fn declare_publisher(&self, resource: &PyAny) -> PyResult<Publisher> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
@@ -104,7 +163,34 @@ impl Session {
         })
     }
 
-    /// TODO
+    /// Declare a Subscxriber for the given resource key.
+    ///
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    ///
+    /// * **int** for a ``ResKey.Rid(int)``
+    /// * **str** for a ``ResKey.RName(str)``
+    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    ///
+    /// :param resource: The resource key to subscribe
+    /// :type resource: ResKey
+    /// :param info: The :class:`SubInfo` to configure the subscription
+    /// :type info: SubInfo
+    /// :param callback: the subscription callback
+    /// :type callback: function(:class:`Sample`)
+    /// :rtype: zenoh.net.Subscriber
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh, time
+    /// >>> from zenoh.net import SubInfo, Reliability, SubMode
+    /// >>> def listener(sample):
+    /// ...     print("Received : {}".format(sample))
+    /// >>>
+    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
+    /// >>> sub = s.declare_subscriber('/resource/name', sub_info, listener)
+    /// >>> time.sleep(60)
+    #[text_signature = "(self, resource, info, callback)"]
     fn declare_subscriber(
         &self,
         resource: &PyAny,
@@ -170,7 +256,34 @@ impl Session {
         })
     }
 
-    /// TODO
+    /// Declare a Queryable for the given resource key.
+    ///
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    ///
+    /// * **int** for a ``ResKey.Rid(int)``
+    /// * **str** for a ``ResKey.RName(str)``
+    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    ///
+    /// :param resource: The resource key the Queryable will reply to
+    /// :type resource: ResKey
+    /// :param info: The kind of Queryable
+    /// :type info: int
+    /// :param callback: the queryable callback
+    /// :type callback: function(:class:`Query`)
+    /// :rtype: Queryable
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh, time
+    /// >>> from zenoh.net import Sample, queryable
+    /// >>> def callback(query):
+    /// ...     print("Received : {}".format(query))
+    /// ...     query.reply(Sample('/resource/name', bytes('value', encoding='utf8')))
+    /// >>>
+    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> q = s.declare_queryable('/resource/name', queryable.EVAL, callback)
+    /// >>> time.sleep(60)
+    #[text_signature = "(self, resource, kind, callback)"]
     fn declare_queryable(
         &self,
         resource: &PyAny,
@@ -225,7 +338,37 @@ impl Session {
         })
     }
 
-    /// TODO
+    /// Query data from the matching queryables in the system.
+    ///
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    ///
+    /// * **int** for a ``ResKey.Rid(int)``
+    /// * **str** for a ``ResKey.RName(str)``
+    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    ///
+    /// :param resource: The resource key to query
+    /// :type resource: ResKey
+    /// :param predicate: An indication to matching queryables about the queried data
+    /// :type predicate: str
+    /// :param callback: the query callback which will receive the replies
+    /// :type callback: function(:class:`Reply`)
+    /// :param target: The kind of queryables that should be target of this query
+    /// :type target: QueryTarget, optional
+    /// :param consolidation: The kind of consolidation that should be applied on replies
+    /// :type consolidation: QueryConsolidation, optional
+    /// :rtype: Queryable
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh, time
+    /// >>> from zenoh.net import QueryTarget, queryable
+    /// >>> def query_callback(reply):
+    /// ...     print("Received : {}".format(reply))
+    /// >>>
+    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s.query('/resource/name', 'predicate', query_callback)
+    /// >>> time.sleep(1)
+    #[text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"]
     fn query(
         &self,
         resource: &PyAny,
