@@ -5,9 +5,9 @@ name: Build and tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, branch_0.5.0_dev ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, branch_0.5.0_dev ]
 
 jobs:
   build:
@@ -27,29 +27,16 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
+    - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+
+    - name: Install Maturin
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install scikit-build
+        pip install maturin
 
-    - name: Install zenoh-python
-      run: python setup.py install
-
-    - name: Lint with flake8
-      run: |
-        pip install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-    - name: Install and run zenoh container
-      run: |
-        docker pull adlinktech/eclipse-zenoh:latest
-        docker run -p 7447:7447/tcp -p 7447:7447/udp -p 8000:8000/tcp adlinktech/eclipse-zenoh:latest &
-
-    - name: Test with tox
-      run: |
-        pip install tox
-        tox
+    - name: Build zenoh-python
+      run: maturin build
