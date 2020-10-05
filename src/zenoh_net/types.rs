@@ -490,7 +490,7 @@ impl pyo3::conversion::ToPyObject for Sample {
 #[pymethods]
 impl Sample {
     #[new]
-    fn new(res_name: String, payload: Vec<u8>, data_info: Option<DataInfo>) -> Sample {
+    fn new(res_name: String, payload: &[u8], data_info: Option<DataInfo>) -> Sample {
         Sample {
             s: zenoh::net::Sample {
                 res_name,
