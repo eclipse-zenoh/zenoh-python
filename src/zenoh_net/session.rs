@@ -75,7 +75,7 @@ impl Session {
     /// >>> s = zenoh.net.open(zenoh.net.Config())
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
     #[text_signature = "(self, resource, payload)"]
-    fn write(&self, resource: &PyAny, payload: Vec<u8>) -> PyResult<()> {
+    fn write(&self, resource: &PyAny, payload: &[u8]) -> PyResult<()> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
         task::block_on(s.write(&k, payload.into())).map_err(to_pyerr)
@@ -199,8 +199,7 @@ impl Session {
     ) -> PyResult<Subscriber> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let zn_sub =
-            task::block_on(s.declare_subscriber(&k, &info.i)).map_err(to_pyerr)?;
+        let zn_sub = task::block_on(s.declare_subscriber(&k, &info.i)).map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_sub into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
         let mut static_zn_sub = unsafe {

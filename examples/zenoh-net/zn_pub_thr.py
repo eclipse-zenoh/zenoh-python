@@ -54,6 +54,7 @@ zenoh.init_logger()
 data = bytearray()
 for i in range(0, size):
     data.append(i % 10)
+data = bytes(data)
 
 session = zenoh.net.open(config)
 

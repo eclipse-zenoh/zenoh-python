@@ -171,7 +171,7 @@ impl Value {
     /// :type buffer: bytes
     #[staticmethod]
     #[text_signature = "(encoding, buffer)"]
-    fn Raw(encoding: ZInt, buffer: Vec<u8>) -> Value {
+    fn Raw(encoding: ZInt, buffer: &[u8]) -> Value {
         Value {
             v: zenoh::Value::Raw(encoding, buffer.into()),
         }
@@ -187,7 +187,7 @@ impl Value {
     /// :type buffer: bytes
     #[staticmethod]
     #[text_signature = "(encoding_descr, buffer)"]
-    fn Custom(encoding_descr: String, buffer: Vec<u8>) -> Value {
+    fn Custom(encoding_descr: String, buffer: &[u8]) -> Value {
         Value {
             v: zenoh::Value::Custom {
                 encoding_descr,
@@ -289,7 +289,7 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
             Ok(v.v)
         }
         "bytes" => {
-            let buf: Vec<u8> = obj.extract()?;
+            let buf: &[u8] = obj.extract()?;
             Ok(zenoh::Value::Raw(
                 zenoh::net::encoding::APP_OCTET_STREAM,
                 buf.into(),
@@ -318,7 +318,7 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
                 && tuple.get_item(1).get_type().name() == "bytes"
             {
                 let encoding_descr: String = tuple.get_item(0).extract()?;
-                let buf: Vec<u8> = tuple.get_item(1).extract()?;
+                let buf: &[u8] = tuple.get_item(1).extract()?;
                 if let Ok(encoding) = zenoh::net::encoding::from_str(&encoding_descr) {
                     Ok(zenoh::Value::Raw(encoding, buf.into()))
                 } else {
