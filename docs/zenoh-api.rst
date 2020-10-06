@@ -59,13 +59,7 @@ ChangeKind
 ----------
 .. autoclass:: zenoh.ChangeKind
     :members:
-
-    .. autoattribute:: PUT
-        :annotation:
-    .. autoattribute:: PATCH
-        :annotation:
-    .. autoattribute:: DELETE
-        :annotation:
+    :undoc-members:
 
 Change
 ------

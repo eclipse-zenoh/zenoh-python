@@ -43,10 +43,10 @@ impl Session {
     /// :Example:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s = zenoh.net.open(zenoh.net.config.default())
     /// >>> info = s.info()
     /// >>> for key, value in info:
-    /// ...    print("{} : {}".format(zenoh.net.properties.to_str(key), value.hex().upper()))
+    /// ...    print("{} : {}".format(zenoh.net.info.to_str(key), value.hex().upper()))
     fn info<'p>(&self, py: Python<'p>) -> PyResult<Vec<(ZInt, &'p PyBytes)>> {
         let s = self.as_ref()?;
         let props = task::block_on(s.info());
@@ -72,7 +72,7 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s = zenoh.net.open(zenoh.net.config.default())
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
     #[text_signature = "(self, resource, payload)"]
     fn write(&self, resource: &PyAny, payload: &[u8]) -> PyResult<()> {
@@ -99,7 +99,7 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s = zenoh.net.open(zenoh.net.config.default())
     /// >>> rid = s.declare_resource('/resource/name')
     #[text_signature = "(self, resource)"]
     fn declare_resource(&self, resource: &PyAny) -> PyResult<ResourceId> {
@@ -117,7 +117,7 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s = zenoh.net.open(zenoh.net.config.default())
     /// >>> rid = s.declare_resource('/resource/name')
     /// >>> s.undeclare_resource(rid)
     #[text_signature = "(self, rid)"]
@@ -144,7 +144,7 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s = zenoh.net.open(zenoh.net.config.default())
     /// >>> rid = s.declare_publisher('/resource/name')
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
     #[text_signature = "(self, resource)"]
@@ -186,7 +186,7 @@ impl Session {
     /// >>> def listener(sample):
     /// ...     print("Received : {}".format(sample))
     /// >>>
-    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s = zenoh.net.open(zenoh.net.config.default())
     /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
     /// >>> sub = s.declare_subscriber('/resource/name', sub_info, listener)
     /// >>> time.sleep(60)
@@ -279,7 +279,7 @@ impl Session {
     /// ...     print("Received : {}".format(query))
     /// ...     query.reply(Sample('/resource/name', bytes('value', encoding='utf8')))
     /// >>>
-    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s = zenoh.net.open(zenoh.net.config.default())
     /// >>> q = s.declare_queryable('/resource/name', queryable.EVAL, callback)
     /// >>> time.sleep(60)
     #[text_signature = "(self, resource, kind, callback)"]
@@ -364,7 +364,7 @@ impl Session {
     /// >>> def query_callback(reply):
     /// ...     print("Received : {}".format(reply))
     /// >>>
-    /// >>> s = zenoh.net.open(zenoh.net.Config())
+    /// >>> s = zenoh.net.open(zenoh.net.config.default())
     /// >>> s.query('/resource/name', 'predicate', query_callback)
     /// >>> time.sleep(1)
     #[text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"]

@@ -17,11 +17,50 @@ use async_std::task;
 use pyo3::class::basic::CompareOp;
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
+use pyo3::types::{PyTuple, PyDict};
 use pyo3::PyObjectProtocol;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use zenoh::net::ZInt;
+
+fn from<'p>(py: Python<'p>, props: zenoh::Properties) -> &'p PyDict {
+    let dict = PyDict::new(py);
+    for (key, val) in props.iter() {
+        let _ = dict.set_item(key, val);
+    }
+    dict
+}
+
+// zenoh.config (simulate the package as a class, and consts as class attributes)
+/// Constants and helpers to build the configuration to pass to :func:`Zenoh.new`.
+#[allow(non_camel_case_types)]
+#[pyclass]
+pub(crate) struct config {}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl config {
+
+    #[staticmethod]
+    pub fn empty<'p>(py: Python<'p>) -> &'p PyDict {
+        from(py, zenoh::config::empty())
+    }
+    
+    #[staticmethod]
+    pub fn default<'p>(py: Python<'p>) -> &'p PyDict {
+        from(py, zenoh::config::default())
+    }
+    
+    #[staticmethod]
+    pub fn peer<'p>(py: Python<'p>) -> &'p PyDict {
+        from(py, zenoh::config::peer())
+    }
+    
+    #[staticmethod]
+    pub fn client<'p>(py: Python<'p>, peer: Option<String>) -> &'p PyDict {
+        from(py, zenoh::config::client(peer))
+    }
+}
 
 pub(crate) fn path_of_string(s: String) -> PyResult<zenoh::Path> {
     zenoh::Path::try_from(s).map_err(|e| PyErr::new::<exceptions::PyValueError, _>(e.to_string()))

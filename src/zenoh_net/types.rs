@@ -16,54 +16,171 @@ use async_std::sync::Sender;
 use async_std::task;
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDateTime, PyTuple};
+use pyo3::types::{PyBytes, PyDateTime, PyTuple, PyList};
 use pyo3::PyObjectProtocol;
-use std::time::Duration;
 use zenoh::net::{ResourceId, ZInt};
 
-// zenoh.net.properties (simulate the package as a class, and consts as class attributes)
-/// Constants defining the keys of the properties returned in :meth:`Session.info`.
+fn props_to_pylist<'p>(py: Python<'p>, props: zenoh::net::Properties) -> Vec<(ZInt, &'p PyBytes)> {
+    props
+        .iter()
+        .map(|(k, v)| (*k, PyBytes::new(py, v.as_slice())))
+        .collect()
+}
+
+pub fn pylist_to_props(config: &PyList) -> PyResult<zenoh::net::Properties> {
+    let mut rust_config: Vec<(ZInt, Vec<u8>)> = vec![];
+    for prop in config.iter() {
+        let tuple: &PyTuple = prop.downcast()?;
+        let prop: (ZInt, Vec<u8>) = tuple.extract()?;
+        rust_config.push(prop);
+    }
+    Ok(rust_config)
+}
+
+// zenoh.net.config (simulate the package as a class, and consts as class attributes)
+/// Constants and helpers to build the configuration to pass to :func:`zenoh.net.open`.
 #[allow(non_camel_case_types)]
 #[pyclass]
-pub(crate) struct properties {}
+pub(crate) struct config {}
 
 #[allow(non_snake_case)]
 #[pymethods]
-impl properties {
+impl config {
     #[classattr]
-    fn ZN_USER_KEY() -> ZInt {
-        zenoh::net::properties::ZN_USER_KEY
+    pub fn ZN_MODE_KEY() -> ZInt {
+        zenoh::net::config::ZN_MODE_KEY
     }
 
     #[classattr]
-    fn ZN_PASSWD_KEY() -> ZInt {
-        zenoh::net::properties::ZN_PASSWD_KEY
+    pub fn ZN_PEER_KEY() -> ZInt {
+        zenoh::net::config::ZN_PEER_KEY
     }
 
+    #[classattr]
+    pub fn ZN_LISTENER_KEY() -> ZInt {
+        zenoh::net::config::ZN_LISTENER_KEY
+    }
+
+    #[classattr]
+    pub fn ZN_USER_KEY() -> ZInt {
+        zenoh::net::config::ZN_USER_KEY
+    }
+
+    #[classattr]
+    fn ZN_PASSWORD_KEY() -> ZInt {
+        zenoh::net::config::ZN_PASSWORD_KEY
+    }
+    
+    #[classattr]
+    pub fn ZN_MULTICAST_SCOUTING_KEY() -> ZInt {
+        zenoh::net::config::ZN_MULTICAST_SCOUTING_KEY
+    }
+    
+    #[classattr]
+    pub fn ZN_MULTICAST_INTERFACE_KEY() -> ZInt {
+        zenoh::net::config::ZN_MULTICAST_INTERFACE_KEY
+    }
+
+    #[classattr]
+    pub fn ZN_MULTICAST_ADDRESS_KEY() -> ZInt {
+        zenoh::net::config::ZN_MULTICAST_ADDRESS_KEY
+    }
+
+    #[classattr]
+    pub fn ZN_SCOUTING_TIMEOUT_KEY() -> ZInt {
+        zenoh::net::config::ZN_SCOUTING_TIMEOUT_KEY
+    }
+
+    #[classattr]
+    pub fn ZN_SCOUTING_DELAY_KEY() -> ZInt {
+        zenoh::net::config::ZN_SCOUTING_DELAY_KEY
+    }
+
+    #[classattr]
+    pub fn ZN_ADD_TIMESTAMP_KEY() -> ZInt {
+        zenoh::net::config::ZN_ADD_TIMESTAMP_KEY
+    }
+
+    #[classattr]
+    pub fn ZN_LOCAL_ROUTING_KEY() -> ZInt {
+        zenoh::net::config::ZN_LOCAL_ROUTING_KEY
+    }
+
+    #[staticmethod]
+    pub fn empty<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
+        props_to_pylist(py, zenoh::net::config::empty())
+    }
+
+    #[staticmethod]
+    pub fn default<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
+        props_to_pylist(py, zenoh::net::config::default())
+    }
+
+    #[staticmethod]
+    pub fn peer<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
+        props_to_pylist(py, zenoh::net::config::peer())
+    }
+
+    #[staticmethod]
+    pub fn client<'p>(py: Python<'p>, peer: Option<String>) -> Vec<(ZInt, &'p PyBytes)> {
+        props_to_pylist(py, zenoh::net::config::client(peer))
+    }
+
+    #[staticmethod]
+    pub fn key_to_string(i: ZInt) -> String {
+        zenoh::net::config::key_to_string(i)
+    }
+
+    #[staticmethod]
+    pub fn to_string(config: &PyList) -> PyResult<String> {
+        Ok(zenoh::net::config::to_string(
+            &pylist_to_props(config)?))
+    }
+}
+
+// zenoh.net.info (simulate the package as a class, and consts as class attributes)
+/// Constants and helpers to interpret the properties returned by :func:`zenoh.net.Session.info`.
+#[allow(non_camel_case_types)]
+#[pyclass]
+pub(crate) struct info {}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl info {
     #[classattr]
     fn ZN_INFO_PID_KEY() -> ZInt {
-        zenoh::net::properties::ZN_INFO_PID_KEY
+        zenoh::net::info::ZN_INFO_PID_KEY
     }
 
     #[classattr]
     fn ZN_INFO_PEER_PID_KEY() -> ZInt {
-        zenoh::net::properties::ZN_INFO_PEER_PID_KEY
+        zenoh::net::info::ZN_INFO_PEER_PID_KEY
     }
 
     #[classattr]
     fn ZN_INFO_ROUTER_PID_KEY() -> ZInt {
-        zenoh::net::properties::ZN_INFO_ROUTER_PID_KEY
+        zenoh::net::info::ZN_INFO_ROUTER_PID_KEY
     }
 
     #[staticmethod]
-    fn to_str(i: ZInt) -> PyResult<String> {
-        zenoh::net::properties::to_str(i)
-            .map_err(|e| PyErr::new::<exceptions::PyValueError, _>(e.to_string()))
+    fn key_to_string(i: ZInt) -> String {
+        zenoh::net::info::key_to_string(i)
+    }
+
+    #[staticmethod]
+    fn to_string(info: &PyList) -> PyResult<String> {
+        let mut rust_info: Vec<(ZInt, Vec<u8>)> = vec![];
+        for prop in info.iter() {
+            let tuple: &PyTuple = prop.downcast()?;
+            let prop: (ZInt, Vec<u8>) = tuple.extract()?;
+            rust_info.push(prop);
+        }
+        Ok(zenoh::net::info::to_string(&rust_info))
     }
 }
 
 // zenoh.net.whatami (simulate the package as a class, and consts as class attributes)
-/// Constants defining the different configuration modes of a zenoh :class:`Session`.
+/// Constants defining the different zenoh process to look for with :func:`zenoh.net.scout`.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct whatami {}
@@ -87,8 +204,8 @@ impl whatami {
     }
 
     #[staticmethod]
-    fn to_str(i: ZInt) -> PyResult<String> {
-        Ok(zenoh::net::whatami::to_str(i))
+    fn to_string(i: ZInt) -> PyResult<String> {
+        Ok(zenoh::net::whatami::to_string(i))
     }
 }
 
@@ -155,82 +272,6 @@ impl resource_name {
     #[text_signature = "(s1, s2)"]
     fn intersect(s1: &str, s2: &str) -> bool {
         zenoh::net::utils::resource_name::intersect(s1, s2)
-    }
-}
-
-/// Struct to pass to :meth:`zenoh.net.open` to configure the zenoh-net :class:`Session`.
-///
-/// :param mode: the Session mode, as a bitmask of constants from :class:`whatami`. (Default: :attr:`whatami.PEER`)
-/// :type mode: int
-/// :param peers: a list of peers locators to connect.
-/// :type peers: list of str
-/// :param listeners: a list of locators to listen for connections
-/// :type listeners: list of str
-/// :param multicast_interface: a network interface to use for multicast scouting
-/// :type multicast_interface: str
-/// :param scouting_delay: the delay of scouting (in seconds)
-/// :type scouting_delay: float
-/// :param add_timestamp: true if a timestamp must be added with each published data
-/// :type add_timestamp: bool
-/// :rtype: Session
-#[pyclass]
-#[text_signature = "(mode=zenoh.net.whatami.PEER, peers=None, listeners=None, multicast_interface=None, scouting_delay=0.25, add_timestamp=False)"]
-#[derive(Clone)]
-pub(crate) struct Config {
-    pub(crate) c: zenoh::net::Config,
-}
-
-#[pymethods]
-impl Config {
-    #[new]
-    fn new(
-        mode: Option<ZInt>,
-        peers: Option<Vec<&str>>,
-        listeners: Option<Vec<&str>>,
-        multicast_interface: Option<String>,
-        scouting_delay: Option<f64>,
-        add_timestamp: Option<bool>,
-    ) -> Config {
-        let mut c = zenoh::net::Config::default();
-        if let Some(m) = mode {
-            c = c.mode(m);
-        }
-        if let Some(p) = peers {
-            c = c.add_peers(p);
-        }
-        if let Some(l) = listeners {
-            c = c.add_listeners(l);
-        }
-        if let Some(m) = multicast_interface {
-            c = c.multicast_interface(m);
-        }
-        if let Some(d) = scouting_delay {
-            c = c.scouting_delay(Duration::from_secs_f64(d));
-        }
-        if let Some(true) = add_timestamp {
-            c = c.add_timestamp();
-        }
-        Config { c }
-    }
-
-    /// Parse a string representing a mode. Accepted values: 'peer', 'client', 'router'
-    ///
-    /// :param mode: the mode as a string
-    /// :type mode: str
-    /// :rtype: int
-    #[staticmethod]
-    #[text_signature = "(mode)"]
-    fn parse_mode(mode: &str) -> PyResult<ZInt> {
-        zenoh::net::Config::parse_mode(mode).map_err(|_| {
-            PyErr::new::<exceptions::PyValueError, _>(format!("Invalid Config mode: '{}'", mode))
-        })
-    }
-}
-
-#[pyproto]
-impl PyObjectProtocol for Config {
-    fn __str__(&self) -> PyResult<String> {
-        Ok(self.c.to_string())
     }
 }
 

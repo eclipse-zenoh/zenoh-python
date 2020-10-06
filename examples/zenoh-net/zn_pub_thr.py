@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config
+from zenoh.net import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -40,10 +40,14 @@ parser.add_argument('payload_size',
                     help='Sets the size of the payload to publish.')
 
 args = parser.parse_args()
-config = Config(
-    mode=Config.parse_mode(args.mode),
-    peers=args.peer,
-    listeners=args.listener)
+conf = []
+conf.append((config.ZN_MODE_KEY, args.mode.encode('utf-8')))
+if args.peer is not None:
+    for peer in args.peer:
+        conf.append((config.ZN_PEER_KEY, peer.encode('utf-8')))
+if args.listener is not None:
+    for listener in args.listener:
+        conf.append((config.ZN_LISTENER_KEY, listener.encode('utf-8')))
 size = args.payload_size
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
@@ -56,7 +60,7 @@ for i in range(0, size):
     data.append(i % 10)
 data = bytes(data)
 
-session = zenoh.net.open(config)
+session = zenoh.net.open(conf)
 
 rid = session.declare_resource('/test/thr')
 

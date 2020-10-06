@@ -16,7 +16,6 @@ import time
 import argparse
 import zenoh
 from zenoh import Zenoh, Value
-from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -47,10 +46,11 @@ parser.add_argument('--value', '-v', dest='value',
                     help='The value of the resource to put.')
 
 args = parser.parse_args()
-config = Config(
-    mode=Config.parse_mode(args.mode),
-    peers=args.peer,
-    listeners=args.listener)
+conf = { "mode": args.mode }
+if args.peer is not None:
+    conf["peer"] = ",".join(args.peer)
+if args.listener is not None:
+    conf["listener"] = ",".join(args.listener)
 path = args.path
 value = args.value
 
@@ -60,7 +60,7 @@ value = args.value
 zenoh.init_logger()
 
 print("Openning session...")
-z = Zenoh(config)
+z = Zenoh(conf)
 
 print("New workspace...")
 workspace = z.workspace()

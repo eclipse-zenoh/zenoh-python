@@ -16,6 +16,7 @@ use async_std::prelude::FutureExt;
 use async_std::task;
 use futures::prelude::*;
 use pyo3::prelude::*;
+use pyo3::types::{PyList, PyTuple};
 use pyo3::wrap_pyfunction;
 use zenoh::net::ZInt;
 
@@ -34,7 +35,7 @@ mod encoding;
 /// """""""
 ///
 /// >>> import zenoh
-/// >>> s = zenoh.net.open(zenoh.net.Config())
+/// >>> s = zenoh.net.open(zenoh.net.config.default())
 /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
 ///
 /// Subscribe
@@ -45,7 +46,7 @@ mod encoding;
 /// >>> def listener(sample):
 /// ...     print("Received : {}".format(sample))
 /// >>>
-/// >>> s = zenoh.net.open(zenoh.net.Config())
+/// >>> s = zenoh.net.open(zenoh.net.config.default())
 /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 /// >>> sub = s.declare_subscriber('/resource/name', sub_info, listener)
 ///
@@ -57,18 +58,30 @@ mod encoding;
 /// >>> def query_callback(reply):
 /// ...     print("Received : {}".format(reply))
 /// >>>
-/// >>> s = zenoh.net.open(zenoh.net.Config())
+/// >>> s = zenoh.net.open(zenoh.net.config.default())
 /// >>> s.query('/resource/name', 'predicate', query_callback)
 /// >>> time.sleep(1)
 #[pymodule]
 pub(crate) fn net(py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<properties>()?;
-    // force addition of "zenoh.net.properties" module
+    m.add_class::<config>()?;
+    // force addition of "zenoh.net.config" module
     // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
     py.run(
         "\
 import sys
-sys.modules['zenoh.net.properties'] = properties
+sys.modules['zenoh.net.config'] = config
+        ",
+        None,
+        Some(m.dict()),
+    )?;
+
+    m.add_class::<info>()?;
+    // force addition of "zenoh.net.info" module
+    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
+    py.run(
+        "\
+import sys
+sys.modules['zenoh.net.info'] = info
         ",
         None,
         Some(m.dict()),
@@ -123,7 +136,6 @@ sys.modules['zenoh.net.encoding'] = encoding
     )?;
 
     m.add_class::<Hello>()?;
-    m.add_class::<Config>()?;
     m.add_class::<ResKey>()?;
     m.add_class::<PeerId>()?;
     m.add_class::<Timestamp>()?;
@@ -150,17 +162,17 @@ sys.modules['zenoh.net.encoding'] = encoding
 /// Open a zenoh-net Session.
 ///
 /// :param config: The configuration of the zenoh-net session
-/// :type config: Config
+/// :type config: list of (ZInt, bytes)
 /// :rtype: Session
 ///
 /// :Example:
 ///
 /// >>> import zenoh
-/// >>> z = zenoh.Zenoh(zenoh.net.Config())
+/// >>> z = zenoh.net.open(zenoh.net.config::peer())
 #[pyfunction]
 #[text_signature = "(config)"]
-fn open(config: Config) -> PyResult<Session> {
-    let s = task::block_on(zenoh::net::open(config.c, None)).map_err(to_pyerr)?;
+fn open(config: &PyList) -> PyResult<Session> {
+    let s = task::block_on(zenoh::net::open(pylist_to_props(config)?)).map_err(to_pyerr)?;
     Ok(Session::new(s))
 }
 
@@ -171,8 +183,8 @@ fn open(config: Config) -> PyResult<Session> {
 ///
 /// :param whatami: The kind of zenoh process to scout for
 /// :type whatami: int
-/// :param iface: The network interface to use for multicast (or "auto")
-/// :type iface: str
+/// :param config: The configuration to use for scouting
+/// :type config: list of (ZInt, bytes)
 /// :param scout_duration: the duration of scout (in seconds)
 /// :type scout_duration: float
 /// :rtype: list of :class:`Hello`
@@ -180,15 +192,21 @@ fn open(config: Config) -> PyResult<Session> {
 /// :Example:
 ///
 /// >>> import zenoh
-/// >>> hellos = zenoh.net.scout(zenoh.net.whatami.PEER | zenoh.net.whatami.ROUTER, 'auto', 1.0)
+/// >>> hellos = zenoh.net.scout(zenoh.net.whatami.PEER | zenoh.net.whatami.ROUTER, zenoh.net.config.default(), 1.0)
 /// >>> for hello in hellos:
 /// >>>     print(hello)
 #[pyfunction]
 #[text_signature = "(whatami, iface, scout_duration)"]
-fn scout(whatami: ZInt, iface: &str, scout_duration: f64) -> Vec<Hello> {
+fn scout(whatami: ZInt, config: &PyList, scout_duration: f64) -> PyResult<Vec<Hello>> {
+    let mut rust_config: Vec<(ZInt, Vec<u8>)> = vec![];
+    for prop in config.iter() {
+        let tuple: &PyTuple = prop.downcast()?;
+        let prop: (ZInt, Vec<u8>) = tuple.extract()?;
+        rust_config.push(prop);
+    }
     task::block_on(async move {
         let mut result = Vec::<Hello>::new();
-        let mut stream = zenoh::net::scout(whatami, iface).await;
+        let mut stream = zenoh::net::scout(whatami, rust_config).await;
         let scout = async {
             while let Some(h) = stream.next().await {
                 result.push(Hello { h })
@@ -196,6 +214,6 @@ fn scout(whatami: ZInt, iface: &str, scout_duration: f64) -> Vec<Hello> {
         };
         let timeout = async_std::task::sleep(std::time::Duration::from_secs_f64(scout_duration));
         FutureExt::race(scout, timeout).await;
-        result
+        Ok(result)
     })
 }

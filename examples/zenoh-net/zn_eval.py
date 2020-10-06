@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, Sample
+from zenoh.net import config, Sample
 from zenoh.net.queryable import EVAL
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -46,10 +46,14 @@ parser.add_argument('--value', '-v', dest='value',
                     help='The value to reply to queries.')
 
 args = parser.parse_args()
-config = Config(
-    mode=Config.parse_mode(args.mode),
-    peers=args.peer,
-    listeners=args.listener)
+conf = []
+conf.append((config.ZN_MODE_KEY, args.mode.encode('utf-8')))
+if args.peer is not None:
+    for peer in args.peer:
+        conf.append((config.ZN_PEER_KEY, peer.encode('utf-8')))
+if args.listener is not None:
+    for listener in args.listener:
+        conf.append((config.ZN_LISTENER_KEY, listener.encode('utf-8')))
 path = args.path
 value = args.value
 
@@ -66,7 +70,7 @@ def eval_callback(query):
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(config)
+session = zenoh.net.open(conf)
 
 print("Declaring Queryable on '{}'...".format(path))
 queryable = session.declare_queryable(

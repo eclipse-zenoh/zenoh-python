@@ -18,11 +18,6 @@ Zenoh-net API Reference
 .. automodule:: zenoh.net
     :members: open, scout
 
-Config
-------
-.. autoclass:: zenoh.net.Config
-    :members:
-
 Hello
 -----
 .. autoclass:: zenoh.net.Hello
@@ -135,34 +130,29 @@ Reply
 .. autoclass:: zenoh.net.Reply
     :members:
 
-module zenoh.net.properties
----------------------------
-.. autoclass:: zenoh.net.properties
+module zenoh.net.config
+-----------------------
+.. autoclass:: zenoh.net.config
     :members:
+    :undoc-members:
 
-    .. autoattribute:: ZN_USER_KEY
-    .. autoattribute:: ZN_PASSWD_KEY
-    .. autoattribute:: ZN_INFO_PID_KEY
-    .. autoattribute:: ZN_INFO_PEER_PID_KEY
-    .. autoattribute:: ZN_INFO_ROUTER_PID_KEY
+module zenoh.net.info
+---------------------
+.. autoclass:: zenoh.net.info
+    :members:
+    :undoc-members:
 
 module zenoh.net.whatami
 ------------------------
 .. autoclass:: zenoh.net.whatami
     :members:
-
-    .. autoattribute:: ROUTER
-    .. autoattribute:: PEER
-    .. autoattribute:: CLIENT
+    :undoc-members:
 
 module zenoh.net.queryable
 --------------------------
 .. autoclass:: zenoh.net.queryable
     :members:
-
-    .. autoattribute:: ALL_KINDS
-    .. autoattribute:: EVAL
-    .. autoattribute:: STORAGE
+    :undoc-members:
 
 module zenoh.net.resource_name
 ------------------------------
@@ -172,29 +162,6 @@ module zenoh.net.resource_name
 module zenoh.net.encoding
 -------------------------
 .. autoclass:: zenoh.net.encoding
-    :members: to_str, from_str
-
-    .. autoattribute:: APP_OCTET_STREAM
-    .. autoattribute:: NONE
-    .. autoattribute:: APP_CUSTOM
-    .. autoattribute:: TEXT_PLAIN
-    .. autoattribute:: STRING
-    .. autoattribute:: APP_PROPERTIES
-    .. autoattribute:: APP_JSON
-    .. autoattribute:: APP_SQL
-    .. autoattribute:: APP_INTEGER
-    .. autoattribute:: APP_FLOAT
-    .. autoattribute:: APP_XML
-    .. autoattribute:: APP_XHTML_XML
-    .. autoattribute:: APP_X_WWW_FORM_URLENCODED
-    .. autoattribute:: TEXT_JSON
-    .. autoattribute:: TEXT_HTML
-    .. autoattribute:: TEXT_XML
-    .. autoattribute:: TEXT_CSS
-    .. autoattribute:: TEXT_CSV
-    .. autoattribute:: TEXT_JAVASCRIPT
-    .. autoattribute:: IMG_JPG
-    .. autoattribute:: IMG_PNG
-    .. autoattribute:: IMG_GIF
-    .. autoattribute:: DEFAULT
+    :members:
+    :undoc-members:
 
