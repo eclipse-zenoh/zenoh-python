@@ -132,25 +132,25 @@ Reply
 
 module zenoh.net.config
 -----------------------
-.. autoclass:: zenoh.net.config
+.. automodule:: zenoh.net.config
     :members:
     :undoc-members:
 
 module zenoh.net.info
 ---------------------
-.. autoclass:: zenoh.net.info
+.. automodule:: zenoh.net.info
     :members:
     :undoc-members:
 
 module zenoh.net.whatami
 ------------------------
-.. autoclass:: zenoh.net.whatami
+.. automodule:: zenoh.net.whatami
     :members:
     :undoc-members:
 
 module zenoh.net.queryable
 --------------------------
-.. autoclass:: zenoh.net.queryable
+.. automodule:: zenoh.net.queryable
     :members:
     :undoc-members:
 
@@ -161,7 +161,7 @@ module zenoh.net.resource_name
 
 module zenoh.net.encoding
 -------------------------
-.. autoclass:: zenoh.net.encoding
+.. automodule:: zenoh.net.encoding
     :members:
     :undoc-members:
 
