@@ -15,7 +15,6 @@ import time
 import argparse
 import zenoh
 from zenoh import Zenoh
-from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -42,10 +41,11 @@ parser.add_argument('--selector', '-s', dest='selector',
                     help='The selection of resources to get.')
 
 args = parser.parse_args()
-config = Config(
-    mode=Config.parse_mode(args.mode),
-    peers=args.peer,
-    listeners=args.listener)
+conf = { "mode": args.mode }
+if args.peer is not None:
+    conf["peer"] = ",".join(args.peer)
+if args.listener is not None:
+    conf["listener"] = ",".join(args.listener)
 selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
@@ -54,7 +54,7 @@ selector = args.selector
 zenoh.init_logger()
 
 print("Openning session...")
-zenoh = Zenoh(config)
+zenoh = Zenoh(conf)
 
 print("New workspace...")
 workspace = zenoh.workspace()

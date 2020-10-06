@@ -38,7 +38,7 @@ use workspace::*;
 /// """"""""""""""""""""""""""
 ///
 /// >>> import zenoh
-/// >>> z = zenoh.Zenoh(zenoh.net.Config())
+/// >>> z = zenoh.Zenoh({})
 /// >>> w = z.workspace()
 /// >>> w.put('/demo/example/hello', 'Hello World!')
 /// >>> z.close()
@@ -51,7 +51,7 @@ use workspace::*;
 /// ...    print(">> [Subscription listener] received {:?} for {} : {} with timestamp {}"
 /// ...    .format(change.kind, change.path, '' if change.value is None else change.value.get_content(), change.timestamp))
 /// >>>
-/// >>> z = zenoh.Zenoh(zenoh.net.Config())
+/// >>> z = zenoh.Zenoh({})
 /// >>> w = z.workspace()
 /// >>> sub = w.subscribe('/demo/example/**', listener)
 /// >>> time.sleep(60)
@@ -62,7 +62,7 @@ use workspace::*;
 /// """"""""""""""""""""""""""
 ///
 /// >>> import zenoh
-/// >>> z = zenoh.Zenoh(zenoh.net.Config())
+/// >>> z = zenoh.Zenoh({})
 /// >>> w = z.workspace()
 /// >>> for data in w.get('/demo/example/**'):
 /// ...     print('  {} : {}  (encoding: {} , timestamp: {})'.format(
@@ -78,6 +78,18 @@ fn zenoh(py: Python, m: &PyModule) -> PyResult<()> {
         "\
 import sys
 sys.modules['zenoh.net'] = net
+        ",
+        None,
+        Some(m.dict()),
+    )?;
+
+    m.add_class::<types::config>()?;
+    // force addition of "zenoh.config" module
+    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
+    py.run(
+        "\
+import sys
+sys.modules['zenoh.config'] = config
         ",
         None,
         Some(m.dict()),
@@ -124,11 +136,9 @@ fn init_logger() {
 /// Creates a zenoh API, establishing a zenoh-net session with discovered peers and/or routers.
 ///
 /// :param config: The configuration of the zenoh session
-/// :param properties: Optional properties
-/// :type config: zenoh.net.Config
-/// :type properties: dict of str:str, optional
+/// :param config: dict of str:str
 #[pyclass]
-#[text_signature = "(config, properties=None)"]
+#[text_signature = "(config)"]
 pub(crate) struct Zenoh {
     z: Option<zenoh::Zenoh>,
 }
@@ -136,9 +146,8 @@ pub(crate) struct Zenoh {
 #[pymethods]
 impl Zenoh {
     #[new]
-    fn new(config: Config, properties: Option<HashMap<String, String>>) -> PyResult<Zenoh> {
-        let props: Option<zenoh::Properties> = properties.map(|p| p.into());
-        let z = task::block_on(zenoh::Zenoh::new(config.c, props)).map_err(to_pyerr)?;
+    fn new(config: HashMap<String, String>) -> PyResult<Zenoh> {
+        let z = task::block_on(zenoh::Zenoh::new(config.into())).map_err(to_pyerr)?;
         Ok(Zenoh { z: Some(z) })
     }
 

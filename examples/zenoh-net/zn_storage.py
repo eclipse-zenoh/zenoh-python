@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import Config, SubInfo, Reliability, SubMode, Sample, resource_name
+from zenoh.net import config, SubInfo, Reliability, SubMode, Sample, resource_name
 from zenoh.net.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -42,10 +42,14 @@ parser.add_argument('--selector', '-s', dest='selector',
                     help='The selection of resources to subscribe.')
 
 args = parser.parse_args()
-config = Config(
-    mode=Config.parse_mode(args.mode),
-    peers=args.peer,
-    listeners=args.listener)
+conf = []
+conf.append((config.ZN_MODE_KEY, args.mode.encode('utf-8')))
+if args.peer is not None:
+    for peer in args.peer:
+        conf.append((config.ZN_PEER_KEY, peer.encode('utf-8')))
+if args.listener is not None:
+    for listener in args.listener:
+        conf.append((config.ZN_LISTENER_KEY, listener.encode('utf-8')))
 selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
@@ -72,7 +76,7 @@ def query_handler(query):
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(config)
+session = zenoh.net.open(conf)
 
 sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 

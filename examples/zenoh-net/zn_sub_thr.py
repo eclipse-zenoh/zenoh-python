@@ -15,7 +15,7 @@ import time
 import datetime
 import argparse
 import zenoh
-from zenoh.net import Config, SubInfo, Reliability, SubMode
+from zenoh.net import config, SubInfo, Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -50,10 +50,14 @@ parser.add_argument('--number', '-n', dest='number',
                     help='Number of messages in each throughput measurements.')
 
 args = parser.parse_args()
-config = Config(
-    mode=Config.parse_mode(args.mode),
-    peers=args.peer,
-    listeners=args.listener)
+conf = []
+conf.append((config.ZN_MODE_KEY, args.mode.encode('utf-8')))
+if args.peer is not None:
+    for peer in args.peer:
+        conf.append((config.ZN_PEER_KEY, peer.encode('utf-8')))
+if args.listener is not None:
+    for listener in args.listener:
+        conf.append((config.ZN_LISTENER_KEY, listener.encode('utf-8')))
 m = args.samples
 n = args.number
 
@@ -88,7 +92,7 @@ def listener(sample):
 # initiate logging
 zenoh.init_logger()
 
-session = zenoh.net.open(config)
+session = zenoh.net.open(conf)
 
 rid = session.declare_resource('/test/thr')
 

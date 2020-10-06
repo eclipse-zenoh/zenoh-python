@@ -16,7 +16,6 @@ import datetime
 import argparse
 import zenoh
 from zenoh import Zenoh
-from zenoh.net import Config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -39,10 +38,11 @@ parser.add_argument('--listener', '-l', dest='listener',
                     help='Locators to listen on.')
 
 args = parser.parse_args()
-config = Config(
-    mode=Config.parse_mode(args.mode),
-    peers=args.peer,
-    listeners=args.listener)
+conf = { "mode": args.mode }
+if args.peer is not None:
+    conf["peer"] = ",".join(args.peer)
+if args.listener is not None:
+    conf["listener"] = ",".join(args.listener)
 
 # zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -76,7 +76,7 @@ def listener(changes):
 zenoh.init_logger()
 
 print("New zenoh...")
-zenoh = Zenoh(config)
+zenoh = Zenoh(conf)
 
 print("New workspace...")
 workspace = zenoh.workspace()

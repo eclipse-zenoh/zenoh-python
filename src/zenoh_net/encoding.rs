@@ -123,9 +123,8 @@ impl encoding {
     }
 
     #[staticmethod]
-    fn to_str(i: ZInt) -> PyResult<String> {
-        zenoh::net::encoding::to_str(i)
-            .map_err(|e| PyErr::new::<exceptions::PyValueError, _>(e.to_string()))
+    fn to_string(i: ZInt) -> String {
+        zenoh::net::encoding::to_string(i)
     }
 
     #[staticmethod]
