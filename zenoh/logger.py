@@ -25,8 +25,7 @@ class APILogger:
             formatter = logging.Formatter(log_format)
             if not debug_flag:
                 platform = sys.platform
-                dict_plat = dict([('linux', '/dev/log'), ('darwin', '/var/run/syslog'), \
-                    ('windows', ''), ('Windows', ''), ('win32', '')])
+                dict_plat = dict([('linux', '/dev/log'), ('darwin', '/var/run/syslog'), ('windows', ''), ('Windows', ''), ('win32', '')])
                 handler = logging.handlers.SysLogHandler(dict_plat[platform])
                 del dict_plat
             else:
