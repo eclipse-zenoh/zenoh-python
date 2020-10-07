@@ -26,19 +26,14 @@ class Path(object):
 
     @staticmethod
     def to_path(p):
-        if isinstance(p, Path):
-            return p
-        else:
-            return Path(p)
+        return p if isinstance(p, Path) else Path(p)
 
     def is_valid(self, path):
         return self.__path_regex.match(path) is not None \
             and not path.startswith('//')
 
     def is_absolute(self):
-        if self._path.startswith('/'):
-            return True
-        return False
+        return self._path.startswith('/')
 
     def is_prefix(self, prefix):
         return self._path.startswith(prefix)
@@ -50,9 +45,8 @@ class Path(object):
         return len(self._path)
 
     def __eq__(self, second_path):
-        if isinstance(second_path, self.__class__):
-            return self._path == second_path._path
-        return False
+        return self._path == second_path._path if \
+            isinstance(second_path, self.__class__) else False
 
     def __str__(self):
         return self._path

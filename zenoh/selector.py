@@ -31,19 +31,14 @@ class Selector(object):
 
     @staticmethod
     def to_selector(s):
-        if isinstance(s, Selector):
-            return s
-        else:
-            return Selector(s)
+        return s if isinstance(s, Selector) else Selector(s)
 
     def is_valid(self, selector):
         return self.__sel_regex.match(selector) is not None \
             and not selector.startswith('//')
 
     def is_absolute(self):
-        if self.path.startswith('/'):
-            return True
-        return False
+        return self.path.startswith('/')
 
     def is_path_unique(self):
         return '*' not in self.path
@@ -93,23 +88,20 @@ class Selector(object):
 
     def __dot2dict(self, dot_notation, value=None):
         ld = []
-
         tokens = dot_notation.split('.')
         n_tokens = len(tokens)
-        for i in range(n_tokens, 0, -1):
-            if i == n_tokens and value is not None:
-                ld.append({tokens[i - 1]: value})
-            else:
-                ld.append({tokens[i - 1]: ld[-1]})
+        _Nones = [ld.append({tokens[i - 1]: value}) if i == n_tokens \
+            and value is not None else ld.append({tokens[i - 1]: ld[-1]}) \
+            for i in range(n_tokens, 0, -1)]
+        del _Nones
         return ld[-1]
 
     def __len__(self):
         return len(self.selector)
 
     def __eq__(self, second_selector):
-        if isinstance(second_selector, self.__class__):
-            return self.selector == second_selector.selector
-        return False
+        return self.selector == second_selector.selector \
+            if isinstance(second_selector, self.__class__) else False
 
     def __str__(self):
         return self.selector
