@@ -23,4 +23,5 @@ ENV USER root
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && rustup toolchain install nightly \
     && rustup default nightly \
-    && pip install maturin
+    && pip install maturin  \
+    && cargo install cargo-deb cargo-rpm
