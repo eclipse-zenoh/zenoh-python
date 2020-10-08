@@ -33,10 +33,18 @@ class Workspace(object):
         self.executor = executor
 
     def __to_absolute(self, path):
-        return path if path.startswith('/') else self.path.to_string() + '/' + path
+        return path if path.startswith(
+            '/') else self.path.to_string() + '/' + path
 
     def __to_value(self, v):
-        return dict([(Value, v), (str, Value(v, Encoding.STRING)), (bytes, Value(v, Encoding.RAW)), (int, Value(str(v), Encoding.INT)), (float, Value(str(v), Encoding.FLOAT))])[type(v)]
+        return dict(
+            [
+                (Value, v), (str, Value(
+                    v, Encoding.STRING)), (bytes, Value(
+                        v, Encoding.RAW)), (int, Value(
+                            str(v), Encoding.INT)), (float, Value(
+                                str(v), Encoding.FLOAT))])[
+                            type(v)]
 
     def put(self, path, value):
         '''
