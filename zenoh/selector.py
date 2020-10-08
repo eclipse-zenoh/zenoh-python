@@ -28,6 +28,7 @@ class Selector(object):
         self.properties = res.group(5) or None
         self.fragment = res.group(7) or None
         self.optional_part = (res.group(2) or "?")[1:] + (res.group(6) or "")
+        del res
 
     @staticmethod
     def to_selector(s):
@@ -90,8 +91,9 @@ class Selector(object):
         ld = []
         tokens = dot_notation.split('.')
         n_tokens = len(tokens)
-        _Nones = [ld.append({tokens[i - 1]: value}) if i == n_tokens and value is not None else ld.append(
-            {tokens[i - 1]: ld[-1]}) for i in range(n_tokens, 0, -1)]
+        _Nones = [ld.append({tokens[i - 1]: value})
+            if i == n_tokens and value is not None else ld.append(
+                {tokens[i - 1]: ld[-1]}) for i in range(n_tokens, 0, -1)]
         del _Nones
         return ld[-1]
 
