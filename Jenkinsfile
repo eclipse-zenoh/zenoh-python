@@ -36,17 +36,6 @@ pipeline {
       }
     }
 
-    stage('MacOS wheels') {
-      steps {
-        sh '''
-          for PYTHON_ENV in zenoh-cp35 zenoh-cp36 zenoh-cp37 zenoh-cp38; do
-            conda activate ${PYTHON_ENV}
-            maturin build --release
-          done
-        '''
-      }
-    }
-
     stage('Manylinux2010-x64 wheels') {
       steps {
         sh '''
