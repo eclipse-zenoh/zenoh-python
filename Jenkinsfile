@@ -28,6 +28,7 @@ pipeline {
     stage('MacOS wheels') {
       steps {
         sh '''
+        . ~/.zshenv
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp35/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp36/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp37/bin
