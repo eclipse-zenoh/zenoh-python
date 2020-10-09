@@ -15,7 +15,7 @@ pipeline {
       steps {
         cleanWs()
         checkout([$class: 'GitSCM',
-                  branches: [[name: "${params.TAG}"]],
+                  branches: [[name: "${params.GIT_TAG}"]],
                   doGenerateSubmoduleConfigurations: false,
                   extensions: [],
                   gitTool: 'Default',
@@ -28,6 +28,8 @@ pipeline {
     stage('MacOS wheels') {
       steps {
         sh '''
+          . ~/.zshenv
+          env
           for PYTHON_ENV in zenoh-cp35 zenoh-cp36 zenoh-cp37 zenoh-cp38; do
             conda activate ${PYTHON_ENV}
             maturin build --release
@@ -56,9 +58,13 @@ pipeline {
       steps {
         sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
-          ssh genie.zenoh@projects-storage.eclipse.org rm -fr /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
-          ssh genie.zenoh@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
-          scp target/wheels/*.whl target/wheels/*.tar.gz genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}/
+          if [ "${PUBLISH_RESULTS}" = "true" ]; then
+            ssh genie.zenoh@projects-storage.eclipse.org rm -fr /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
+            ssh genie.zenoh@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
+            scp target/wheels/*.whl target/wheels/*.tar.gz genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}/
+          else
+            echo "Publication to download.eclipse.org skipped"
+          fi
           '''
         }
       }
