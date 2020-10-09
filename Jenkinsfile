@@ -28,12 +28,11 @@ pipeline {
     stage('MacOS wheels') {
       steps {
         sh '''
-          . ~/.zshenv
-          env
-          for PYTHON_ENV in zenoh-cp35 zenoh-cp36 zenoh-cp37 zenoh-cp38; do
-            conda activate ${PYTHON_ENV}
-            maturin build --release
-          done
+        export PATH=$PATH:~/miniconda3/envs/zenoh-cp35/bin
+        export PATH=$PATH:~/miniconda3/envs/zenoh-cp36/bin
+        export PATH=$PATH:~/miniconda3/envs/zenoh-cp37/bin
+        export PATH=$PATH:~/miniconda3/envs/zenoh-cp38/bin
+        maturin build --release
         '''
       }
     }
@@ -41,7 +40,7 @@ pipeline {
     stage('Manylinux2010-x64 wheels') {
       steps {
         sh '''
-          docker run --init -it --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-x64-rust-nightly maturin build --release --manylinux 2010
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-x64-rust-nightly maturin build --release --manylinux 2010
         '''
       }
     }
@@ -49,7 +48,7 @@ pipeline {
     stage('Manylinux2010-i686 wheels') {
       steps {
         sh '''
-          docker run --init -it --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-i686-rust-nightly maturin build --release --manylinux 2010
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-i686-rust-nightly maturin build --release --manylinux 2010
         '''
       }
     }
