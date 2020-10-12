@@ -13,6 +13,7 @@
 import sys
 import time
 import argparse
+import itertools
 import zenoh
 from zenoh.net import config
 
@@ -71,8 +72,11 @@ print(" => RId {}".format(rid))
 print("Declaring Publisher on {}".format(rid))
 publisher = session.declare_publisher(rid)
 
-print("Writing Data ('{}': '{}')...".format(rid, value))
-session.write(rid, bytes(value, encoding='utf8'))
+for idx in itertools.count():
+    time.sleep(1)
+    buf = "[{:4d}] {}".format(idx, value)
+    print("Writing Data ('{}': '{}')...".format(rid, buf))
+    session.write(rid, bytes(buf, encoding='utf8'))
 
 publisher.undeclare()
 session.close()
