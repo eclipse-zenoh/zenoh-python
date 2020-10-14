@@ -151,6 +151,7 @@ sys.modules['zenoh.net.encoding'] = encoding
     m.add_class::<Queryable>()?;
     m.add_class::<Target>()?;
     m.add_class::<QueryTarget>()?;
+    m.add_class::<ConsolidationMode>()?;
     m.add_class::<QueryConsolidation>()?;
     m.add_class::<Reply>()?;
     m.add_class::<Session>()?;

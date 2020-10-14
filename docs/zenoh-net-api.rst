@@ -113,17 +113,22 @@ QueryTarget
 .. autoclass:: zenoh.net.QueryTarget
     :members:
 
+ConsolidationMode
+-----------------
+.. autoclass:: zenoh.net.ConsolidationMode
+    :members:
+
+    .. autoattribute:: No
+            :annotation:
+    .. autoattribute:: Lazy
+            :annotation:
+    .. autoattribute:: Full
+            :annotation:
+
 QueryConsolidation
 ------------------
 .. autoclass:: zenoh.net.QueryConsolidation
     :members:
-
-    .. autoattribute:: None
-            :annotation:
-    .. autoattribute:: LastHop
-            :annotation:
-    .. autoattribute:: Incremental
-            :annotation:
 
 Reply
 -----

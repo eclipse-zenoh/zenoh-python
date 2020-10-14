@@ -920,34 +920,77 @@ impl Default for QueryTarget {
 /// The kind of consolidation that should be applied on replies to a :meth:`Session.query`.
 #[pyclass]
 #[derive(Clone)]
-pub(crate) struct QueryConsolidation {
-    pub(crate) c: zenoh::net::QueryConsolidation,
+pub(crate) struct ConsolidationMode {
+    pub(crate) c: zenoh::net::ConsolidationMode,
 }
 
 #[allow(non_snake_case)]
 #[pymethods]
-impl QueryConsolidation {
+impl ConsolidationMode {
     #[classattr]
-    fn None() -> QueryConsolidation {
-        QueryConsolidation {
-            c: zenoh::net::QueryConsolidation::None,
+    fn No() -> ConsolidationMode {
+        ConsolidationMode {
+            c: zenoh::net::ConsolidationMode::None,
         }
     }
 
     #[classattr]
-    fn LastHop() -> QueryConsolidation {
-        QueryConsolidation {
-            c: zenoh::net::QueryConsolidation::LastHop,
+    fn Lazy() -> ConsolidationMode {
+        ConsolidationMode {
+            c: zenoh::net::ConsolidationMode::Lazy,
         }
     }
 
     #[classattr]
-    fn Incremental() -> QueryConsolidation {
-        QueryConsolidation {
-            c: zenoh::net::QueryConsolidation::Incremental,
+    fn Full() -> ConsolidationMode {
+        ConsolidationMode {
+            c: zenoh::net::ConsolidationMode::Full,
         }
     }
 }
+
+
+// zenoh.net.QueryConsolidation (simulate the enum as a class with static methods for the cases,
+// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+//
+/// The kind of consolidation that should be applied on replies to a :meth:`Session.query`
+/// at the different stages of the reply process.
+///
+/// :param first_routers: the consolidation mode to apply on first routers of the replies routing path (default: :attr:`ConsolidationMode.Lazy`)
+/// :type first_routers: ConsolidationMode, optional
+/// :param last_router: the consolidation mode to apply on last router of the replies routing path (default: :attr:`ConsolidationMode.Lazy`)
+/// :type last_router: ConsolidationMode, optional
+/// :param reception: the consolidation mode to apply at reception of the replies (default: :attr:`ConsolidationMode.Full`)
+/// :type reception: ConsolidationMode, optional
+#[pyclass]
+#[text_signature = "(first_routers=None, last_router=None, reception=None)"]
+#[derive(Clone)]
+pub(crate) struct QueryConsolidation {
+    pub(crate) c: zenoh::net::QueryConsolidation,
+}
+
+#[pymethods]
+impl QueryConsolidation {
+    #[new]
+    fn new(
+        first_routers: Option<ConsolidationMode>,
+        last_router: Option<ConsolidationMode>,
+        reception: Option<ConsolidationMode>,
+    ) -> QueryConsolidation {
+        let mut c = zenoh::net::QueryConsolidation::default();
+        if let Some(f) = first_routers {
+            c.first_routers = f.c;
+        }
+        if let Some(l) = last_router {
+            c.last_router = l.c;
+        }
+        if let Some(r) = reception {
+            c.reception = r.c;
+        }
+        QueryConsolidation { c }
+    }
+}
+
 
 impl Default for QueryConsolidation {
     fn default() -> Self {
