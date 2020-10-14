@@ -76,7 +76,7 @@ pipeline {
           if [ "${PUBLISH_RESULTS}" = "true" ]; then
             python3 -m twine upload --repository eclipse-zenoh target/wheels/*.whl target/wheels/*.tar.gz
           else
-            echo "Publication to Pypi.org"
+            echo "Publication to Pypi.org skipped"
           fi
         '''
       }
