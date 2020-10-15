@@ -43,6 +43,15 @@ pub(crate) struct Workspace {
 
 #[pymethods]
 impl Workspace {
+    /// Returns the prefix that was used to create this Workspace (calling [`Zenoh.workspace()`]).
+    ///
+    /// :rtype: str
+    #[getter]
+    fn prefix(&self) -> Option<&str> {
+        println!("**** prefix: {:?}", self.w.prefix());
+        self.w.prefix().as_ref().map(|p| p.as_str())
+    }
+
     /// Put a path/value into zenoh.
     ///
     /// The corresponding :class:`Change` will be received by all matching subscribers and all matching storages.
