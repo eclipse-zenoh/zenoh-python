@@ -871,7 +871,7 @@ impl Target {
     }
 
     #[staticmethod]
-    fn None() -> Target {
+    fn No() -> Target {
         Target {
             t: zenoh::net::Target::None,
         }
