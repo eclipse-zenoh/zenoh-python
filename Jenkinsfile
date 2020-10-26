@@ -1,5 +1,6 @@
 pipeline {
   agent { label 'MacMini' }
+  options { skipDefaultCheckout() }
   parameters {
     gitParameter(name: 'GIT_TAG',
                  type: 'PT_BRANCH_TAG',
@@ -13,7 +14,7 @@ pipeline {
   stages {
     stage('Checkout Git TAG') {
       steps {
-        cleanWs()
+        deleteDir()
         checkout([$class: 'GitSCM',
                   branches: [[name: "${params.GIT_TAG}"]],
                   doGenerateSubmoduleConfigurations: false,
