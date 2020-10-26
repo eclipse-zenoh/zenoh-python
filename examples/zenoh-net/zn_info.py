@@ -37,28 +37,24 @@ parser.add_argument('--listener', '-l', dest='listener',
                     help='Locators to listen on.')
 
 args = parser.parse_args()
-conf = []
-conf.append((config.ZN_MODE_KEY, args.mode.encode('utf-8')))
+conf = { "mode": args.mode }
 if args.peer is not None:
-    for peer in args.peer:
-        conf.append((config.ZN_PEER_KEY, peer.encode('utf-8')))
+    conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
-    for listener in args.listener:
-        conf.append((config.ZN_LISTENER_KEY, listener.encode('utf-8')))
-
+    conf["listener"] = ",".join(args.listener)
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 # initiate logging
 zenoh.init_logger()
 
-conf.append((config.ZN_USER_KEY, b"user"))
-conf.append((config.ZN_PASSWORD_KEY, b"password"))
+conf['user'] = 'user'
+conf['password'] = 'password'
 
 print("Openning session...")
 session = zenoh.net.open(conf)
 
 info = session.info()
-for key, value in info:
-    print("{} : {}".format(zenoh.net.info.key_to_string(key), value.hex().upper()))
+for key in info:
+    print("{} : {}".format(key, info[key]))
 
 session.close()

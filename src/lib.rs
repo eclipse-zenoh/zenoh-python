@@ -83,18 +83,6 @@ sys.modules['zenoh.net'] = net
         Some(m.dict()),
     )?;
 
-    m.add_class::<types::config>()?;
-    // force addition of "zenoh.config" module
-    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
-    py.run(
-        "\
-import sys
-sys.modules['zenoh.config'] = config
-        ",
-        None,
-        Some(m.dict()),
-    )?;
-
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
 
     m.add_class::<Zenoh>()?;

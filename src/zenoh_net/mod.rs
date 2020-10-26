@@ -11,12 +11,12 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
-use crate::to_pyerr;
+use crate::{pydict_to_props, to_pyerr};
 use async_std::prelude::FutureExt;
 use async_std::task;
 use futures::prelude::*;
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PyTuple};
+use pyo3::types::PyDict;
 use pyo3::wrap_pyfunction;
 use zenoh::net::ZInt;
 
@@ -35,7 +35,7 @@ mod encoding;
 /// """""""
 ///
 /// >>> import zenoh
-/// >>> s = zenoh.net.open(zenoh.net.config.default())
+/// >>> s = zenoh.net.open({})
 /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
 ///
 /// Subscribe
@@ -46,7 +46,7 @@ mod encoding;
 /// >>> def listener(sample):
 /// ...     print("Received : {}".format(sample))
 /// >>>
-/// >>> s = zenoh.net.open(zenoh.net.config.default())
+/// >>> s = zenoh.net.open({})
 /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 /// >>> sub = s.declare_subscriber('/resource/name', sub_info, listener)
 ///
@@ -58,7 +58,7 @@ mod encoding;
 /// >>> def query_callback(reply):
 /// ...     print("Received : {}".format(reply))
 /// >>>
-/// >>> s = zenoh.net.open(zenoh.net.config.default())
+/// >>> s = zenoh.net.open({})
 /// >>> s.query('/resource/name', 'predicate', query_callback)
 /// >>> time.sleep(1)
 #[pymodule]
@@ -163,7 +163,7 @@ sys.modules['zenoh.net.encoding'] = encoding
 /// Open a zenoh-net Session.
 ///
 /// :param config: The configuration of the zenoh-net session
-/// :type config: list of (ZInt, bytes)
+/// :type config: dict {str: str}
 /// :rtype: Session
 ///
 /// :Example:
@@ -172,8 +172,8 @@ sys.modules['zenoh.net.encoding'] = encoding
 /// >>> z = zenoh.net.open(zenoh.net.config::peer())
 #[pyfunction]
 #[text_signature = "(config)"]
-fn open(config: &PyList) -> PyResult<Session> {
-    let s = task::block_on(zenoh::net::open(pylist_to_props(config)?)).map_err(to_pyerr)?;
+fn open(config: &PyDict) -> PyResult<Session> {
+    let s = task::block_on(zenoh::net::open(pydict_to_props(config).into())).map_err(to_pyerr)?;
     Ok(Session::new(s))
 }
 
@@ -185,7 +185,7 @@ fn open(config: &PyList) -> PyResult<Session> {
 /// :param whatami: The kind of zenoh process to scout for
 /// :type whatami: int
 /// :param config: The configuration to use for scouting
-/// :type config: list of (ZInt, bytes)
+/// :type config: dict {str: str}
 /// :param scout_duration: the duration of scout (in seconds)
 /// :type scout_duration: float
 /// :rtype: list of :class:`Hello`
@@ -193,21 +193,15 @@ fn open(config: &PyList) -> PyResult<Session> {
 /// :Example:
 ///
 /// >>> import zenoh
-/// >>> hellos = zenoh.net.scout(zenoh.net.whatami.PEER | zenoh.net.whatami.ROUTER, zenoh.net.config.default(), 1.0)
+/// >>> hellos = zenoh.net.scout(zenoh.net.whatami.PEER | zenoh.net.whatami.ROUTER, {}, 1.0)
 /// >>> for hello in hellos:
 /// >>>     print(hello)
 #[pyfunction]
 #[text_signature = "(whatami, iface, scout_duration)"]
-fn scout(whatami: ZInt, config: &PyList, scout_duration: f64) -> PyResult<Vec<Hello>> {
-    let mut rust_config: Vec<(ZInt, Vec<u8>)> = vec![];
-    for prop in config.iter() {
-        let tuple: &PyTuple = prop.downcast()?;
-        let prop: (ZInt, Vec<u8>) = tuple.extract()?;
-        rust_config.push(prop);
-    }
+fn scout(whatami: ZInt, config: &PyDict, scout_duration: f64) -> PyResult<Vec<Hello>> {
     task::block_on(async move {
         let mut result = Vec::<Hello>::new();
-        let mut stream = zenoh::net::scout(whatami, rust_config).await;
+        let mut stream = zenoh::net::scout(whatami, pydict_to_props(config).into()).await;
         let scout = async {
             while let Some(h) = stream.next().await {
                 result.push(Hello { h })

@@ -50,14 +50,11 @@ parser.add_argument('--number', '-n', dest='number',
                     help='Number of messages in each throughput measurements.')
 
 args = parser.parse_args()
-conf = []
-conf.append((config.ZN_MODE_KEY, args.mode.encode('utf-8')))
+conf = { "mode": args.mode }
 if args.peer is not None:
-    for peer in args.peer:
-        conf.append((config.ZN_PEER_KEY, peer.encode('utf-8')))
+    conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
-    for listener in args.listener:
-        conf.append((config.ZN_LISTENER_KEY, listener.encode('utf-8')))
+    conf["listener"] = ",".join(args.listener)
 m = args.samples
 n = args.number
 

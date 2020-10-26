@@ -20,7 +20,7 @@ from zenoh.net import whatami
 zenoh.init_logger()
 
 print("Scouting...")
-hellos = zenoh.net.scout(whatami.PEER | whatami.ROUTER, zenoh.net.config.default(), 1.0)
+hellos = zenoh.net.scout(whatami.PEER | whatami.ROUTER, {}, 1.0)
 
 for hello in hellos:
     print(hello)

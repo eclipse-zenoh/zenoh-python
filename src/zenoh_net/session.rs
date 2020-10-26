@@ -12,14 +12,14 @@
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use super::types::*;
-use crate::{to_pyerr, ZError};
+use crate::{props_to_pydict, to_pyerr, ZError};
 use async_std::sync::channel;
 use async_std::task;
 use futures::prelude::*;
 use futures::select;
 use log::warn;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyTuple};
+use pyo3::types::PyTuple;
 use zenoh::net::{ResourceId, ZInt};
 
 /// A zenoh-net session.
@@ -38,22 +38,19 @@ impl Session {
 
     /// Get informations about the zenoh-net Session.
     ///
-    /// :rtype: list of (int, bytes)
+    /// :rtype: dict {str: str}
     ///
     /// :Example:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.config.default())
+    /// >>> s = zenoh.net.open({})
     /// >>> info = s.info()
-    /// >>> for key, value in info:
-    /// ...    print("{} : {}".format(zenoh.net.info.to_str(key), value.hex().upper()))
-    fn info<'p>(&self, py: Python<'p>) -> PyResult<Vec<(ZInt, &'p PyBytes)>> {
+    /// >>> for key in info:
+    /// >>>    print("{} : {}".format(key, info[key]))
+    fn info<'p>(&self, py: Python<'p>) -> PyResult<PyObject> {
         let s = self.as_ref()?;
         let props = task::block_on(s.info());
-        Ok(props
-            .iter()
-            .map(|(k, v)| (*k, PyBytes::new(py, v.as_slice())))
-            .collect())
+        Ok(props_to_pydict(py, props.into()).to_object(py))
     }
 
     /// Write data.
@@ -72,7 +69,7 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.config.default())
+    /// >>> s = zenoh.net.open({})
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
     #[text_signature = "(self, resource, payload)"]
     fn write(&self, resource: &PyAny, payload: &[u8]) -> PyResult<()> {
@@ -99,7 +96,7 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.config.default())
+    /// >>> s = zenoh.net.open({})
     /// >>> rid = s.declare_resource('/resource/name')
     #[text_signature = "(self, resource)"]
     fn declare_resource(&self, resource: &PyAny) -> PyResult<ResourceId> {
@@ -117,7 +114,7 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.config.default())
+    /// >>> s = zenoh.net.open({})
     /// >>> rid = s.declare_resource('/resource/name')
     /// >>> s.undeclare_resource(rid)
     #[text_signature = "(self, rid)"]
@@ -144,7 +141,7 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open(zenoh.net.config.default())
+    /// >>> s = zenoh.net.open({})
     /// >>> rid = s.declare_publisher('/resource/name')
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
     #[text_signature = "(self, resource)"]
@@ -186,7 +183,7 @@ impl Session {
     /// >>> def listener(sample):
     /// ...     print("Received : {}".format(sample))
     /// >>>
-    /// >>> s = zenoh.net.open(zenoh.net.config.default())
+    /// >>> s = zenoh.net.open({})
     /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
     /// >>> sub = s.declare_subscriber('/resource/name', sub_info, listener)
     /// >>> time.sleep(60)
@@ -279,7 +276,7 @@ impl Session {
     /// ...     print("Received : {}".format(query))
     /// ...     query.reply(Sample('/resource/name', bytes('value', encoding='utf8')))
     /// >>>
-    /// >>> s = zenoh.net.open(zenoh.net.config.default())
+    /// >>> s = zenoh.net.open({})
     /// >>> q = s.declare_queryable('/resource/name', queryable.EVAL, callback)
     /// >>> time.sleep(60)
     #[text_signature = "(self, resource, kind, callback)"]
@@ -364,7 +361,7 @@ impl Session {
     /// >>> def query_callback(reply):
     /// ...     print("Received : {}".format(reply))
     /// >>>
-    /// >>> s = zenoh.net.open(zenoh.net.config.default())
+    /// >>> s = zenoh.net.open({})
     /// >>> s.query('/resource/name', 'predicate', query_callback)
     /// >>> time.sleep(1)
     #[text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"]

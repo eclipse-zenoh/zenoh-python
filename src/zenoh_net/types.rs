@@ -16,26 +16,9 @@ use async_std::sync::Sender;
 use async_std::task;
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDateTime, PyTuple, PyList};
+use pyo3::types::{PyBytes, PyDateTime, PyTuple};
 use pyo3::PyObjectProtocol;
 use zenoh::net::{ResourceId, ZInt};
-
-fn props_to_pylist<'p>(py: Python<'p>, props: zenoh::net::Properties) -> Vec<(ZInt, &'p PyBytes)> {
-    props
-        .iter()
-        .map(|(k, v)| (*k, PyBytes::new(py, v.as_slice())))
-        .collect()
-}
-
-pub fn pylist_to_props(config: &PyList) -> PyResult<zenoh::net::Properties> {
-    let mut rust_config: Vec<(ZInt, Vec<u8>)> = vec![];
-    for prop in config.iter() {
-        let tuple: &PyTuple = prop.downcast()?;
-        let prop: (ZInt, Vec<u8>) = tuple.extract()?;
-        rust_config.push(prop);
-    }
-    Ok(rust_config)
-}
 
 // zenoh.net.config (simulate the package as a class, and consts as class attributes)
 /// Constants and helpers to build the configuration to pass to :func:`zenoh.net.open`.
@@ -70,12 +53,12 @@ impl config {
     fn ZN_PASSWORD_KEY() -> ZInt {
         zenoh::net::config::ZN_PASSWORD_KEY
     }
-    
+
     #[classattr]
     pub fn ZN_MULTICAST_SCOUTING_KEY() -> ZInt {
         zenoh::net::config::ZN_MULTICAST_SCOUTING_KEY
     }
-    
+
     #[classattr]
     pub fn ZN_MULTICAST_INTERFACE_KEY() -> ZInt {
         zenoh::net::config::ZN_MULTICAST_INTERFACE_KEY
@@ -106,36 +89,25 @@ impl config {
         zenoh::net::config::ZN_LOCAL_ROUTING_KEY
     }
 
-    #[staticmethod]
-    pub fn empty<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
-        props_to_pylist(py, zenoh::net::config::empty())
-    }
+    // #[staticmethod]
+    // pub fn empty<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
+    //     props_to_pylist(py, zenoh::net::config::empty())
+    // }
 
-    #[staticmethod]
-    pub fn default<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
-        props_to_pylist(py, zenoh::net::config::default())
-    }
+    // #[staticmethod]
+    // pub fn default<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
+    //     props_to_pylist(py, zenoh::net::config::default())
+    // }
 
-    #[staticmethod]
-    pub fn peer<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
-        props_to_pylist(py, zenoh::net::config::peer())
-    }
+    // #[staticmethod]
+    // pub fn peer<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
+    //     props_to_pylist(py, zenoh::net::config::peer())
+    // }
 
-    #[staticmethod]
-    pub fn client<'p>(py: Python<'p>, peer: Option<String>) -> Vec<(ZInt, &'p PyBytes)> {
-        props_to_pylist(py, zenoh::net::config::client(peer))
-    }
-
-    #[staticmethod]
-    pub fn key_to_string(i: ZInt) -> String {
-        zenoh::net::config::key_to_string(i)
-    }
-
-    #[staticmethod]
-    pub fn to_string(config: &PyList) -> PyResult<String> {
-        Ok(zenoh::net::config::to_string(
-            &pylist_to_props(config)?))
-    }
+    // #[staticmethod]
+    // pub fn client<'p>(py: Python<'p>, peer: Option<String>) -> Vec<(ZInt, &'p PyBytes)> {
+    //     props_to_pylist(py, zenoh::net::config::client(peer))
+    // }
 }
 
 // zenoh.net.info (simulate the package as a class, and consts as class attributes)
@@ -160,22 +132,6 @@ impl info {
     #[classattr]
     fn ZN_INFO_ROUTER_PID_KEY() -> ZInt {
         zenoh::net::info::ZN_INFO_ROUTER_PID_KEY
-    }
-
-    #[staticmethod]
-    fn key_to_string(i: ZInt) -> String {
-        zenoh::net::info::key_to_string(i)
-    }
-
-    #[staticmethod]
-    fn to_string(info: &PyList) -> PyResult<String> {
-        let mut rust_info: Vec<(ZInt, Vec<u8>)> = vec![];
-        for prop in info.iter() {
-            let tuple: &PyTuple = prop.downcast()?;
-            let prop: (ZInt, Vec<u8>) = tuple.extract()?;
-            rust_info.push(prop);
-        }
-        Ok(zenoh::net::info::to_string(&rust_info))
     }
 }
 
@@ -949,7 +905,6 @@ impl ConsolidationMode {
     }
 }
 
-
 // zenoh.net.QueryConsolidation (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
@@ -990,7 +945,6 @@ impl QueryConsolidation {
         QueryConsolidation { c }
     }
 }
-
 
 impl Default for QueryConsolidation {
     fn default() -> Self {
