@@ -32,6 +32,7 @@ jobs:
       with:
           toolchain: nightly
           override: true
+          components: rustfmt, clippy
 
     - name: Install Maturin
       run: |
@@ -40,3 +41,14 @@ jobs:
 
     - name: Build zenoh-python
       run: maturin build
+
+    - name: Clippy
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+
+    - name: Run rustfmt
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: -- --check
