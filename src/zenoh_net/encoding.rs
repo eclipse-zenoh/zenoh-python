@@ -122,6 +122,7 @@ impl encoding {
         zenoh::net::encoding::DEFAULT
     }
 
+    #[allow(clippy::wrong_self_convention)]
     #[staticmethod]
     fn to_string(i: ZInt) -> String {
         zenoh::net::encoding::to_string(i)

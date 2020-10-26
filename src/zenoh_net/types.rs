@@ -159,6 +159,7 @@ impl whatami {
         zenoh::net::whatami::CLIENT
     }
 
+    #[allow(clippy::wrong_self_convention)]
     #[staticmethod]
     fn to_string(i: ZInt) -> PyResult<String> {
         Ok(zenoh::net::whatami::to_string(i))

@@ -159,7 +159,7 @@ impl Zenoh {
     ///
     #[text_signature = "(prefix=None)"]
     fn workspace(&self, prefix: Option<String>) -> PyResult<Workspace> {
-        let p = prefix.map(|s| path_of_string(s)).transpose()?;
+        let p = prefix.map(path_of_string).transpose()?;
         let z = self.as_ref()?;
         let workspace = task::block_on(z.workspace(p)).map_err(to_pyerr)?;
 

@@ -23,7 +23,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use zenoh::net::ZInt;
 
-pub fn props_to_pydict<'p>(py: Python<'p>, props: zenoh::Properties) -> PyObject {
+pub fn props_to_pydict(py: Python<'_>, props: zenoh::Properties) -> PyObject {
     props.iter().into_py_dict(py).to_object(py)
 }
 
@@ -99,7 +99,7 @@ impl Selector {
     /// the filter part of this Selector, if any (all characters after ``?`` and before ``(`` or ``#``)
     #[getter]
     fn filter(&self) -> Option<&str> {
-        self.s.filter.as_ref().map(|s| s.as_str())
+        self.s.filter.as_deref()
     }
 
     /// the properties part of this Selector (all characters between parenthesis and after ``?``)
@@ -111,7 +111,7 @@ impl Selector {
     /// the fragment part of this Selector, if any (all characters after ``#``)
     #[getter]
     fn fragment(&self) -> Option<&str> {
-        self.s.fragment.as_ref().map(|s| s.as_str())
+        self.s.fragment.as_deref()
     }
 }
 
