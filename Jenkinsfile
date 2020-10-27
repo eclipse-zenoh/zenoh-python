@@ -55,6 +55,14 @@ pipeline {
       }
     }
 
+    stage('Manylinux2014-aarch64 wheels') {
+      steps {
+        sh '''
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2014-aarch64-rust-nightly maturin build --release --manylinux 2014
+        '''
+      }
+    }
+
     stage('Deploy to download.eclipse.org') {
       steps {
         sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
