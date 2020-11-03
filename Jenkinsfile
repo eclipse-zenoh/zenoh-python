@@ -10,6 +10,9 @@ pipeline {
                  description: 'Publish the resulting wheels to Pypi.org',
                  defaultValue: false)
   }
+  environment {
+      LABEL = get_label()
+  }
 
   stages {
     stage('Checkout Git TAG') {
@@ -68,9 +71,9 @@ pipeline {
         sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
           if [ "${PUBLISH_RESULTS}" = "true" ]; then
-            ssh genie.zenoh@projects-storage.eclipse.org rm -fr /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
-            ssh genie.zenoh@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}
-            scp target/wheels/*.whl target/wheels/*.tar.gz genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${TAG}/
+            ssh genie.zenoh@projects-storage.eclipse.org rm -fr /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}
+            ssh genie.zenoh@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}
+            scp target/wheels/*.whl target/wheels/*.tar.gz genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}/
           else
             echo "Publication to download.eclipse.org skipped"
           fi
@@ -97,4 +100,8 @@ pipeline {
         archiveArtifacts artifacts: 'target/wheels/*.whl, target/wheels/*.tar.gz', fingerprint: true
     }
   }
+}
+
+def get_label() {
+    return env.GIT_TAG.startsWith('origin/') ? env.GIT_TAG.minus('origin/') : env.GIT_TAG
 }
