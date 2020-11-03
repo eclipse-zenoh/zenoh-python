@@ -48,7 +48,6 @@ impl Workspace {
     /// :rtype: str
     #[getter]
     fn prefix(&self) -> Option<&str> {
-        println!("**** prefix: {:?}", self.w.prefix());
         self.w.prefix().as_ref().map(|p| p.as_str())
     }
 
