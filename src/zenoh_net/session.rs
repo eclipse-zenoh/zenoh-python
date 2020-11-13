@@ -180,12 +180,11 @@ impl Session {
     ///
     /// >>> import zenoh, time
     /// >>> from zenoh.net import SubInfo, Reliability, SubMode
-    /// >>> def listener(sample):
-    /// ...     print("Received : {}".format(sample))
     /// >>>
     /// >>> s = zenoh.net.open({})
     /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-    /// >>> sub = s.declare_subscriber('/resource/name', sub_info, listener)
+    /// >>> sub = s.declare_subscriber('/resource/name', sub_info, lambda sample:
+    /// ...     print("Received : {}".format(sample)))
     /// >>> time.sleep(60)
     #[text_signature = "(self, resource, info, callback)"]
     fn declare_subscriber(
@@ -358,11 +357,10 @@ impl Session {
     ///
     /// >>> import zenoh, time
     /// >>> from zenoh.net import QueryTarget, queryable
-    /// >>> def query_callback(reply):
-    /// ...     print("Received : {}".format(reply))
     /// >>>
     /// >>> s = zenoh.net.open({})
-    /// >>> s.query('/resource/name', 'predicate', query_callback)
+    /// >>> s.query('/resource/name', 'predicate', lambda reply:
+    /// ...    print("Received : {}".format(reply.data)))
     /// >>> time.sleep(1)
     #[text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"]
     fn query(

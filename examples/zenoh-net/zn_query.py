@@ -51,13 +51,6 @@ selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-
-def query_callback(reply):
-    time = '(not specified)' if reply.data.data_info is None else reply.data.data_info.timestamp.time
-    print(">> [Reply handler] received ('{}': '{}') published at {}"
-          .format(reply.data.res_name, reply.data.payload.decode("utf-8"), time))
-
-
 # initiate logging
 zenoh.init_logger()
 
@@ -65,7 +58,9 @@ print("Openning session...")
 session = zenoh.net.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-session.query(selector, '', query_callback)
+session.query(selector, '', lambda reply: 
+    print(">> [Reply handler] received ('{}': '{}')"
+        .format(reply.data.res_name, reply.data.payload.decode("utf-8"))))
 
 time.sleep(1)
 

@@ -66,7 +66,9 @@ session = zenoh.net.open(conf)
 print("Declaring Subscriber on '{}'...".format(selector))
 sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 
-sub = session.declare_subscriber(selector, sub_info, listener)
+sub = session.declare_subscriber(selector, sub_info, lambda sample: 
+    print(">> [Subscription listener] Received ('{}': '{}')"
+          .format(sample.res_name, sample.payload.decode("utf-8"))))
 
 print("Press q to stop...")
 c = '\0'
