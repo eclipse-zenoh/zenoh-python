@@ -335,6 +335,9 @@ impl Session {
 
     /// Query data from the matching queryables in the system.
     ///
+    /// The replies are provided by calling the provided ``callback`` for each reply.
+    /// The ``callback`` is called a last time with ``None`` when the query is complete.
+    ///
     /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
     ///
     /// * **int** for a ``ResKey.Rid(int)``
@@ -360,8 +363,8 @@ impl Session {
     /// >>>
     /// >>> s = zenoh.net.open({})
     /// >>> s.query('/resource/name', 'predicate', lambda reply:
-    /// ...    print("Received : {}".format(reply.data)))
-    /// >>> time.sleep(1)
+    /// ...    print("Received : {}".format(
+    /// ...        reply.data if reply is not None else "FINAL")))
     #[text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"]
     fn query(
         &self,
@@ -395,6 +398,13 @@ impl Session {
                         warn!("Error calling queryable callback:");
                         e.print(py);
                     }
+                }
+                let gil = Python::acquire_gil();
+                let py = gil.python();
+                let cb_args = PyTuple::new(py, &[py.None()]);
+                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
+                    warn!("Error calling queryable callback:");
+                    e.print(py);
                 }
             })
         });

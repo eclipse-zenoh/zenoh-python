@@ -58,10 +58,9 @@ print("Openning session...")
 session = zenoh.net.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-session.query(selector, '', lambda reply: 
-    print(">> [Reply handler] received ('{}': '{}')"
-        .format(reply.data.res_name, reply.data.payload.decode("utf-8"))))
-
-time.sleep(1)
+session.query(selector, '', lambda reply:  (
+    print(">> [Reply handler] received {}".format(
+        "FINAL" if reply is None else 
+        "({}:{})".format(reply.data.res_name, reply.data.payload.decode("utf-8"))))))
 
 session.close()
