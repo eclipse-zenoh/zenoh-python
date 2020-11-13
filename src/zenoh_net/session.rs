@@ -19,7 +19,7 @@ use futures::prelude::*;
 use futures::select;
 use log::warn;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
+use pyo3::types::{PyList, PyTuple};
 use zenoh::net::{ResourceId, ZInt};
 
 /// A zenoh-net session.
@@ -409,6 +409,65 @@ impl Session {
             })
         });
         Ok(())
+    }
+
+    /// Query data from the matching queryables in the system.
+    ///
+    /// Replies are collected in a list.
+    ///
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    ///
+    /// * **int** for a ``ResKey.Rid(int)``
+    /// * **str** for a ``ResKey.RName(str)``
+    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    ///
+    /// :param resource: The resource key to query
+    /// :type resource: ResKey
+    /// :param predicate: An indication to matching queryables about the queried data
+    /// :type predicate: str
+    /// :param target: The kind of queryables that should be target of this query
+    /// :type target: QueryTarget, optional
+    /// :param consolidation: The kind of consolidation that should be applied on replies
+    /// :type consolidation: QueryConsolidation, optional
+    /// :rtype: [:class:`Reply`]
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh, time
+    /// >>> from zenoh.net import QueryTarget, queryable
+    /// >>>
+    /// >>> s = zenoh.net.open({})
+    /// >>> replies = s.query_collect('/resource/name', 'predicate')
+    /// >>> for reply in replies:
+    /// ...    print("Received : {}".format(reply.data))
+    #[text_signature = "(self, resource, predicate, target=None, consolidation=None)"]
+    fn query_collect(
+        &self,
+        resource: &PyAny,
+        predicate: &str,
+        target: Option<QueryTarget>,
+        consolidation: Option<QueryConsolidation>,
+    ) -> PyResult<Py<PyList>> {
+        let s = self.as_ref()?;
+        let k = znreskey_of_pyany(resource)?;
+        task::block_on(async {
+            let mut replies = s
+                .query(
+                    &k,
+                    predicate,
+                    target.unwrap_or_default().t,
+                    consolidation.unwrap_or_default().c,
+                )
+                .map_err(to_pyerr)
+                .await?;
+            let gil = Python::acquire_gil();
+            let py = gil.python();
+            let result = PyList::empty(py);
+            while let Some(reply) = replies.next().await {
+                result.append(Reply { r: reply })?;
+            }
+            Ok(result.into())
+        })
     }
 }
 
