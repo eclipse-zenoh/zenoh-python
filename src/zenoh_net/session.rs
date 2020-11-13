@@ -174,7 +174,7 @@ impl Session {
     /// :type info: SubInfo
     /// :param callback: the subscription callback
     /// :type callback: function(:class:`Sample`)
-    /// :rtype: zenoh.net.Subscriber
+    /// :rtype: Subscriber
     ///
     /// :Examples:
     ///
@@ -354,7 +354,6 @@ impl Session {
     /// :type target: QueryTarget, optional
     /// :param consolidation: The kind of consolidation that should be applied on replies
     /// :type consolidation: QueryConsolidation, optional
-    /// :rtype: Queryable
     ///
     /// :Examples:
     ///
