@@ -54,7 +54,7 @@ pub(crate) fn selector_of_string(s: String) -> PyResult<zenoh::Selector> {
 ///
 /// Structure of a selector::
 ///
-///    /s1/s2/.../sn?x>1&y<2&...&z=4(p1=v1;p2=v2;...;pn=vn)#a;b;x;y;...;z
+///    /s1/s2/.../sn?x>1&y<2&...&z=4(p1=v1;p2=v2;...;pn=vn)[a;b;x;y;...;z]
 ///    |           | |             | |                   |  |           |
 ///    |-- expr ---| |--- filter --| |---- properties ---|  |--fragment-|
 ///
@@ -96,19 +96,19 @@ impl Selector {
         &self.s.predicate
     }
 
-    /// the filter part of this Selector, if any (all characters after ``?`` and before ``(`` or ``#``)
+    /// the filter part of this Selector, if any (all characters after ``?`` and before ``(`` or ``[``)
     #[getter]
     fn filter(&self) -> Option<&str> {
         self.s.filter.as_deref()
     }
 
-    /// the properties part of this Selector (all characters between parenthesis and after ``?``)
+    /// the properties part of this Selector (all characters between ``( )`` and after ``?``)
     #[getter]
     fn properties(&self) -> HashMap<String, String> {
         self.s.properties.0.clone()
     }
 
-    /// the fragment part of this Selector, if any (all characters after ``#``)
+    /// the fragment part of this Selector, if any (all characters between ``[ ]`` and after `?`)
     #[getter]
     fn fragment(&self) -> Option<&str> {
         self.s.fragment.as_deref()
