@@ -145,6 +145,12 @@ impl Zenoh {
         task::block_on(z.close()).map_err(to_pyerr)
     }
 
+    /// Returns the PeerId of the zenoh router this zenoh API is connected to (if any).
+    fn router_pid(&self) -> PyResult<Option<String>> {
+        let z = self.as_ref()?;
+        task::block_on(async { Ok(z.router_pid().await) })
+    }
+
     /// Creates a [`Workspace`] with an optional [`Path`] as `prefix`.
     ///
     /// :param prefix: an optional prefix
