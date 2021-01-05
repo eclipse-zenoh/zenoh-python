@@ -24,7 +24,7 @@ pip install eclipse-zenoh
 
 ### Supported Python versions and platforms
 
-zenoh-python has been tested with Python 3.5, 3.6, 3.7 and 3.8.
+zenoh-python has been tested with Python 3.6, 3.7, 3.8 and 3.9.
 
 It relies on the [zenoh](https://github.com/eclipse-zenoh/zenoh/tree/master/zenoh) Rust API which require the full `std` library. See the list Rust supported platforms here: https://doc.rust-lang.org/nightly/rustc/platform-support.html .
 
