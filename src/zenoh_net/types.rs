@@ -197,8 +197,7 @@ impl Hello {
     /// :type: list of str or ``None``
     #[getter]
     fn locators(&self) -> Option<Vec<String>> {
-        self
-            .h
+        self.h
             .locators
             .as_ref()
             .map(|v| v.iter().map(|l| l.to_string()).collect())
@@ -421,8 +420,7 @@ impl DataInfo {
     /// :type: :class:`PeerId` or ``None``
     #[getter]
     fn first_router_id(&self) -> Option<PeerId> {
-        self
-            .i
+        self.i
             .first_router_id
             .as_ref()
             .map(|p| PeerId { p: p.clone() })
@@ -441,8 +439,7 @@ impl DataInfo {
     /// :type: :class:`Timestamp` or ``None``
     #[getter]
     fn timestamp(&self) -> Option<Timestamp> {
-        self
-            .i
+        self.i
             .timestamp
             .as_ref()
             .map(|t| Timestamp { t: t.clone() })
