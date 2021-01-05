@@ -162,8 +162,8 @@ impl whatami {
 
     #[allow(clippy::wrong_self_convention)]
     #[staticmethod]
-    fn to_string(i: ZInt) -> PyResult<String> {
-        Ok(zenoh::net::whatami::to_string(i))
+    fn to_string(i: ZInt) -> String {
+        zenoh::net::whatami::to_string(i)
     }
 }
 
@@ -180,35 +180,35 @@ impl Hello {
     ///
     /// :type: :class:`PeerId` or ``None``
     #[getter]
-    fn pid(&self) -> PyResult<Option<PeerId>> {
-        Ok(self.h.pid.as_ref().map(|p| PeerId { p: p.clone() }))
+    fn pid(&self) -> Option<PeerId> {
+        self.h.pid.as_ref().map(|p| PeerId { p: p.clone() })
     }
 
     /// The mode of the Hello message sender (bitmask of constants from :class:`whatami`)
     ///
     /// :type: int or ``None``
     #[getter]
-    fn whatami(&self) -> PyResult<Option<ZInt>> {
-        Ok(self.h.whatami)
+    fn whatami(&self) -> Option<ZInt> {
+        self.h.whatami
     }
 
     /// The locators list of the Hello message sender
     ///
     /// :type: list of str or ``None``
     #[getter]
-    fn locators(&self) -> PyResult<Option<Vec<String>>> {
-        Ok(self
+    fn locators(&self) -> Option<Vec<String>> {
+        self
             .h
             .locators
             .as_ref()
-            .map(|v| v.iter().map(|l| l.to_string()).collect()))
+            .map(|v| v.iter().map(|l| l.to_string()).collect())
     }
 }
 
 #[pyproto]
 impl PyObjectProtocol for Hello {
-    fn __str__(&self) -> PyResult<String> {
-        Ok(self.h.to_string())
+    fn __str__(&self) -> String {
+        self.h.to_string()
     }
 }
 
@@ -353,8 +353,8 @@ pub(crate) struct PeerId {
 
 #[pyproto]
 impl PyObjectProtocol for PeerId {
-    fn __str__(&self) -> PyResult<String> {
-        Ok(self.p.to_string())
+    fn __str__(&self) -> String {
+        self.p.to_string()
     }
 }
 
@@ -379,15 +379,15 @@ impl Timestamp {
     ///
     /// :type: bytes
     #[getter]
-    fn id(&self) -> PyResult<&[u8]> {
-        Ok(self.t.get_id().as_slice())
+    fn id(&self) -> &[u8] {
+        self.t.get_id().as_slice()
     }
 }
 
 #[pyproto]
 impl PyObjectProtocol for Timestamp {
-    fn __str__(&self) -> PyResult<String> {
-        Ok(self.t.to_string())
+    fn __str__(&self) -> String {
+        self.t.to_string()
     }
 }
 
@@ -404,64 +404,64 @@ impl DataInfo {
     ///
     /// :type: :class:`PeerId` or ``None``
     #[getter]
-    fn source_id(&self) -> PyResult<Option<PeerId>> {
-        Ok(self.i.source_id.as_ref().map(|p| PeerId { p: p.clone() }))
+    fn source_id(&self) -> Option<PeerId> {
+        self.i.source_id.as_ref().map(|p| PeerId { p: p.clone() })
     }
 
     /// The source sequence number of the data.
     ///
     /// :type: int or ``None``
     #[getter]
-    fn source_sn(&self) -> PyResult<Option<ZInt>> {
-        Ok(self.i.source_sn)
+    fn source_sn(&self) -> Option<ZInt> {
+        self.i.source_sn
     }
 
     /// The :class:`PeerId` of the 1st router that routed the data.
     ///
     /// :type: :class:`PeerId` or ``None``
     #[getter]
-    fn first_router_id(&self) -> PyResult<Option<PeerId>> {
-        Ok(self
+    fn first_router_id(&self) -> Option<PeerId> {
+        self
             .i
             .first_router_id
             .as_ref()
-            .map(|p| PeerId { p: p.clone() }))
+            .map(|p| PeerId { p: p.clone() })
     }
 
     /// The first router sequence number of the data.
     ///
     /// :type: int or ``None``
     #[getter]
-    fn first_router_sn(&self) -> PyResult<Option<ZInt>> {
-        Ok(self.i.first_router_sn)
+    fn first_router_sn(&self) -> Option<ZInt> {
+        self.i.first_router_sn
     }
 
     /// The :class:`Timestamp` of the data.
     ///
     /// :type: :class:`Timestamp` or ``None``
     #[getter]
-    fn timestamp(&self) -> PyResult<Option<Timestamp>> {
-        Ok(self
+    fn timestamp(&self) -> Option<Timestamp> {
+        self
             .i
             .timestamp
             .as_ref()
-            .map(|t| Timestamp { t: t.clone() }))
+            .map(|t| Timestamp { t: t.clone() })
     }
 
     /// The kind of the data.
     ///
     /// :type: int or ``None``
     #[getter]
-    fn kind(&self) -> PyResult<Option<ZInt>> {
-        Ok(self.i.kind)
+    fn kind(&self) -> Option<ZInt> {
+        self.i.kind
     }
 
     /// The encoding flag of the data.
     ///
     /// :type: int or ``None``
     #[getter]
-    fn encoding(&self) -> PyResult<Option<ZInt>> {
-        Ok(self.i.encoding)
+    fn encoding(&self) -> Option<ZInt> {
+        self.i.encoding
     }
 }
 
@@ -503,38 +503,38 @@ impl Sample {
     ///
     /// :type: str
     #[getter]
-    fn res_name(&self) -> PyResult<&str> {
-        Ok(self.s.res_name.as_str())
+    fn res_name(&self) -> &str {
+        self.s.res_name.as_str()
     }
 
     /// The data payload
     ///
     /// :type: bytes
     #[getter]
-    fn payload<'a>(&self, py: Python<'a>) -> PyResult<&'a PyBytes> {
-        Ok(PyBytes::new(py, self.s.payload.to_vec().as_slice()))
+    fn payload<'a>(&self, py: Python<'a>) -> &'a PyBytes {
+        PyBytes::new(py, self.s.payload.to_vec().as_slice())
     }
 
     /// Some information about the data
     ///
     /// :type: :class:`DataInfo` or ``None``
     #[getter]
-    fn data_info(&self) -> PyResult<Option<DataInfo>> {
-        Ok(self.s.data_info.as_ref().map(|i| DataInfo { i: i.clone() }))
+    fn data_info(&self) -> Option<DataInfo> {
+        self.s.data_info.as_ref().map(|i| DataInfo { i: i.clone() })
     }
 }
 
 #[pyproto]
 impl PyObjectProtocol for Sample {
-    fn __str__(&self) -> PyResult<String> {
-        Ok(format!("{:?}", self.s))
+    fn __str__(&self) -> String {
+        format!("{:?}", self.s)
     }
 
-    fn __repr__(&self) -> PyResult<String> {
+    fn __repr__(&self) -> String {
         self.__str__()
     }
 
-    fn __format__(&self, _format_spec: &str) -> PyResult<String> {
+    fn __format__(&self, _format_spec: &str) -> String {
         self.__str__()
     }
 }
@@ -753,16 +753,16 @@ impl Query {
     ///
     /// :type: str
     #[getter]
-    fn res_name(&self) -> PyResult<&str> {
-        Ok(self.q.res_name.as_str())
+    fn res_name(&self) -> &str {
+        self.q.res_name.as_str()
     }
 
     /// The predicate of the query
     ///
     /// :type: str
     #[getter]
-    fn predicate(&self) -> PyResult<&str> {
-        Ok(self.q.predicate.as_str())
+    fn predicate(&self) -> &str {
+        self.q.predicate.as_str()
     }
 
     /// Send a reply to the query

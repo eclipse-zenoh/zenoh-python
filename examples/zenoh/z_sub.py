@@ -41,7 +41,7 @@ parser.add_argument('--selector', '-s', dest='selector',
                     help='The selection of resources to subscribe.')
 
 args = parser.parse_args()
-conf = { "mode": args.mode }
+conf = {"mode": args.mode}
 if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:

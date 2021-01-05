@@ -41,7 +41,7 @@ parser.add_argument('--selector', '-s', dest='selector',
                     help='The selection of resources to subscribe.')
 
 args = parser.parse_args()
-conf = { "mode": args.mode }
+conf = {"mode": args.mode}
 if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
@@ -66,9 +66,9 @@ session = zenoh.net.open(conf)
 print("Declaring Subscriber on '{}'...".format(selector))
 sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 
-sub = session.declare_subscriber(selector, sub_info, lambda sample: 
-    print(">> [Subscription listener] Received ('{}': '{}')"
-          .format(sample.res_name, sample.payload.decode("utf-8"))))
+sub = session.declare_subscriber(selector, sub_info, lambda sample:
+                                 print(">> [Subscription listener] Received ('{}': '{}')"
+                                       .format(sample.res_name, sample.payload.decode("utf-8"))))
 
 print("Press q to stop...")
 c = '\0'

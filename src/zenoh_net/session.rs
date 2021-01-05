@@ -47,7 +47,7 @@ impl Session {
     /// >>> info = s.info()
     /// >>> for key in info:
     /// >>>    print("{} : {}".format(key, info[key]))
-    fn info<'p>(&self, py: Python<'p>) -> PyResult<PyObject> {
+    fn info(&self, py: Python) -> PyResult<PyObject> {
         let s = self.as_ref()?;
         let props = task::block_on(s.info());
         Ok(props_to_pydict(py, props.into()).to_object(py))
