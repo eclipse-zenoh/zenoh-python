@@ -296,7 +296,7 @@ impl PyObjectProtocol for Value {
 }
 
 pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
-    match obj.get_type().name().as_ref() {
+    match obj.get_type().name()? {
         "Value" => {
             let v: Value = obj.extract()?;
             Ok(v.v)
@@ -327,8 +327,8 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
         "tuple" => {
             let tuple: &PyTuple = obj.downcast()?;
             if tuple.len() == 2
-                && tuple.get_item(0).get_type().name() == "str"
-                && tuple.get_item(1).get_type().name() == "bytes"
+                && tuple.get_item(0).get_type().name()? == "str"
+                && tuple.get_item(1).get_type().name()? == "bytes"
             {
                 let encoding_descr: String = tuple.get_item(0).extract()?;
                 let buf: &[u8] = tuple.get_item(1).extract()?;

@@ -50,6 +50,6 @@ version = "1.8.0"
 features = ["attributes"]
 
 [dependencies.pyo3]
-version = "0.12"
+version = "0.13"
 features = ["extension-module"]
 

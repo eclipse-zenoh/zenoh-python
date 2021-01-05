@@ -308,7 +308,7 @@ impl From<ResKey> for zenoh::net::ResKey {
 }
 
 pub(crate) fn znreskey_of_pyany(obj: &PyAny) -> PyResult<zenoh::net::ResKey> {
-    match obj.get_type().name().as_ref() {
+    match obj.get_type().name()? {
         "ResKey" => {
             let rk: ResKey = obj.extract()?;
             Ok(rk.k)
@@ -324,8 +324,8 @@ pub(crate) fn znreskey_of_pyany(obj: &PyAny) -> PyResult<zenoh::net::ResKey> {
         "tuple" => {
             let tuple: &PyTuple = obj.downcast()?;
             if tuple.len() == 2
-                && tuple.get_item(0).get_type().name() == "int"
-                && tuple.get_item(1).get_type().name() == "str"
+                && tuple.get_item(0).get_type().name()? == "int"
+                && tuple.get_item(1).get_type().name()? == "str"
             {
                 let id: u64 = tuple.get_item(0).extract()?;
                 let suffix: String = tuple.get_item(1).extract()?;
