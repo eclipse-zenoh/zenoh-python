@@ -12,8 +12,9 @@
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use crate::zenoh_net::Timestamp;
-use async_std::sync::Sender;
+use async_std::channel::Sender;
 use async_std::task;
+use log::warn;
 use pyo3::class::basic::CompareOp;
 use pyo3::exceptions;
 use pyo3::prelude::*;
@@ -538,7 +539,9 @@ impl Subscriber {
     fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
-                self.close_tx.send(true).await;
+                if let Err(e) = self.close_tx.send(true).await {
+                    warn!("Error in Subscriber::close() : {}", e);
+                }
                 handle.await;
             });
         }
@@ -607,7 +610,9 @@ impl Eval {
     fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
-                self.close_tx.send(true).await;
+                if let Err(e) = self.close_tx.send(true).await {
+                    warn!("Error in Eval::close() : {}", e);
+                }
                 handle.await;
             });
         }

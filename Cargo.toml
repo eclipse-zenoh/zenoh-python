@@ -46,7 +46,7 @@ log = "0.4"
 env_logger = "0.7.1"
 
 [dependencies.async-std]
-version = "1.6.5"
+version = "1.8.0"
 features = ["attributes"]
 
 [dependencies.pyo3]

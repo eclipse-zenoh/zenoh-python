@@ -12,8 +12,9 @@
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use crate::to_pyerr;
-use async_std::sync::Sender;
+use async_std::channel::Sender;
 use async_std::task;
+use log::warn;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDateTime, PyTuple};
@@ -688,7 +689,9 @@ impl Subscriber {
     /// Pull available data for a pull-mode subscriber.
     fn pull(&self) {
         task::block_on(async {
-            self.undeclare_tx.send(ZnSubOps::Pull).await;
+            if let Err(e) = self.undeclare_tx.send(ZnSubOps::Pull).await {
+                warn!("Error in Subscriber::pull() : {}", e);
+            }
         });
     }
 
@@ -696,7 +699,9 @@ impl Subscriber {
     fn undeclare(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
-                self.undeclare_tx.send(ZnSubOps::Undeclare).await;
+                if let Err(e) = self.undeclare_tx.send(ZnSubOps::Undeclare).await {
+                    warn!("Error in Subscriber::undeclare() : {}", e);
+                }
                 handle.await;
             });
         }
@@ -785,7 +790,9 @@ impl Queryable {
     fn undeclare(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
-                self.undeclare_tx.send(true).await;
+                if let Err(e) = self.undeclare_tx.send(true).await {
+                    warn!("Error in Queryable::undeclare() : {}", e);
+                }
                 handle.await;
             });
         }

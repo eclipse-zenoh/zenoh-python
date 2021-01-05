@@ -13,7 +13,7 @@
 //
 use crate::to_pyerr;
 use crate::types::*;
-use async_std::sync::channel;
+use async_std::channel::bounded;
 use async_std::task;
 use futures::prelude::*;
 use futures::select;
@@ -173,7 +173,7 @@ impl Workspace {
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
 
-        let (close_tx, close_rx) = channel::<bool>(1);
+        let (close_tx, close_rx) = bounded::<bool>(1);
         // Note: This is done to ensure that even if the call-back into Python
         // does any blocking call we do not incour the risk of blocking
         // any of the task resolving futures.
@@ -193,9 +193,9 @@ impl Workspace {
                         },
                         _ = close_rx.recv().fuse() => {
                             if let Err(e) = static_stream.close().await {
-                                warn!("Error closing Subscriber");
+                                warn!("Error closing Subscriber: {}", e);
                             }
-                            return()
+                            return
                         }
                     )
                 }
@@ -248,7 +248,7 @@ impl Workspace {
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
 
-        let (close_tx, close_rx) = channel::<bool>(1);
+        let (close_tx, close_rx) = bounded::<bool>(1);
         // Note: This is done to ensure that even if the call-back into Python
         // does any blocking call we do not incour the risk of blocking
         // any of the task resolving futures.
@@ -268,9 +268,9 @@ impl Workspace {
                         },
                         _ = close_rx.recv().fuse() => {
                             if let Err(e) = static_stream.close().await {
-                                warn!("Error closing Subscriber");
+                                warn!("Error closing Subscriber: {}", e);
                             }
-                            return()
+                            return
                         }
                     )
                 }
