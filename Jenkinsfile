@@ -7,7 +7,7 @@ pipeline {
                  description: 'The Git tag to checkout. If not specified "master" will be checkout.',
                  defaultValue: 'master')
     booleanParam(name: 'PUBLISH_RESULTS',
-                 description: 'Publish the resulting wheels to Pypi.org',
+                 description: 'Publish the resulting wheels to Eclipse download and to pypi.org (if not a branch)',
                  defaultValue: false)
   }
   environment {
@@ -33,10 +33,10 @@ pipeline {
       steps {
         sh '''
         . ~/.zshenv
-        export PATH=$PATH:~/miniconda3/envs/zenoh-cp35/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp36/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp37/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp38/bin
+        export PATH=$PATH:~/miniconda3/envs/zenoh-cp39/bin
         maturin build --release
         '''
       }
@@ -67,29 +67,23 @@ pipeline {
     }
 
     stage('Deploy to download.eclipse.org') {
+      when { expression { return params.PUBLISH_RESULTS }}
       steps {
         sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
-          if [ "${PUBLISH_RESULTS}" = "true" ]; then
             ssh genie.zenoh@projects-storage.eclipse.org rm -fr /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}
             ssh genie.zenoh@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}
             scp target/wheels/*.whl target/wheels/*.tar.gz genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}/
-          else
-            echo "Publication to download.eclipse.org skipped"
-          fi
           '''
         }
       }
     }
 
     stage('Deploy on pypi.org') {
+      when { expression { return params.PUBLISH_RESULTS && !env.GIT_TAG.startsWith('origin/') }}
       steps {
         sh '''
-          if [ "${PUBLISH_RESULTS}" = "true" ]; then
-            python3 -m twine upload --repository eclipse-zenoh target/wheels/*.whl target/wheels/*.tar.gz
-          else
-            echo "Publication to Pypi.org skipped"
-          fi
+          python3 -m twine upload --repository eclipse-zenoh target/wheels/*.whl target/wheels/*.tar.gz
         '''
       }
     }
