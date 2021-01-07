@@ -768,9 +768,7 @@ impl Query {
     /// :type: Sample
     #[text_signature = "(self, sample)"]
     fn reply(&self, sample: Sample) {
-        task::block_on(async {
-            self.q.reply(sample.s).await;
-        });
+        task::block_on(self.q.reply(sample.s));
     }
 }
 

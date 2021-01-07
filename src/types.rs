@@ -592,7 +592,7 @@ impl GetRequest {
     fn reply(&self, path: String, value: &PyAny) -> PyResult<()> {
         let p = path_of_string(path)?;
         let v = zvalue_of_pyany(value)?;
-        task::block_on(async { self.r.reply(p, v).await });
+        task::block_on(self.r.reply(p, v));
         Ok(())
     }
 }
