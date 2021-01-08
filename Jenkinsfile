@@ -72,7 +72,7 @@ pipeline {
       when { expression { return params.BUILD_LINUX64 }}
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-x64-rust-nightly maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2010-x86_64-gnu maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
         '''
       }
     }
@@ -81,7 +81,7 @@ pipeline {
       when { expression { return params.BUILD_LINUX32 }}
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-i686-rust-nightly maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2010-i686-gnu maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
         '''
       }
     }
@@ -90,7 +90,7 @@ pipeline {
       when { expression { return params.BUILD_AARCH64 }}
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2014-aarch64-rust-nightly maturin build --release --manylinux 2014 $MATURIN_PYTHONS_OPT
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2014-aarch64-gnu maturin build --release --manylinux 2014 $MATURIN_PYTHONS_OPT
         '''
       }
     }
