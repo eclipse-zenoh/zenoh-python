@@ -36,6 +36,7 @@ pipeline {
   }
   environment {
       LABEL = get_label()
+      DOWNLOAD_DIR="/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}"
       MATURIN_PYTHONS_OPT = maturin_python_opt()
   }
 
@@ -58,11 +59,13 @@ pipeline {
       when { expression { return params.BUILD_MACOSX }}
       steps {
         sh '''
+        set +x
         . ~/.zshenv
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp36/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp37/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp38/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp39/bin
+        env
         maturin build --release $MATURIN_PYTHONS_OPT
         '''
       }
@@ -100,9 +103,11 @@ pipeline {
       steps {
         sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
-            ssh genie.zenoh@projects-storage.eclipse.org rm -fr /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}
-            ssh genie.zenoh@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}
-            scp target/wheels/*.whl target/wheels/*.tar.gz genie.zenoh@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}/
+            if [[ ${GIT_TAG} == origin/* ]]; then
+              ssh genie.zenoh@projects-storage.eclipse.org rm -fr ${DOWNLOAD_DIR}
+            fi
+            ssh genie.zenoh@projects-storage.eclipse.org mkdir -p ${DOWNLOAD_DIR}
+            find target -name "*.whl" | xargs -J FILES scp FILES genie.zenoh@projects-storage.eclipse.org:${DOWNLOAD_DIR}/
           '''
         }
       }
@@ -131,16 +136,16 @@ def get_label() {
 
 def maturin_python_opt() {
   String result = '';
-  if (env.PYTHON_36) {
+  if (env.PYTHON_36 == 'true') {
     result = result + '-i python3.6 ';
   }
-  if (env.PYTHON_37) {
+  if (env.PYTHON_37 == 'true') {
     result = result + '-i python3.7 ';
   }
-  if (env.PYTHON_38) {
+  if (env.PYTHON_38 == 'true') {
     result = result + '-i python3.8 ';
   }
-  if (env.PYTHON_39) {
+  if (env.PYTHON_39 == 'true') {
     result = result + '-i python3.9 ';
   }
   return result;
