@@ -9,9 +9,22 @@ pipeline {
     booleanParam(name: 'PUBLISH_RESULTS',
                  description: 'Publish the resulting wheels to Eclipse download and to pypi.org (if not a branch)',
                  defaultValue: false)
+    booleanParam(name: 'PYTHON_36',
+                 description: 'Build wheel for Python 3.6.',
+                 defaultValue: true)
+    booleanParam(name: 'PYTHON_37',
+                 description: 'Build wheel for Python 3.7.',
+                 defaultValue: true)
+    booleanParam(name: 'PYTHON_38',
+                 description: 'Build wheel for Python 3.8.',
+                 defaultValue: true)
+    booleanParam(name: 'PYTHON_39',
+                 description: 'Build wheel for Python 3.9.',
+                 defaultValue: true)
   }
   environment {
       LABEL = get_label()
+      MATURIN_PYTHONS_OPT = maturin_python_opt()
   }
 
   stages {
@@ -37,7 +50,7 @@ pipeline {
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp37/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp38/bin
         export PATH=$PATH:~/miniconda3/envs/zenoh-cp39/bin
-        maturin build --release
+        maturin build --release $MATURIN_PYTHONS_OPT
         '''
       }
     }
@@ -45,7 +58,7 @@ pipeline {
     stage('Manylinux2010-x64 wheels') {
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-x64-rust-nightly maturin build --release --manylinux 2010
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-x64-rust-nightly maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
         '''
       }
     }
@@ -53,7 +66,7 @@ pipeline {
     stage('Manylinux2010-i686 wheels') {
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-i686-rust-nightly maturin build --release --manylinux 2010
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-i686-rust-nightly maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
         '''
       }
     }
@@ -61,7 +74,7 @@ pipeline {
     stage('Manylinux2014-aarch64 wheels') {
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2014-aarch64-rust-nightly maturin build --release --manylinux 2014
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2014-aarch64-rust-nightly maturin build --release --manylinux 2014 $MATURIN_PYTHONS_OPT
         '''
       }
     }
@@ -98,4 +111,20 @@ pipeline {
 
 def get_label() {
     return env.GIT_TAG.startsWith('origin/') ? env.GIT_TAG.minus('origin/') : env.GIT_TAG
+}
+
+def maturin_python_opt() {
+  String result = '';
+  if (env.PYTHON_36) {
+    result.concat('-i python3.6 ');
+  }
+  if (env.PYTHON_37) {
+    result.concat('-i python3.7 ');
+  }
+  if (env.PYTHON_38) {
+    result.concat('-i python3.8 ');
+  }
+  if (env.PYTHON_39) {
+    result.concat('-i python3.9 ');
+  }
 }
