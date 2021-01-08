@@ -143,4 +143,5 @@ def maturin_python_opt() {
   if (env.PYTHON_39) {
     result = result + '-i python3.9 ';
   }
+  return result;
 }
