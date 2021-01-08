@@ -9,17 +9,29 @@ pipeline {
     booleanParam(name: 'PUBLISH_RESULTS',
                  description: 'Publish the resulting wheels to Eclipse download and to pypi.org (if not a branch)',
                  defaultValue: false)
+    booleanParam(name: 'BUILD_MACOSX',
+                 description: 'Build wheels for macosx_10_7_x86_64.',
+                 defaultValue: true)
+    booleanParam(name: 'BUILD_LINUX64',
+                 description: 'Build wheels with manylinux2010-x86-64.',
+                 defaultValue: true)
+    booleanParam(name: 'BUILD_LINUX32',
+                 description: 'Build wheels with manylinux2010-i686.',
+                 defaultValue: true)
+    booleanParam(name: 'BUILD_AARCH64',
+                 description: 'Build wheels with manylinux2014-aarch64.',
+                 defaultValue: true)
     booleanParam(name: 'PYTHON_36',
-                 description: 'Build wheel for Python 3.6.',
+                 description: 'Build wheels for Python 3.6.',
                  defaultValue: true)
     booleanParam(name: 'PYTHON_37',
-                 description: 'Build wheel for Python 3.7.',
+                 description: 'Build wheels for Python 3.7.',
                  defaultValue: true)
     booleanParam(name: 'PYTHON_38',
-                 description: 'Build wheel for Python 3.8.',
+                 description: 'Build wheels for Python 3.8.',
                  defaultValue: true)
     booleanParam(name: 'PYTHON_39',
-                 description: 'Build wheel for Python 3.9.',
+                 description: 'Build wheels for Python 3.9.',
                  defaultValue: true)
   }
   environment {
@@ -43,6 +55,7 @@ pipeline {
     }
 
     stage('MacOS wheels') {
+      when { expression { return params.BUILD_MACOSX }}
       steps {
         sh '''
         . ~/.zshenv
@@ -56,6 +69,7 @@ pipeline {
     }
 
     stage('Manylinux2010-x64 wheels') {
+      when { expression { return params.BUILD_LINUX64 }}
       steps {
         sh '''
         docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-x64-rust-nightly maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
@@ -64,6 +78,7 @@ pipeline {
     }
 
     stage('Manylinux2010-i686 wheels') {
+      when { expression { return params.BUILD_LINUX32 }}
       steps {
         sh '''
         docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2010-i686-rust-nightly maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
@@ -72,6 +87,7 @@ pipeline {
     }
 
     stage('Manylinux2014-aarch64 wheels') {
+      when { expression { return params.BUILD_AARCH64 }}
       steps {
         sh '''
         docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/manylinux2014-aarch64-rust-nightly maturin build --release --manylinux 2014 $MATURIN_PYTHONS_OPT
@@ -116,15 +132,15 @@ def get_label() {
 def maturin_python_opt() {
   String result = '';
   if (env.PYTHON_36) {
-    result.concat('-i python3.6 ');
+    result = result + '-i python3.6 ';
   }
   if (env.PYTHON_37) {
-    result.concat('-i python3.7 ');
+    result = result + '-i python3.7 ';
   }
   if (env.PYTHON_38) {
-    result.concat('-i python3.8 ');
+    result = result + '-i python3.8 ';
   }
   if (env.PYTHON_39) {
-    result.concat('-i python3.9 ');
+    result = result + '-i python3.9 ';
   }
 }
