@@ -11,7 +11,7 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-import time
+from datetime import datetime
 import argparse
 import zenoh
 from zenoh.net import config, SubInfo, Reliability, SubMode
@@ -52,7 +52,8 @@ selector = args.selector
 
 
 def listener(sample):
-    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else sample.data_info.timestamp.time
+    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else datetime.fromtimestamp(
+        sample.data_info.timestamp.time)
     print(">> [Subscription listener] Received ('{}': '{}') published at {}"
           .format(sample.res_name, sample.payload.decode("utf-8"), time))
 
@@ -66,9 +67,7 @@ session = zenoh.net.open(conf)
 print("Declaring Subscriber on '{}'...".format(selector))
 sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 
-sub = session.declare_subscriber(selector, sub_info, lambda sample:
-                                 print(">> [Subscription listener] Received ('{}': '{}')"
-                                       .format(sample.res_name, sample.payload.decode("utf-8"))))
+sub = session.declare_subscriber(selector, sub_info, listener)
 
 print("Press q to stop...")
 c = '\0'

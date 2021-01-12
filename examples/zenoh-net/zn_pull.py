@@ -11,7 +11,7 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-import time
+from datetime import datetime
 import argparse
 import zenoh
 from zenoh.net import config, SubInfo, Reliability, SubMode
@@ -41,7 +41,7 @@ parser.add_argument('--selector', '-s', dest='selector',
                     help='The selection of resources to pull.')
 
 args = parser.parse_args()
-conf = { "mode": args.mode }
+conf = {"mode": args.mode}
 if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
@@ -52,7 +52,8 @@ selector = args.selector
 
 
 def listener(sample):
-    time = '(not specified)' if sample.data_info is None else sample.data_info.timestamp.time
+    time = '(not specified)' if sample.data_info is None else datetime.fromtimestamp(
+        sample.data_info.timestamp.time)
     print(">> [Subscription listener] Received ('{}': '{}') published at {}"
           .format(sample.res_name, sample.payload.decode("utf-8"), time))
 

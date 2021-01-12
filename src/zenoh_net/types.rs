@@ -17,7 +17,7 @@ use async_std::task;
 use log::warn;
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDateTime, PyTuple};
+use pyo3::types::{PyBytes, PyTuple};
 use pyo3::PyObjectProtocol;
 use zenoh::net::{ResourceId, ZInt};
 
@@ -365,13 +365,13 @@ pub(crate) struct Timestamp {
 
 #[pymethods]
 impl Timestamp {
-    /// The time
+    /// The time in seconds since the UNIX EPOCH (January 1, 1970, 00:00:00 (UTC))
+    /// as a floating point number.
     ///
-    /// :type: datetime.datetime
+    /// :type: float
     #[getter]
-    fn time<'p>(&self, py: Python<'p>) -> PyResult<&'p PyDateTime> {
-        let f = self.t.get_time().to_duration().as_secs_f64();
-        PyDateTime::from_timestamp(py, f, None)
+    fn time(&self) -> f64 {
+        self.t.get_time().to_duration().as_secs_f64()
     }
 
     /// The identifier of the timestamp source

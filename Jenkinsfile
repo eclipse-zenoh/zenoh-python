@@ -21,23 +21,10 @@ pipeline {
     booleanParam(name: 'BUILD_AARCH64',
                  description: 'Build wheels with manylinux2014-aarch64.',
                  defaultValue: true)
-    booleanParam(name: 'PYTHON_36',
-                 description: 'Build wheels for Python 3.6.',
-                 defaultValue: true)
-    booleanParam(name: 'PYTHON_37',
-                 description: 'Build wheels for Python 3.7.',
-                 defaultValue: true)
-    booleanParam(name: 'PYTHON_38',
-                 description: 'Build wheels for Python 3.8.',
-                 defaultValue: true)
-    booleanParam(name: 'PYTHON_39',
-                 description: 'Build wheels for Python 3.9.',
-                 defaultValue: true)
   }
   environment {
       LABEL = get_label()
       DOWNLOAD_DIR="/home/data/httpd/download.eclipse.org/zenoh/zenoh-python/${LABEL}"
-      MATURIN_PYTHONS_OPT = maturin_python_opt()
   }
 
   stages {
@@ -61,10 +48,6 @@ pipeline {
         sh '''
         set +x
         . ~/.zshenv
-        export PATH=$PATH:~/miniconda3/envs/zenoh-cp36/bin
-        export PATH=$PATH:~/miniconda3/envs/zenoh-cp37/bin
-        export PATH=$PATH:~/miniconda3/envs/zenoh-cp38/bin
-        export PATH=$PATH:~/miniconda3/envs/zenoh-cp39/bin
         env
         maturin build --release $MATURIN_PYTHONS_OPT
         '''
@@ -75,7 +58,7 @@ pipeline {
       when { expression { return params.BUILD_LINUX64 }}
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2010-x86_64-gnu maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2010-x86_64-gnu maturin build --release --manylinux 2010
         '''
       }
     }
@@ -84,7 +67,7 @@ pipeline {
       when { expression { return params.BUILD_LINUX32 }}
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2010-i686-gnu maturin build --release --manylinux 2010 $MATURIN_PYTHONS_OPT
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2010-i686-gnu maturin build --release --manylinux 2010
         '''
       }
     }
@@ -93,7 +76,7 @@ pipeline {
       when { expression { return params.BUILD_AARCH64 }}
       steps {
         sh '''
-        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2014-aarch64-gnu maturin build --release --manylinux 2014 $MATURIN_PYTHONS_OPT
+        docker run --init --rm -v $(pwd):/workdir -w /workdir adlinktech/zenoh-dev-manylinux2014-aarch64-gnu maturin build --release --manylinux 2014
         '''
       }
     }
@@ -132,21 +115,4 @@ pipeline {
 
 def get_label() {
     return env.GIT_TAG.startsWith('origin/') ? env.GIT_TAG.minus('origin/') : env.GIT_TAG
-}
-
-def maturin_python_opt() {
-  String result = '';
-  if (env.PYTHON_36 == 'true') {
-    result = result + '-i python3.6 ';
-  }
-  if (env.PYTHON_37 == 'true') {
-    result = result + '-i python3.7 ';
-  }
-  if (env.PYTHON_38 == 'true') {
-    result = result + '-i python3.8 ';
-  }
-  if (env.PYTHON_39 == 'true') {
-    result = result + '-i python3.9 ';
-  }
-  return result;
 }
