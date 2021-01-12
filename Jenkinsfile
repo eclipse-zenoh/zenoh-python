@@ -90,7 +90,7 @@ pipeline {
               ssh genie.zenoh@projects-storage.eclipse.org rm -fr ${DOWNLOAD_DIR}
             fi
             ssh genie.zenoh@projects-storage.eclipse.org mkdir -p ${DOWNLOAD_DIR}
-            scp target/wheels/*.tag.gz genie.zenoh@projects-storage.eclipse.org:${DOWNLOAD_DIR}/
+            scp target/wheels/*.tar.gz genie.zenoh@projects-storage.eclipse.org:${DOWNLOAD_DIR}/
             find target -name "*.whl" | xargs -J FILES scp FILES genie.zenoh@projects-storage.eclipse.org:${DOWNLOAD_DIR}/
           '''
         }
