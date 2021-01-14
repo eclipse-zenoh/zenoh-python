@@ -22,6 +22,13 @@ Install the latest available version using `pip`:
 pip install eclipse-zenoh
 ```
 
+:warning:WARNING:warning: zenoh-python is developped in Rust.
+On Pypi.org we provide binary wheels for the most common platforms (MacOS, Linux x86). But also a source distribution package for other platforms.  
+However, for `pip` to be able to build this source distribution, there some prerequisites:
+ - `pip` version 19.3.1 minimum (for full support of PEP 517).  
+   (if necessary upgrade it with command: `'sudo pip install --upgrade pip'` )
+ - Have a Rust toolchain installed (instructions at https://rustup.rs/)
+
 ### Supported Python versions and platforms
 
 zenoh-python has been tested with Python 3.6, 3.7, 3.8 and 3.9.
