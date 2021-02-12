@@ -148,10 +148,10 @@
 
    Typical Subscriber usage:
    ```bash
-      python3 z_sub_thr
+      python3 zn_sub_thr
    ```
 
    Typical Publisher usage:
    ```bash
-      python3 z_pub_thr 1024
+      python3 zn_pub_thr 1024
    ```
