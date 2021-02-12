@@ -59,7 +59,7 @@ impl Workspace {
     /// The *value* parameter also accepts the following types that can be converted to a :class:`Value`:
     ///
     /// * **bytes** for a ``Value.Raw(APP_OCTET_STREAM, bytes)``
-    /// * **str** for a ``Value.StringUTF8(str)``
+    /// * **str** for a ``Value.StringUtf8(str)``
     /// * **int** for a ``Value.Integer(int)``
     /// * **float** for a ``Value.Float(int)``
     /// * **dict of str:str** for a ``Value.Properties(dict)``

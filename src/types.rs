@@ -158,7 +158,7 @@ impl Value {
 
     /// Returns the typed content of the value.
     ///
-    /// :rtype: depend on the encoding flag (e.g. str for a StringUTF8 Value, int for an Integer Value ...)
+    /// :rtype: depend on the encoding flag (e.g. str for a StringUtf8 Value, int for an Integer Value ...)
     fn get_content(&self, py: Python) -> PyObject {
         use zenoh::Value::*;
         match &self.v {
@@ -167,7 +167,7 @@ impl Value {
                 encoding_descr: _,
                 data,
             } => data.to_vec().into_py(py),
-            StringUTF8(s) => s.into_py(py),
+            StringUtf8(s) => s.into_py(py),
             Properties(zenoh::Properties(p)) => p.clone().into_py(py),
             Json(s) => s.into_py(py),
             Integer(i) => i.into_py(py),
@@ -219,7 +219,7 @@ impl Value {
     #[text_signature = "(s)"]
     fn StringUTF8(s: String) -> Value {
         Value {
-            v: zenoh::Value::StringUTF8(s),
+            v: zenoh::Value::StringUtf8(s),
         }
     }
 
@@ -310,7 +310,7 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::Value> {
         }
         "str" => {
             let s: String = obj.extract()?;
-            Ok(zenoh::Value::StringUTF8(s))
+            Ok(zenoh::Value::StringUtf8(s))
         }
         "dict" => {
             let props: HashMap<String, String> = obj.extract()?;
@@ -578,7 +578,7 @@ impl GetRequest {
     /// Note that the *value* parameter also accepts the following types that can be converted to a :class:`Value`:
     ///
     /// * **bytes** for a ``Value.Raw(APP_OCTET_STREAM, bytes)``
-    /// * **str** for a ``Value.StringUTF8(str)``
+    /// * **str** for a ``Value.StringUtf8(str)``
     /// * **int** for a ``Value.Integer(int)``
     /// * **float** for a ``Value.Float(int)``
     /// * **dict of str:str** for a ``Value.Properties(dict)``
