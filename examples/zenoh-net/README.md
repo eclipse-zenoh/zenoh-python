@@ -20,7 +20,7 @@
 
    Typical usage:
    ```bash
-      python3 zn_scout
+      python3 zn_scout.py
    ```
 
 ### zn_info
@@ -29,7 +29,7 @@
 
    Typical usage:
    ```bash
-      python3 zn_info
+      python3 zn_info.py
    ```
 
 
@@ -41,11 +41,11 @@
 
    Typical usage:
    ```bash
-      python3 zn_write
+      python3 zn_write.py
    ```
    or
    ```bash
-      python3 zn_write -p /demo/example/test -v 'Hello World'
+      python3 zn_write.py -p /demo/example/test -v 'Hello World'
    ```
 
 ### zn_pub
@@ -56,11 +56,11 @@
 
    Typical usage:
    ```bash
-      python3 zn_pub
+      python3 zn_pub.py
    ```
    or
    ```bash
-      python3 zn_pub -p /demo/example/test -v 'Hello World'
+      python3 zn_pub.py -p /demo/example/test -v 'Hello World'
    ```
 
 ### zn_sub
@@ -71,11 +71,11 @@
 
    Typical usage:
    ```bash
-      python3 zn_sub
+      python3 zn_sub.py
    ```
    or
    ```bash
-      python3 zn_sub -s /demo/**
+      python3 zn_sub.py -s /demo/**
    ```
 
 ### zn_pull
@@ -86,11 +86,11 @@
 
    Typical usage:
    ```bash
-      python3 zn_pull
+      python3 zn_pull.py
    ```
    or
    ```bash
-      python3 zn_pull -s /demo/**
+      python3 zn_pull.py -s /demo/**
    ```
 
 ### zn_query
@@ -101,11 +101,11 @@
 
    Typical usage:
    ```bash
-      python3 zn_query
+      python3 zn_query.py
    ```
    or
    ```bash
-      python3 zn_query -s /demo/**
+      python3 zn_query.py -s /demo/**
    ```
 
 ### zn_eval
@@ -116,11 +116,11 @@
 
    Typical usage:
    ```bash
-      python3 zn_eval
+      python3 zn_eval.py
    ```
    or
    ```bash
-      python3 zn_eval -p /demo/example/eval -v 'This is the result'
+      python3 zn_eval.py -p /demo/example/eval -v 'This is the result'
    ```
 
 ### zn_storage
@@ -133,11 +133,11 @@
 
    Typical usage:
    ```bash
-      python3 zn_storage
+      python3 zn_storage.py
    ```
    or
    ```bash
-      python3 zn_storage -s /demo/**
+      python3 zn_storage.py -s /demo/**
    ```
 
 ### zn_pub_thr & zn_sub_thr
@@ -148,10 +148,10 @@
 
    Typical Subscriber usage:
    ```bash
-      python3 zn_sub_thr
+      python3 zn_sub_thr.py
    ```
 
    Typical Publisher usage:
    ```bash
-      python3 zn_pub_thr 1024
+      python3 zn_pub_thr.py 1024
    ```

@@ -24,11 +24,11 @@
 
    Typical usage:
    ```bash
-      python3 z_put
+      python3 z_put.py
    ```
    or
    ```bash
-      python3 z_put -p /demo/example/test -v 'Hello World'
+      python3 z_put.py -p /demo/example/test -v 'Hello World'
    ```
 
 ### z_put_float
@@ -41,11 +41,11 @@
 
    Typical usage:
    ```bash
-      python3 z_put_float
+      python3 z_put_float.py
    ```
    or
    ```bash
-      python3 z_put_float -p /demo/example/test -v 1.61803398875
+      python3 z_put_float.py -p /demo/example/test -v 1.61803398875
    ```
 
 ### z_get
@@ -57,11 +57,11 @@
 
    Typical usage:
    ```bash
-      python3 z_get
+      python3 z_get.py
    ```
    or
    ```bash
-      python3 z_get -s /demo/**
+      python3 z_get.py -s /demo/**
    ```
 
 ### z_delete
@@ -72,11 +72,11 @@
 
    Typical usage:
    ```bash
-      python3 z_delete
+      python3 z_delete.py
    ```
    or
    ```bash
-      python3 z_delete -p /demo/example/test
+      python3 z_delete.py -p /demo/example/test
    ```
 
 ### z_sub
@@ -87,11 +87,11 @@
 
    Typical usage:
    ```bash
-      python3 z_sub
+      python3 z_sub.py
    ```
    or
    ```bash
-      python3 z_sub -s /demo/**
+      python3 z_sub.py -s /demo/**
    ```
 
 ### z_eval
@@ -103,11 +103,11 @@
 
    Typical usage:
    ```bash
-      python3 z_eval
+      python3 z_eval.py
    ```
    or
    ```bash
-      python3 z_eval -p /demo/example/eval
+      python3 z_eval.py -p /demo/example/eval
    ```
 
 ### z_put_thr & z_sub_thr
@@ -119,10 +119,10 @@
 
    Typical Subscriber usage:
    ```bash
-      python3 z_sub_thr
+      python3 z_sub_thr.py
    ```
 
    Typical Publisher usage:
    ```bash
-      python3 z_put_thr 1024
+      python3 z_put_thr.py 1024
    ```
