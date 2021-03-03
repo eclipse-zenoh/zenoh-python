@@ -18,6 +18,7 @@ use pyo3::create_exception;
 use pyo3::prelude::*;
 use pyo3::{exceptions, wrap_pyfunction, wrap_pymodule};
 use std::collections::HashMap;
+use std::convert::TryFrom;
 
 mod zenoh_net;
 use zenoh_net::*;
@@ -84,6 +85,7 @@ sys.modules['zenoh.net'] = net
     )?;
 
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
+    m.add_wrapped(wrap_pyfunction!(config_from_file))?;
 
     m.add_class::<Zenoh>()?;
     m.add_class::<Workspace>()?;
@@ -117,6 +119,18 @@ fn to_pyerr(err: zenoh::ZError) -> PyErr {
 #[pyfunction]
 fn init_logger() {
     env_logger::init();
+}
+
+/// Parse a configuration file for zenoh, returning a dictionary of str:str.
+/// The file must contain 1 "key=value" property per line. Comments lines starting with '#' character are ignored.
+///
+/// :param path: The path to the config file.
+///
+#[pyfunction]
+fn config_from_file(path: &str) -> PyResult<HashMap<String, String>> {
+    zenoh::Properties::try_from(std::path::Path::new(path))
+        .map(|p| p.0)
+        .map_err(to_pyerr)
 }
 
 /// The zenoh client API.

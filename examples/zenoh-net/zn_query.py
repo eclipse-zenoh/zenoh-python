@@ -22,7 +22,6 @@ parser = argparse.ArgumentParser(
     prog='zn_query',
     description='zenoh-net query example')
 parser.add_argument('--mode', '-m', dest='mode',
-                    default='peer',
                     choices=['peer', 'client'],
                     type=str,
                     help='The zenoh session mode.')
@@ -40,9 +39,15 @@ parser.add_argument('--selector', '-s', dest='selector',
                     default='/demo/example/**',
                     type=str,
                     help='The selection of resources to query.')
+parser.add_argument('--config', '-c', dest='config',
+                    metavar='FILE',
+                    type=str,
+                    help='A configuration file.')
 
 args = parser.parse_args()
-conf = { "mode": args.mode }
+conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+if args.mode is not None:
+    conf["mode"] = args.mode
 if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
@@ -61,6 +66,6 @@ print("Sending Query '{}'...".format(selector))
 replies = session.query_collect(selector, '')
 for reply in replies:
     print(">> [Reply handler] received ({}:{})"
-        .format(reply.data.res_name, reply.data.payload.decode("utf-8")))
+          .format(reply.data.res_name, reply.data.payload.decode("utf-8")))
 
 session.close()

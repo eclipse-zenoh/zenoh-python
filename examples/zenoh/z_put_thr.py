@@ -26,7 +26,6 @@ parser.add_argument('size',
                     type=int,
                     help='Sets the size of the payload to put.')
 parser.add_argument('--mode', '-m', dest='mode',
-                    default='peer',
                     choices=['peer', 'client'],
                     type=str,
                     help='The zenoh session mode.')
@@ -40,9 +39,15 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
+parser.add_argument('--config', '-c', dest='config',
+                    metavar='FILE',
+                    type=str,
+                    help='A configuration file.')
 
 args = parser.parse_args()
-conf = { "mode": args.mode }
+conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+if args.mode is not None:
+    conf["mode"] = args.mode
 if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
