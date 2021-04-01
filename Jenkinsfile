@@ -101,7 +101,7 @@ pipeline {
       when { expression { return params.PUBLISH_RESULTS && !env.GIT_TAG.startsWith('origin/') }}
       steps {
         sh '''
-          python3 -m twine upload --repository eclipse-zenoh target/wheels/*.whl target/wheels/*.tar.gz
+          python3 -m twine upload --repository eclipse-zenoh `find target -name "*.whl"` target/wheels/*.tar.gz
         '''
       }
     }
@@ -109,7 +109,7 @@ pipeline {
 
   post {
     success {
-        archiveArtifacts artifacts: 'target/wheels/*.whl, target/wheels/*.tar.gz', fingerprint: true
+        archiveArtifacts artifacts: 'target/**/*.whl, target/wheels/*.tar.gz', fingerprint: true
     }
   }
 }
