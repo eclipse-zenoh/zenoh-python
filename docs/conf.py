@@ -33,7 +33,7 @@ copyright = '2020, ADLINK zenoh team, <zenoh@adlink-labs.tech>'
 author = 'ADLINK zenoh team, <zenoh@adlink-labs.tech>'
 
 # The full version, including alpha/beta/rc tags
-release = '0.5.0-b8'
+release = '0.5.0-dev'
 
 
 # -- General configuration ---------------------------------------------------
