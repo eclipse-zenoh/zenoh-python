@@ -98,6 +98,11 @@ CongestionControl
 .. autoclass:: zenoh.net.CongestionControl
     :members:
 
+    .. autoattribute:: Drop
+            :annotation:
+    .. autoattribute:: Block
+            :annotation:
+
 Query
 -----
 .. autoclass:: zenoh.net.Query
@@ -112,6 +117,15 @@ Target
 ------
 .. autoclass:: zenoh.net.Target
     :members:
+
+    .. autoattribute:: BestMatching
+            :annotation:
+    .. autoattribute:: Complete
+            :annotation:
+    .. autoattribute:: All
+            :annotation:
+    .. autoattribute:: No
+            :annotation:
 
 QueryTarget
 -----------
