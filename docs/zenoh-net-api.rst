@@ -93,6 +93,11 @@ Publisher
 .. autoclass:: zenoh.net.Publisher
     :members:
 
+CongestionControl
+-----------------
+.. autoclass:: zenoh.net.CongestionControl
+    :members:
+
 Query
 -----
 .. autoclass:: zenoh.net.Query
@@ -167,6 +172,12 @@ module zenoh.net.resource_name
 module zenoh.net.encoding
 -------------------------
 .. automodule:: zenoh.net.encoding
+    :members:
+    :undoc-members:
+
+module zenoh.net.data_kind
+--------------------------
+.. automodule:: zenoh.net.data_kind
     :members:
     :undoc-members:
 

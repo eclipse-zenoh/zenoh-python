@@ -20,7 +20,7 @@ use futures::select;
 use log::warn;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyTuple};
-use zenoh::net::{ResourceId, ZInt};
+use zenoh::net::{data_kind, encoding, ResourceId, ZInt};
 
 /// A zenoh-net session.
 #[pyclass]
@@ -65,6 +65,12 @@ impl Session {
     /// :type resource: ResKey
     /// :param payload: The value to write
     /// :type payload: bytes
+    /// :param encoding: The encoding of the value
+    /// :type encoding: int, optional
+    /// :param kind: The kind of value
+    /// :type kind: int, optional
+    /// :param congestion_control: The value for the congestion control
+    /// :type congestion_control: CongestionControl, optional
     ///
     /// :Examples:
     ///
@@ -72,10 +78,21 @@ impl Session {
     /// >>> s = zenoh.net.open({})
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
     #[text_signature = "(self, resource, payload)"]
-    fn write(&self, resource: &PyAny, payload: &[u8]) -> PyResult<()> {
+    fn write(
+        &self,
+        resource: &PyAny,
+        payload: &[u8],
+        encoding: Option<ZInt>,
+        kind: Option<ZInt>,
+        congestion_control: Option<CongestionControl>,
+    ) -> PyResult<()> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        task::block_on(s.write(&k, payload.into())).map_err(to_pyerr)
+        let encoding = encoding.unwrap_or(encoding::DEFAULT);
+        let kind = kind.unwrap_or(data_kind::DEFAULT);
+        let congestion_control = congestion_control.unwrap_or_default().cc;
+        task::block_on(s.write_ext(&k, payload.into(), encoding, kind, congestion_control))
+            .map_err(to_pyerr)
     }
 
     /// Associate a numerical Id with the given resource key.

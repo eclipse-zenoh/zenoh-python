@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import config
+from zenoh.net import config, CongestionControl
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -61,6 +61,7 @@ data = bytearray()
 for i in range(0, size):
     data.append(i % 10)
 data = bytes(data)
+congestion_control = CongestionControl.Drop()
 
 session = zenoh.net.open(conf)
 
@@ -69,4 +70,4 @@ rid = session.declare_resource('/test/thr')
 pub = session.declare_publisher(rid)
 
 while True:
-    session.write(rid, data)
+    session.write(rid, data, congestion_control=congestion_control)

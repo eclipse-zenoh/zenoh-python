@@ -999,3 +999,39 @@ impl Reply {
         }
     }
 }
+
+// zenoh.net.CongestionControl (simulate the enum as a class with static methods for the cases,
+// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+//
+/// The kind of congestion control.
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct CongestionControl {
+    pub(crate) cc: zenoh::net::CongestionControl,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl CongestionControl {
+    #[staticmethod]
+    fn Drop() -> CongestionControl {
+        CongestionControl {
+            cc: zenoh::net::CongestionControl::Drop,
+        }
+    }
+
+    #[staticmethod]
+    fn Block() -> CongestionControl {
+        CongestionControl {
+            cc: zenoh::net::CongestionControl::Block,
+        }
+    }
+}
+
+impl Default for CongestionControl {
+    fn default() -> Self {
+        CongestionControl {
+            cc: zenoh::net::CongestionControl::default(),
+        }
+    }
+}

@@ -24,6 +24,7 @@ pub(crate) mod types;
 pub(crate) use types::*;
 mod session;
 use session::*;
+mod data_kind;
 mod encoding;
 
 /// The network level zenoh API.
@@ -135,6 +136,18 @@ sys.modules['zenoh.net.encoding'] = encoding
         Some(m.dict()),
     )?;
 
+    m.add_class::<data_kind::data_kind>()?;
+    // force addition of "zenoh.net.data_kind" module
+    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
+    py.run(
+        "\
+import sys
+sys.modules['zenoh.net.data_kind'] = data_kind
+        ",
+        None,
+        Some(m.dict()),
+    )?;
+
     m.add_class::<Hello>()?;
     m.add_class::<ResKey>()?;
     m.add_class::<PeerId>()?;
@@ -145,6 +158,7 @@ sys.modules['zenoh.net.encoding'] = encoding
     m.add_class::<SubMode>()?;
     m.add_class::<Period>()?;
     m.add_class::<SubInfo>()?;
+    m.add_class::<CongestionControl>()?;
     m.add_class::<Publisher>()?;
     m.add_class::<Subscriber>()?;
     m.add_class::<Query>()?;
