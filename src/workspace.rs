@@ -20,6 +20,8 @@ use futures::select;
 use log::warn;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use zenoh::net::Receiver;
+use zenoh::ZFuture;
 
 /// A Workspace to operate on zenoh.
 ///
@@ -81,7 +83,7 @@ impl Workspace {
     fn put(&self, path: String, value: &PyAny) -> PyResult<()> {
         let p = path_of_string(path)?;
         let v = zvalue_of_pyany(value)?;
-        task::block_on(self.w.put(&p, v)).map_err(to_pyerr)
+        self.w.put(&p, v).wait().map_err(to_pyerr)
     }
 
     /// Delete a path and its value from zenoh.
@@ -102,7 +104,7 @@ impl Workspace {
     #[text_signature = "(self, path)"]
     fn delete(&self, path: String) -> PyResult<()> {
         let p = path_of_string(path)?;
-        task::block_on(self.w.delete(&p)).map_err(to_pyerr)
+        self.w.delete(&p).wait().map_err(to_pyerr)
     }
 
     /// Get a selection of path/value from zenoh.
@@ -126,14 +128,12 @@ impl Workspace {
     #[text_signature = "(self, selector)"]
     fn get(&self, selector: String) -> PyResult<Vec<Data>> {
         let s = selector_of_string(selector)?;
-        task::block_on(async {
-            let mut data_stream = self.w.get(&s).await.map_err(to_pyerr)?;
-            let mut result = vec![];
-            while let Some(d) = data_stream.next().await {
-                result.push(Data { d })
-            }
-            Ok(result)
-        })
+        let data_stream = self.w.get(&s).wait().map_err(to_pyerr)?;
+        let mut result = vec![];
+        while let Ok(d) = data_stream.recv() {
+            result.push(Data { d })
+        }
+        Ok(result)
     }
 
     /// Subscribe to changes for a selection of path/value (specified via a selector) from zenoh.
@@ -163,11 +163,13 @@ impl Workspace {
     #[text_signature = "(self, selector, callback)"]
     fn subscribe(&self, selector: String, callback: &PyAny) -> PyResult<Subscriber> {
         let s = selector_of_string(selector)?;
-        let stream = task::block_on(self.w.subscribe(&s)).map_err(to_pyerr)?;
-        // Note: workaround to allow moving of stream into the task below.
+        let receiver = self.w.subscribe(&s).wait().map_err(to_pyerr)?;
+        // Note: workaround to allow moving of receiver into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-        let mut static_stream = unsafe {
-            std::mem::transmute::<zenoh::ChangeStream<'_>, zenoh::ChangeStream<'static>>(stream)
+        let mut static_receiver = unsafe {
+            std::mem::transmute::<zenoh::ChangeReceiver<'_>, zenoh::ChangeReceiver<'static>>(
+                receiver,
+            )
         };
 
         // Note: callback cannot be passed as such in task below because it's not Send
@@ -181,7 +183,7 @@ impl Workspace {
             task::block_on(async move {
                 loop {
                     select!(
-                        change = static_stream.next().fuse() => {
+                        change = static_receiver.next().fuse() => {
                             // Acquire Python GIL to call the callback
                             let gil = Python::acquire_gil();
                             let py = gil.python();
@@ -192,7 +194,7 @@ impl Workspace {
                             }
                         },
                         _ = close_rx.recv().fuse() => {
-                            if let Err(e) = static_stream.close().await {
+                            if let Err(e) = static_receiver.close().await {
                                 warn!("Error closing Subscriber: {}", e);
                             }
                             return
@@ -236,12 +238,12 @@ impl Workspace {
     #[text_signature = "(self, path_expr, callback)"]
     fn register_eval(&self, path_expr: String, callback: &PyAny) -> PyResult<Eval> {
         let p = pathexpr_of_string(path_expr)?;
-        let stream = task::block_on(self.w.register_eval(&p)).map_err(to_pyerr)?;
+        let receiver = self.w.register_eval(&p).wait().map_err(to_pyerr)?;
         // Note: workaround to allow moving of stream into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-        let mut static_stream = unsafe {
+        let mut static_receiver = unsafe {
             std::mem::transmute::<zenoh::GetRequestStream<'_>, zenoh::GetRequestStream<'static>>(
-                stream,
+                receiver,
             )
         };
 
@@ -256,7 +258,7 @@ impl Workspace {
             task::block_on(async move {
                 loop {
                     select!(
-                        req = static_stream.next().fuse() => {
+                        req = static_receiver.next().fuse() => {
                             // Acquire Python GIL to call the callback
                             let gil = Python::acquire_gil();
                             let py = gil.python();
@@ -267,7 +269,7 @@ impl Workspace {
                             }
                         },
                         _ = close_rx.recv().fuse() => {
-                            if let Err(e) = static_stream.close().await {
+                            if let Err(e) = static_receiver.close().await {
                                 warn!("Error closing Subscriber: {}", e);
                             }
                             return

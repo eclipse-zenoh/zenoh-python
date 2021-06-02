@@ -20,6 +20,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyTuple};
 use pyo3::PyObjectProtocol;
 use zenoh::net::{ResourceId, ZInt};
+use zenoh::ZFuture;
 
 // zenoh.net.config (simulate the package as a class, and consts as class attributes)
 /// Constants and helpers to build the configuration to pass to :func:`zenoh.net.open`.
@@ -663,7 +664,7 @@ impl Publisher {
     /// Undeclare the publisher.
     fn undeclare(&mut self) -> PyResult<()> {
         match self.p.take() {
-            Some(p) => task::block_on(p.undeclare()).map_err(to_pyerr),
+            Some(p) => p.undeclare().wait().map_err(to_pyerr),
             None => Ok(()),
         }
     }
@@ -768,7 +769,7 @@ impl Query {
     /// :type: Sample
     #[text_signature = "(self, sample)"]
     fn reply(&self, sample: Sample) {
-        task::block_on(self.q.reply(sample.s));
+        self.q.reply(sample.s);
     }
 }
 

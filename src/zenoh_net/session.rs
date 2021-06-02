@@ -21,6 +21,7 @@ use log::warn;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyTuple};
 use zenoh::net::{data_kind, encoding, ResourceId, ZInt};
+use zenoh::ZFuture;
 
 /// A zenoh-net session.
 #[pyclass]
@@ -33,7 +34,7 @@ impl Session {
     /// Close the zenoh-net Session.
     fn close(&mut self) -> PyResult<()> {
         let s = self.take()?;
-        task::block_on(s.close()).map_err(to_pyerr)
+        s.close().wait().map_err(to_pyerr)
     }
 
     /// Get informations about the zenoh-net Session.
@@ -49,7 +50,7 @@ impl Session {
     /// >>>    print("{} : {}".format(key, info[key]))
     fn info(&self, py: Python) -> PyResult<PyObject> {
         let s = self.as_ref()?;
-        let props = task::block_on(s.info());
+        let props = s.info().wait();
         Ok(props_to_pydict(py, props.into()).to_object(py))
     }
 
@@ -91,7 +92,8 @@ impl Session {
         let encoding = encoding.unwrap_or(encoding::DEFAULT);
         let kind = kind.unwrap_or(data_kind::DEFAULT);
         let congestion_control = congestion_control.unwrap_or_default().cc;
-        task::block_on(s.write_ext(&k, payload.into(), encoding, kind, congestion_control))
+        s.write_ext(&k, payload.into(), encoding, kind, congestion_control)
+            .wait()
             .map_err(to_pyerr)
     }
 
@@ -119,7 +121,7 @@ impl Session {
     fn declare_resource(&self, resource: &PyAny) -> PyResult<ResourceId> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        task::block_on(s.declare_resource(&k)).map_err(to_pyerr)
+        s.declare_resource(&k).wait().map_err(to_pyerr)
     }
 
     /// Undeclare the *numerical Id/resource key* association previously declared
@@ -137,7 +139,7 @@ impl Session {
     #[text_signature = "(self, rid)"]
     fn undeclare_resource(&self, rid: ResourceId) -> PyResult<()> {
         let s = self.as_ref()?;
-        task::block_on(s.undeclare_resource(rid)).map_err(to_pyerr)
+        s.undeclare_resource(rid).wait().map_err(to_pyerr)
     }
 
     /// Declare a Publisher for the given resource key.
@@ -165,7 +167,7 @@ impl Session {
     fn declare_publisher(&self, resource: &PyAny) -> PyResult<Publisher> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let zn_pub = task::block_on(s.declare_publisher(&k)).map_err(to_pyerr)?;
+        let zn_pub = s.declare_publisher(&k).wait().map_err(to_pyerr)?;
 
         // Note: this is a workaround for pyo3 not supporting lifetime in PyClass. See https://github.com/PyO3/pyo3/issues/502.
         // We extend zenoh::net::Publisher's lifetime to 'static to be wrapped in Publisher PyClass
@@ -212,7 +214,7 @@ impl Session {
     ) -> PyResult<Subscriber> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let zn_sub = task::block_on(s.declare_subscriber(&k, &info.i)).map_err(to_pyerr)?;
+        let zn_sub = s.declare_subscriber(&k, &info.i).wait().map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_sub into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
         let mut static_zn_sub = unsafe {
@@ -232,7 +234,7 @@ impl Session {
             task::block_on(async move {
                 loop {
                     select!(
-                        s = static_zn_sub.stream().next().fuse() => {
+                        s = static_zn_sub.receiver().next().fuse() => {
                             // Acquire Python GIL to call the callback
                             let gil = Python::acquire_gil();
                             let py = gil.python();
@@ -304,7 +306,7 @@ impl Session {
     ) -> PyResult<Queryable> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let zn_quer = task::block_on(s.declare_queryable(&k, kind)).map_err(to_pyerr)?;
+        let zn_quer = s.declare_queryable(&k, kind).wait().map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_quer into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
         let mut static_zn_quer = unsafe {
@@ -324,7 +326,7 @@ impl Session {
             task::block_on(async move {
                 loop {
                     select!(
-                        q = static_zn_quer.stream().next().fuse() => {
+                        q = static_zn_quer.receiver().next().fuse() => {
                             // Acquire Python GIL to call the callback
                             let gil = Python::acquire_gil();
                             let py = gil.python();
@@ -392,13 +394,15 @@ impl Session {
     ) -> PyResult<()> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let mut zn_recv = task::block_on(s.query(
-            &k,
-            predicate,
-            target.unwrap_or_default().t,
-            consolidation.unwrap_or_default().c,
-        ))
-        .map_err(to_pyerr)?;
+        let mut zn_recv = s
+            .query(
+                &k,
+                predicate,
+                target.unwrap_or_default().t,
+                consolidation.unwrap_or_default().c,
+            )
+            .wait()
+            .map_err(to_pyerr)?;
 
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();

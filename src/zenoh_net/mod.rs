@@ -215,9 +215,11 @@ fn open(config: &PyDict) -> PyResult<Session> {
 fn scout(whatami: ZInt, config: &PyDict, scout_duration: f64) -> PyResult<Vec<Hello>> {
     task::block_on(async move {
         let mut result = Vec::<Hello>::new();
-        let mut stream = zenoh::net::scout(whatami, pydict_to_props(config).into()).await;
+        let mut receiver = zenoh::net::scout(whatami, pydict_to_props(config).into())
+            .await
+            .unwrap();
         let scout = async {
-            while let Some(h) = stream.next().await {
+            while let Some(h) = receiver.next().await {
                 result.push(Hello { h })
             }
         };
