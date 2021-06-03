@@ -86,7 +86,9 @@ def eval_callback(get_request):
             name = dataset[0].value.get_content()
 
     print('   >> Replying string: "Eval from {}"'.format(name))
-    get_request.reply(path, 'Eval from {}'.format(name))
+    get_request.reply(path, '#1Eval from {}'.format(name))
+    get_request.reply(path, '#2Eval from {}'.format(name))
+    get_request.reply(path, '#3Eval from {}'.format(name))
 
 
 print("Register eval for '{}'...".format(path))

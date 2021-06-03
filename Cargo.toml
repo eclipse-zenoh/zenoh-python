@@ -41,7 +41,7 @@ crate-type = ["cdylib"]
 [dependencies]
 zenoh = { git = "https://github.com/eclipse-zenoh/zenoh" }
 async-std = "=1.9.0"
-uhlc = "0.2"
+uhlc = "0.3"
 futures = "0.3.12"
 log = "0.4"
 env_logger = "0.8.2"
