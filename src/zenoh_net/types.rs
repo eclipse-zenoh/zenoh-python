@@ -987,8 +987,8 @@ impl Reply {
     ///
     /// :type: int
     #[getter]
-    fn source_kind(&self) -> ZInt {
-        self.r.source_kind
+    fn replier_kind(&self) -> ZInt {
+        self.r.replier_kind
     }
 
     /// The identifier of reply source
