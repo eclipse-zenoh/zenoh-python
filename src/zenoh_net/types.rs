@@ -67,8 +67,8 @@ impl config {
     }
 
     #[classattr]
-    pub fn ZN_MULTICAST_ADDRESS_KEY() -> ZInt {
-        zenoh::net::config::ZN_MULTICAST_ADDRESS_KEY
+    pub fn ZN_MULTICAST_IPV4_ADDRESS_KEY() -> ZInt {
+        zenoh::net::config::ZN_MULTICAST_IPV4_ADDRESS_KEY
     }
 
     #[classattr]
@@ -290,8 +290,8 @@ impl ResKey {
     }
 
     /// Returns ``True`` if the resource key is a :meth:`RId`.
-    fn is_numerical(&self) -> bool {
-        self.k.is_numerical()
+    fn is_numeric(&self) -> bool {
+        self.k.is_numeric()
     }
 }
 
