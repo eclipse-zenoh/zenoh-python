@@ -182,7 +182,7 @@ impl Hello {
     /// :type: :class:`PeerId` or ``None``
     #[getter]
     fn pid(&self) -> Option<PeerId> {
-        self.h.pid.as_ref().map(|p| PeerId { p: p.clone() })
+        self.h.pid.as_ref().map(|p| PeerId { p: *p })
     }
 
     /// The mode of the Hello message sender (bitmask of constants from :class:`whatami`)
@@ -405,7 +405,7 @@ impl DataInfo {
     /// :type: :class:`PeerId` or ``None``
     #[getter]
     fn source_id(&self) -> Option<PeerId> {
-        self.i.source_id.as_ref().map(|p| PeerId { p: p.clone() })
+        self.i.source_id.as_ref().map(|p| PeerId { p: *p })
     }
 
     /// The source sequence number of the data.
@@ -421,10 +421,7 @@ impl DataInfo {
     /// :type: :class:`PeerId` or ``None``
     #[getter]
     fn first_router_id(&self) -> Option<PeerId> {
-        self.i
-            .first_router_id
-            .as_ref()
-            .map(|p| PeerId { p: p.clone() })
+        self.i.first_router_id.as_ref().map(|p| PeerId { p: *p })
     }
 
     /// The first router sequence number of the data.
@@ -996,7 +993,7 @@ impl Reply {
     /// :type: PeerId
     fn replier_id(&self) -> PeerId {
         PeerId {
-            p: self.r.replier_id.clone(),
+            p: self.r.replier_id,
         }
     }
 }
