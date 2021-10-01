@@ -14,8 +14,8 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import config, Sample
-from zenoh.net.queryable import EVAL
+from zenoh import config, Sample
+from zenoh.queryable import EVAL
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -72,10 +72,10 @@ def eval_callback(query):
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
 print("Declaring Queryable on '{}'...".format(path))
-queryable = session.declare_queryable(
+queryable = session.register_queryable(
     path, EVAL, eval_callback)
 
 print("Press q to stop...")

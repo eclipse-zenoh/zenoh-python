@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import config
+from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -53,7 +53,7 @@ if args.listener is not None:
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
 info = session.info()
 for key in info:

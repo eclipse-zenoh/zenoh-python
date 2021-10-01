@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use super::data_kind::SampleKind;
+use super::encoding::Encoding;
 //
 // Copyright (c) 2017, 2020 ADLINK Technology Inc.
 //
@@ -11,28 +15,32 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
-use super::types::*;
-use crate::{props_to_pydict, to_pyerr, ZError};
+use super::types::{
+    znreskey_of_pyany, CongestionControl, Publisher, Query, QueryConsolidation, QueryTarget,
+    Queryable, Reply, Sample, Subscriber, ZnSubOps,
+};
+use crate::types::{Reliability, SubMode};
+use crate::{to_pyerr, ZError};
 use async_std::channel::bounded;
 use async_std::task;
 use futures::prelude::*;
 use futures::select;
 use log::warn;
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PyTuple};
-use zenoh::net::{data_kind, encoding, ResourceId, ZInt};
-use zenoh::ZFuture;
+use pyo3::types::{IntoPyDict, PyList, PyTuple};
+use zenoh::prelude::KeyedSelector;
+use zenoh::prelude::{ResourceId, ZFuture, ZInt};
 
 /// A zenoh-net session.
 #[pyclass]
-pub(crate) struct Session {
-    s: Option<zenoh::net::Session>,
+pub struct Session {
+    s: Option<zenoh::Session>,
 }
 
 #[pymethods]
 impl Session {
     /// Close the zenoh-net Session.
-    fn close(&mut self) -> PyResult<()> {
+    pub fn close(&mut self) -> PyResult<()> {
         let s = self.take()?;
         s.close().wait().map_err(to_pyerr)
     }
@@ -44,14 +52,20 @@ impl Session {
     /// :Example:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open({})
+    /// >>> s = zenoh.open({})
     /// >>> info = s.info()
     /// >>> for key in info:
     /// >>>    print("{} : {}".format(key, info[key]))
-    fn info(&self, py: Python) -> PyResult<PyObject> {
+    pub fn info(&self, py: Python) -> PyResult<PyObject> {
+        use zenoh_util::properties::KeyTranscoder;
         let s = self.as_ref()?;
         let props = s.info().wait();
-        Ok(props_to_pydict(py, props.into()).to_object(py))
+        let pydict: HashMap<String, String> = props
+            .0
+            .into_iter()
+            .filter_map(|(k, v)| zenoh::info::InfoTranscoder::decode(k).map(|k| (k, v)))
+            .collect();
+        Ok(pydict.into_py_dict(py).to_object(py))
     }
 
     /// Write data.
@@ -76,23 +90,24 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open({})
+    /// >>> s = zenoh.open({})
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
     #[text_signature = "(self, resource, payload)"]
-    fn write(
+    pub fn write(
         &self,
         resource: &PyAny,
         payload: &[u8],
-        encoding: Option<ZInt>,
-        kind: Option<ZInt>,
+        encoding: Option<Encoding>,
+        kind: Option<SampleKind>,
         congestion_control: Option<CongestionControl>,
     ) -> PyResult<()> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let encoding = encoding.unwrap_or(encoding::DEFAULT);
-        let kind = kind.unwrap_or(data_kind::DEFAULT);
-        let congestion_control = congestion_control.unwrap_or_default().cc;
-        s.write_ext(&k, payload.into(), encoding, kind, congestion_control)
+        let encoding = encoding.unwrap_or_default();
+        let value = zenoh::prelude::Value::from(payload).encoding(encoding.into());
+        s.put(k, value)
+            .kind(kind.unwrap_or_default().kind)
+            .congestion_control(congestion_control.unwrap_or_default().cc)
             .wait()
             .map_err(to_pyerr)
     }
@@ -115,17 +130,17 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open({})
-    /// >>> rid = s.declare_resource('/resource/name')
+    /// >>> s = zenoh.open({})
+    /// >>> rid = s.register_resource('/resource/name')
     #[text_signature = "(self, resource)"]
-    fn declare_resource(&self, resource: &PyAny) -> PyResult<ResourceId> {
+    pub fn register_resource(&self, resource: &PyAny) -> PyResult<ResourceId> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        s.declare_resource(&k).wait().map_err(to_pyerr)
+        s.register_resource(&k).wait().map_err(to_pyerr)
     }
 
     /// Undeclare the *numerical Id/resource key* association previously declared
-    /// with :meth:`declare_resource`.
+    /// with :meth:`register_resource`.
     ///
     /// :param rid: The numerical Id to unmap
     /// :type rid: ResKey
@@ -133,13 +148,13 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open({})
-    /// >>> rid = s.declare_resource('/resource/name')
-    /// >>> s.undeclare_resource(rid)
+    /// >>> s = zenoh.open({})
+    /// >>> rid = s.register_resource('/resource/name')
+    /// >>> s.unregister_resource(rid)
     #[text_signature = "(self, rid)"]
-    fn undeclare_resource(&self, rid: ResourceId) -> PyResult<()> {
+    pub fn unregister_resource(&self, rid: ResourceId) -> PyResult<()> {
         let s = self.as_ref()?;
-        s.undeclare_resource(rid).wait().map_err(to_pyerr)
+        s.unregister_resource(rid).wait().map_err(to_pyerr)
     }
 
     /// Declare a Publisher for the given resource key.
@@ -160,19 +175,22 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.net.open({})
-    /// >>> rid = s.declare_publisher('/resource/name')
+    /// >>> s = zenoh.open({})
+    /// >>> rid = s.publishing('/resource/name')
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
     #[text_signature = "(self, resource)"]
-    fn declare_publisher(&self, resource: &PyAny) -> PyResult<Publisher> {
+    fn publishing(&self, resource: &PyAny) -> PyResult<Publisher> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let zn_pub = s.declare_publisher(&k).wait().map_err(to_pyerr)?;
+        let zn_pub = s.publishing(&k).wait().map_err(to_pyerr)?;
 
         // Note: this is a workaround for pyo3 not supporting lifetime in PyClass. See https://github.com/PyO3/pyo3/issues/502.
-        // We extend zenoh::net::Publisher's lifetime to 'static to be wrapped in Publisher PyClass
+        // We extend zenoh::publisher::Publisher's lifetime to 'static to be wrapped in Publisher PyClass
         let static_zn_pub = unsafe {
-            std::mem::transmute::<zenoh::net::Publisher<'_>, zenoh::net::Publisher<'static>>(zn_pub)
+            std::mem::transmute::<
+                zenoh::publisher::Publisher<'_>,
+                zenoh::publisher::Publisher<'static>,
+            >(zn_pub)
         };
         Ok(Publisher {
             p: Some(static_zn_pub),
@@ -198,29 +216,36 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh, time
-    /// >>> from zenoh.net import SubInfo, Reliability, SubMode
+    /// >>> from zenoh import SubInfo, Reliability, SubMode
     /// >>>
-    /// >>> s = zenoh.net.open({})
+    /// >>> s = zenoh.open({})
     /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-    /// >>> sub = s.declare_subscriber('/resource/name', sub_info, lambda sample:
+    /// >>> sub = s.subscribe('/resource/name', sub_info, lambda sample:
     /// ...     print("Received : {}".format(sample)))
     /// >>> time.sleep(60)
-    #[text_signature = "(self, resource, info, callback)"]
-    fn declare_subscriber(
+    #[text_signature = "(self, resource, callback, reliability, mode)"]
+    fn subscribe(
         &self,
         resource: &PyAny,
-        info: &SubInfo,
         callback: &PyAny,
+        reliability: Option<Reliability>,
+        mode: Option<SubMode>,
     ) -> PyResult<Subscriber> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let zn_sub = s.declare_subscriber(&k, &info.i).wait().map_err(to_pyerr)?;
+        let zn_sub = s
+            .subscribe(&k)
+            .reliability(reliability.unwrap_or_default().r)
+            .mode(mode.unwrap_or_default().m)
+            .wait()
+            .map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_sub into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
         let mut static_zn_sub = unsafe {
-            std::mem::transmute::<zenoh::net::Subscriber<'_>, zenoh::net::Subscriber<'static>>(
-                zn_sub,
-            )
+            std::mem::transmute::<
+                zenoh::subscriber::Subscriber<'_>,
+                zenoh::subscriber::Subscriber<'static>,
+            >(zn_sub)
         };
 
         // Note: callback cannot be passed as such in task below because it's not Send
@@ -252,7 +277,7 @@ impl Session {
                                     }
                                 },
                                 Ok(ZnSubOps::Undeclare) => {
-                                    if let Err(e) = static_zn_sub.undeclare().await {
+                                    if let Err(e) = static_zn_sub.unregister().await {
                                         warn!("Error undeclaring subscriber: {}", e);
                                     }
                                     return
@@ -289,16 +314,16 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh, time
-    /// >>> from zenoh.net import Sample, queryable
+    /// >>> from zenoh import Sample, queryable
     /// >>> def callback(query):
     /// ...     print("Received : {}".format(query))
     /// ...     query.reply(Sample('/resource/name', bytes('value', encoding='utf8')))
     /// >>>
-    /// >>> s = zenoh.net.open({})
-    /// >>> q = s.declare_queryable('/resource/name', queryable.EVAL, callback)
+    /// >>> s = zenoh.open({})
+    /// >>> q = s.register_queryable('/resource/name', queryable.EVAL, callback)
     /// >>> time.sleep(60)
     #[text_signature = "(self, resource, kind, callback)"]
-    fn declare_queryable(
+    fn register_queryable(
         &self,
         resource: &PyAny,
         kind: ZInt,
@@ -306,13 +331,18 @@ impl Session {
     ) -> PyResult<Queryable> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let zn_quer = s.declare_queryable(&k, kind).wait().map_err(to_pyerr)?;
+        let zn_quer = s
+            .register_queryable(k)
+            .kind(kind)
+            .wait()
+            .map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_quer into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-        let mut static_zn_quer = unsafe {
-            std::mem::transmute::<zenoh::net::Queryable<'_>, zenoh::net::Queryable<'static>>(
-                zn_quer,
-            )
+        let mut zn_quer = unsafe {
+            std::mem::transmute::<
+                zenoh::queryable::Queryable<'_>,
+                zenoh::queryable::Queryable<'static>,
+            >(zn_quer)
         };
 
         // Note: callback cannot be passed as such in task below because it's not Send
@@ -326,7 +356,7 @@ impl Session {
             task::block_on(async move {
                 loop {
                     select!(
-                        q = static_zn_quer.receiver().next().fuse() => {
+                        q = zn_quer.receiver().next().fuse() => {
                             // Acquire Python GIL to call the callback
                             let gil = Python::acquire_gil();
                             let py = gil.python();
@@ -337,7 +367,7 @@ impl Session {
                             }
                         },
                         _ = undeclare_rx.recv().fuse() => {
-                            if let Err(e) = static_zn_quer.undeclare().await {
+                            if let Err(e) = zn_quer.unregister().await {
                                 warn!("Error undeclaring queryable: {}", e);
                             }
                             return
@@ -377,9 +407,9 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh, time
-    /// >>> from zenoh.net import QueryTarget, queryable
+    /// >>> from zenoh import QueryTarget, queryable
     /// >>>
-    /// >>> s = zenoh.net.open({})
+    /// >>> s = zenoh.open({})
     /// >>> s.query('/resource/name', 'predicate', lambda reply:
     /// ...    print("Received : {}".format(
     /// ...        reply.data if reply is not None else "FINAL")))
@@ -395,12 +425,9 @@ impl Session {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
         let mut zn_recv = s
-            .query(
-                &k,
-                predicate,
-                target.unwrap_or_default().t,
-                consolidation.unwrap_or_default().c,
-            )
+            .get(KeyedSelector::from(k).with_value_selector(predicate))
+            .target(target.unwrap_or_default().t)
+            .consolidation(consolidation.unwrap_or_default().c)
             .wait()
             .map_err(to_pyerr)?;
 
@@ -454,9 +481,9 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh, time
-    /// >>> from zenoh.net import QueryTarget, queryable
+    /// >>> from zenoh import QueryTarget, queryable
     /// >>>
-    /// >>> s = zenoh.net.open({})
+    /// >>> s = zenoh.open({})
     /// >>> replies = s.query_collect('/resource/name', 'predicate')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
@@ -472,12 +499,9 @@ impl Session {
         let k = znreskey_of_pyany(resource)?;
         task::block_on(async {
             let mut replies = s
-                .query(
-                    &k,
-                    predicate,
-                    target.unwrap_or_default().t,
-                    consolidation.unwrap_or_default().c,
-                )
+                .get(KeyedSelector::from(k).with_value_selector(predicate))
+                .target(target.unwrap_or_default().t)
+                .consolidation(consolidation.unwrap_or_default().c)
                 .map_err(to_pyerr)
                 .await?;
             let gil = Python::acquire_gil();
@@ -492,19 +516,19 @@ impl Session {
 }
 
 impl Session {
-    pub(crate) fn new(s: zenoh::net::Session) -> Self {
+    pub(crate) fn new(s: zenoh::Session) -> Self {
         Session { s: Some(s) }
     }
 
     #[inline]
-    fn as_ref(&self) -> PyResult<&zenoh::net::Session> {
+    fn as_ref(&self) -> PyResult<&zenoh::Session> {
         self.s
             .as_ref()
             .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
     }
 
     #[inline]
-    fn take(&mut self) -> PyResult<zenoh::net::Session> {
+    fn take(&mut self) -> PyResult<zenoh::Session> {
         self.s
             .take()
             .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))

@@ -14,7 +14,7 @@ import sys
 from datetime import datetime
 import argparse
 import zenoh
-from zenoh.net import config, SubInfo, Reliability, SubMode
+from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -57,8 +57,8 @@ selector = args.selector
 
 
 def listener(sample):
-    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else datetime.fromtimestamp(
-        sample.data_info.timestamp.time)
+    time = '(not specified)' if sample.data_info is None or sample.timestamp is None else datetime.fromtimestamp(
+        sample.timestamp.time)
     print(">> [Subscription listener] Received ('{}': '{}') published at {}"
           .format(sample.res_name, sample.payload.decode("utf-8"), time))
 
@@ -67,12 +67,11 @@ def listener(sample):
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
 print("Declaring Subscriber on '{}'...".format(selector))
-sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 
-sub = session.declare_subscriber(selector, sub_info, listener)
+sub = session.subscribe(selector, listener, Reliability.Reliable, SubMode.Push)
 
 print("Press q to stop...")
 c = '\0'

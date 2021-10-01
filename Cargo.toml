@@ -14,10 +14,12 @@
 [package]
 name = "eclipse-zenoh"
 version = "0.5.0-dev"
-authors = ["kydos <angelo@icorsaro.net>",
-           "Julien Enoch <julien@enoch.fr>",
-           "Olivier Hécart <olivier.hecart@adlinktech.com>",
-		   "Luca Cominardi <luca.cominardi@adlinktech.com>"]
+authors = [
+    "kydos <angelo@icorsaro.net>",
+    "Julien Enoch <julien@enoch.fr>",
+    "Olivier Hécart <olivier.hecart@adlinktech.com>",
+    "Luca Cominardi <luca.cominardi@adlinktech.com>",
+]
 edition = "2018"
 
 [package.metadata.maturin]
@@ -30,7 +32,7 @@ classifier = [
     "License :: OSI Approved :: Apache Software License",
     "License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)",
     "Operating System :: POSIX :: Linux",
-    "Operating System :: MacOS :: MacOS X"
+    "Operating System :: MacOS :: MacOS X",
 ]
 maintainer = "ADLINK zenoh team, <zenoh@adlink-labs.tech>"
 
@@ -39,7 +41,11 @@ name = "zenoh"
 crate-type = ["cdylib"]
 
 [dependencies]
-zenoh = { git = "https://github.com/eclipse-zenoh/zenoh" }
+zenoh = { git = "https://github.com/p-avital/zenoh", branch = "more-config-constructors" }
+zenoh-util = { git = "https://github.com/p-avital/zenoh", branch = "more-config-constructors" }
+validated_struct = "0.1"
+json5 = "0.4.1"
+serde_json = "1.0"
 async-std = "=1.9.0"
 uhlc = "0.3"
 futures = "0.3.12"
@@ -49,4 +55,3 @@ env_logger = "0.8.2"
 [dependencies.pyo3]
 version = "0.13.1"
 features = ["extension-module", "abi3-py36"]
-

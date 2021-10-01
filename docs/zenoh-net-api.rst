@@ -15,52 +15,52 @@
 Zenoh-net API Reference
 =======================
 
-.. automodule:: zenoh.net
+.. automodule:: zenoh
     :members: open, scout
 
 Hello
 -----
-.. autoclass:: zenoh.net.Hello
+.. autoclass:: zenoh.Hello
     :members:
 
 Session
 -------
-.. autoclass:: zenoh.net.Session
+.. autoclass:: zenoh.Session
     :members:
 
 Subscriber
 ----------
-.. autoclass:: zenoh.net.Subscriber
+.. autoclass:: zenoh.Subscriber
     :members:
 
 ResKey
 ------
-.. autoclass:: zenoh.net.ResKey
+.. autoclass:: zenoh.ResKey
     :members:
 
 PeerId
 ------
-.. autoclass:: zenoh.net.PeerId
+.. autoclass:: zenoh.PeerId
     :members:
 
 Timestamp
 ---------
-.. autoclass:: zenoh.net.Timestamp
+.. autoclass:: zenoh.Timestamp
     :members:
 
 DataInfo
 --------
-.. autoclass:: zenoh.net.DataInfo
+.. autoclass:: zenoh.DataInfo
     :members:
 
 Sample
 ------
-.. autoclass:: zenoh.net.Sample
+.. autoclass:: zenoh.Sample
     :members:
 
 Reliability
 -----------
-.. autoclass:: zenoh.net.Reliability
+.. autoclass:: zenoh.Reliability
     :members:
 
     .. autoattribute:: BestEffort
@@ -70,7 +70,7 @@ Reliability
 
 SubMode
 -------
-.. autoclass:: zenoh.net.SubMode
+.. autoclass:: zenoh.SubMode
     :members:
 
     .. autoattribute:: Push
@@ -80,22 +80,22 @@ SubMode
 
 Period
 ------
-.. autoclass:: zenoh.net.Period
+.. autoclass:: zenoh.Period
     :members:
 
 SubInfo
 -------
-.. autoclass:: zenoh.net.SubInfo
+.. autoclass:: zenoh.SubInfo
     :members:
 
 Publisher
 ---------
-.. autoclass:: zenoh.net.Publisher
+.. autoclass:: zenoh.Publisher
     :members:
 
 CongestionControl
 -----------------
-.. autoclass:: zenoh.net.CongestionControl
+.. autoclass:: zenoh.CongestionControl
     :members:
 
     .. autoattribute:: Drop
@@ -105,17 +105,17 @@ CongestionControl
 
 Query
 -----
-.. autoclass:: zenoh.net.Query
+.. autoclass:: zenoh.Query
     :members:
 
 Queryable
 ---------
-.. autoclass:: zenoh.net.Queryable
+.. autoclass:: zenoh.Queryable
     :members:
 
 Target
 ------
-.. autoclass:: zenoh.net.Target
+.. autoclass:: zenoh.Target
     :members:
 
     .. autoattribute:: BestMatching
@@ -129,12 +129,12 @@ Target
 
 QueryTarget
 -----------
-.. autoclass:: zenoh.net.QueryTarget
+.. autoclass:: zenoh.QueryTarget
     :members:
 
 ConsolidationMode
 -----------------
-.. autoclass:: zenoh.net.ConsolidationMode
+.. autoclass:: zenoh.ConsolidationMode
     :members:
 
     .. autoattribute:: No
@@ -146,52 +146,52 @@ ConsolidationMode
 
 QueryConsolidation
 ------------------
-.. autoclass:: zenoh.net.QueryConsolidation
+.. autoclass:: zenoh.QueryConsolidation
     :members:
 
 Reply
 -----
-.. autoclass:: zenoh.net.Reply
+.. autoclass:: zenoh.Reply
     :members:
 
-module zenoh.net.config
+module zenoh.config
 -----------------------
-.. automodule:: zenoh.net.config
+.. automodule:: zenoh.config
     :members:
     :undoc-members:
 
-module zenoh.net.info
+module zenoh.info
 ---------------------
-.. automodule:: zenoh.net.info
+.. automodule:: zenoh.info
     :members:
     :undoc-members:
 
-module zenoh.net.whatami
+module zenoh.whatami
 ------------------------
-.. automodule:: zenoh.net.whatami
+.. automodule:: zenoh.whatami
     :members:
     :undoc-members:
 
-module zenoh.net.queryable
+module zenoh.queryable
 --------------------------
-.. automodule:: zenoh.net.queryable
+.. automodule:: zenoh.queryable
     :members:
     :undoc-members:
 
-module zenoh.net.resource_name
+module zenoh.resource_name
 ------------------------------
-.. automodule:: zenoh.net.resource_name
+.. automodule:: zenoh.resource_name
     :members:
 
-module zenoh.net.encoding
+module zenoh.encoding
 -------------------------
-.. automodule:: zenoh.net.encoding
+.. automodule:: zenoh.encoding
     :members:
     :undoc-members:
 
-module zenoh.net.data_kind
+module zenoh.data_kind
 --------------------------
-.. automodule:: zenoh.net.data_kind
+.. automodule:: zenoh.data_kind
     :members:
     :undoc-members:
 

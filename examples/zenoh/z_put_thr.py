@@ -15,7 +15,7 @@ import time
 import argparse
 import zenoh
 from zenoh import Zenoh, Value
-from zenoh.net import encoding
+from zenoh import encoding
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(

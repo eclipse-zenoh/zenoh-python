@@ -14,8 +14,8 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import config, QueryTarget
-from zenoh.net.queryable import ALL_KINDS
+from zenoh import config, QueryTarget
+from zenoh.queryable import ALL_KINDS
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -60,7 +60,7 @@ selector = args.selector
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
 print("Sending Query '{}'...".format(selector))
 replies = session.query_collect(selector, '')

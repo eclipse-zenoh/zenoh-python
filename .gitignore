@@ -26,3 +26,4 @@ docs/_*
 *.BAK
 *.bak
 
+.vscode/

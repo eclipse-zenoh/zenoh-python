@@ -14,8 +14,8 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import config, SubInfo, Reliability, SubMode, Sample, resource_name
-from zenoh.net.queryable import STORAGE
+from zenoh import Reliability, SubMode, Sample, resource_name
+from zenoh.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -62,7 +62,7 @@ store = {}
 def listener(sample):
     print(">> [Storage listener] Received ('{}': '{}')"
           .format(sample.res_name, sample.payload.decode("utf-8")))
-    store[sample.res_name] = (sample.payload, sample.data_info)
+    store[sample.res_name] = (sample.value, sample.data_info)
 
 
 def query_handler(query):
@@ -71,22 +71,22 @@ def query_handler(query):
     replies = []
     for stored_name, (data, data_info) in store.items():
         if resource_name.intersect(query.res_name, stored_name):
-            query.reply(Sample(stored_name, data, data_info))
+            sample = Sample(stored_name, data)
+            sample.with_source_info(data_info)
+            query.reply(sample)
 
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
-
-sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
+session = zenoh.open(conf)
 
 print("Declaring Subscriber on '{}'...".format(selector))
-sub = session.declare_subscriber(selector, sub_info, listener)
+sub = session.subscribe(selector, listener, Reliability.Reliable, SubMode.Push)
 
 print("Declaring Queryable on '{}'...".format(selector))
-queryable = session.declare_queryable(
+queryable = session.register_queryable(
     selector, STORAGE, query_handler)
 
 print("Press q to stop...")

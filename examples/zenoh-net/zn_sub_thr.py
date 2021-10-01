@@ -15,7 +15,7 @@ import time
 import datetime
 import argparse
 import zenoh
-from zenoh.net import config, SubInfo, Reliability, SubMode
+from zenoh import  Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -94,11 +94,10 @@ def listener(sample):
 # initiate logging
 zenoh.init_logger()
 
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
-rid = session.declare_resource('/test/thr')
+rid = session.register_resource('/test/thr')
 
-sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-sub = session.declare_subscriber(rid, sub_info, listener)
+sub = session.subscribe(rid, listener, Reliability.Reliable, SubMode.Push)
 
 time.sleep(600)

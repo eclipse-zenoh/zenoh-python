@@ -15,7 +15,7 @@ import time
 import argparse
 import itertools
 import zenoh
-from zenoh.net import config
+from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -65,14 +65,14 @@ value = args.value
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
 print("Declaring Resource " + path)
-rid = session.declare_resource(path)
+rid = session.register_resource(path)
 print(" => RId {}".format(rid))
 
 print("Declaring Publisher on {}".format(rid))
-publisher = session.declare_publisher(rid)
+publisher = session.publishing(rid)
 
 for idx in itertools.count():
     time.sleep(1)
