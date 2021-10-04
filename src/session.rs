@@ -139,7 +139,7 @@ impl Session {
         s.register_resource(&k).wait().map_err(to_pyerr)
     }
 
-    /// Undeclare the *numerical Id/resource key* association previously declared
+    /// Unregister the *numerical Id/resource key* association previously registerd
     /// with :meth:`register_resource`.
     ///
     /// :param rid: The numerical Id to unmap
@@ -251,7 +251,7 @@ impl Session {
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
 
-        let (undeclare_tx, undeclare_rx) = bounded::<ZnSubOps>(8);
+        let (unregister_tx, unregister_rx) = bounded::<ZnSubOps>(8);
         // Note: This is done to ensure that even if the call-back into Python
         // does any blocking call we do not incour the risk of blocking
         // any of the task resolving futures.
@@ -269,14 +269,14 @@ impl Session {
                                 e.print(py);
                             }
                         },
-                        op = undeclare_rx.recv().fuse() => {
+                        op = unregister_rx.recv().fuse() => {
                             match op {
                                 Ok(ZnSubOps::Pull) => {
                                     if let Err(e) = static_zn_sub.pull().await {
                                         warn!("Error pulling the subscriber: {}", e);
                                     }
                                 },
-                                Ok(ZnSubOps::Undeclare) => {
+                                Ok(ZnSubOps::Unregister) => {
                                     if let Err(e) = static_zn_sub.unregister().await {
                                         warn!("Error undeclaring subscriber: {}", e);
                                     }
@@ -290,7 +290,7 @@ impl Session {
             })
         });
         Ok(Subscriber {
-            undeclare_tx,
+            unregister_tx,
             loop_handle: Some(loop_handle),
         })
     }
@@ -348,7 +348,7 @@ impl Session {
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
 
-        let (undeclare_tx, undeclare_rx) = bounded::<bool>(1);
+        let (unregister_tx, unregister_rx) = bounded::<bool>(1);
         // Note: This is done to ensure that even if the call-back into Python
         // does any blocking call we do not incour the risk of blocking
         // any of the task resolving futures.
@@ -366,7 +366,7 @@ impl Session {
                                 e.print(py);
                             }
                         },
-                        _ = undeclare_rx.recv().fuse() => {
+                        _ = unregister_rx.recv().fuse() => {
                             if let Err(e) = zn_quer.unregister().await {
                                 warn!("Error undeclaring queryable: {}", e);
                             }
@@ -377,7 +377,7 @@ impl Session {
             })
         });
         Ok(Queryable {
-            undeclare_tx,
+            unregister_tx,
             loop_handle: Some(loop_handle),
         })
     }

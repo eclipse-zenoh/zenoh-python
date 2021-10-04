@@ -94,6 +94,6 @@ c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
-sub.undeclare()
-queryable.undeclare()
+sub.unregister()
+queryable.unregister()
 session.close()

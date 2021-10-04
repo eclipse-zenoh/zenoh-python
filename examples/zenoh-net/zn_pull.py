@@ -80,5 +80,5 @@ while c != 'q':
     sub.pull()
     c = sys.stdin.read(1)
 
-sub.undeclare()
+sub.unregister()
 session.close()

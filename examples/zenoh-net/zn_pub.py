@@ -80,5 +80,5 @@ for idx in itertools.count():
     print("Writing Data ('{}': '{}')...".format(rid, buf))
     session.write(rid, bytes(buf, encoding='utf8'))
 
-publisher.undeclare()
+publisher.unregister()
 session.close()

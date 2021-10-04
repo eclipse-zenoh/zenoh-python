@@ -83,5 +83,5 @@ c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
-queryable.undeclare()
+queryable.unregister()
 session.close()

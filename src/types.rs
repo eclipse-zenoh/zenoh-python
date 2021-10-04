@@ -973,8 +973,8 @@ pub(crate) struct Publisher {
 
 #[pymethods]
 impl Publisher {
-    /// Undeclare the publisher.
-    fn undeclare(&mut self) -> PyResult<()> {
+    /// Unregister the publisher.
+    fn unregister(&mut self) -> PyResult<()> {
         match self.p.take() {
             Some(p) => p.unregister().wait().map_err(to_pyerr),
             None => Ok(()),
@@ -984,13 +984,13 @@ impl Publisher {
 
 pub(crate) enum ZnSubOps {
     Pull,
-    Undeclare,
+    Unregister,
 }
 
 /// A subscriber
 #[pyclass]
 pub(crate) struct Subscriber {
-    pub(crate) undeclare_tx: Sender<ZnSubOps>,
+    pub(crate) unregister_tx: Sender<ZnSubOps>,
     pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
 }
 
@@ -999,18 +999,18 @@ impl Subscriber {
     /// Pull available data for a pull-mode subscriber.
     fn pull(&self) {
         task::block_on(async {
-            if let Err(e) = self.undeclare_tx.send(ZnSubOps::Pull).await {
+            if let Err(e) = self.unregister_tx.send(ZnSubOps::Pull).await {
                 warn!("Error in Subscriber::pull() : {}", e);
             }
         });
     }
 
-    /// Undeclare the subscriber.
-    fn undeclare(&mut self) {
+    /// Unregister the subscriber.
+    fn unregister(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
-                if let Err(e) = self.undeclare_tx.send(ZnSubOps::Undeclare).await {
-                    warn!("Error in Subscriber::undeclare() : {}", e);
+                if let Err(e) = self.unregister_tx.send(ZnSubOps::Unregister).await {
+                    warn!("Error in Subscriber::unregister() : {}", e);
                 }
                 handle.await;
             });
@@ -1088,18 +1088,18 @@ impl Query {
 /// An entity able to reply to queries.
 #[pyclass]
 pub(crate) struct Queryable {
-    pub(crate) undeclare_tx: Sender<bool>,
+    pub(crate) unregister_tx: Sender<bool>,
     pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
 }
 
 #[pymethods]
 impl Queryable {
-    /// Undeclare the queryable.
-    fn undeclare(&mut self) {
+    /// Unregister the queryable.
+    fn unregister(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
-                if let Err(e) = self.undeclare_tx.send(true).await {
-                    warn!("Error in Queryable::undeclare() : {}", e);
+                if let Err(e) = self.unregister_tx.send(true).await {
+                    warn!("Error in Queryable::unregister() : {}", e);
                 }
                 handle.await;
             });
