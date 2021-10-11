@@ -1127,13 +1127,13 @@ impl Target {
         }
     }
 
+    #[cfg(features = "complete_n")]
     #[staticmethod]
     #[text_signature = "(n)"]
     fn Complete(n: ZInt) -> Target {
-        todo!()
-        // Target {
-        //     t: zenoh::query::Target::Complete { n },
-        // }
+        Target {
+            t: zenoh::query::Target::Complete { n },
+        }
     }
 
     #[staticmethod]
@@ -1327,14 +1327,13 @@ pub struct CongestionControl {
 #[allow(non_snake_case)]
 #[pymethods]
 impl CongestionControl {
-    #[staticmethod]
+    #[classattr]
     fn Drop() -> CongestionControl {
         CongestionControl {
             cc: zenoh::publisher::CongestionControl::Drop,
         }
     }
-
-    #[staticmethod]
+    #[classattr]
     fn Block() -> CongestionControl {
         CongestionControl {
             cc: zenoh::publisher::CongestionControl::Block,
@@ -1346,6 +1345,59 @@ impl Default for CongestionControl {
     fn default() -> Self {
         CongestionControl {
             cc: zenoh::publisher::CongestionControl::default(),
+        }
+    }
+}
+
+#[pyclass]
+#[derive(Clone, Default)]
+pub struct Priority {
+    pub(crate) p: zenoh::prelude::Priority,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl Priority {
+    #[classattr]
+    fn Background() -> Self {
+        Priority {
+            p: zenoh::prelude::Priority::Background,
+        }
+    }
+    #[classattr]
+    fn Data() -> Self {
+        Priority {
+            p: zenoh::prelude::Priority::Data,
+        }
+    }
+    #[classattr]
+    fn DataHigh() -> Self {
+        Priority {
+            p: zenoh::prelude::Priority::DataHigh,
+        }
+    }
+    #[classattr]
+    fn DataLow() -> Self {
+        Priority {
+            p: zenoh::prelude::Priority::DataLow,
+        }
+    }
+    #[classattr]
+    fn InteractiveHigh() -> Self {
+        Priority {
+            p: zenoh::prelude::Priority::InteractiveHigh,
+        }
+    }
+    #[classattr]
+    fn InteractiveLow() -> Self {
+        Priority {
+            p: zenoh::prelude::Priority::InteractiveLow,
+        }
+    }
+    #[classattr]
+    fn RealTime() -> Self {
+        Priority {
+            p: zenoh::prelude::Priority::RealTime,
         }
     }
 }

@@ -16,8 +16,8 @@ use super::encoding::Encoding;
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use super::types::{
-    znreskey_of_pyany, CongestionControl, Publisher, Query, QueryConsolidation, QueryTarget,
-    Queryable, Reply, Sample, Subscriber, ZnSubOps,
+    znreskey_of_pyany, CongestionControl, Priority, Publisher, Query, QueryConsolidation,
+    QueryTarget, Queryable, Reply, Sample, Subscriber, ZnSubOps,
 };
 use crate::types::{Reliability, SubMode};
 use crate::{to_pyerr, ZError};
@@ -27,7 +27,7 @@ use futures::prelude::*;
 use futures::select;
 use log::warn;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyList, PyTuple};
+use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
 use zenoh::prelude::KeyedSelector;
 use zenoh::prelude::{ResourceId, ZFuture, ZInt};
 
@@ -92,22 +92,35 @@ impl Session {
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
-    #[text_signature = "(self, resource, payload)"]
-    pub fn write(
-        &self,
-        resource: &PyAny,
-        payload: &[u8],
-        encoding: Option<Encoding>,
-        kind: Option<SampleKind>,
-        congestion_control: Option<CongestionControl>,
-    ) -> PyResult<()> {
+    #[text_signature = "(self, resource, payload, **kwargs)"]
+    #[args(kwargs = "**")]
+    pub fn write(&self, resource: &PyAny, payload: &[u8], kwargs: Option<&PyDict>) -> PyResult<()> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
-        let encoding = encoding.unwrap_or_default();
-        let value = zenoh::prelude::Value::from(payload).encoding(encoding.into());
+        let mut encoding: Option<Encoding> = None;
+        let mut kind: Option<SampleKind> = None;
+        let mut congestion_control: Option<CongestionControl> = None;
+        let mut priority: Option<Priority> = None;
+        if let Some(kwargs) = kwargs {
+            if let Some(e) = kwargs.get_item("encoding") {
+                encoding = e.extract().ok()
+            }
+            if let Some(k) = kwargs.get_item("kind") {
+                kind = k.extract().ok()
+            }
+            if let Some(cc) = kwargs.get_item("congestion_control") {
+                congestion_control = cc.extract().ok()
+            }
+            if let Some(p) = kwargs.get_item("priority") {
+                priority = p.extract().ok()
+            }
+        }
+        let value =
+            zenoh::prelude::Value::from(payload).encoding(encoding.unwrap_or_default().into());
         s.put(k, value)
             .kind(kind.unwrap_or_default().kind)
             .congestion_control(congestion_control.unwrap_or_default().cc)
+            .priority(priority.unwrap_or_default().p)
             .wait()
             .map_err(to_pyerr)
     }
@@ -223,16 +236,26 @@ impl Session {
     /// >>> sub = s.subscribe('/resource/name', sub_info, lambda sample:
     /// ...     print("Received : {}".format(sample)))
     /// >>> time.sleep(60)
-    #[text_signature = "(self, resource, callback, reliability, mode)"]
+    #[text_signature = "(self, resource, callback, **kwargs)"]
+    #[args(kwargs = "**")]
     fn subscribe(
         &self,
         resource: &PyAny,
         callback: &PyAny,
-        reliability: Option<Reliability>,
-        mode: Option<SubMode>,
+        kwargs: Option<&PyDict>,
     ) -> PyResult<Subscriber> {
         let s = self.as_ref()?;
         let k = znreskey_of_pyany(resource)?;
+        let mut reliability: Option<Reliability> = None;
+        let mut mode: Option<SubMode> = None;
+        if let Some(kwargs) = kwargs {
+            if let Some(rarg) = kwargs.get_item("reliability") {
+                reliability = rarg.extract().ok()
+            }
+            if let Some(marg) = kwargs.get_item("mode") {
+                mode = marg.extract().ok()
+            }
+        }
         let zn_sub = s
             .subscribe(&k)
             .reliability(reliability.unwrap_or_default().r)

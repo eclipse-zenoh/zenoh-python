@@ -10,17 +10,17 @@
 # Contributors:
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
-import json
 import sys
 import time
+import datetime
 import argparse
 import zenoh
-from zenoh import Zenoh, Value
+from zenoh import  Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_put',
-    description='zenoh put example')
+    prog='zn_sub_thr',
+    description='zenoh-net throughput sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,14 +35,18 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-put',
-                    type=str,
-                    help='The name of the resource to put.')
-parser.add_argument('--value', '-v', dest='value',
-                    default='Put from Python!',
-                    type=str,
-                    help='The value of the resource to put.')
+parser.add_argument('--samples', '-s', dest='samples',
+                    default=10,
+                    metavar='NUMBER',
+                    action='append',
+                    type=int,
+                    help='Number of throughput measurements.')
+parser.add_argument('--number', '-n', dest='number',
+                    default=50000,
+                    metavar='NUMBER',
+                    action='append',
+                    type=int,
+                    help='Number of messages in each throughput measurements.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -56,44 +60,44 @@ if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
     conf["listener"] = ",".join(args.listener)
-path = args.path
-value = args.value
+m = args.samples
+n = args.number
 
-# --- zenoh-net code --- --- --- --- --- --- --- --- --- --- ---
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
+
+
+def print_stats(start):
+    stop = datetime.datetime.now()
+    print("{:.6f} msgs/sec".format(n / (stop - start).total_seconds()))
+
+
+count = 0
+start = None
+nm = 0
+
+
+def listener(sample):
+    global n, m, count, start, nm
+    if count == 0:
+        start = datetime.datetime.now()
+        count += 1
+    elif count < n:
+        count += 1
+    else:
+        print_stats(start)
+        nm += 1
+        count = 0
+        if nm >= m:
+            sys.exit(0)
+
 
 # initiate logging
 zenoh.init_logger()
 
-print("Openning session...")
-z = Zenoh(conf)
+session = zenoh.open(conf)
 
-print("New workspace...")
-workspace = z.workspace()
+rid = session.register_resource('/test/thr')
 
-print("Put Data ('{}': '{}')...".format(path, value))
-workspace.put(path, value)
+sub = session.subscribe(rid, listener, reliablity=Reliability.Reliable, mode=SubMode.Push)
 
-
-# --- Examples of put with other types:
-
-# - Integer
-# workspace.put('/demo/example/Integer', 3)
-
-# - Float
-# workspace.put('/demo/example/Float', 3.14)
-
-# - Properties (as a Dictionary with str only)
-# workspace.put('/demo/example/Properties', {'p1': 'v1', 'p2': 'v2'})
-
-# - Json (str format)
-# workspace.put('/demo/example/Json',
-#               Value.Json(json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}])))
-
-# - Raw ('application/octet-stream' encoding by default)
-# workspace.put('/demo/example/Raw', b'\x48\x69\x33'))
-
-# - Custom
-# workspace.put('/demo/example/Custom',
-#               Value.Custom('my_encoding', b'\x48\x69\x33'))
-
-z.close()
+time.sleep(600)

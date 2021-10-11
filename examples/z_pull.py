@@ -11,15 +11,15 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-import time
+from datetime import datetime
 import argparse
 import zenoh
-from zenoh import Zenoh
+from zenoh import config, SubInfo, Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_delete',
-    description='zenoh delete example')
+    prog='zn_pull',
+    description='zenoh-net pull example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -34,10 +34,10 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-put',
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/demo/example/**',
                     type=str,
-                    help='The name of the resource to delete.')
+                    help='The selection of resources to pull.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -51,20 +51,33 @@ if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
     conf["listener"] = ",".join(args.listener)
-path = args.path
+selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
+
+
+def listener(sample):
+    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else datetime.fromtimestamp(
+        sample.data_info.timestamp.time)
+    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
+          .format(sample.res_name, sample.payload.decode("utf-8"), time))
+
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-zenoh = Zenoh(conf)
+session = zenoh.open(conf)
 
-print("New workspace...")
-workspace = zenoh.workspace()
+print("Declaring Subscriber on '{}'...".format(selector))
 
-print("Delete Path '{}'...\n".format(path))
-workspace.delete(path)
+sub = session.subscribe(selector, listener, reliability=Reliability.Reliable, mode=SubMode.Pull)
 
-zenoh.close()
+print("Press <enter> to pull data...")
+c = sys.stdin.read(1)
+while c != 'q':
+    sub.pull()
+    c = sys.stdin.read(1)
+
+sub.unregister()
+session.close()

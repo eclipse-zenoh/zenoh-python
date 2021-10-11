@@ -29,6 +29,9 @@ maintainer = "ADLINK zenoh team, <zenoh@adlink-labs.tech>"
 name = "zenoh"
 crate-type = ["cdylib"]
 
+[features]
+complete_n = ["zenoh/complete_n"]
+
 [dependencies]
 zenoh = { git = "https://github.com/p-avital/zenoh", branch = "more-config-constructors" }
 zenoh-util = { git = "https://github.com/p-avital/zenoh", branch = "more-config-constructors" }

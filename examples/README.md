@@ -14,56 +14,56 @@
 
 ## Examples description
 
-### zn_scout
+### z_scout
 
    Scouts for zenoh peers and routers available on the network.
 
    Typical usage:
    ```bash
-      python3 zn_scout.py
+      python3 z_scout.py
    ```
 
-### zn_info
+### z_info
 
    Gets information about the zenoh-net session.
 
    Typical usage:
    ```bash
-      python3 zn_info.py
+      python3 z_info.py
    ```
 
 
-### zn_write
+### z_write
 
    Writes a path/value into Zenoh.  
-   The path/value will be received by all matching subscribers, for instance the [zn_sub](#zn_sub)
-   and [zn_storage](#zn_storage) examples.
+   The path/value will be received by all matching subscribers, for instance the [z_sub](#z_sub)
+   and [z_storage](#z_storage) examples.
 
    Typical usage:
    ```bash
-      python3 zn_write.py
+      python3 z_write.py
    ```
    or
    ```bash
-      python3 zn_write.py -p /demo/example/test -v 'Hello World'
+      python3 z_write.py -p /demo/example/test -v 'Hello World'
    ```
 
-### zn_pub
+### z_pub
 
    Declares a resource with a path and a publisher on this resource. Then writes a value using the numerical resource id.
-   The path/value will be received by all matching subscribers, for instance the [zn_sub](#zn_sub)
-   and [zn_storage](#zn_storage) examples.
+   The path/value will be received by all matching subscribers, for instance the [z_sub](#z_sub)
+   and [z_storage](#z_storage) examples.
 
    Typical usage:
    ```bash
-      python3 zn_pub.py
+      python3 z_pub.py
    ```
    or
    ```bash
-      python3 zn_pub.py -p /demo/example/test -v 'Hello World'
+      python3 z_pub.py -p /demo/example/test -v 'Hello World'
    ```
 
-### zn_sub
+### z_sub
 
    Registers a subscriber with a selector.  
    The subscriber will be notified of each write made on any path matching the selector,
@@ -71,14 +71,14 @@
 
    Typical usage:
    ```bash
-      python3 zn_sub.py
+      python3 z_sub.py
    ```
    or
    ```bash
-      python3 zn_sub.py -s /demo/**
+      python3 z_sub.py -s /demo/**
    ```
 
-### zn_pull
+### z_pull
 
    Registers a pull subscriber with a selector.  
    The pull subscriber will receive each write made on any path matching the selector,
@@ -86,29 +86,29 @@
 
    Typical usage:
    ```bash
-      python3 zn_pull.py
+      python3 z_pull.py
    ```
    or
    ```bash
-      python3 zn_pull.py -s /demo/**
+      python3 z_pull.py -s /demo/**
    ```
 
-### zn_query
+### z_query
 
    Sends a query message for a selector.  
-   The queryables with a matching path or selector (for instance [zn_eval](#zn_eval) and [zn_storage](#zn_storage))
+   The queryables with a matching path or selector (for instance [z_eval](#z_eval) and [z_storage](#z_storage))
    will receive this query and reply with paths/values that will be received by the query callback.
 
    Typical usage:
    ```bash
-      python3 zn_query.py
+      python3 z_query.py
    ```
    or
    ```bash
-      python3 zn_query.py -s /demo/**
+      python3 z_query.py -s /demo/**
    ```
 
-### zn_eval
+### z_eval
 
    Registers a queryable function with a path.  
    This queryable function will be triggered by each call to a query operation on zenoh-net
@@ -116,14 +116,14 @@
 
    Typical usage:
    ```bash
-      python3 zn_eval.py
+      python3 z_eval.py
    ```
    or
    ```bash
-      python3 zn_eval.py -p /demo/example/eval -v 'This is the result'
+      python3 z_eval.py -p /demo/example/eval -v 'This is the result'
    ```
 
-### zn_storage
+### z_storage
 
    Trivial implementation of a storage in memory.  
    This examples registers a subscriber and a queryable on the same selector.
@@ -133,14 +133,14 @@
 
    Typical usage:
    ```bash
-      python3 zn_storage.py
+      python3 z_storage.py
    ```
    or
    ```bash
-      python3 zn_storage.py -s /demo/**
+      python3 z_storage.py -s /demo/**
    ```
 
-### zn_pub_thr & zn_sub_thr
+### z_pub_thr & z_sub_thr
 
    Pub/Sub throughput test.
    This example allows to perform throughput measurements between a pubisher performing
@@ -148,10 +148,10 @@
 
    Typical Subscriber usage:
    ```bash
-      python3 zn_sub_thr.py
+      python3 z_sub_thr.py
    ```
 
    Typical Publisher usage:
    ```bash
-      python3 zn_pub_thr.py 1024
+      python3 z_pub_thr.py 1024
    ```

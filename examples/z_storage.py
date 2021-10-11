@@ -12,15 +12,15 @@
 
 import sys
 import time
-import datetime
 import argparse
 import zenoh
-from zenoh import  Reliability, SubMode
+from zenoh import Reliability, SubMode, Sample, resource_name
+from zenoh.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_sub_thr',
-    description='zenoh-net throughput sub example')
+    prog='zn_storage',
+    description='zenoh-net storage example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,18 +35,10 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--samples', '-s', dest='samples',
-                    default=10,
-                    metavar='NUMBER',
-                    action='append',
-                    type=int,
-                    help='Number of throughput measurements.')
-parser.add_argument('--number', '-n', dest='number',
-                    default=50000,
-                    metavar='NUMBER',
-                    action='append',
-                    type=int,
-                    help='Number of messages in each throughput measurements.')
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/demo/example/**',
+                    type=str,
+                    help='The selection of resources to subscribe.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -60,44 +52,48 @@ if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
     conf["listener"] = ",".join(args.listener)
-m = args.samples
-n = args.number
+selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-
-def print_stats(start):
-    stop = datetime.datetime.now()
-    print("{:.6f} msgs/sec".format(n / (stop - start).total_seconds()))
-
-
-count = 0
-start = None
-nm = 0
+store = {}
 
 
 def listener(sample):
-    global n, m, count, start, nm
-    if count == 0:
-        start = datetime.datetime.now()
-        count += 1
-    elif count < n:
-        count += 1
-    else:
-        print_stats(start)
-        nm += 1
-        count = 0
-        if nm >= m:
-            sys.exit(0)
+    print(">> [Storage listener] Received ('{}': '{}')"
+          .format(sample.res_name, sample.payload.decode("utf-8")))
+    store[sample.res_name] = (sample.value, sample.data_info)
+
+
+def query_handler(query):
+    print(">> [Query handler   ] Handling '{}?{}'"
+          .format(query.res_name, query.predicate))
+    replies = []
+    for stored_name, (data, data_info) in store.items():
+        if resource_name.intersect(query.res_name, stored_name):
+            sample = Sample(stored_name, data)
+            sample.with_source_info(data_info)
+            query.reply(sample)
 
 
 # initiate logging
 zenoh.init_logger()
 
+print("Openning session...")
 session = zenoh.open(conf)
 
-rid = session.register_resource('/test/thr')
+print("Declaring Subscriber on '{}'...".format(selector))
+sub = session.subscribe(selector, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
-sub = session.subscribe(rid, listener, Reliability.Reliable, SubMode.Push)
+print("Declaring Queryable on '{}'...".format(selector))
+queryable = session.register_queryable(
+    selector, STORAGE, query_handler)
 
-time.sleep(600)
+print("Press q to stop...")
+c = '\0'
+while c != 'q':
+    c = sys.stdin.read(1)
+
+sub.unregister()
+queryable.unregister()
+session.close()

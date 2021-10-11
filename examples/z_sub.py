@@ -11,15 +11,15 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-import time
+from datetime import datetime
 import argparse
 import zenoh
-from zenoh import Zenoh
+from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_sub',
-    description='zenoh sub example')
+    prog='zn_sub',
+    description='zenoh-net sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -56,27 +56,27 @@ selector = args.selector
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-def listener(change):
-    print(">> [Subscription listener] received {:?} for {} : {} with timestamp {}"
-          .format(change.kind, change.path, '' if change.value is None else change.value.get_content(), change.timestamp))
+def listener(sample):
+    time = '(not specified)' if sample.data_info is None or sample.timestamp is None else datetime.fromtimestamp(
+        sample.timestamp.time)
+    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
+          .format(sample.res_name, sample.payload.decode("utf-8"), time))
 
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-zenoh = Zenoh(conf)
+session = zenoh.open(conf)
 
-print("New workspace...")
-workspace = zenoh.workspace()
+print("Declaring Subscriber on '{}'...".format(selector))
 
-print("Subscribe to '{}'...".format(selector))
-sub = workspace.subscribe(selector, listener)
+sub = session.subscribe(selector, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
 print("Press q to stop...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
-sub.close()
-zenoh.close()
+sub.unregister()
+session.close()
