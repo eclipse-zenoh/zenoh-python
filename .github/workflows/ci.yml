@@ -5,52 +5,46 @@ name: CI
 
 on:
   push:
-    branches: [ master, branch_0.5.0_dev ]
+    branches: [master]
   pull_request:
-    branches: [ master, branch_0.5.0_dev ]
+    branches: [master]
   schedule:
-    - cron: '0 6 * * 1-5'
+    - cron: "0 6 * * 1-5"
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
           override: true
           components: rustfmt, clippy
 
-    - name: Install Maturin
-      run: |
-        python -m pip install --upgrade pip
-        pip install maturin
+      - name: Build zenoh-python
+        run: python3 ./setup.py develop
 
-    - name: Build zenoh-python
-      run: maturin build
+      - name: Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
 
-    - name: Clippy
-      uses: actions-rs/cargo@v1
-      with:
-        command: clippy
-
-    - name: Run rustfmt
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: -- --check
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check

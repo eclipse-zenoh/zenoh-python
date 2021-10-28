@@ -33,36 +33,26 @@ zenoh-python has been tested with Python 3.6, 3.7, 3.8 and 3.9.
 
 It relies on the [zenoh](https://github.com/eclipse-zenoh/zenoh/tree/master/zenoh) Rust API which require the full `std` library. See the list Rust supported platforms here: https://doc.rust-lang.org/nightly/rustc/platform-support.html .
 
-Currently only the following platforms have been tested:
- * Linux
- * MacOS X
-
 
 -------------------------------
 ## How to build it
 
 Requirements:
- * Python >= 3.5
- * A virtual environement such as [venv](https://docs.python.org/3/library/venv.html), [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Conda](https://docs.conda.io/projects/conda/en/latest/)
+ * Python >= 3.6
+ * pip >= 19.3.1
  * [Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html).
-   Then install the __*nighlty*__ toolchain running:
-   ```bash
-   rustup toolchain install nightly
-   ```
- * [maturin](https://github.com/PyO3/maturin). Install it with:
-   ```bash
-   pip install maturin
-   ```
 
 Steps:
- * Make sure your shell is running in a Python virtual environment.
- * Build zenoh-python using **maturin**
+ * Install developments requirements:
    ```bash
-   cd zenoh-python
-   maturin develop --release
+   pip install -r requirements-dev.txt
+   ```
+ * Build zenoh-python
+   ```bash
+   python setup.py develop
    ```
 
-Maturin will automatically build the zenoh Rust API, as well as the zenoh-python API and install it in your Python virtual environement.
+This will automatically build the zenoh Rust API, as well as the zenoh-python API and install it in your Python environement.
 
 -------------------------------
 ## Running the Examples
