@@ -1,0 +1,4 @@
+include Cargo.toml
+include Cargo.lock
+include requirements-dev.txt
+recursive-include src *

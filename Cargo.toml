@@ -19,21 +19,10 @@ authors = [
     "Julien Enoch <julien@enoch.fr>",
     "Olivier Hécart <olivier.hecart@adlinktech.com>",
     "Luca Cominardi <luca.cominardi@adlinktech.com>",
+    "Pierre Avital <pierre.avital@adlinktech.com>",
 ]
-edition = "2018"
 
-[package.metadata.maturin]
-classifier = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Rust",
-    "Intended Audience :: Developers",
-    "Development Status :: 4 - Beta",
-    "Topic :: System :: Networking",
-    "License :: OSI Approved :: Apache Software License",
-    "License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)",
-    "Operating System :: POSIX :: Linux",
-    "Operating System :: MacOS :: MacOS X",
-]
+edition = "2018"
 maintainer = "ADLINK zenoh team, <zenoh@adlink-labs.tech>"
 
 [lib]
@@ -50,8 +39,8 @@ async-std = "=1.9.0"
 uhlc = "0.3"
 futures = "0.3.12"
 log = "0.4"
-env_logger = "0.8.2"
+env_logger = "0.9.0"
 
 [dependencies.pyo3]
-version = "0.13.1"
+version = "0.14.5"
 features = ["extension-module", "abi3-py36"]

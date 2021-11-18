@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  schedule:
+    - cron: "0 1 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: "3.9"
+      - name: Install deps
+        run: pip install -U twine setuptools-rust
+      - name: Build sdist
+        run: python setup.py sdist
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Sources
+          path: ./dist/*
+
+  build_wheels:
+    name: Build wheel for ${{ matrix.job.os }} ${{ matrix.job.arch }}
+    runs-on: ${{ matrix.job.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - {
+              os: Linux,
+              arch: x86_64,
+              runner: ubuntu-latest,
+              env: 'PATH="$PATH:$HOME/.cargo/bin"',
+            }
+          - {
+              os: Linux,
+              arch: i686,
+              runner: ubuntu-latest,
+              env: 'PATH="$PATH:$HOME/.cargo/bin"',
+            }
+          - {
+              os: Linux,
+              arch: aarch64,
+              runner: ubuntu-latest,
+              env: 'PATH="$PATH:$HOME/.cargo/bin"',
+            }
+          - { os: Windows, arch: AMD64, runner: windows-latest }
+          - {
+              os: MacOS,
+              arch: x86_64,
+              runner: macos-latest,
+              env: MACOSX_DEPLOYMENT_TARGET=10.9,
+            }
+          - {
+              os: MacOS,
+              arch: arm64,
+              runner: macos-latest,
+              env: MACOSX_DEPLOYMENT_TARGET=10.9 CARGO_BUILD_TARGET="aarch64-apple-darwin" PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8",
+            }
+          - {
+              os: MacOS,
+              arch: universal2,
+              runner: macos-latest,
+              env: MACOSX_DEPLOYMENT_TARGET=10.9 CARGO_BUILD_TARGET="aarch64-apple-darwin" PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8",
+            }
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up QEMU
+        if: matrix.job.os == 'Linux'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.1.3
+        env:
+          CIBW_ARCHS: ${{ matrix.job.arch }}
+          CIBW_BUILD: cp38-*
+          CIBW_SKIP: "*win32"
+          CIBW_ENVIRONMENT: ${{ matrix.job.env }}
+          CIBW_BEFORE_ALL_LINUX: "yum install -y wget && wget https://sh.rustup.rs -O rustup-install.sh && sh rustup-install.sh -y"
+          CIBW_BEFORE_ALL_MACOS: |
+            case ${{ matrix.job.arch }} in
+              arm64|universal2)
+                rustup target add aarch64-apple-darwin ;;
+            esac
+          CIBW_BEFORE_BUILD: pip install -U setuptools-rust
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Wheels
+          path: ./wheelhouse/*.whl
