@@ -50,13 +50,13 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
 path = args.path
 value = args.value
 
@@ -69,11 +69,11 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Declaring Resource " + path)
-rid = session.register_resource(path)
+rid = session.declare_expr(path)
 print(" => RId {}".format(rid))
 
 print("Declaring Publisher on {}".format(rid))
-publisher = session.publishing(rid)
+session.declare_publication(rid)
 
 for idx in itertools.count() if args.iter is None else range(args.iter):
     time.sleep(1)
@@ -81,5 +81,6 @@ for idx in itertools.count() if args.iter is None else range(args.iter):
     print("Writing Data ('{}': '{}')...".format(rid, buf))
     session.write(rid, bytes(buf, encoding='utf8'))
 
-publisher.unregister()
+session.undeclare_publication(rid)
+session.undeclare_expr(rid)
 session.close()

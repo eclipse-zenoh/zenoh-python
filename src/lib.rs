@@ -15,9 +15,8 @@ use async_std::prelude::FutureExt;
 use async_std::task;
 use futures::prelude::*;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use pyo3::{create_exception, wrap_pyfunction};
-use zenoh::config::{Config as ZConfig, ConfigProperties};
+use zenoh::config::Config as ZConfig;
 
 pub(crate) mod types;
 pub(crate) use types::*;
@@ -26,79 +25,6 @@ use session::*;
 use zenoh_util::zerror2;
 mod data_kind;
 mod encoding;
-
-// /// The module of the zenoh API.
-// ///
-// /// See the :class:`zenoh.Zenoh` class for details
-// ///
-// /// Quick start examples:
-// /// ^^^^^^^^^^^^^^^^^^^^^
-// ///
-// /// Put a key/value into zenoh
-// /// """"""""""""""""""""""""""
-// ///
-// /// >>> import zenoh
-// /// >>> z = zenoh.Zenoh({})
-// /// >>> w = z.workspace()
-// /// >>> w.put('/demo/example/hello', 'Hello World!')
-// /// >>> z.close()
-// ///
-// /// Subscribe for keys/values changes from zenoh
-// /// """"""""""""""""""""""""""""""""""""""""""""
-// ///
-// /// >>> import zenoh, time
-// /// >>> def listener(change):
-// /// ...    print(">> [Subscription listener] received {:?} for {} : {} with timestamp {}"
-// /// ...    .format(change.kind, change.path, '' if change.value is None else change.value.get_content(), change.timestamp))
-// /// >>>
-// /// >>> z = zenoh.Zenoh({})
-// /// >>> w = z.workspace()
-// /// >>> sub = w.subscribe('/demo/example/**', listener)
-// /// >>> time.sleep(60)
-// /// >>> sub.close()
-// /// >>> z.close()
-// ///
-// /// Get keys/values from zenoh
-// /// """"""""""""""""""""""""""
-// ///
-// /// >>> import zenoh
-// /// >>> z = zenoh.Zenoh({})
-// /// >>> w = z.workspace()
-// /// >>> for data in w.get('/demo/example/**'):
-// /// ...     print('  {} : {}  (encoding: {} , timestamp: {})'.format(
-// /// ...         data.path, data.value.get_content(), data.value.encoding_descr(), data.timestamp))
-// /// >>> z.close()
-// ///
-// #[pymodule]
-// fn zenoh(py: Python, m: &PyModule) -> PyResult<()> {
-//     m.add_wrapped(wrap_pymodule!(net))?;
-//     // force addition of "zenoh" module
-//     // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
-//     py.run(
-//         "\
-// import sys
-// sys.modules['zenoh'] = net
-//         ",
-//         None,
-//         Some(m.dict()),
-//     )?;
-
-//     m.add_wrapped(wrap_pyfunction!(init_logger))?;
-//     m.add_wrapped(wrap_pyfunction!(config_from_file))?;
-
-//     m.add_class::<Zenoh>()?;
-//     m.add_class::<Workspace>()?;
-//     m.add_class::<Selector>()?;
-//     m.add_class::<Value>()?;
-//     m.add_class::<Data>()?;
-//     m.add_class::<ChangeKind>()?;
-//     m.add_class::<Change>()?;
-//     m.add_class::<Subscriber>()?;
-//     m.add_class::<GetRequest>()?;
-//     m.add_class::<Eval>()?;
-
-//     Ok(())
-// }
 
 create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
@@ -181,14 +107,14 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<KeyExpr>()?;
     // force addition of "zenoh.resource_name" module
     // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
-    py.run(
-        "\
-import sys
-sys.modules['zenoh.resource_name'] = resource_name
-        ",
-        None,
-        Some(m.dict()),
-    )?;
+    //     py.run(
+    //         "\
+    // import sys
+    // sys.modules['zenoh.resource_name'] = resource_name
+    //         ",
+    //         None,
+    //         Some(m.dict()),
+    //     )?;
 
     m.add_class::<Config>()?;
     m.add_class::<CongestionControl>()?;
@@ -350,8 +276,8 @@ fn open(config: Option<Config>) -> PyResult<Session> {
 /// >>> for hello in hellos:
 /// >>>     print(hello)
 #[pyfunction]
-#[pyo3(text_signature = "(whatami, iface, scout_duration)")]
-fn scout(whatami: WhatAmI, config: Option<Config>, scout_duration: f64) -> PyResult<Vec<Hello>> {
+#[pyo3(text_signature = "(whatami, scout_duration, config)")]
+fn scout(whatami: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyResult<Vec<Hello>> {
     task::block_on(async move {
         let mut result = Vec::<Hello>::new();
         let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)

@@ -14,7 +14,6 @@ use std::ops::BitOr;
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
-use crate::to_pyerr;
 use async_std::channel::Sender;
 use async_std::task;
 use log::warn;
@@ -25,7 +24,7 @@ use pyo3::types::{PyBytes, PyTuple};
 use pyo3::PyObjectProtocol;
 use zenoh::config::whatami::WhatAmIMatcher;
 use zenoh::config::WhatAmI as ZWhatAmI;
-use zenoh::prelude::{Encoding, KeyExpr as ZKeyExpr, ZFuture, ZInt};
+use zenoh::prelude::{Encoding, KeyExpr as ZKeyExpr, ZInt};
 
 // zenoh.config (simulate the package as a class, and consts as class attributes)
 /// Constants and helpers to build the configuration to pass to :func:`zenoh.open`.
@@ -272,8 +271,13 @@ impl KeyExpr {
     /// :type s2: str
     #[staticmethod]
     #[pyo3(text_signature = "(s1, s2)")]
-    fn intersect(s1: &str, s2: &str) -> bool {
-        zenoh::utils::key_expr::intersect(s1, s2)
+    fn intersect(s1: &PyAny, s2: &PyAny) -> bool {
+        let s1 = zkey_expr_of_pyany(s1).unwrap();
+        let s2 = zkey_expr_of_pyany(s2).unwrap();
+        match (s1.as_id_and_suffix(), s2.as_id_and_suffix()) {
+            ((s1, _), (s2, _)) if s1 != s2 => false,
+            ((_, s1), (_, s2)) => zenoh::utils::key_expr::intersect(s1, s2),
+        }
     }
 }
 
@@ -298,7 +302,7 @@ impl From<ZKeyExpr<'static>> for KeyExpr {
 
 pub(crate) fn zkey_expr_of_pyany(obj: &PyAny) -> PyResult<ZKeyExpr> {
     match obj.get_type().name()? {
-        "ResKey" => {
+        "KeyExpr" => {
             let rk: PyRef<KeyExpr> = obj.extract()?;
             Ok(rk.inner.clone())
         }
@@ -321,13 +325,13 @@ pub(crate) fn zkey_expr_of_pyany(obj: &PyAny) -> PyResult<ZKeyExpr> {
                 Ok(ZKeyExpr::from(id).with_suffix(&suffix).to_owned())
             } else {
                 Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-                    "Cannot convert type '{:?}' to a zenoh-net ResKey",
+                    "Cannot convert type '{:?}' to a zenoh-net KeyExpr",
                     tuple
                 )))
             }
         }
         x => Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-            "Cannot convert type '{}' to a zenoh-net ResKey",
+            "Cannot convert type '{}' to a zenoh-net KeyExpr",
             x
         ))),
     }
@@ -597,10 +601,6 @@ impl PyObjectProtocol for Value {
     fn __repr__(&self) -> PyResult<String> {
         self.__str__()
     }
-
-    fn __format__(&self, _format_spec: &str) -> PyResult<String> {
-        self.__str__()
-    }
 }
 
 pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::prelude::Value> {
@@ -731,14 +731,14 @@ impl SourceInfo {
 
 /// A zenoh sample.
 ///
-/// :param res_name: the resource name
-/// :type res_name: str
+/// :param key_expr: the resource name
+/// :type key_expr: str
 /// :param payload: the data payload
 /// :type payload: bytes
 /// :param data_info: some information about the data
 /// :type data_info: DataInfo, optional
 #[pyclass]
-#[pyo3(text_signature = "(res_name, payload, data_info=None)")]
+#[pyo3(text_signature = "(key_expr, payload, data_info=None)")]
 #[derive(Clone)]
 pub(crate) struct Sample {
     pub(crate) s: zenoh::prelude::Sample,
@@ -753,10 +753,11 @@ impl pyo3::conversion::ToPyObject for Sample {
 #[pymethods]
 impl Sample {
     #[new]
-    fn new(res_name: String, payload: &PyAny) -> Self {
+    fn new(key_expr: &PyAny, payload: &PyAny) -> Self {
+        let key_expr = zkey_expr_of_pyany(key_expr).unwrap();
         let payload = zvalue_of_pyany(payload).unwrap();
         Sample {
-            s: zenoh::prelude::Sample::new(res_name, payload),
+            s: zenoh::prelude::Sample::new(key_expr.to_owned(), payload),
         }
     }
     pub fn with_timestamp(&mut self, timestamp: Timestamp) {
@@ -778,7 +779,7 @@ impl Sample {
     ///
     /// :type: str
     #[getter]
-    fn res_name(&self) -> KeyExpr {
+    fn key_expr(&self) -> KeyExpr {
         self.s.key_expr.to_owned().into()
     }
 
@@ -826,10 +827,6 @@ impl PyObjectProtocol for Sample {
     }
 
     fn __repr__(&self) -> String {
-        self.__str__()
-    }
-
-    fn __format__(&self, _format_spec: &str) -> String {
         self.__str__()
     }
 }
@@ -936,7 +933,7 @@ impl Subscriber {
     }
 
     /// Unregister the subscriber.
-    fn unregister(&mut self) {
+    fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
                 if let Err(e) = self.unregister_tx.send(ZnSubOps::Unregister).await {
@@ -1028,7 +1025,7 @@ pub(crate) struct Queryable {
 #[pymethods]
 impl Queryable {
     /// Unregister the queryable.
-    fn unregister(&mut self) {
+    fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
                 if let Err(e) = self.unregister_tx.send(true).await {

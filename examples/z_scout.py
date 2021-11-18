@@ -20,7 +20,7 @@ from zenoh import WhatAmI
 zenoh.init_logger()
 
 print("Scouting...")
-hellos = zenoh.scout(WhatAmI.Peer | WhatAmI.Router, {}, 1.0)
+hellos = zenoh.scout(WhatAmI.Peer | WhatAmI.Router, 1.0)
 
 for hello in hellos:
     print(hello)

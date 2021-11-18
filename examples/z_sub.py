@@ -44,13 +44,13 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
 selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
@@ -60,7 +60,7 @@ def listener(sample):
     time = '(not specified)' if sample.data_info is None or sample.timestamp is None else datetime.fromtimestamp(
         sample.timestamp.time)
     print(">> [Subscription listener] Received ('{}': '{}') published at {}"
-          .format(sample.res_name, sample.payload.decode("utf-8"), time))
+          .format(sample.key_expr, sample.payload.decode("utf-8"), time))
 
 
 # initiate logging
@@ -78,5 +78,5 @@ c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
-sub.unregister()
+sub.close()
 session.close()

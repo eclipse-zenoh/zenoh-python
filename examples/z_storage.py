@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh import Reliability, SubMode, Sample, resource_name
+from zenoh import Reliability, SubMode, Sample, KeyExpr
 from zenoh.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -45,13 +45,13 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
 selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
@@ -61,16 +61,16 @@ store = {}
 
 def listener(sample):
     print(">> [Storage listener] Received ('{}': '{}')"
-          .format(sample.res_name, sample.payload.decode("utf-8")))
-    store[sample.res_name] = (sample.value, sample.data_info)
+          .format(sample.key_expr, sample.payload.decode("utf-8")))
+    store[sample.key_expr] = (sample.value, sample.data_info)
 
 
 def query_handler(query):
     print(">> [Query handler   ] Handling '{}?{}'"
-          .format(query.res_name, query.predicate))
+          .format(query.key_expr, query.predicate))
     replies = []
     for stored_name, (data, data_info) in store.items():
-        if resource_name.intersect(query.res_name, stored_name):
+        if KeyExpr.intersect(query.key_expr, stored_name):
             sample = Sample(stored_name, data)
             sample.with_source_info(data_info)
             query.reply(sample)
@@ -86,14 +86,13 @@ print("Declaring Subscriber on '{}'...".format(selector))
 sub = session.subscribe(selector, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
 print("Declaring Queryable on '{}'...".format(selector))
-queryable = session.register_queryable(
-    selector, STORAGE, query_handler)
+queryable = session.queryable(selector, STORAGE, query_handler)
 
 print("Press q to stop...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
-sub.unregister()
-queryable.unregister()
+sub.close()
+queryable.close()
 session.close()

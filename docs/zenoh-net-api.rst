@@ -33,9 +33,9 @@ Subscriber
 .. autoclass:: zenoh.Subscriber
     :members:
 
-ResKey
+KeyExpr
 ------
-.. autoclass:: zenoh.ResKey
+.. autoclass:: zenoh.KeyExpr
     :members:
 
 PeerId

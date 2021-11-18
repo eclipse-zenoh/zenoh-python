@@ -49,13 +49,13 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
 path = args.path
 value = args.value
 
@@ -64,8 +64,8 @@ value = args.value
 
 def eval_callback(query):
     print(">> [Query handler] Handling '{}{}'".format(
-        query.res_name, query.predicate))
-    query.reply(Sample(res_name=path, payload=value.encode()))
+        query.key_expr, query.predicate))
+    query.reply(Sample(key_expr=path, payload=value.encode()))
 
 
 # initiate logging
@@ -75,13 +75,12 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Declaring Queryable on '{}'...".format(path))
-queryable = session.register_queryable(
-    path, EVAL, eval_callback)
+queryable = session.queryable(path, EVAL, eval_callback)
 
 print("Press q to stop...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
-queryable.unregister()
+queryable.close()
 session.close()

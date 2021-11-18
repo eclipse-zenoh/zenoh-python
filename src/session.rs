@@ -69,14 +69,14 @@ impl Session {
 
     /// Write data.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``ResKey.Rid(int)``
-    /// * **str** for a ``ResKey.RName(str)``
-    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    /// * **int** for a ``KeyExpr.Rid(int)``
+    /// * **str** for a ``KeyExpr.RName(str)``
+    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
     /// :param resource: The resource key to write
-    /// :type resource: ResKey
+    /// :type resource: KeyExpr
     /// :param payload: The value to write
     /// :type payload: bytes
     /// :param encoding: The encoding of the value
@@ -129,14 +129,14 @@ impl Session {
     /// This numerical Id will be used on the network to save bandwidth and
     /// ease the retrieval of the concerned resource in the routing tables.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``ResKey.Rid(int)``
-    /// * **str** for a ``ResKey.RName(str)``
-    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    /// * **int** for a ``KeyExpr.Rid(int)``
+    /// * **str** for a ``KeyExpr.RName(str)``
+    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
     /// :param resource: The resource key to map to a numerical Id
-    /// :type resource: ResKey
+    /// :type resource: KeyExpr
     /// :rtype: int
     ///
     /// :Examples:
@@ -155,7 +155,7 @@ impl Session {
     /// with :meth:`register_resource`.
     ///
     /// :param rid: The numerical Id to unmap
-    /// :type rid: ResKey
+    /// :type rid: KeyExpr
     ///
     /// :Examples:
     ///
@@ -174,14 +174,14 @@ impl Session {
     /// Written resources that match the given key will only be sent on the network
     /// if matching subscribers exist in the system.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``ResKey.Rid(int)``
-    /// * **str** for a ``ResKey.RName(str)``
-    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    /// * **int** for a ``KeyExpr.Rid(int)``
+    /// * **str** for a ``KeyExpr.RName(str)``
+    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
     /// :param resource: The resource key to publish
-    /// :type resource: ResKey
+    /// :type resource: KeyExpr
     /// :rtype: Publisher
     ///
     /// :Examples:
@@ -207,14 +207,14 @@ impl Session {
 
     /// Declare a Subscxriber for the given resource key.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``ResKey.Rid(int)``
-    /// * **str** for a ``ResKey.RName(str)``
-    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    /// * **int** for a ``KeyExpr.Rid(int)``
+    /// * **str** for a ``KeyExpr.RName(str)``
+    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
     /// :param resource: The resource key to subscribe
-    /// :type resource: ResKey
+    /// :type resource: KeyExpr
     /// :param info: The :class:`SubInfo` to configure the subscription
     /// :type info: SubInfo
     /// :param callback: the subscription callback
@@ -315,14 +315,14 @@ impl Session {
 
     /// Declare a Queryable for the given resource key.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``ResKey.Rid(int)``
-    /// * **str** for a ``ResKey.RName(str)``
-    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    /// * **int** for a ``KeyExpr.Rid(int)``
+    /// * **str** for a ``KeyExpr.RName(str)``
+    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
     /// :param resource: The resource key the Queryable will reply to
-    /// :type resource: ResKey
+    /// :type resource: KeyExpr
     /// :param info: The kind of Queryable
     /// :type info: int
     /// :param callback: the queryable callback
@@ -396,14 +396,14 @@ impl Session {
     /// The replies are provided by calling the provided ``callback`` for each reply.
     /// The ``callback`` is called a last time with ``None`` when the query is complete.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``ResKey.Rid(int)``
-    /// * **str** for a ``ResKey.RName(str)``
-    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    /// * **int** for a ``KeyExpr.Rid(int)``
+    /// * **str** for a ``KeyExpr.RName(str)``
+    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
     /// :param resource: The resource key to query
-    /// :type resource: ResKey
+    /// :type resource: KeyExpr
     /// :param predicate: An indication to matching queryables about the queried data
     /// :type predicate: str
     /// :param callback: the query callback which will receive the replies
@@ -476,14 +476,14 @@ impl Session {
     ///
     /// Replies are collected in a list.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`ResKey`:
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``ResKey.Rid(int)``
-    /// * **str** for a ``ResKey.RName(str)``
-    /// * **(int, str)** for a ``ResKey.RIdWithSuffix(int, str)``
+    /// * **int** for a ``KeyExpr.Rid(int)``
+    /// * **str** for a ``KeyExpr.RName(str)``
+    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
     /// :param resource: The resource key to query
-    /// :type resource: ResKey
+    /// :type resource: KeyExpr
     /// :param predicate: An indication to matching queryables about the queried data
     /// :type predicate: str
     /// :param target: The kind of queryables that should be target of this query

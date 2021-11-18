@@ -12,6 +12,7 @@ class Pyrun:
 		if args is None:
 			args = []
 		self.name = p
+		print(f"starting {self.name}")
 		self.process: Popen = Popen(["python3", path.join(examples, p), *args], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 		self.start = time.time()
 		self.end = None
@@ -90,9 +91,12 @@ else:
 		errors.append(status)
 	else:
 		errors.append("z_pull: didn't return (bad), but was killed properly (not terrible)")
-sub.process.stdin.write(b"q\n")
-sub.process.stdin.flush()
-sub.process.stdin.close()
+try:
+	sub.process.stdin.write(b"q\n")
+	sub.process.stdin.flush()
+	sub.process.stdin.close()
+except Exception as e:
+	errors.append(f"pub stdin sequence failed: {e}")
 if sub.status():
 	sub.dbg()
 	errors.append(sub.status())
@@ -101,37 +105,47 @@ if not ("Received ('/demo/example/zenoh-python-write': 'Write from Python!')" in
 	errors.append("z_sub didn't catch z_write")
 if not ("Received ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
 	errors.append("z_sub didn't catch second z_pub")
+if any(("z_sub" in error) for error in errors):
+	sub.dbg()
 
 eval = Pyrun("z_eval.py")
-time.sleep(2)
+time.sleep(3)
 query = Pyrun("z_query.py", ["-s=/demo/example/zenoh-python-eval"])
 if query.status():
 	query.dbg()
 	errors.append(query.status())
-if not ("received (/demo/example/zenoh-python-eval:Eval from Python!)" in "".join(query.stdout)):
-	query.dbg()
-	errors.append("z_query didn't get a response from z_eval")
-eval.process.stdin.write(b"q\n")
-eval.process.stdin.flush()
-eval.process.stdin.close()
+try:
+	eval.process.stdin.write(b"q\n")
+	eval.process.stdin.flush()
+	eval.process.stdin.close()
+except Exception as e:
+	errors.append(f"eval stdin sequence failed: {e}")
 if eval.status():
 	eval.dbg()
 	errors.append(eval.status())
+if not ("received (/demo/example/zenoh-python-eval:Eval from Python!)" in "".join(query.stdout)):
+	query.dbg()
+	eval.dbg()
+	errors.append("z_query didn't get a response from z_eval")
 
 query = Pyrun("z_query.py", ["-s=/demo/example/zenoh-python-write"])
 if query.status():
 	query.dbg()
 	errors.append(query.status())
-if not ("received (/demo/example/zenoh-python-write:Write from Python!)" in "".join(query.stdout)):
-	query.dbg()
-	errors.append("z_query didn't get a response from z_storage about z_write")
-
-storage.process.stdin.write(b"q\n")
-storage.process.stdin.flush()
-storage.process.stdin.close()
+try:
+	storage.process.stdin.write(b"q\n")
+	storage.process.stdin.flush()
+	storage.process.stdin.close()
+except Exception as e:
+	errors.append(f"storage stdin sequence failed: {e}")
 if storage.status():
 	storage.dbg()
 	errors.append(storage.status())
+if not ("received (/demo/example/zenoh-python-write:Write from Python!)" in "".join(query.stdout)):
+	storage.dbg()
+	errors.append("z_query didn't get a response from z_storage about z_write")
+if any(("z_query" in error) for error in errors):
+	query.dbg()
 
 sub_thr = Pyrun("z_sub_thr.py")
 pub_thr = Pyrun("z_pub_thr.py", ["128"])
