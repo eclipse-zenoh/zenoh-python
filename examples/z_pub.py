@@ -43,6 +43,7 @@ parser.add_argument('--value', '-v', dest='value',
                     default='Pub from Python!',
                     type=str,
                     help='The value of the resource to publish.')
+parser.add_argument("--iter", dest="iter", type=int, help="How many writes to perform")
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -74,7 +75,7 @@ print(" => RId {}".format(rid))
 print("Declaring Publisher on {}".format(rid))
 publisher = session.publishing(rid)
 
-for idx in itertools.count():
+for idx in itertools.count() if args.iter is None else range(args.iter):
     time.sleep(1)
     buf = "[{:4d}] {}".format(idx, value)
     print("Writing Data ('{}': '{}')...".format(rid, buf))

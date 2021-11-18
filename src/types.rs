@@ -25,8 +25,7 @@ use pyo3::types::{PyBytes, PyTuple};
 use pyo3::PyObjectProtocol;
 use zenoh::config::whatami::WhatAmIMatcher;
 use zenoh::config::WhatAmI as ZWhatAmI;
-use zenoh::prelude::Encoding;
-use zenoh::prelude::{ResKey as ZResKey, ResourceId, ZFuture, ZInt};
+use zenoh::prelude::{Encoding, KeyExpr as ZKeyExpr, ZFuture, ZInt};
 
 // zenoh.config (simulate the package as a class, and consts as class attributes)
 /// Constants and helpers to build the configuration to pass to :func:`zenoh.open`.
@@ -258,11 +257,13 @@ impl PyObjectProtocol for Hello {
 // zenoh.resource_name (simulate the package as a class with static methodss)
 #[allow(non_camel_case_types)]
 #[pyclass]
-pub(crate) struct resource_name {}
+pub struct KeyExpr {
+    pub(crate) inner: ZKeyExpr<'static>,
+}
 
 #[allow(non_snake_case)]
 #[pymethods]
-impl resource_name {
+impl KeyExpr {
     /// Return true if both resource names intersect.
     ///
     /// :param s1: the 1st resource name
@@ -270,88 +271,36 @@ impl resource_name {
     /// :param s2: the 2nd resource name
     /// :type s2: str
     #[staticmethod]
-    #[text_signature = "(s1, s2)"]
+    #[pyo3(text_signature = "(s1, s2)")]
     fn intersect(s1: &str, s2: &str) -> bool {
-        zenoh::utils::resource_name::intersect(s1, s2)
-    }
-}
-
-// zenoh.ResKey (simulate the enum as a class with static methods for the cases,
-// waiting for https://github.com/PyO3/pyo3/issues/417 to be fixed)
-//
-/// A resource key
-#[pyclass]
-#[derive(Clone)]
-pub(crate) struct ResKey {
-    pub(crate) k: ZResKey<'static>,
-}
-
-#[allow(non_snake_case)]
-#[pymethods]
-impl ResKey {
-    /// Creates a resource key from a name.
-    ///
-    /// :param name: the resrouce name
-    /// :type name: str
-    #[staticmethod]
-    #[text_signature = "(name)"]
-    fn RName(name: String) -> ResKey {
-        ResKey { k: name.into() }
-    }
-
-    /// Creates a resource key from a resource id returned by :meth:`Session.register_resource`.
-    ///
-    /// :param id: the resrouce id
-    /// :type id: int
-    #[staticmethod]
-    #[text_signature = "(id)"]
-    fn RId(id: ResourceId) -> ResKey {
-        ResKey { k: id.into() }
-    }
-
-    /// Creates a resource key from a resource id returned by :meth:`Session.register_resource` and a suffix.
-    ///
-    /// :param id: the resrouce id
-    /// :type id: int
-    /// :param suffix: the suffix
-    /// :type suffix: str
-    #[staticmethod]
-    #[text_signature = "(id, suffix)"]
-    fn RIdWithSuffix(id: ResourceId, suffix: String) -> ResKey {
-        ResKey {
-            k: (id, suffix).into(),
-        }
-    }
-
-    /// Returns the resource id, or ``0`` if the resource key is a :meth:`RName`.
-    fn rid(&self) -> ResourceId {
-        self.k.rid()
-    }
-
-    /// Returns ``True`` if the resource key is a :meth:`RId`.
-    fn is_numeric(&self) -> bool {
-        self.k.is_numeric()
+        zenoh::utils::key_expr::intersect(s1, s2)
     }
 }
 
 #[pyproto]
-impl PyObjectProtocol for ResKey {
+impl PyObjectProtocol for KeyExpr {
     fn __str__(&self) -> PyResult<String> {
-        Ok(self.k.to_string())
+        Ok(self.inner.to_string())
     }
 }
 
-impl From<ResKey> for ZResKey<'static> {
-    fn from(r: ResKey) -> ZResKey<'static> {
-        r.k
+impl From<KeyExpr> for ZKeyExpr<'static> {
+    fn from(r: KeyExpr) -> ZKeyExpr<'static> {
+        r.inner
     }
 }
 
-pub(crate) fn znreskey_of_pyany(obj: &PyAny) -> PyResult<ZResKey> {
+impl From<ZKeyExpr<'static>> for KeyExpr {
+    fn from(inner: ZKeyExpr<'static>) -> KeyExpr {
+        KeyExpr { inner }
+    }
+}
+
+pub(crate) fn zkey_expr_of_pyany(obj: &PyAny) -> PyResult<ZKeyExpr> {
     match obj.get_type().name()? {
         "ResKey" => {
-            let rk: ResKey = obj.extract()?;
-            Ok(rk.k)
+            let rk: PyRef<KeyExpr> = obj.extract()?;
+            Ok(rk.inner.clone())
         }
         "int" => {
             let id: u64 = obj.extract()?;
@@ -364,12 +313,12 @@ pub(crate) fn znreskey_of_pyany(obj: &PyAny) -> PyResult<ZResKey> {
         "tuple" => {
             let tuple: &PyTuple = obj.downcast()?;
             if tuple.len() == 2
-                && tuple.get_item(0).get_type().name()? == "int"
-                && tuple.get_item(1).get_type().name()? == "str"
+                && tuple.get_item(0)?.get_type().name()? == "int"
+                && tuple.get_item(1)?.get_type().name()? == "str"
             {
-                let id: u64 = tuple.get_item(0).extract()?;
-                let suffix: String = tuple.get_item(1).extract()?;
-                Ok((id, suffix).into())
+                let id: u64 = tuple.get_item(0)?.extract()?;
+                let suffix: String = tuple.get_item(1)?.extract()?;
+                Ok(ZKeyExpr::from(id).with_suffix(&suffix).to_owned())
             } else {
                 Err(PyErr::new::<exceptions::PyValueError, _>(format!(
                     "Cannot convert type '{:?}' to a zenoh-net ResKey",
@@ -547,11 +496,11 @@ impl Value {
     /// :type encoding: int
     /// :type buffer: bytes
     #[staticmethod]
-    #[text_signature = "(encoding, buffer)"]
+    #[pyo3(text_signature = "(encoding, buffer)")]
     fn Raw(encoding: ZInt, buffer: &[u8]) -> Value {
         Value {
             v: zenoh::prelude::Value {
-                payload: buffer.into(),
+                payload: Vec::from(buffer).into(),
                 encoding: encoding.into(),
             },
         }
@@ -566,10 +515,10 @@ impl Value {
     /// :type encoding_descr: str
     /// :type buffer: bytes
     #[staticmethod]
-    #[text_signature = "(encoding_descr, buffer)"]
+    #[pyo3(text_signature = "(encoding_descr, buffer)")]
     fn Custom(encoding_descr: String, buffer: &[u8]) -> Value {
         Value {
-            v: zenoh::prelude::Value::new(buffer.into())
+            v: zenoh::prelude::Value::new(Vec::from(buffer).into())
                 .encoding(Encoding::APP_CUSTOM.with_suffix(encoding_descr)),
         }
     }
@@ -581,7 +530,7 @@ impl Value {
     /// :param s: the string
     /// :type s: str
     #[staticmethod]
-    #[text_signature = "(s)"]
+    #[pyo3(text_signature = "(s)")]
     fn StringUTF8(s: String) -> Value {
         Value { v: s.into() }
     }
@@ -593,7 +542,7 @@ impl Value {
     /// :param p: the properties
     /// :type p: dict of str:str
     #[staticmethod]
-    #[text_signature = "(p)"]
+    #[pyo3(text_signature = "(p)")]
     fn Properties(p: HashMap<String, String>) -> Value {
         Value {
             v: zenoh::prelude::Properties::from(p).into(),
@@ -607,7 +556,7 @@ impl Value {
     /// :param s: the Json string
     /// :type s: str
     #[staticmethod]
-    #[text_signature = "(s)"]
+    #[pyo3(text_signature = "(s)")]
     fn Json(s: String) -> Value {
         Value {
             v: zenoh::prelude::Value::from(s).encoding(Encoding::APP_JSON),
@@ -621,7 +570,7 @@ impl Value {
     /// :param i: the integer
     /// :type i: int
     #[staticmethod]
-    #[text_signature = "(i)"]
+    #[pyo3(text_signature = "(i)")]
     fn Integer(i: i64) -> Value {
         Value { v: i.into() }
     }
@@ -633,7 +582,7 @@ impl Value {
     /// :param f: the float
     /// :type f: float
     #[staticmethod]
-    #[text_signature = "(f)"]
+    #[pyo3(text_signature = "(f)")]
     fn Float(f: f64) -> Value {
         Value { v: f.into() }
     }
@@ -663,7 +612,7 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::prelude::Value> {
         }
         "bytes" => {
             let buf: &[u8] = obj.extract()?;
-            Ok(ZValue::new(buf.into()).encoding(Encoding::APP_OCTET_STREAM))
+            Ok(ZValue::new(Vec::from(buf).into()).encoding(Encoding::APP_OCTET_STREAM))
         }
         "str" => {
             let s: String = obj.extract()?;
@@ -684,12 +633,12 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::prelude::Value> {
         "tuple" => {
             let tuple: &PyTuple = obj.downcast()?;
             if tuple.len() == 2
-                && tuple.get_item(0).get_type().name()? == "str"
-                && tuple.get_item(1).get_type().name()? == "bytes"
+                && tuple.get_item(0)?.get_type().name()? == "str"
+                && tuple.get_item(1)?.get_type().name()? == "bytes"
             {
-                let encoding_descr: String = tuple.get_item(0).extract()?;
-                let buf: &[u8] = tuple.get_item(1).extract()?;
-                Ok(ZValue::new(buf.into()).encoding(encoding_descr.into()))
+                let encoding_descr: String = tuple.get_item(0)?.extract()?;
+                let buf: &[u8] = tuple.get_item(1)?.extract()?;
+                Ok(ZValue::new(Vec::from(buf).into()).encoding(encoding_descr.into()))
             } else {
                 Err(PyErr::new::<exceptions::PyValueError, _>(format!(
                     "Cannot convert type '{:?}' to a zenoh Value",
@@ -789,7 +738,7 @@ impl SourceInfo {
 /// :param data_info: some information about the data
 /// :type data_info: DataInfo, optional
 #[pyclass]
-#[text_signature = "(res_name, payload, data_info=None)"]
+#[pyo3(text_signature = "(res_name, payload, data_info=None)")]
 #[derive(Clone)]
 pub(crate) struct Sample {
     pub(crate) s: zenoh::prelude::Sample,
@@ -829,8 +778,8 @@ impl Sample {
     ///
     /// :type: str
     #[getter]
-    fn res_name(&self) -> &str {
-        self.s.res_name.as_str()
+    fn res_name(&self) -> KeyExpr {
+        self.s.key_expr.to_owned().into()
     }
 
     /// The data payload
@@ -943,7 +892,7 @@ impl SubMode {
 
 /// A time period.
 #[pyclass]
-#[text_signature = "(origin, period, duration)"]
+#[pyo3(text_signature = "(origin, period, duration)")]
 #[derive(Clone)]
 pub(crate) struct Period {
     pub(crate) p: zenoh::time::Period,
@@ -959,25 +908,6 @@ impl Period {
                 period,
                 duration,
             },
-        }
-    }
-}
-
-/// A publisher
-#[pyclass(unsendable)]
-pub(crate) struct Publisher {
-    // Note: because pyo3 doesn't supporting lifetime in PyClass, a workaround is to
-    // extend the lifetime of wrapped struct to 'static.
-    pub(crate) p: Option<zenoh::publisher::Publisher<'static>>,
-}
-
-#[pymethods]
-impl Publisher {
-    /// Unregister the publisher.
-    fn unregister(&mut self) -> PyResult<()> {
-        match self.p.take() {
-            Some(p) => p.unregister().wait().map_err(to_pyerr),
-            None => Ok(()),
         }
     }
 }
@@ -1057,14 +987,17 @@ impl pyo3::conversion::ToPyObject for Query {
     }
 }
 
+// #[¨pyclass]
+// struct KeyExpr()
+
 #[pymethods]
 impl Query {
     /// The resrouce name of the query
     ///
     /// :type: str
     #[getter]
-    fn res_name(&self) -> &str {
-        self.q.selector().key_selector
+    fn key_expr(&self) -> KeyExpr {
+        self.q.selector().key_selector.to_owned().into()
     }
 
     /// The predicate of the query
@@ -1079,7 +1012,7 @@ impl Query {
     ///
     /// :param sample: the reply sample
     /// :type: Sample
-    #[text_signature = "(self, sample)"]
+    #[pyo3(text_signature = "(self, sample)")]
     fn reply(&self, sample: Sample) {
         self.q.reply(sample.s);
     }
@@ -1129,7 +1062,7 @@ impl Target {
 
     #[cfg(features = "complete_n")]
     #[staticmethod]
-    #[text_signature = "(n)"]
+    #[pyo3(text_signature = "(n)")]
     fn Complete(n: ZInt) -> Target {
         Target {
             t: zenoh::query::Target::Complete { n },
@@ -1158,7 +1091,7 @@ impl Target {
 /// :param target: a characteristic of the queryable.
 /// :type target: Target, optional
 #[pyclass]
-#[text_signature = "(kind=None, target=None)"]
+#[pyo3(text_signature = "(kind=None, target=None)")]
 #[derive(Clone)]
 pub(crate) struct QueryTarget {
     pub(crate) t: zenoh::query::QueryTarget,
@@ -1235,7 +1168,7 @@ impl ConsolidationMode {
 /// :param reception: the consolidation mode to apply at reception of the replies (default: :attr:`ConsolidationMode.Full`)
 /// :type reception: ConsolidationMode, optional
 #[pyclass]
-#[text_signature = "(first_routers=None, last_router=None, reception=None)"]
+#[pyo3(text_signature = "(first_routers=None, last_router=None, reception=None)")]
 #[derive(Clone)]
 pub(crate) struct QueryConsolidation {
     pub(crate) c: zenoh::query::QueryConsolidation,
@@ -1321,7 +1254,7 @@ impl Reply {
 #[pyclass]
 #[derive(Clone)]
 pub struct CongestionControl {
-    pub(crate) cc: zenoh::publisher::CongestionControl,
+    pub(crate) cc: zenoh::publication::CongestionControl,
 }
 
 #[allow(non_snake_case)]
@@ -1330,13 +1263,13 @@ impl CongestionControl {
     #[classattr]
     fn Drop() -> CongestionControl {
         CongestionControl {
-            cc: zenoh::publisher::CongestionControl::Drop,
+            cc: zenoh::publication::CongestionControl::Drop,
         }
     }
     #[classattr]
     fn Block() -> CongestionControl {
         CongestionControl {
-            cc: zenoh::publisher::CongestionControl::Block,
+            cc: zenoh::publication::CongestionControl::Block,
         }
     }
 }
@@ -1344,7 +1277,7 @@ impl CongestionControl {
 impl Default for CongestionControl {
     fn default() -> Self {
         CongestionControl {
-            cc: zenoh::publisher::CongestionControl::default(),
+            cc: zenoh::publication::CongestionControl::default(),
         }
     }
 }

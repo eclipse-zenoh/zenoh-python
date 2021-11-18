@@ -16,8 +16,8 @@ use super::encoding::Encoding;
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use super::types::{
-    znreskey_of_pyany, CongestionControl, Priority, Publisher, Query, QueryConsolidation,
-    QueryTarget, Queryable, Reply, Sample, Subscriber, ZnSubOps,
+    zkey_expr_of_pyany, CongestionControl, Priority, Query, QueryConsolidation, QueryTarget,
+    Queryable, Reply, Sample, Subscriber, ZnSubOps,
 };
 use crate::types::{Reliability, SubMode};
 use crate::{to_pyerr, ZError};
@@ -28,8 +28,7 @@ use futures::select;
 use log::warn;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
-use zenoh::prelude::KeyedSelector;
-use zenoh::prelude::{ResourceId, ZFuture, ZInt};
+use zenoh::prelude::{ExprId, ZFuture, ZInt};
 
 /// A zenoh-net session.
 #[pyclass]
@@ -92,11 +91,11 @@ impl Session {
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
-    #[text_signature = "(self, resource, payload, **kwargs)"]
+    #[pyo3(text_signature = "(self, resource, payload, **kwargs)")]
     #[args(kwargs = "**")]
     pub fn write(&self, resource: &PyAny, payload: &[u8], kwargs: Option<&PyDict>) -> PyResult<()> {
         let s = self.as_ref()?;
-        let k = znreskey_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(resource)?;
         let mut encoding: Option<Encoding> = None;
         let mut kind: Option<SampleKind> = None;
         let mut congestion_control: Option<CongestionControl> = None;
@@ -145,11 +144,11 @@ impl Session {
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
     /// >>> rid = s.register_resource('/resource/name')
-    #[text_signature = "(self, resource)"]
-    pub fn register_resource(&self, resource: &PyAny) -> PyResult<ResourceId> {
+    #[pyo3(text_signature = "(self, resource)")]
+    pub fn declare_expr(&self, resource: &PyAny) -> PyResult<ExprId> {
         let s = self.as_ref()?;
-        let k = znreskey_of_pyany(resource)?;
-        s.register_resource(&k).wait().map_err(to_pyerr)
+        let k = zkey_expr_of_pyany(resource)?;
+        s.declare_expr(&k).wait().map_err(to_pyerr)
     }
 
     /// Unregister the *numerical Id/resource key* association previously registerd
@@ -164,10 +163,10 @@ impl Session {
     /// >>> s = zenoh.open({})
     /// >>> rid = s.register_resource('/resource/name')
     /// >>> s.unregister_resource(rid)
-    #[text_signature = "(self, rid)"]
-    pub fn unregister_resource(&self, rid: ResourceId) -> PyResult<()> {
+    #[pyo3(text_signature = "(self, rid)")]
+    pub fn undeclare_expr(&self, rid: ExprId) -> PyResult<()> {
         let s = self.as_ref()?;
-        s.unregister_resource(rid).wait().map_err(to_pyerr)
+        s.undeclare_expr(rid).wait().map_err(to_pyerr)
     }
 
     /// Declare a Publisher for the given resource key.
@@ -191,23 +190,19 @@ impl Session {
     /// >>> s = zenoh.open({})
     /// >>> rid = s.publishing('/resource/name')
     /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
-    #[text_signature = "(self, resource)"]
-    fn publishing(&self, resource: &PyAny) -> PyResult<Publisher> {
+    #[pyo3(text_signature = "(self, resource)")]
+    fn declare_publication(&self, resource: &PyAny) -> PyResult<()> {
         let s = self.as_ref()?;
-        let k = znreskey_of_pyany(resource)?;
-        let zn_pub = s.publishing(&k).wait().map_err(to_pyerr)?;
-
-        // Note: this is a workaround for pyo3 not supporting lifetime in PyClass. See https://github.com/PyO3/pyo3/issues/502.
-        // We extend zenoh::publisher::Publisher's lifetime to 'static to be wrapped in Publisher PyClass
-        let static_zn_pub = unsafe {
-            std::mem::transmute::<
-                zenoh::publisher::Publisher<'_>,
-                zenoh::publisher::Publisher<'static>,
-            >(zn_pub)
-        };
-        Ok(Publisher {
-            p: Some(static_zn_pub),
-        })
+        let k = zkey_expr_of_pyany(resource)?;
+        s.declare_publication(&k).wait().map_err(to_pyerr)?;
+        Ok(())
+    }
+    #[pyo3(text_signature = "(self, resource)")]
+    fn undeclare_publication(&self, resource: &PyAny) -> PyResult<()> {
+        let s = self.as_ref()?;
+        let k = zkey_expr_of_pyany(resource)?;
+        s.undeclare_publication(&k).wait().map_err(to_pyerr)?;
+        Ok(())
     }
 
     /// Declare a Subscxriber for the given resource key.
@@ -236,7 +231,7 @@ impl Session {
     /// >>> sub = s.subscribe('/resource/name', sub_info, lambda sample:
     /// ...     print("Received : {}".format(sample)))
     /// >>> time.sleep(60)
-    #[text_signature = "(self, resource, callback, **kwargs)"]
+    #[pyo3(text_signature = "(self, resource, callback, **kwargs)")]
     #[args(kwargs = "**")]
     fn subscribe(
         &self,
@@ -245,7 +240,7 @@ impl Session {
         kwargs: Option<&PyDict>,
     ) -> PyResult<Subscriber> {
         let s = self.as_ref()?;
-        let k = znreskey_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(resource)?;
         let mut reliability: Option<Reliability> = None;
         let mut mode: Option<SubMode> = None;
         if let Some(kwargs) = kwargs {
@@ -300,7 +295,7 @@ impl Session {
                                     }
                                 },
                                 Ok(ZnSubOps::Unregister) => {
-                                    if let Err(e) = static_zn_sub.unregister().await {
+                                    if let Err(e) = static_zn_sub.close().await {
                                         warn!("Error undeclaring subscriber: {}", e);
                                     }
                                     return
@@ -345,20 +340,11 @@ impl Session {
     /// >>> s = zenoh.open({})
     /// >>> q = s.register_queryable('/resource/name', queryable.EVAL, callback)
     /// >>> time.sleep(60)
-    #[text_signature = "(self, resource, kind, callback)"]
-    fn register_queryable(
-        &self,
-        resource: &PyAny,
-        kind: ZInt,
-        callback: &PyAny,
-    ) -> PyResult<Queryable> {
+    #[pyo3(text_signature = "(self, resource, kind, callback)")]
+    fn queryable(&self, resource: &PyAny, kind: ZInt, callback: &PyAny) -> PyResult<Queryable> {
         let s = self.as_ref()?;
-        let k = znreskey_of_pyany(resource)?;
-        let zn_quer = s
-            .register_queryable(k)
-            .kind(kind)
-            .wait()
-            .map_err(to_pyerr)?;
+        let k = zkey_expr_of_pyany(resource)?;
+        let zn_quer = s.queryable(k).kind(kind).wait().map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_quer into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
         let mut zn_quer = unsafe {
@@ -390,7 +376,7 @@ impl Session {
                             }
                         },
                         _ = unregister_rx.recv().fuse() => {
-                            if let Err(e) = zn_quer.unregister().await {
+                            if let Err(e) = zn_quer.close().await {
                                 warn!("Error undeclaring queryable: {}", e);
                             }
                             return
@@ -436,7 +422,9 @@ impl Session {
     /// >>> s.query('/resource/name', 'predicate', lambda reply:
     /// ...    print("Received : {}".format(
     /// ...        reply.data if reply is not None else "FINAL")))
-    #[text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"]
+    #[pyo3(
+        text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"
+    )]
     fn query(
         &self,
         resource: &PyAny,
@@ -446,9 +434,12 @@ impl Session {
         consolidation: Option<QueryConsolidation>,
     ) -> PyResult<()> {
         let s = self.as_ref()?;
-        let k = znreskey_of_pyany(resource)?;
+        let key_selector = zkey_expr_of_pyany(resource)?;
         let mut zn_recv = s
-            .get(KeyedSelector::from(k).with_value_selector(predicate))
+            .get(zenoh::prelude::Selector {
+                key_selector,
+                value_selector: predicate,
+            })
             .target(target.unwrap_or_default().t)
             .consolidation(consolidation.unwrap_or_default().c)
             .wait()
@@ -510,7 +501,7 @@ impl Session {
     /// >>> replies = s.query_collect('/resource/name', 'predicate')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
-    #[text_signature = "(self, resource, predicate, target=None, consolidation=None)"]
+    #[pyo3(text_signature = "(self, resource, predicate, target=None, consolidation=None)")]
     fn query_collect(
         &self,
         resource: &PyAny,
@@ -519,10 +510,10 @@ impl Session {
         consolidation: Option<QueryConsolidation>,
     ) -> PyResult<Py<PyList>> {
         let s = self.as_ref()?;
-        let k = znreskey_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(resource)?;
         task::block_on(async {
             let mut replies = s
-                .get(KeyedSelector::from(k).with_value_selector(predicate))
+                .get(zenoh::prelude::Selector::from(k).with_value_selector(predicate))
                 .target(target.unwrap_or_default().t)
                 .consolidation(consolidation.unwrap_or_default().c)
                 .map_err(to_pyerr)

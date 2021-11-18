@@ -178,7 +178,7 @@ sys.modules['zenoh.queryable'] = queryable
         Some(m.dict()),
     )?;
 
-    m.add_class::<resource_name>()?;
+    m.add_class::<KeyExpr>()?;
     // force addition of "zenoh.resource_name" module
     // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
     py.run(
@@ -197,14 +197,13 @@ sys.modules['zenoh.resource_name'] = resource_name
     m.add_class::<Hello>()?;
     m.add_class::<PeerId>()?;
     m.add_class::<Period>()?;
-    m.add_class::<Publisher>()?;
     m.add_class::<Query>()?;
     m.add_class::<Queryable>()?;
     m.add_class::<QueryConsolidation>()?;
     m.add_class::<QueryTarget>()?;
     m.add_class::<Reliability>()?;
     m.add_class::<Reply>()?;
-    m.add_class::<ResKey>()?;
+    m.add_class::<KeyExpr>()?;
     m.add_class::<Sample>()?;
     m.add_class::<data_kind::SampleKind>()?;
     m.add_class::<Session>()?;
@@ -325,9 +324,9 @@ impl Default for Config {
 /// >>> import zenoh
 /// >>> z = zenoh.open(zenoh.config::peer())
 #[pyfunction]
-#[text_signature = "(config)"]
-fn open(config: &PyDict) -> PyResult<Session> {
-    let s = task::block_on(zenoh::open(pydict_to_props(config))).map_err(to_pyerr)?;
+#[pyo3(text_signature = "(config)")]
+fn open(config: Option<Config>) -> PyResult<Session> {
+    let s = task::block_on(zenoh::open(config.unwrap_or_default().inner)).map_err(to_pyerr)?;
     Ok(Session::new(s))
 }
 
@@ -351,11 +350,11 @@ fn open(config: &PyDict) -> PyResult<Session> {
 /// >>> for hello in hellos:
 /// >>>     print(hello)
 #[pyfunction]
-#[text_signature = "(whatami, iface, scout_duration)"]
-fn scout(whatami: WhatAmI, config: &PyDict, scout_duration: f64) -> PyResult<Vec<Hello>> {
+#[pyo3(text_signature = "(whatami, iface, scout_duration)")]
+fn scout(whatami: WhatAmI, config: Option<Config>, scout_duration: f64) -> PyResult<Vec<Hello>> {
     task::block_on(async move {
         let mut result = Vec::<Hello>::new();
-        let mut receiver = zenoh::scout(whatami, pydict_to_props(config))
+        let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)
             .await
             .unwrap();
         let scout = async {
@@ -367,20 +366,4 @@ fn scout(whatami: WhatAmI, config: &PyDict, scout_duration: f64) -> PyResult<Vec
         FutureExt::race(scout, timeout).await;
         Ok(result)
     })
-}
-
-// pub fn props_to_pydict(py: Python<'_>, props: Config) -> PyObject {
-//     let props: ConfigProperties = props.into();
-//     props.into_py_dict(py).to_object(py)
-// }
-
-pub fn pydict_to_props(config: &PyDict) -> ConfigProperties {
-    use zenoh_util::properties::KeyTranscoder;
-    let mut rust_config = ConfigProperties::default();
-    for (k, v) in config.iter() {
-        if let Some(k) = zenoh_util::properties::config::ConfigTranscoder::encode(&k.to_string()) {
-            rust_config.insert(k, v.to_string());
-        }
-    }
-    rust_config
 }

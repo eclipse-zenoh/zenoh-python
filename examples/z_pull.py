@@ -14,7 +14,7 @@ import sys
 from datetime import datetime
 import argparse
 import zenoh
-from zenoh import config, SubInfo, Reliability, SubMode
+from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
