@@ -108,9 +108,9 @@ if not ("Received ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')"
 if any(("z_sub" in error) for error in errors):
 	sub.dbg()
 
-eval = Pyrun("z_eval.py")
+eval = Pyrun("z_eval.py", ["-p=/demo/eval/zenoh-python-eval"])
 time.sleep(3)
-query = Pyrun("z_query.py", ["-s=/demo/example/zenoh-python-eval"])
+query = Pyrun("z_query.py", ["-s=/demo/eval/zenoh-python-eval"])
 if query.status():
 	query.dbg()
 	errors.append(query.status())
@@ -123,7 +123,7 @@ except Exception as e:
 if eval.status():
 	eval.dbg()
 	errors.append(eval.status())
-if not ("received (/demo/example/zenoh-python-eval:Eval from Python!)" in "".join(query.stdout)):
+if not ("received (/demo/eval/zenoh-python-eval:Eval from Python!)" in "".join(query.stdout)):
 	query.dbg()
 	eval.dbg()
 	errors.append("z_query didn't get a response from z_eval")
