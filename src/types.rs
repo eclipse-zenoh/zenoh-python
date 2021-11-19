@@ -932,12 +932,12 @@ impl Subscriber {
         });
     }
 
-    /// Unregister the subscriber.
+    /// Close the subscriber.
     fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
                 if let Err(e) = self.unregister_tx.send(ZnSubOps::Unregister).await {
-                    warn!("Error in Subscriber::unregister() : {}", e);
+                    warn!("Error in Subscriber::close() : {}", e);
                 }
                 handle.await;
             });
@@ -1024,12 +1024,12 @@ pub(crate) struct Queryable {
 
 #[pymethods]
 impl Queryable {
-    /// Unregister the queryable.
+    /// Close the queryable.
     fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             task::block_on(async {
                 if let Err(e) = self.unregister_tx.send(true).await {
-                    warn!("Error in Queryable::unregister() : {}", e);
+                    warn!("Error in Queryable::close() : {}", e);
                 }
                 handle.await;
             });

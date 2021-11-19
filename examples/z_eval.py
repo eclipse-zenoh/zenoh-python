@@ -74,7 +74,7 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Declaring Queryable on '{}'...".format(path))
+print("Creating Queryable on '{}'...".format(path))
 queryable = session.queryable(path, EVAL, eval_callback)
 
 print("Press q to stop...")

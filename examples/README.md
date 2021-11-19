@@ -65,9 +65,9 @@
 
 ### z_sub
 
-   Registers a subscriber with a selector.  
-   The subscriber will be notified of each put made on any path matching the selector,
-   and will print this notification.
+   Creates a subscriber with a key expression.  
+   The subscriber will be notified of each put made on any key expression matching
+   the subscriber's key expression, and will print this notification.
 
    Typical usage:
    ```bash
@@ -80,9 +80,10 @@
 
 ### z_pull
 
-   Registers a pull subscriber with a selector.  
-   The pull subscriber will receive each put made on any path matching the selector,
-   and will pull on demand and print the received path/value.
+   Creates a pull subscriber with a selector.  
+   The pull subscriber will receive each put made on any key expression matching
+   the subscriber's key expression and will pull on demand and print the received
+   key/value.
 
    Typical usage:
    ```bash
@@ -110,9 +111,9 @@
 
 ### z_eval
 
-   Registers a queryable function with a path.  
-   This queryable function will be triggered by each call to a get operation on zenoh-net
-   with a selector that matches the path, and will return a value to the querier.
+   Creates a queryable function with a key expression.  
+   This queryable function will be triggered by each call to a get operation on zenoh
+   with a selector that matches the key expression, and will return a value to the querier.
 
    Typical usage:
    ```bash
@@ -126,9 +127,9 @@
 ### z_storage
 
    Trivial implementation of a storage in memory.  
-   This examples registers a subscriber and a queryable on the same selector.
-   The subscriber callback will store the received paths/values in an hashmap.
-   The queryable callback will answer to queries with the paths/values stored in the hashmap
+   This examples creates a subscriber and a queryable on the same key expression.
+   The subscriber callback will store the received key/values in an hashmap.
+   The queryable callback will answer to queries with the key/values stored in the hashmap
    and that match the queried selector.
 
    Typical usage:

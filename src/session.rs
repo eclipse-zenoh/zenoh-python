@@ -124,54 +124,54 @@ impl Session {
             .map_err(to_pyerr)
     }
 
-    /// Associate a numerical Id with the given resource key.
+    /// Associate a numerical Id with the given key expression.
     ///
     /// This numerical Id will be used on the network to save bandwidth and
     /// ease the retrieval of the concerned resource in the routing tables.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``KeyExpr.Rid(int)``
-    /// * **str** for a ``KeyExpr.RName(str)``
-    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
     ///
-    /// :param resource: The resource key to map to a numerical Id
-    /// :type resource: KeyExpr
+    /// :param key_expr: The key expression to map to a numerical Id
+    /// :type key_expr: KeyExpr
     /// :rtype: int
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
-    /// >>> rid = s.register_resource('/resource/name')
-    #[pyo3(text_signature = "(self, resource)")]
-    pub fn declare_expr(&self, resource: &PyAny) -> PyResult<ExprId> {
+    /// >>> rid = s.declare_expr('/key/expression')
+    #[pyo3(text_signature = "(self, key_expr)")]
+    pub fn declare_expr(&self, key_expr: &PyAny) -> PyResult<ExprId> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(key_expr)?;
         s.declare_expr(&k).wait().map_err(to_pyerr)
     }
 
-    /// Unregister the *numerical Id/resource key* association previously registerd
-    /// with :meth:`register_resource`.
+    /// Undeclare the *numerical Id/key expression* association previously declared
+    /// with :meth:`declare_expr`.
     ///
     /// :param rid: The numerical Id to unmap
-    /// :type rid: KeyExpr
+    /// :type rid: ExprId
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
-    /// >>> rid = s.register_resource('/resource/name')
-    /// >>> s.unregister_resource(rid)
+    /// >>> rid = s.declare_expr('/resource/name')
+    /// >>> s.undeclare_expr(rid)
     #[pyo3(text_signature = "(self, rid)")]
     pub fn undeclare_expr(&self, rid: ExprId) -> PyResult<()> {
         let s = self.as_ref()?;
         s.undeclare_expr(rid).wait().map_err(to_pyerr)
     }
 
-    /// Declare a Publisher for the given resource key.
+    /// Declare a publication for the given key expression.
     ///
-    /// Written resources that match the given key will only be sent on the network
+    /// Written resources that match the given key expression will only be sent on the network
     /// if matching subscribers exist in the system.
     ///
     /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
@@ -180,41 +180,40 @@ impl Session {
     /// * **str** for a ``KeyExpr.RName(str)``
     /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
-    /// :param resource: The resource key to publish
-    /// :type resource: KeyExpr
-    /// :rtype: Publisher
+    /// :param key_expr: The key expression to publish
+    /// :type key_expr: KeyExpr
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
-    /// >>> rid = s.publishing('/resource/name')
-    /// >>> s.put('/resource/name', bytes('value', encoding='utf8'))
-    #[pyo3(text_signature = "(self, resource)")]
-    fn declare_publication(&self, resource: &PyAny) -> PyResult<()> {
+    /// >>> rid = s.declare_publication('/key/expression')
+    /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
+    #[pyo3(text_signature = "(self, key_expr)")]
+    fn declare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(key_expr)?;
         s.declare_publication(&k).wait().map_err(to_pyerr)?;
         Ok(())
     }
-    #[pyo3(text_signature = "(self, resource)")]
-    fn undeclare_publication(&self, resource: &PyAny) -> PyResult<()> {
+    #[pyo3(text_signature = "(self, key_expr)")]
+    fn undeclare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(key_expr)?;
         s.undeclare_publication(&k).wait().map_err(to_pyerr)?;
         Ok(())
     }
 
-    /// Declare a Subscxriber for the given resource key.
+    /// Create a Subscriber for the given key expression.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``KeyExpr.Rid(int)``
-    /// * **str** for a ``KeyExpr.RName(str)``
-    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
     ///
-    /// :param resource: The resource key to subscribe
-    /// :type resource: KeyExpr
+    /// :param key_expr: The key expression to subscribe
+    /// :type key_expr: KeyExpr
     /// :param info: The :class:`SubInfo` to configure the subscription
     /// :type info: SubInfo
     /// :param callback: the subscription callback
@@ -228,19 +227,19 @@ impl Session {
     /// >>>
     /// >>> s = zenoh.open({})
     /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-    /// >>> sub = s.subscribe('/resource/name', sub_info, lambda sample:
+    /// >>> sub = s.subscribe('/key/expression', sub_info, lambda sample:
     /// ...     print("Received : {}".format(sample)))
     /// >>> time.sleep(60)
-    #[pyo3(text_signature = "(self, resource, callback, **kwargs)")]
+    #[pyo3(text_signature = "(self, key_expr, callback, **kwargs)")]
     #[args(kwargs = "**")]
     fn subscribe(
         &self,
-        resource: &PyAny,
+        key_expr: &PyAny,
         callback: &PyAny,
         kwargs: Option<&PyDict>,
     ) -> PyResult<Subscriber> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(key_expr)?;
         let mut reliability: Option<Reliability> = None;
         let mut mode: Option<SubMode> = None;
         if let Some(kwargs) = kwargs {
@@ -313,16 +312,16 @@ impl Session {
         })
     }
 
-    /// Declare a Queryable for the given resource key.
+    /// Create a Queryable for the given key expression.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``KeyExpr.Rid(int)``
-    /// * **str** for a ``KeyExpr.RName(str)``
-    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
     ///
-    /// :param resource: The resource key the Queryable will reply to
-    /// :type resource: KeyExpr
+    /// :param key_expr: The key expression the Queryable will reply to
+    /// :type key_expr: KeyExpr
     /// :param info: The kind of Queryable
     /// :type info: int
     /// :param callback: the queryable callback
@@ -335,15 +334,15 @@ impl Session {
     /// >>> from zenoh import Sample, queryable
     /// >>> def callback(query):
     /// ...     print("Received : {}".format(query))
-    /// ...     query.reply(Sample('/resource/name', bytes('value', encoding='utf8')))
+    /// ...     query.reply(Sample('/key/expression', bytes('value', encoding='utf8')))
     /// >>>
     /// >>> s = zenoh.open({})
-    /// >>> q = s.register_queryable('/resource/name', queryable.EVAL, callback)
+    /// >>> q = s.queryable('/key/expression', queryable.EVAL, callback)
     /// >>> time.sleep(60)
     #[pyo3(text_signature = "(self, resource, kind, callback)")]
-    fn queryable(&self, resource: &PyAny, kind: ZInt, callback: &PyAny) -> PyResult<Queryable> {
+    fn queryable(&self, key_expr: &PyAny, kind: ZInt, callback: &PyAny) -> PyResult<Queryable> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(key_expr)?;
         let zn_quer = s.queryable(k).kind(kind).wait().map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_quer into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
@@ -396,14 +395,14 @@ impl Session {
     /// The replies are provided by calling the provided ``callback`` for each reply.
     /// The ``callback`` is called a last time with ``None`` when the query is complete.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``KeyExpr.Rid(int)``
-    /// * **str** for a ``KeyExpr.RName(str)``
-    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
     ///
-    /// :param resource: The resource key to query
-    /// :type resource: KeyExpr
+    /// :param key_expr: The key expression to query
+    /// :type key_expr: KeyExpr
     /// :param predicate: An indication to matching queryables about the queried data
     /// :type predicate: str
     /// :param callback: the query callback which will receive the replies
@@ -419,22 +418,22 @@ impl Session {
     /// >>> from zenoh import QueryTarget, queryable
     /// >>>
     /// >>> s = zenoh.open({})
-    /// >>> s.get('/resource/name', 'predicate', lambda reply:
+    /// >>> s.get('/key/expression', '?predicate', lambda reply:
     /// ...    print("Received : {}".format(
     /// ...        reply.data if reply is not None else "FINAL")))
     #[pyo3(
-        text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"
+        text_signature = "(self, key_expr, predicate, callback, target=None, consolidation=None)"
     )]
     fn get(
         &self,
-        resource: &PyAny,
+        key_expr: &PyAny,
         predicate: &str,
         callback: &PyAny,
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
     ) -> PyResult<()> {
         let s = self.as_ref()?;
-        let key_selector = zkey_expr_of_pyany(resource)?;
+        let key_selector = zkey_expr_of_pyany(key_expr)?;
         let mut zn_recv = s
             .get(zenoh::prelude::Selector {
                 key_selector,
@@ -476,14 +475,14 @@ impl Session {
     ///
     /// Replies are collected in a list.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``KeyExpr.Rid(int)``
-    /// * **str** for a ``KeyExpr.RName(str)``
-    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
     ///
-    /// :param resource: The resource key to query
-    /// :type resource: KeyExpr
+    /// :param key_expr: The key expression to query
+    /// :type key_expr: KeyExpr
     /// :param predicate: An indication to matching queryables about the queried data
     /// :type predicate: str
     /// :param target: The kind of queryables that should be target of this query
@@ -498,19 +497,19 @@ impl Session {
     /// >>> from zenoh import QueryTarget, queryable
     /// >>>
     /// >>> s = zenoh.open({})
-    /// >>> replies = s.get_collect('/resource/name', 'predicate')
+    /// >>> replies = s.get_collect('/key/expression', 'predicate')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
-    #[pyo3(text_signature = "(self, resource, predicate, target=None, consolidation=None)")]
+    #[pyo3(text_signature = "(self, key_expr, predicate, target=None, consolidation=None)")]
     fn get_collect(
         &self,
-        resource: &PyAny,
+        key_expr: &PyAny,
         predicate: &str,
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
     ) -> PyResult<Py<PyList>> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(key_expr)?;
         task::block_on(async {
             let mut replies = s
                 .get(zenoh::prelude::Selector::from(k).with_value_selector(predicate))

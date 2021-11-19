@@ -68,11 +68,11 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Declaring Resource " + path)
+print("Declaring key expression " + path)
 rid = session.declare_expr(path)
 print(" => RId {}".format(rid))
 
-print("Declaring Publisher on {}".format(rid))
+print("Declaring publication on {}".format(rid))
 session.declare_publication(rid)
 
 for idx in itertools.count() if args.iter is None else range(args.iter):
