@@ -18,8 +18,8 @@ from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_pull',
-    description='zenoh-net pull example')
+    prog='z_pull',
+    description='zenoh pull example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,

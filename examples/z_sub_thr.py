@@ -19,8 +19,8 @@ from zenoh import  Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_sub_thr',
-    description='zenoh-net throughput sub example')
+    prog='z_sub_thr',
+    description='zenoh throughput sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,

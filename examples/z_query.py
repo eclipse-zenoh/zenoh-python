@@ -19,8 +19,8 @@ from zenoh.queryable import ALL_KINDS
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_query',
-    description='zenoh-net query example')
+    prog='z_query',
+    description='zenoh query example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,

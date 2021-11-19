@@ -18,8 +18,8 @@ from zenoh import config, CongestionControl
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_pub_thr',
-    description='zenoh-net throughput pub example')
+    prog='z_pub_thr',
+    description='zenoh throughput pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,

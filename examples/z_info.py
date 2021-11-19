@@ -18,8 +18,8 @@ from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_info',
-    description='zenoh-net info example')
+    prog='z_info',
+    description='zenoh info example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,

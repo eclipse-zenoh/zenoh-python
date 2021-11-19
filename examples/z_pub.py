@@ -19,8 +19,8 @@ from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_pub',
-    description='zenoh-net pub example')
+    prog='z_pub',
+    description='zenoh pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
