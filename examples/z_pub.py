@@ -35,14 +35,14 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
+parser.add_argument('--key', '-k', dest='key',
                     default='/demo/example/zenoh-python-pub',
                     type=str,
-                    help='The name of the resource to publish.')
+                    help='The key expression to publish onto.')
 parser.add_argument('--value', '-v', dest='value',
                     default='Pub from Python!',
                     type=str,
-                    help='The value of the resource to publish.')
+                    help='The value to publish.')
 parser.add_argument("--iter", dest="iter", type=int, help="How many puts to perform")
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
@@ -57,7 +57,7 @@ if args.peer is not None:
     conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
     conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
-path = args.path
+key = args.key
 value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
@@ -68,8 +68,8 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Declaring key expression " + path)
-rid = session.declare_expr(path)
+print("Declaring key expression " + key)
+rid = session.declare_expr(key)
 print(" => RId {}".format(rid))
 
 print("Declaring publication on {}".format(rid))

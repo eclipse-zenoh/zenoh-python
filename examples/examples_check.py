@@ -108,7 +108,7 @@ if not ("Received ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')"
 if any(("z_sub" in error) for error in errors):
 	sub.dbg()
 
-eval = Pyrun("z_eval.py", ["-p=/demo/eval/zenoh-python-eval"])
+eval = Pyrun("z_eval.py", ["-k=/demo/eval/zenoh-python-eval"])
 time.sleep(3)
 get = Pyrun("z_get.py", ["-s=/demo/eval/zenoh-python-eval"])
 if get.status():

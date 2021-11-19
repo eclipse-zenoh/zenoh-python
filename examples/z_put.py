@@ -34,14 +34,14 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
+parser.add_argument('--key', '-k', dest='key',
                     default='/demo/example/zenoh-python-put',
                     type=str,
-                    help='The name of the resource to put.')
+                    help='The key expression to write.')
 parser.add_argument('--value', '-v', dest='value',
                     default='Put from Python!',
                     type=str,
-                    help='The value of the resource to put.')
+                    help='The value to write.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -55,7 +55,7 @@ if args.peer is not None:
     conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
     conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
-path = args.path
+key = args.key
 value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
@@ -66,7 +66,7 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Putting Data ('{}': '{}')...".format(path, value))
-session.put(path, bytes(value, encoding='utf8'))
+print("Putting Data ('{}': '{}')...".format(key, value))
+session.put(key, bytes(value, encoding='utf8'))
 
 session.close()

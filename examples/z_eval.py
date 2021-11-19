@@ -35,10 +35,10 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
+parser.add_argument('--key', '-k', dest='key',
                     default='/demo/example/zenoh-python-eval',
                     type=str,
-                    help='The name of the resource to evaluate.')
+                    help='The key expression matching queries to evaluate.')
 parser.add_argument('--value', '-v', dest='value',
                     default='Eval from Python!',
                     type=str,
@@ -56,7 +56,7 @@ if args.peer is not None:
     conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
     conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
-path = args.path
+key = args.key
 value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
@@ -65,7 +65,7 @@ value = args.value
 def eval_callback(query):
     print(">> [Query handler] Handling '{}{}'".format(
         query.key_expr, query.predicate))
-    query.reply(Sample(key_expr=path, payload=value.encode()))
+    query.reply(Sample(key_expr=key, payload=value.encode()))
 
 
 # initiate logging
@@ -74,8 +74,8 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Creating Queryable on '{}'...".format(path))
-queryable = session.queryable(path, EVAL, eval_callback)
+print("Creating Queryable on '{}'...".format(key))
+queryable = session.queryable(key, EVAL, eval_callback)
 
 print("Press q to stop...")
 c = '\0'

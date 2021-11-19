@@ -35,10 +35,10 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--selector', '-s', dest='selector',
+parser.add_argument('--key', '-k', dest='key',
                     default='/demo/example/**',
                     type=str,
-                    help='The selection of resources to subscribe.')
+                    help='The key expression matching resources to store.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -52,7 +52,7 @@ if args.peer is not None:
     conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
     conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
-selector = args.selector
+key = args.key
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -82,11 +82,11 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Creating Subscriber on '{}'...".format(selector))
-sub = session.subscribe(selector, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
+print("Creating Subscriber on '{}'...".format(key))
+sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
-print("Creating Queryable on '{}'...".format(selector))
-queryable = session.queryable(selector, STORAGE, query_handler)
+print("Creating Queryable on '{}'...".format(key))
+queryable = session.queryable(key, STORAGE, query_handler)
 
 print("Press q to stop...")
 c = '\0'
