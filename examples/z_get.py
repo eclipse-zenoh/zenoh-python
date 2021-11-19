@@ -19,8 +19,8 @@ from zenoh.queryable import ALL_KINDS
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_query',
-    description='zenoh query example')
+    prog='z_get',
+    description='zenoh get example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -63,7 +63,7 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-replies = session.query_collect(selector, '')
+replies = session.get_collect(selector, '')
 for reply in replies:
     print(">> [Reply handler] received ({}:{})"
           .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))

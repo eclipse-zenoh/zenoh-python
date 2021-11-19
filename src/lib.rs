@@ -55,16 +55,16 @@ fn to_pyerr(err: zenoh::prelude::ZError) -> PyErr {
 /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
 /// >>> sub = s.subscribe('/resource/name', sub_info, listener)
 ///
-/// Query
-/// """""
+/// Get
+/// """
 ///
 /// >>> import zenoh, time
 /// >>> from zenoh import QueryTarget, queryable
-/// >>> def query_callback(reply):
+/// >>> def get_callback(reply):
 /// ...     print("Received : {}".format(reply))
 /// >>>
 /// >>> s = zenoh.open({})
-/// >>> s.query('/resource/name', 'predicate', query_callback)
+/// >>> s.get('/resource/name', 'predicate', get_callback)
 /// >>> time.sleep(1)
 #[pymodule]
 pub fn zenoh(py: Python, m: &PyModule) -> PyResult<()> {

@@ -93,7 +93,7 @@
       python3 z_pull.py -s /demo/**
    ```
 
-### z_query
+### z_get
 
    Sends a query message for a selector.  
    The queryables with a matching path or selector (for instance [z_eval](#z_eval) and [z_storage](#z_storage))
@@ -101,17 +101,17 @@
 
    Typical usage:
    ```bash
-      python3 z_query.py
+      python3 z_get.py
    ```
    or
    ```bash
-      python3 z_query.py -s /demo/**
+      python3 z_get.py -s /demo/**
    ```
 
 ### z_eval
 
    Registers a queryable function with a path.  
-   This queryable function will be triggered by each call to a query operation on zenoh-net
+   This queryable function will be triggered by each call to a get operation on zenoh-net
    with a selector that matches the path, and will return a value to the querier.
 
    Typical usage:

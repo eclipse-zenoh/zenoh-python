@@ -1120,7 +1120,7 @@ impl Default for QueryTarget {
 // zenoh.QueryConsolidation (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
-/// The kind of consolidation that should be applied on replies to a :meth:`Session.query`.
+/// The kind of consolidation that should be applied on replies to a :meth:`Session.get`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct ConsolidationMode {
@@ -1155,7 +1155,7 @@ impl ConsolidationMode {
 // zenoh.QueryConsolidation (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
-/// The kind of consolidation that should be applied on replies to a :meth:`Session.query`
+/// The kind of consolidation that should be applied on replies to a :meth:`Session.get`
 /// at the different stages of the reply process.
 ///
 /// :param first_routers: the consolidation mode to apply on first routers of the replies routing path (default: :attr:`ConsolidationMode.Lazy`)
@@ -1201,7 +1201,7 @@ impl Default for QueryConsolidation {
     }
 }
 
-/// Type received by a query callback. See :meth:`Session.query`.
+/// Type received by a get callback. See :meth:`Session.get`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Reply {

@@ -419,13 +419,13 @@ impl Session {
     /// >>> from zenoh import QueryTarget, queryable
     /// >>>
     /// >>> s = zenoh.open({})
-    /// >>> s.query('/resource/name', 'predicate', lambda reply:
+    /// >>> s.get('/resource/name', 'predicate', lambda reply:
     /// ...    print("Received : {}".format(
     /// ...        reply.data if reply is not None else "FINAL")))
     #[pyo3(
         text_signature = "(self, resource, predicate, callback, target=None, consolidation=None)"
     )]
-    fn query(
+    fn get(
         &self,
         resource: &PyAny,
         predicate: &str,
@@ -498,11 +498,11 @@ impl Session {
     /// >>> from zenoh import QueryTarget, queryable
     /// >>>
     /// >>> s = zenoh.open({})
-    /// >>> replies = s.query_collect('/resource/name', 'predicate')
+    /// >>> replies = s.get_collect('/resource/name', 'predicate')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
     #[pyo3(text_signature = "(self, resource, predicate, target=None, consolidation=None)")]
-    fn query_collect(
+    fn get_collect(
         &self,
         resource: &PyAny,
         predicate: &str,
