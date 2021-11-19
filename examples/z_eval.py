@@ -14,17 +14,13 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh import Zenoh, Value
-from zenoh.net import encoding
+from zenoh import config, Sample
+from zenoh.queryable import EVAL
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_sub',
-    description='zenoh sub example')
-parser.add_argument('size',
-                    metavar='PAYLOAD_SIZE',
-                    type=int,
-                    help='Sets the size of the payload to put.')
+    prog='zn_eval',
+    description='zenoh-net eval example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -39,37 +35,52 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
+parser.add_argument('--path', '-p', dest='path',
+                    default='/demo/example/zenoh-python-eval',
+                    type=str,
+                    help='The name of the resource to evaluate.')
+parser.add_argument('--value', '-v', dest='value',
+                    default='Eval from Python!',
+                    type=str,
+                    help='The value to reply to queries.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-print(type(args.size))
-size = args.size
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+path = args.path
+value = args.value
 
-# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
-print("Running throughput test for payload of {} bytes".format(size))
-data = bytearray()
-for i in range(0, size):
-    data.append(i % 10)
-
-v = Value.Raw(encoding.NONE, bytes(data))
-
-print("New zenoh...")
-zenoh = Zenoh(conf)
-
-print("New workspace...")
-workspace = zenoh.workspace()
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-print('Press Ctrl-C to stop the publisher...')
-while True:
-    workspace.put('/test/thr', v)
+def eval_callback(query):
+    print(">> [Query handler] Handling '{}{}'".format(
+        query.key_expr, query.predicate))
+    query.reply(Sample(key_expr=path, payload=value.encode()))
+
+
+# initiate logging
+zenoh.init_logger()
+
+print("Openning session...")
+session = zenoh.open(conf)
+
+print("Declaring Queryable on '{}'...".format(path))
+queryable = session.queryable(path, EVAL, eval_callback)
+
+print("Press q to stop...")
+c = '\0'
+while c != 'q':
+    c = sys.stdin.read(1)
+
+queryable.close()
+session.close()

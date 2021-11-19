@@ -13,13 +13,14 @@
 import sys
 import time
 import argparse
+import itertools
 import zenoh
-from zenoh import Zenoh
+from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_delete',
-    description='zenoh delete example')
+    prog='zn_pub',
+    description='zenoh-net pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,23 +36,29 @@ parser.add_argument('--listener', '-l', dest='listener',
                     type=str,
                     help='Locators to listen on.')
 parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-put',
+                    default='/demo/example/zenoh-python-pub',
                     type=str,
-                    help='The name of the resource to delete.')
+                    help='The name of the resource to publish.')
+parser.add_argument('--value', '-v', dest='value',
+                    default='Pub from Python!',
+                    type=str,
+                    help='The value of the resource to publish.')
+parser.add_argument("--iter", dest="iter", type=int, help="How many writes to perform")
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
 path = args.path
+value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -59,12 +66,21 @@ path = args.path
 zenoh.init_logger()
 
 print("Openning session...")
-zenoh = Zenoh(conf)
+session = zenoh.open(conf)
 
-print("New workspace...")
-workspace = zenoh.workspace()
+print("Declaring Resource " + path)
+rid = session.declare_expr(path)
+print(" => RId {}".format(rid))
 
-print("Delete Path '{}'...\n".format(path))
-workspace.delete(path)
+print("Declaring Publisher on {}".format(rid))
+session.declare_publication(rid)
 
-zenoh.close()
+for idx in itertools.count() if args.iter is None else range(args.iter):
+    time.sleep(1)
+    buf = "[{:4d}] {}".format(idx, value)
+    print("Writing Data ('{}': '{}')...".format(rid, buf))
+    session.write(rid, bytes(buf, encoding='utf8'))
+
+session.undeclare_publication(rid)
+session.undeclare_expr(rid)
+session.close()

@@ -14,13 +14,13 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import whatami
+from zenoh import WhatAmI
 
 # initiate logging
 zenoh.init_logger()
 
 print("Scouting...")
-hellos = zenoh.net.scout(whatami.PEER | whatami.ROUTER, {}, 1.0)
+hellos = zenoh.scout(WhatAmI.Peer | WhatAmI.Router, 1.0)
 
 for hello in hellos:
     print(hello)

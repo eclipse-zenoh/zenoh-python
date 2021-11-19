@@ -13,14 +13,13 @@
 import sys
 import time
 import argparse
-import itertools
 import zenoh
-from zenoh.net import config
+from zenoh import config, CongestionControl
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_pub',
-    description='zenoh-net pub example')
+    prog='zn_pub_thr',
+    description='zenoh-net throughput pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,50 +34,40 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-pub',
-                    type=str,
-                    help='The name of the resource to publish.')
-parser.add_argument('--value', '-v', dest='value',
-                    default='Pub from Python!',
-                    type=str,
-                    help='The value of the resource to publish.')
+parser.add_argument('payload_size',
+                    type=int,
+                    help='Sets the size of the payload to publish.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-path = args.path
-value = args.value
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+size = args.payload_size
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 # initiate logging
 zenoh.init_logger()
 
-print("Openning session...")
-session = zenoh.net.open(conf)
+data = bytearray()
+for i in range(0, size):
+    data.append(i % 10)
+data = bytes(data)
+congestion_control = CongestionControl.Drop
 
-print("Declaring Resource " + path)
-rid = session.declare_resource(path)
-print(" => RId {}".format(rid))
+session = zenoh.open(conf)
 
-print("Declaring Publisher on {}".format(rid))
-publisher = session.declare_publisher(rid)
+rid = session.declare_expr('/test/thr')
 
-for idx in itertools.count():
-    time.sleep(1)
-    buf = "[{:4d}] {}".format(idx, value)
-    print("Writing Data ('{}': '{}')...".format(rid, buf))
-    session.write(rid, bytes(buf, encoding='utf8'))
+pub = session.declare_publication(rid)
 
-publisher.undeclare()
-session.close()
+while True:
+    session.write(rid, data, congestion_control=congestion_control)

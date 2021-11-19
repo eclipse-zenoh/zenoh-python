@@ -14,12 +14,12 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh.net import config
+from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_write',
-    description='zenoh-net write example')
+    prog='zn_info',
+    description='zenoh-net info example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -34,39 +34,29 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-write',
-                    type=str,
-                    help='The name of the resource to write.')
-parser.add_argument('--value', '-v', dest='value',
-                    default='Write from Python!',
-                    type=str,
-                    help='The value of the resource to write.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
     conf["mode"] = args.mode
 if args.peer is not None:
     conf["peer"] = ",".join(args.peer)
 if args.listener is not None:
     conf["listener"] = ",".join(args.listener)
-path = args.path
-value = args.value
-
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
-print("Writing Data ('{}': '{}')...".format(path, value))
-session.write(path, bytes(value, encoding='utf8'))
+info = session.info()
+for key in info:
+    print("{} : {}".format(key, info[key]))
 
 session.close()

@@ -10,17 +10,17 @@
 # Contributors:
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
-import json
 import sys
 import time
 import argparse
 import zenoh
-from zenoh import Zenoh, Value
+from zenoh import config, QueryTarget
+from zenoh.queryable import ALL_KINDS
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_put',
-    description='zenoh put example')
+    prog='zn_query',
+    description='zenoh-net query example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,65 +35,37 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-put',
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/demo/example/**',
                     type=str,
-                    help='The name of the resource to put.')
-parser.add_argument('--value', '-v', dest='value',
-                    default='Put from Python!',
-                    type=str,
-                    help='The value of the resource to put.')
+                    help='The selection of resources to query.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-path = args.path
-value = args.value
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+selector = args.selector
 
-# --- zenoh-net code --- --- --- --- --- --- --- --- --- --- ---
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-z = Zenoh(conf)
+session = zenoh.open(conf)
 
-print("New workspace...")
-workspace = z.workspace()
+print("Sending Query '{}'...".format(selector))
+replies = session.query_collect(selector, '')
+for reply in replies:
+    print(">> [Reply handler] received ({}:{})"
+          .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))
 
-print("Put Data ('{}': '{}')...".format(path, value))
-workspace.put(path, value)
-
-
-# --- Examples of put with other types:
-
-# - Integer
-# workspace.put('/demo/example/Integer', 3)
-
-# - Float
-# workspace.put('/demo/example/Float', 3.14)
-
-# - Properties (as a Dictionary with str only)
-# workspace.put('/demo/example/Properties', {'p1': 'v1', 'p2': 'v2'})
-
-# - Json (str format)
-# workspace.put('/demo/example/Json',
-#               Value.Json(json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}])))
-
-# - Raw ('application/octet-stream' encoding by default)
-# workspace.put('/demo/example/Raw', b'\x48\x69\x33'))
-
-# - Custom
-# workspace.put('/demo/example/Custom',
-#               Value.Custom('my_encoding', b'\x48\x69\x33'))
-
-z.close()
+session.close()

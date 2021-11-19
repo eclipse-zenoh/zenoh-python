@@ -11,16 +11,15 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-import time
-import datetime
+from datetime import datetime
 import argparse
 import zenoh
-from zenoh.net import config, SubInfo, Reliability, SubMode
+from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_sub_thr',
-    description='zenoh-net throughput sub example')
+    prog='zn_pull',
+    description='zenoh-net pull example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,70 +34,50 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--samples', '-s', dest='samples',
-                    default=10,
-                    metavar='NUMBER',
-                    action='append',
-                    type=int,
-                    help='Number of throughput measurements.')
-parser.add_argument('--number', '-n', dest='number',
-                    default=50000,
-                    metavar='NUMBER',
-                    action='append',
-                    type=int,
-                    help='Number of messages in each throughput measurements.')
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/demo/example/**',
+                    type=str,
+                    help='The selection of resources to pull.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-m = args.samples
-n = args.number
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+selector = args.selector
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-def print_stats(start):
-    stop = datetime.datetime.now()
-    print("{:.6f} msgs/sec".format(n / (stop - start).total_seconds()))
-
-
-count = 0
-start = None
-nm = 0
-
-
 def listener(sample):
-    global n, m, count, start, nm
-    if count == 0:
-        start = datetime.datetime.now()
-        count += 1
-    elif count < n:
-        count += 1
-    else:
-        print_stats(start)
-        nm += 1
-        count = 0
-        if nm >= m:
-            sys.exit(0)
+    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else datetime.fromtimestamp(
+        sample.data_info.timestamp.time)
+    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
+          .format(sample.key_expr, sample.payload.decode("utf-8"), time))
 
 
 # initiate logging
 zenoh.init_logger()
 
-session = zenoh.net.open(conf)
+print("Openning session...")
+session = zenoh.open(conf)
 
-rid = session.declare_resource('/test/thr')
+print("Declaring Subscriber on '{}'...".format(selector))
 
-sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-sub = session.declare_subscriber(rid, sub_info, listener)
+sub = session.subscribe(selector, listener, reliability=Reliability.Reliable, mode=SubMode.Pull)
 
-time.sleep(600)
+print("Press <enter> to pull data...")
+c = sys.stdin.read(1)
+while c != 'q':
+    sub.pull()
+    c = sys.stdin.read(1)
+
+sub.close()
+session.close()
