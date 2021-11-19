@@ -67,7 +67,7 @@ impl Session {
         Ok(pydict.into_py_dict(py).to_object(py))
     }
 
-    /// Write data.
+    /// Put data.
     ///
     /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
@@ -75,9 +75,9 @@ impl Session {
     /// * **str** for a ``KeyExpr.RName(str)``
     /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
     ///
-    /// :param resource: The resource key to write
+    /// :param resource: The resource key to put
     /// :type resource: KeyExpr
-    /// :param payload: The value to write
+    /// :param payload: The value to put
     /// :type payload: bytes
     /// :param encoding: The encoding of the value
     /// :type encoding: int, optional
@@ -90,10 +90,10 @@ impl Session {
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
-    /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
+    /// >>> s.put('/resource/name', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, resource, payload, **kwargs)")]
     #[args(kwargs = "**")]
-    pub fn write(&self, resource: &PyAny, payload: &[u8], kwargs: Option<&PyDict>) -> PyResult<()> {
+    pub fn put(&self, resource: &PyAny, payload: &[u8], kwargs: Option<&PyDict>) -> PyResult<()> {
         let s = self.as_ref()?;
         let k = zkey_expr_of_pyany(resource)?;
         let mut encoding: Option<Encoding> = None;
@@ -189,7 +189,7 @@ impl Session {
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
     /// >>> rid = s.publishing('/resource/name')
-    /// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
+    /// >>> s.put('/resource/name', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, resource)")]
     fn declare_publication(&self, resource: &PyAny) -> PyResult<()> {
         let s = self.as_ref()?;

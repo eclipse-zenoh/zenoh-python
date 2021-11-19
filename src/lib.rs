@@ -41,7 +41,7 @@ fn to_pyerr(err: zenoh::prelude::ZError) -> PyErr {
 ///
 /// >>> import zenoh
 /// >>> s = zenoh.open({})
-/// >>> s.write('/resource/name', bytes('value', encoding='utf8'))
+/// >>> s.put('/resource/name', bytes('value', encoding='utf8'))
 ///
 /// Subscribe
 /// """""""""

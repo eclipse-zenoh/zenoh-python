@@ -70,4 +70,4 @@ rid = session.declare_expr('/test/thr')
 pub = session.declare_publication(rid)
 
 while True:
-    session.write(rid, data, congestion_control=congestion_control)
+    session.put(rid, data, congestion_control=congestion_control)

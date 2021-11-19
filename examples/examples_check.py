@@ -62,10 +62,10 @@ storage = Pyrun("z_storage.py")
 sub = Pyrun("z_sub.py")
 pull = Pyrun("z_pull.py")
 time.sleep(2)
-write = Pyrun("z_write.py")
-if write.status():
-	write.dbg()
-	errors.append(write.status())
+put = Pyrun("z_put.py")
+if put.status():
+	put.dbg()
+	errors.append(put.status())
 pub = Pyrun("z_pub.py", ["--iter=2"])
 try:
 	pull.process.stdin.write(b"\n")
@@ -101,8 +101,8 @@ if sub.status():
 	sub.dbg()
 	errors.append(sub.status())
 subout = "".join(sub.stdout)
-if not ("Received ('/demo/example/zenoh-python-write': 'Write from Python!')" in subout):
-	errors.append("z_sub didn't catch z_write")
+if not ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in subout):
+	errors.append("z_sub didn't catch put")
 if not ("Received ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
 	errors.append("z_sub didn't catch second z_pub")
 if any(("z_sub" in error) for error in errors):
@@ -128,7 +128,7 @@ if not ("received (/demo/eval/zenoh-python-eval:Eval from Python!)" in "".join(q
 	eval.dbg()
 	errors.append("z_query didn't get a response from z_eval")
 
-query = Pyrun("z_query.py", ["-s=/demo/example/zenoh-python-write"])
+query = Pyrun("z_query.py", ["-s=/demo/example/zenoh-python-put"])
 if query.status():
 	query.dbg()
 	errors.append(query.status())
@@ -141,9 +141,9 @@ except Exception as e:
 if storage.status():
 	storage.dbg()
 	errors.append(storage.status())
-if not ("received (/demo/example/zenoh-python-write:Write from Python!)" in "".join(query.stdout)):
+if not ("received (/demo/example/zenoh-python-put:Put from Python!)" in "".join(query.stdout)):
 	storage.dbg()
-	errors.append("z_query didn't get a response from z_storage about z_write")
+	errors.append("z_query didn't get a response from z_storage about put")
 if any(("z_query" in error) for error in errors):
 	query.dbg()
 

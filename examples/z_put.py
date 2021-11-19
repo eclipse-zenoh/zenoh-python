@@ -18,8 +18,8 @@ from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_write',
-    description='zenoh write example')
+    prog='z_put',
+    description='zenoh put example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,13 +35,13 @@ parser.add_argument('--listener', '-l', dest='listener',
                     type=str,
                     help='Locators to listen on.')
 parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-write',
+                    default='/demo/example/zenoh-python-put',
                     type=str,
-                    help='The name of the resource to write.')
+                    help='The name of the resource to put.')
 parser.add_argument('--value', '-v', dest='value',
-                    default='Write from Python!',
+                    default='Put from Python!',
                     type=str,
-                    help='The value of the resource to write.')
+                    help='The value of the resource to put.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -66,7 +66,7 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Writing Data ('{}': '{}')...".format(path, value))
-session.write(path, bytes(value, encoding='utf8'))
+print("Putting Data ('{}': '{}')...".format(path, value))
+session.put(path, bytes(value, encoding='utf8'))
 
 session.close()

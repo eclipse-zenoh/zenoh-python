@@ -33,24 +33,24 @@
    ```
 
 
-### z_write
+### z_put
 
-   Writes a path/value into Zenoh.  
+   Puts a path/value into Zenoh.  
    The path/value will be received by all matching subscribers, for instance the [z_sub](#z_sub)
    and [z_storage](#z_storage) examples.
 
    Typical usage:
    ```bash
-      python3 z_write.py
+      python3 z_put.py
    ```
    or
    ```bash
-      python3 z_write.py -p /demo/example/test -v 'Hello World'
+      python3 z_put.py -p /demo/example/test -v 'Hello World'
    ```
 
 ### z_pub
 
-   Declares a resource with a path and a publisher on this resource. Then writes a value using the numerical resource id.
+   Declares a resource with a path and a publisher on this resource. Then puts a value using the numerical resource id.
    The path/value will be received by all matching subscribers, for instance the [z_sub](#z_sub)
    and [z_storage](#z_storage) examples.
 
@@ -66,7 +66,7 @@
 ### z_sub
 
    Registers a subscriber with a selector.  
-   The subscriber will be notified of each write made on any path matching the selector,
+   The subscriber will be notified of each put made on any path matching the selector,
    and will print this notification.
 
    Typical usage:
@@ -81,7 +81,7 @@
 ### z_pull
 
    Registers a pull subscriber with a selector.  
-   The pull subscriber will receive each write made on any path matching the selector,
+   The pull subscriber will receive each put made on any path matching the selector,
    and will pull on demand and print the received path/value.
 
    Typical usage:
@@ -144,7 +144,7 @@
 
    Pub/Sub throughput test.
    This example allows to perform throughput measurements between a pubisher performing
-   write operations and a subscriber receiving notifications of those writes.
+   put operations and a subscriber receiving notifications of those puts.
 
    Typical Subscriber usage:
    ```bash

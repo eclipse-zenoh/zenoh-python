@@ -43,7 +43,7 @@ parser.add_argument('--value', '-v', dest='value',
                     default='Pub from Python!',
                     type=str,
                     help='The value of the resource to publish.')
-parser.add_argument("--iter", dest="iter", type=int, help="How many writes to perform")
+parser.add_argument("--iter", dest="iter", type=int, help="How many puts to perform")
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -78,8 +78,8 @@ session.declare_publication(rid)
 for idx in itertools.count() if args.iter is None else range(args.iter):
     time.sleep(1)
     buf = "[{:4d}] {}".format(idx, value)
-    print("Writing Data ('{}': '{}')...".format(rid, buf))
-    session.write(rid, bytes(buf, encoding='utf8'))
+    print("Putting Data ('{}': '{}')...".format(rid, buf))
+    session.put(rid, bytes(buf, encoding='utf8'))
 
 session.undeclare_publication(rid)
 session.undeclare_expr(rid)
