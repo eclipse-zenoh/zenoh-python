@@ -14,8 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh import config, QueryTarget
-from zenoh.queryable import ALL_KINDS
+from zenoh import config, queryable, QueryTarget, Target
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -39,6 +38,16 @@ parser.add_argument('--selector', '-s', dest='selector',
                     default='/demo/example/**',
                     type=str,
                     help='The selection of resources to query.')
+parser.add_argument('--kind', '-k', dest='kind',
+                    choices=['ALL_KINDS', 'STORAGE', 'EVAL'],
+                    default='ALL_KINDS',
+                    type=str,
+                    help='The KIND of queryables to query.')
+parser.add_argument('--target', '-t', dest='target',
+                    choices=['ALL', 'BEST_MATCHING', 'ALL_COMPLETE', 'NONE'],
+                    default='ALL',
+                    type=str,
+                    help='The target queryables of the query.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -53,6 +62,15 @@ if args.peer is not None:
 if args.listener is not None:
     conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
 selector = args.selector
+kind = {
+    'ALL_KINDS': queryable.ALL_KINDS,
+    'STORAGE': queryable.STORAGE,
+    'EVAL': queryable.EVAL}.get(args.kind)
+target = {
+    'ALL': Target.All(),
+    'BEST_MATCHING': Target.BestMatching(),
+    'ALL_COMPLETE': Target.AllComplete(),
+    'NONE': Target.No()}.get(args.target)
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -63,7 +81,7 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-replies = session.get_collect(selector, '')
+replies = session.get_collect(selector, '', target=QueryTarget(kind, target))
 for reply in replies:
     print(">> [Reply handler] received ({}:{})"
           .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))
