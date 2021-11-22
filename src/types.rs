@@ -1074,6 +1074,13 @@ impl Target {
     }
 
     #[staticmethod]
+    fn AllComplete() -> Target {
+        Target {
+            t: zenoh::query::Target::AllComplete,
+        }
+    }
+
+    #[staticmethod]
     fn No() -> Target {
         Target {
             t: zenoh::query::Target::None,
