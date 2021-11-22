@@ -57,8 +57,8 @@ key = args.key
 
 
 def listener(sample):
-    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else datetime.fromtimestamp(
-        sample.data_info.timestamp.time)
+    time = '(not specified)' if sample.data_info is None or sample.timestamp is None else datetime.fromtimestamp(
+        sample.timestamp.time)
     print(">> [Subscription listener] Received ('{}': '{}') published at {}"
           .format(sample.key_expr, sample.payload.decode("utf-8"), time))
 
