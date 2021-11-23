@@ -62,17 +62,17 @@ store = {}
 def listener(sample):
     print(">> [Storage listener] Received ('{}': '{}')"
           .format(sample.key_expr, sample.payload.decode("utf-8")))
-    store[sample.key_expr] = (sample.value, sample.data_info)
+    store[sample.key_expr] = (sample.value, sample.source_info)
 
 
 def query_handler(query):
     print(">> [Query handler   ] Handling '{}?{}'"
           .format(query.key_expr, query.predicate))
     replies = []
-    for stored_name, (data, data_info) in store.items():
+    for stored_name, (data, source_info) in store.items():
         if KeyExpr.intersect(query.key_expr, stored_name):
             sample = Sample(stored_name, data)
-            sample.with_source_info(data_info)
+            sample.with_source_info(source_info)
             query.reply(sample)
 
 

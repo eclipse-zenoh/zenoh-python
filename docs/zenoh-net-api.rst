@@ -48,9 +48,9 @@ Timestamp
 .. autoclass:: zenoh.Timestamp
     :members:
 
-DataInfo
+SourceInfo
 --------
-.. autoclass:: zenoh.DataInfo
+.. autoclass:: zenoh.SourceInfo
     :members:
 
 Sample

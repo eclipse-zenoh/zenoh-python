@@ -735,10 +735,10 @@ impl SourceInfo {
 /// :type key_expr: str
 /// :param payload: the data payload
 /// :type payload: bytes
-/// :param data_info: some information about the data
-/// :type data_info: DataInfo, optional
+/// :param source_info: some information about the data
+/// :type source_info: SourceInfo, optional
 #[pyclass]
-#[pyo3(text_signature = "(key_expr, payload, data_info=None)")]
+#[pyo3(text_signature = "(key_expr, payload, source_info=None)")]
 #[derive(Clone)]
 pub(crate) struct Sample {
     pub(crate) s: zenoh::prelude::Sample,
@@ -805,7 +805,7 @@ impl Sample {
     ///
     /// :type: :class:`SourceInfo` or ``None``
     #[getter]
-    fn data_info(&self) -> Option<SourceInfo> {
+    fn source_info(&self) -> Option<SourceInfo> {
         Some(SourceInfo {
             i: self.s.source_info.clone(),
         })
