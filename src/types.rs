@@ -14,6 +14,7 @@ use std::ops::BitOr;
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
+use crate::data_kind::SampleKind;
 use async_std::channel::Sender;
 use async_std::task;
 use log::warn;
@@ -799,6 +800,14 @@ impl Sample {
         Value {
             v: self.s.value.clone(),
         }
+    }
+
+    /// The data payload
+    ///
+    /// :type: bytes
+    #[getter]
+    fn kind(&self) -> SampleKind {
+        self.s.kind.into()
     }
 
     /// Some information about the data

@@ -12,6 +12,7 @@
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use pyo3::prelude::*;
+use pyo3::PyObjectProtocol;
 use zenoh::prelude::SampleKind as ZSampleKind;
 
 // zenoh.data_kind (simulate the package as a class, and consts as class attributes)
@@ -56,6 +57,14 @@ impl SampleKind {
         ZSampleKind::default().into()
     }
 }
+
+#[pyproto]
+impl PyObjectProtocol for SampleKind {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.to_string())
+    }
+}
+
 impl std::fmt::Display for SampleKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.kind)
