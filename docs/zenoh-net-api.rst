@@ -189,9 +189,9 @@ module zenoh.encoding
     :members:
     :undoc-members:
 
-module zenoh.data_kind
+module zenoh.sample_kind
 --------------------------
-.. automodule:: zenoh.data_kind
+.. automodule:: zenoh.sample_kind
     :members:
     :undoc-members:
 

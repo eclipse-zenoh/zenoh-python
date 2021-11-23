@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 use pyo3::PyObjectProtocol;
 use zenoh::prelude::SampleKind as ZSampleKind;
 
-// zenoh.data_kind (simulate the package as a class, and consts as class attributes)
+// zenoh.sample_kind (simulate the package as a class, and consts as class attributes)
 /// Constants defining the different data kinds.
 #[allow(non_camel_case_types)]
 #[pyclass]

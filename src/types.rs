@@ -14,7 +14,7 @@ use std::ops::BitOr;
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
-use crate::data_kind::SampleKind;
+use crate::sample_kind::SampleKind;
 use async_std::channel::Sender;
 use async_std::task;
 use log::warn;

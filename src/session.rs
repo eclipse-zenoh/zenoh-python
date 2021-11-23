@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use super::data_kind::SampleKind;
 use super::encoding::Encoding;
+use super::sample_kind::SampleKind;
 //
 // Copyright (c) 2017, 2020 ADLINK Technology Inc.
 //

@@ -23,8 +23,8 @@ pub(crate) use types::*;
 mod session;
 use session::*;
 use zenoh_util::zerror2;
-mod data_kind;
 mod encoding;
+mod sample_kind;
 
 create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
@@ -131,7 +131,7 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<Reply>()?;
     m.add_class::<KeyExpr>()?;
     m.add_class::<Sample>()?;
-    m.add_class::<data_kind::SampleKind>()?;
+    m.add_class::<sample_kind::SampleKind>()?;
     m.add_class::<Session>()?;
     m.add_class::<SourceInfo>()?;
     m.add_class::<SubMode>()?;
