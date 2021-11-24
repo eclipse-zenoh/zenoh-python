@@ -125,6 +125,46 @@ impl Session {
             .map_err(to_pyerr)
     }
 
+    /// Delete data.
+    ///
+    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    ///
+    /// * **int** for a ``KeyExpr.Rid(int)``
+    /// * **str** for a ``KeyExpr.RName(str)``
+    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    ///
+    /// :param resource: The resource key to delete
+    /// :type resource: KeyExpr
+    /// :param congestion_control: The value for the congestion control
+    /// :type congestion_control: CongestionControl, optional
+    ///
+    /// :Examples:
+    ///
+    /// >>> import zenoh
+    /// >>> s = zenoh.open({})
+    /// >>> s.delete('/resource/name')
+    #[pyo3(text_signature = "(self, resource, payload, **kwargs)")]
+    #[args(kwargs = "**")]
+    pub fn delete(&self, resource: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
+        let s = self.as_ref()?;
+        let k = zkey_expr_of_pyany(resource)?;
+        let mut congestion_control: Option<CongestionControl> = None;
+        let mut priority: Option<Priority> = None;
+        if let Some(kwargs) = kwargs {
+            if let Some(cc) = kwargs.get_item("congestion_control") {
+                congestion_control = cc.extract().ok()
+            }
+            if let Some(p) = kwargs.get_item("priority") {
+                priority = p.extract().ok()
+            }
+        }
+        s.delete(k)
+            .congestion_control(congestion_control.unwrap_or_default().cc)
+            .priority(priority.unwrap_or_default().p)
+            .wait()
+            .map_err(to_pyerr)
+    }
+
     /// Associate a numerical Id with the given key expression.
     ///
     /// This numerical Id will be used on the network to save bandwidth and
