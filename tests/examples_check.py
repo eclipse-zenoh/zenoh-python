@@ -2,7 +2,7 @@ from os import path
 from subprocess import Popen, PIPE
 import time
 
-examples = path.dirname(path.realpath(__file__))
+examples = path.dirname(path.realpath(__file__)).replace('tests', 'examples')
 tab = "\t"
 ret = "\r\n"
 KILL = -9
