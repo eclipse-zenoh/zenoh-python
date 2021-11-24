@@ -59,8 +59,8 @@ key = args.key
 def listener(sample):
     time = '(not specified)' if sample.source_info is None or sample.timestamp is None else datetime.fromtimestamp(
         sample.timestamp.time)
-    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
-          .format(sample.key_expr, sample.payload.decode("utf-8"), time))
+    print(">> [Subscriber] Received {} ('{}': '{}')"
+          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8"), time))
 
 
 # initiate logging
@@ -73,7 +73,7 @@ print("Creating Subscriber on '{}'...".format(key))
 
 sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
-print("Press q to stop...")
+print("Enter 'q' to quit...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)

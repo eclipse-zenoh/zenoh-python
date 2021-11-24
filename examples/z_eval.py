@@ -63,7 +63,7 @@ value = args.value
 
 
 def eval_callback(query):
-    print(">> [Query handler] Handling '{}'".format(query.selector))
+    print(">> [Queryable ] Received Query '{}'".format(query.selector))
     query.reply(Sample(key_expr=key, payload=value.encode()))
 
 
@@ -76,7 +76,7 @@ session = zenoh.open(conf)
 print("Creating Queryable on '{}'...".format(key))
 queryable = session.queryable(key, EVAL, eval_callback)
 
-print("Press q to stop...")
+print("Enter 'q' to quit......")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)

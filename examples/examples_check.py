@@ -101,9 +101,9 @@ if sub.status():
 	sub.dbg()
 	errors.append(sub.status())
 subout = "".join(sub.stdout)
-if not ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in subout):
+if not ("Received PUT ('/demo/example/zenoh-python-put': 'Put from Python!')" in subout):
 	errors.append("z_sub didn't catch put")
-if not ("Received ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
+if not ("Received PUT ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
 	errors.append("z_sub didn't catch second z_pub")
 if any(("z_sub" in error) for error in errors):
 	sub.dbg()
@@ -123,7 +123,7 @@ except Exception as e:
 if eval.status():
 	eval.dbg()
 	errors.append(eval.status())
-if not ("received (/demo/eval/zenoh-python-eval:Eval from Python!)" in "".join(get.stdout)):
+if not ("Received ('/demo/eval/zenoh-python-eval': 'Eval from Python!')" in "".join(get.stdout)):
 	get.dbg()
 	eval.dbg()
 	errors.append("z_get didn't get a response from z_eval")
@@ -141,7 +141,7 @@ except Exception as e:
 if storage.status():
 	storage.dbg()
 	errors.append(storage.status())
-if not ("received (/demo/example/zenoh-python-put:Put from Python!)" in "".join(get.stdout)):
+if not ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in "".join(get.stdout)):
 	storage.dbg()
 	errors.append("z_get didn't get a response from z_storage about put")
 if any(("z_get" in error) for error in errors):

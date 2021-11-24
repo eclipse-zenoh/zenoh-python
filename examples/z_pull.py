@@ -59,8 +59,8 @@ key = args.key
 def listener(sample):
     time = '(not specified)' if sample.source_info is None or sample.timestamp is None else datetime.fromtimestamp(
         sample.timestamp.time)
-    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
-          .format(sample.key_expr, sample.payload.decode("utf-8"), time))
+    print(">> [Subscriber] Received {} ('{}': '{}')"
+          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8"), time))
 
 
 # initiate logging

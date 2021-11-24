@@ -60,13 +60,13 @@ store = {}
 
 
 def listener(sample):
-    print(">> [Storage listener] Received ('{}': '{}')"
-          .format(sample.key_expr, sample.payload.decode("utf-8")))
+    print(">> [Subscriber] Received {} ('{}': '{}')"
+          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8")))
     store[sample.key_expr] = (sample.value, sample.source_info)
 
 
 def query_handler(query):
-    print(">> [Query handler   ] Handling '{}'".format(query.selector))
+    print(">> [Queryable ] Received Query '{}'".format(query.selector))
     replies = []
     for stored_name, (data, source_info) in store.items():
         if KeyExpr.intersect(query.key_selector, stored_name):
@@ -87,7 +87,7 @@ sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=Su
 print("Creating Queryable on '{}'...".format(key))
 queryable = session.queryable(key, STORAGE, query_handler)
 
-print("Press q to stop...")
+print("Enter 'q' to quit......")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
