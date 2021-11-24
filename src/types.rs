@@ -634,11 +634,11 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<zenoh::prelude::Value> {
         "tuple" => {
             let tuple: &PyTuple = obj.downcast()?;
             if tuple.len() == 2
-                && tuple.get_item(0)?.get_type().name()? == "str"
-                && tuple.get_item(1)?.get_type().name()? == "bytes"
+                && tuple.get_item(0)?.get_type().name()? == "bytes"
+                && tuple.get_item(1)?.get_type().name()? == "str"
             {
-                let encoding_descr: String = tuple.get_item(0)?.extract()?;
-                let buf: &[u8] = tuple.get_item(1)?.extract()?;
+                let buf: &[u8] = tuple.get_item(0)?.extract()?;
+                let encoding_descr: String = tuple.get_item(1)?.extract()?;
                 Ok(ZValue::new(Vec::from(buf).into()).encoding(encoding_descr.into()))
             } else {
                 Err(PyErr::new::<exceptions::PyValueError, _>(format!(

@@ -13,6 +13,7 @@
 import sys
 import time
 import argparse
+import math
 import zenoh
 from zenoh import config
 
@@ -39,9 +40,9 @@ parser.add_argument('--key', '-k', dest='key',
                     type=str,
                     help='The key expression to write.')
 parser.add_argument('--value', '-v', dest='value',
-                    default='Put from Python!',
+                    default=str(math.pi),
                     type=str,
-                    help='The value to write.')
+                    help='The float value to write.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -66,7 +67,7 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Putting Data ('{}': '{}')...".format(key, value))
-session.put(key, value)
+print("Putting Float ('{}': '{}')...".format(key, value))
+session.put(key, float(value))
 
 session.close()

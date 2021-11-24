@@ -16,8 +16,8 @@ use super::sample_kind::SampleKind;
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use super::types::{
-    zkey_expr_of_pyany, CongestionControl, Priority, Query, QueryConsolidation, QueryTarget,
-    Queryable, Reply, Sample, Subscriber, ZnSubOps,
+    zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, Priority, Query, QueryConsolidation,
+    QueryTarget, Queryable, Reply, Sample, Subscriber, ZnSubOps,
 };
 use crate::types::{KeyExpr, Reliability, SubMode};
 use crate::{to_pyerr, ZError};
@@ -94,9 +94,10 @@ impl Session {
     /// >>> s.put('/resource/name', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, resource, payload, **kwargs)")]
     #[args(kwargs = "**")]
-    pub fn put(&self, resource: &PyAny, payload: &[u8], kwargs: Option<&PyDict>) -> PyResult<()> {
+    pub fn put(&self, resource: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
         let s = self.as_ref()?;
         let k = zkey_expr_of_pyany(resource)?;
+        let mut v = zvalue_of_pyany(value)?;
         let mut encoding: Option<Encoding> = None;
         let mut kind: Option<SampleKind> = None;
         let mut congestion_control: Option<CongestionControl> = None;
@@ -115,9 +116,10 @@ impl Session {
                 priority = p.extract().ok()
             }
         }
-        let value =
-            zenoh::prelude::Value::from(payload).encoding(encoding.unwrap_or_default().into());
-        s.put(k, value)
+        if let Some(encoding) = encoding {
+            v.encoding = encoding.into();
+        }
+        s.put(k, v)
             .kind(kind.unwrap_or_default().kind)
             .congestion_control(congestion_control.unwrap_or_default().cc)
             .priority(priority.unwrap_or_default().p)
