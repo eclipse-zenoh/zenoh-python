@@ -61,15 +61,18 @@ if scout.status():
 storage = Pyrun("z_storage.py")
 sub = Pyrun("z_sub.py")
 pull = Pyrun("z_pull.py")
-time.sleep(2)
+time.sleep(1)
 put = Pyrun("z_put.py")
 if put.status():
 	put.dbg()
 	errors.append(put.status())
+time.sleep(1)
 pub = Pyrun("z_pub.py", ["--iter=2"])
+time.sleep(3)
 try:
 	pull.process.stdin.write(b"\n")
 	pull.process.stdin.flush()
+	time.sleep(1)
 	pull.process.stdin.write(b"q\n")
 	pull.process.stdin.flush()
 	pull.process.stdin.close()
@@ -79,18 +82,16 @@ except Exception as e:
 if pub.status():
 	pub.dbg()
 	errors.append(pub.status())
-if pull.process.poll() is not None:
-	pull.status()
+if pull.status():
 	pull.dbg()
-	if pull.wait():
-		errors.append(pull.status())
-else:
-	pull.process.kill()
+	errors.append(pull.status())
+subout = "".join(pull.stdout)
+if not ("Received PUT ('/demo/example/zenoh-python-put': 'Put from Python!')" in subout):
+	errors.append("z_pull didn't catch put")
+if not ("Received PUT ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
+	errors.append("z_pull didn't catch second z_pub")
+if any(("z_pull" in error) for error in errors):
 	pull.dbg()
-	if status:=pull.status(KILL):
-		errors.append(status)
-	else:
-		errors.append("z_pull: didn't return (bad), but was killed properly (not terrible)")
 try:
 	sub.process.stdin.write(b"q\n")
 	sub.process.stdin.flush()
@@ -109,7 +110,7 @@ if any(("z_sub" in error) for error in errors):
 	sub.dbg()
 
 eval = Pyrun("z_eval.py", ["-k=/demo/example/zenoh-python-eval"])
-time.sleep(3)
+time.sleep(1)
 get = Pyrun("z_get.py", ["-s=/demo/example/zenoh-python-eval"])
 if get.status():
 	get.dbg()
@@ -128,6 +129,7 @@ if not ("Received ('/demo/example/zenoh-python-eval': 'Eval from Python!')" in "
 	eval.dbg()
 	errors.append("z_get didn't get a response from z_eval")
 
+time.sleep(1)
 get = Pyrun("z_get.py", ["-s=/demo/example/zenoh-python-put"])
 if get.status():
 	get.dbg()
