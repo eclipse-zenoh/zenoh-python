@@ -70,16 +70,16 @@ impl Session {
 
     /// Put data.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``KeyExpr.Rid(int)``
-    /// * **str** for a ``KeyExpr.RName(str)``
-    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
     ///
-    /// :param resource: The resource key to put
-    /// :type resource: KeyExpr
-    /// :param payload: The value to put
-    /// :type payload: bytes
+    /// :param key_expr: The key expression matching resources to write
+    /// :type key_expr: KeyExpr
+    /// :param value: The value to write
+    /// :type value: Value
     /// :param encoding: The encoding of the value
     /// :type encoding: int, optional
     /// :param kind: The kind of value
@@ -91,12 +91,12 @@ impl Session {
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
-    /// >>> s.put('/resource/name', bytes('value', encoding='utf8'))
-    #[pyo3(text_signature = "(self, resource, payload, **kwargs)")]
+    /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
+    #[pyo3(text_signature = "(self, key_expr, value, **kwargs)")]
     #[args(kwargs = "**")]
-    pub fn put(&self, resource: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
+    pub fn put(&self, key_expr: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(key_expr)?;
         let mut v = zvalue_of_pyany(value)?;
         let mut encoding: Option<Encoding> = None;
         let mut kind: Option<SampleKind> = None;
@@ -129,14 +129,14 @@ impl Session {
 
     /// Delete data.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``KeyExpr.Rid(int)``
-    /// * **str** for a ``KeyExpr.RName(str)``
-    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
     ///
-    /// :param resource: The resource key to delete
-    /// :type resource: KeyExpr
+    /// :param key_expr: The key expression matching resources to delete
+    /// :type key_expr: KeyExpr
     /// :param congestion_control: The value for the congestion control
     /// :type congestion_control: CongestionControl, optional
     ///
@@ -144,12 +144,12 @@ impl Session {
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
-    /// >>> s.delete('/resource/name')
-    #[pyo3(text_signature = "(self, resource, payload, **kwargs)")]
+    /// >>> s.delete('/key/expression')
+    #[pyo3(text_signature = "(self, key_expr, **kwargs)")]
     #[args(kwargs = "**")]
-    pub fn delete(&self, resource: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
+    pub fn delete(&self, key_expr: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(resource)?;
+        let k = zkey_expr_of_pyany(key_expr)?;
         let mut congestion_control: Option<CongestionControl> = None;
         let mut priority: Option<Priority> = None;
         if let Some(kwargs) = kwargs {
@@ -204,7 +204,7 @@ impl Session {
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.open({})
-    /// >>> rid = s.declare_expr('/resource/name')
+    /// >>> rid = s.declare_expr('/key/expression')
     /// >>> s.undeclare_expr(rid)
     #[pyo3(text_signature = "(self, rid)")]
     pub fn undeclare_expr(&self, rid: ExprId) -> PyResult<()> {
@@ -214,14 +214,14 @@ impl Session {
 
     /// Declare a publication for the given key expression.
     ///
-    /// Written resources that match the given key expression will only be sent on the network
+    /// Written expressions that match the given key expression will only be sent on the network
     /// if matching subscribers exist in the system.
     ///
-    /// The *resource* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
-    /// * **int** for a ``KeyExpr.Rid(int)``
-    /// * **str** for a ``KeyExpr.RName(str)``
-    /// * **(int, str)** for a ``KeyExpr.RIdWithSuffix(int, str)``
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression to publish
     /// :type key_expr: KeyExpr
@@ -382,7 +382,7 @@ impl Session {
     /// >>> s = zenoh.open({})
     /// >>> q = s.queryable('/key/expression', queryable.EVAL, callback)
     /// >>> time.sleep(60)
-    #[pyo3(text_signature = "(self, resource, kind, callback)")]
+    #[pyo3(text_signature = "(self, key_expr, kind, callback)")]
     fn queryable(&self, key_expr: &PyAny, kind: ZInt, callback: &PyAny) -> PyResult<Queryable> {
         let s = self.as_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
