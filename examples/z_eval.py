@@ -63,8 +63,7 @@ value = args.value
 
 
 def eval_callback(query):
-    print(">> [Query handler] Handling '{}{}'".format(
-        query.key_expr, query.predicate))
+    print(">> [Query handler] Handling '{}'".format(query.selector))
     query.reply(Sample(key_expr=key, payload=value.encode()))
 
 

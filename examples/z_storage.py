@@ -66,11 +66,10 @@ def listener(sample):
 
 
 def query_handler(query):
-    print(">> [Query handler   ] Handling '{}?{}'"
-          .format(query.key_expr, query.predicate))
+    print(">> [Query handler   ] Handling '{}'".format(query.selector))
     replies = []
     for stored_name, (data, source_info) in store.items():
-        if KeyExpr.intersect(query.key_expr, stored_name):
+        if KeyExpr.intersect(query.key_selector, stored_name):
             sample = Sample(stored_name, data)
             sample.with_source_info(source_info)
             query.reply(sample)

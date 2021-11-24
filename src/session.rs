@@ -19,16 +19,17 @@ use super::types::{
     zkey_expr_of_pyany, CongestionControl, Priority, Query, QueryConsolidation, QueryTarget,
     Queryable, Reply, Sample, Subscriber, ZnSubOps,
 };
-use crate::types::{Reliability, SubMode};
+use crate::types::{KeyExpr, Reliability, SubMode};
 use crate::{to_pyerr, ZError};
 use async_std::channel::bounded;
 use async_std::task;
 use futures::prelude::*;
 use futures::select;
 use log::warn;
+use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
-use zenoh::prelude::{ExprId, ZFuture, ZInt};
+use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, ZFuture, ZInt};
 
 /// A zenoh-net session.
 #[pyclass]
@@ -395,16 +396,14 @@ impl Session {
     /// The replies are provided by calling the provided ``callback`` for each reply.
     /// The ``callback`` is called a last time with ``None`` when the query is complete.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *selector* parameter accepts the following types:
     ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
+    /// * **KeyExpr** for a key expression with no value selector
+    /// * **int** for a key expression id with no value selector
+    /// * **str** for a litteral selector
     ///
-    /// :param key_expr: The key expression to query
-    /// :type key_expr: KeyExpr
-    /// :param predicate: An indication to matching queryables about the queried data
-    /// :type predicate: str
+    /// :param selector: The selection of resources to query
+    /// :type selector: str
     /// :param callback: the query callback which will receive the replies
     /// :type callback: function(:class:`Reply`)
     /// :param target: The kind of queryables that should be target of this query
@@ -418,31 +417,50 @@ impl Session {
     /// >>> from zenoh import QueryTarget, queryable
     /// >>>
     /// >>> s = zenoh.open({})
-    /// >>> s.get('/key/expression', '?predicate', lambda reply:
+    /// >>> s.get('/key/selector?value_selector', lambda reply:
     /// ...    print("Received : {}".format(
     /// ...        reply.data if reply is not None else "FINAL")))
-    #[pyo3(
-        text_signature = "(self, key_expr, predicate, callback, target=None, consolidation=None)"
-    )]
+    #[pyo3(text_signature = "(self, selector, callback, target=None, consolidation=None)")]
     fn get(
         &self,
-        key_expr: &PyAny,
-        predicate: &str,
+        selector: &PyAny,
         callback: &PyAny,
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
     ) -> PyResult<()> {
         let s = self.as_ref()?;
-        let key_selector = zkey_expr_of_pyany(key_expr)?;
-        let mut zn_recv = s
-            .get(zenoh::prelude::Selector {
-                key_selector,
-                value_selector: predicate,
-            })
-            .target(target.unwrap_or_default().t)
-            .consolidation(consolidation.unwrap_or_default().c)
-            .wait()
-            .map_err(to_pyerr)?;
+        let mut zn_recv = match selector.get_type().name()? {
+            "KeyExpr" => {
+                let rk: PyRef<KeyExpr> = selector.extract()?;
+                s.get(rk.inner.clone())
+                    .target(target.unwrap_or_default().t)
+                    .consolidation(consolidation.unwrap_or_default().c)
+                    .wait()
+                    .map_err(to_pyerr)?
+            }
+            "int" => {
+                let id: u64 = selector.extract()?;
+                s.get(ZKeyExpr::from(id))
+                    .target(target.unwrap_or_default().t)
+                    .consolidation(consolidation.unwrap_or_default().c)
+                    .wait()
+                    .map_err(to_pyerr)?
+            }
+            "str" => {
+                let name: String = selector.extract()?;
+                s.get(&name)
+                    .target(target.unwrap_or_default().t)
+                    .consolidation(consolidation.unwrap_or_default().c)
+                    .wait()
+                    .map_err(to_pyerr)?
+            }
+            x => {
+                return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
+                    "Cannot convert type '{}' to a zenoh Selector",
+                    x
+                )))
+            }
+        };
 
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
@@ -475,16 +493,14 @@ impl Session {
     ///
     /// Replies are collected in a list.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
+    /// The *selector* parameter accepts the following types:
     ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
+    /// * **KeyExpr** for a key expression with no value selector
+    /// * **int** for a key expression id with no value selector
+    /// * **str** for a litteral selector
     ///
-    /// :param key_expr: The key expression to query
-    /// :type key_expr: KeyExpr
-    /// :param predicate: An indication to matching queryables about the queried data
-    /// :type predicate: str
+    /// :param selector: The selection of resources to query
+    /// :type selector: str
     /// :param target: The kind of queryables that should be target of this query
     /// :type target: QueryTarget, optional
     /// :param consolidation: The kind of consolidation that should be applied on replies
@@ -497,26 +513,50 @@ impl Session {
     /// >>> from zenoh import QueryTarget, queryable
     /// >>>
     /// >>> s = zenoh.open({})
-    /// >>> replies = s.get_collect('/key/expression', 'predicate')
+    /// >>> replies = s.get_collect('/key/selector?value_selector')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
-    #[pyo3(text_signature = "(self, key_expr, predicate, target=None, consolidation=None)")]
+    #[pyo3(text_signature = "(self, selector, target=None, consolidation=None)")]
     fn get_collect(
         &self,
-        key_expr: &PyAny,
-        predicate: &str,
+        selector: &PyAny,
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
     ) -> PyResult<Py<PyList>> {
         let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
         task::block_on(async {
-            let mut replies = s
-                .get(zenoh::prelude::Selector::from(k).with_value_selector(predicate))
-                .target(target.unwrap_or_default().t)
-                .consolidation(consolidation.unwrap_or_default().c)
-                .map_err(to_pyerr)
-                .await?;
+            let mut replies = match selector.get_type().name()? {
+                "KeyExpr" => {
+                    let rk: PyRef<KeyExpr> = selector.extract()?;
+                    s.get(rk.inner.clone())
+                        .target(target.unwrap_or_default().t)
+                        .consolidation(consolidation.unwrap_or_default().c)
+                        .wait()
+                        .map_err(to_pyerr)?
+                }
+                "int" => {
+                    let id: u64 = selector.extract()?;
+                    s.get(ZKeyExpr::from(id))
+                        .target(target.unwrap_or_default().t)
+                        .consolidation(consolidation.unwrap_or_default().c)
+                        .wait()
+                        .map_err(to_pyerr)?
+                }
+                "str" => {
+                    let name: String = selector.extract()?;
+                    s.get(&name)
+                        .target(target.unwrap_or_default().t)
+                        .consolidation(consolidation.unwrap_or_default().c)
+                        .wait()
+                        .map_err(to_pyerr)?
+                }
+                x => {
+                    return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
+                        "Cannot convert type '{}' to a zenoh Selector",
+                        x
+                    )))
+                }
+            };
             let gil = Python::acquire_gil();
             let py = gil.python();
             let result = PyList::empty(py);

@@ -81,7 +81,7 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-replies = session.get_collect(selector, '', target=QueryTarget(kind, target))
+replies = session.get_collect(selector, target=QueryTarget(kind, target))
 for reply in replies:
     print(">> [Reply handler] received ({}:{})"
           .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))

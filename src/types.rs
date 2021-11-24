@@ -993,24 +993,29 @@ impl pyo3::conversion::ToPyObject for Query {
     }
 }
 
-// #[¨pyclass]
-// struct KeyExpr()
-
 #[pymethods]
 impl Query {
-    /// The resrouce name of the query
+    /// The key_selector of the query
     ///
-    /// :type: str
+    /// :type: String
     #[getter]
-    fn key_expr(&self) -> KeyExpr {
+    fn selector(&self) -> String {
+        self.q.selector().to_string()
+    }
+
+    /// The key_selector of the query
+    ///
+    /// :type: KeyExpr
+    #[getter]
+    fn key_selector(&self) -> KeyExpr {
         self.q.selector().key_selector.to_owned().into()
     }
 
-    /// The predicate of the query
+    /// The value_selector of the query
     ///
     /// :type: str
     #[getter]
-    fn predicate(&self) -> &str {
+    fn value_selector(&self) -> &str {
         self.q.selector().value_selector
     }
 
