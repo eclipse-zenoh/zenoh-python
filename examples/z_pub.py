@@ -68,7 +68,7 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Declaring key expression " + key, end='')
+print("Declaring key expression '{}'...".format(key), end='')
 rid = session.declare_expr(key)
 print(" => RId {}".format(rid))
 
