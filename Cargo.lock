@@ -567,7 +567,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
 name = "eclipse-zenoh"
-version = "0.5.0-dev0"
+version = "0.5.0-b9"
 dependencies = [
  "async-std",
  "env_logger",
@@ -2443,8 +2443,9 @@ dependencies = [
 
 [[package]]
 name = "zenoh"
-version = "0.5.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh#41d71d77a4d6d2ec33997d58dfbb7edd72324580"
+version = "0.5.0-beta.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "243817a89ce92e95dbc0cdf6095358546860b94ffdfea9b52f11b92dffda51f6"
 dependencies = [
  "async-global-executor",
  "async-rustls",
@@ -2485,8 +2486,9 @@ dependencies = [
 
 [[package]]
 name = "zenoh-plugin-trait"
-version = "0.1.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh#41d71d77a4d6d2ec33997d58dfbb7edd72324580"
+version = "0.5.0-beta.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "116221d28f0620cf49c11c5e60dde1cd97994e9a1038dfabb9e38dc97e8f9612"
 dependencies = [
  "clap",
  "libloading",
@@ -2496,8 +2498,9 @@ dependencies = [
 
 [[package]]
 name = "zenoh-util"
-version = "0.5.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh#41d71d77a4d6d2ec33997d58dfbb7edd72324580"
+version = "0.5.0-beta.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a3291856c8fabb954829b1aed5a2255b135637cb649f19b163c8411db3d0d07"
 dependencies = [
  "aes 0.7.5",
  "async-std",

@@ -13,7 +13,7 @@
 #
 [package]
 name = "eclipse-zenoh"
-version = "0.5.0-dev0"
+version = "0.5.0-b9"
 authors = ["kydos <angelo@icorsaro.net>",
            "Julien Enoch <julien@enoch.fr>",
            "Olivier Hécart <olivier.hecart@adlinktech.com>",
@@ -39,7 +39,7 @@ name = "zenoh"
 crate-type = ["cdylib"]
 
 [dependencies]
-zenoh = { git = "https://github.com/eclipse-zenoh/zenoh" }
+zenoh = "0.5.0-beta.9"
 async-std = "=1.9.0"
 uhlc = "0.4.0"
 futures = "0.3.12"

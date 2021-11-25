@@ -29,7 +29,7 @@ def readme():
 
 setup(
     name="eclipse-zenoh",
-    version="0.5.0.dev0",
+    version="0.5.0-b9",
     description="The python API for Eclipse zenoh",
     long_description=readme(),
     long_description_content_type='text/markdown',
