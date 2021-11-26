@@ -11,6 +11,7 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
+use pyo3::class::basic::CompareOp;
 use pyo3::prelude::*;
 use pyo3::PyObjectProtocol;
 use zenoh::prelude::SampleKind as ZSampleKind;
@@ -62,6 +63,14 @@ impl SampleKind {
 impl PyObjectProtocol for SampleKind {
     fn __str__(&self) -> PyResult<String> {
         Ok(self.to_string())
+    }
+
+    fn __richcmp__(&'p self, other: PyRef<'p, SampleKind>, op: CompareOp) -> PyResult<PyObject> {
+        match op {
+            CompareOp::Eq => Ok(self.eq(&*other).into_py(other.py())),
+            CompareOp::Ne => Ok((!self.eq(&*other)).into_py(other.py())),
+            _ => Ok(other.py().NotImplemented()),
+        }
     }
 }
 
