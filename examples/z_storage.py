@@ -14,7 +14,7 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh import Reliability, SubMode, Sample, KeyExpr
+from zenoh import Reliability, SampleKind, SubMode, Sample, KeyExpr
 from zenoh.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -62,7 +62,10 @@ store = {}
 def listener(sample):
     print(">> [Subscriber] Received {} ('{}': '{}')"
           .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8")))
-    store[sample.key_expr] = (sample.value, sample.source_info)
+    if sample.kind == SampleKind.DELETE:
+        store.pop(str(sample.key_expr), None)
+    else:
+        store[str(sample.key_expr)] = (sample.value, sample.source_info)
 
 
 def query_handler(query):
