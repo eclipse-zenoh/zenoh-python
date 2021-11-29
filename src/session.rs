@@ -1,7 +1,3 @@
-use std::collections::HashMap;
-
-use super::encoding::Encoding;
-use super::sample_kind::SampleKind;
 //
 // Copyright (c) 2017, 2020 ADLINK Technology Inc.
 //
@@ -15,6 +11,8 @@ use super::sample_kind::SampleKind;
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
+use super::encoding::Encoding;
+use super::sample_kind::SampleKind;
 use super::types::{
     zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, Priority, Query, QueryConsolidation,
     QueryTarget, Queryable, Reply, Sample, Subscriber, ZnSubOps,
@@ -29,6 +27,7 @@ use log::warn;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
+use std::collections::HashMap;
 use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, ZFuture, ZInt};
 
 /// A zenoh-net session.

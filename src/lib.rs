@@ -22,13 +22,13 @@ pub(crate) mod types;
 pub(crate) use types::*;
 mod session;
 use session::*;
-use zenoh_util::zerror2;
+use zenoh_util::zerror;
 mod encoding;
 mod sample_kind;
 
 create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
-fn to_pyerr(err: zenoh::prelude::ZError) -> PyErr {
+fn to_pyerr(err: zenoh_util::core::Error) -> PyErr {
     PyErr::new::<ZError, _>(err.to_string())
 }
 /// The network level zenoh API.
@@ -197,38 +197,38 @@ impl Config {
 
     #[staticmethod]
     pub fn from_json5(input: &str) -> PyResult<Self> {
-        use zenoh_util::core::{ZError, ZErrorKind};
         let mut d = match json5::Deserializer::from_str(input) {
             Ok(d) => d,
-            Err(e) => return Err(to_pyerr(zerror2!(IoError, e.to_string(), e))),
+            Err(e) => return Err(to_pyerr(zerror!(e).into())),
         };
         match ZConfig::from_deserializer(&mut d) {
             Ok(inner) => Ok(Config { inner }),
-            Err(e) => Err(to_pyerr(match e {
-                Ok(c) => zerror2!(ZErrorKind::Other {
-                    descr: format!("invalid configuration: {:?}", c)
-                }),
-                Err(e) => zerror2!(IoError, e.to_string(), e),
-            })),
+            Err(e) => Err(to_pyerr(
+                match e {
+                    Ok(c) => zerror!("invalid configuration: {:?}", c),
+                    Err(e) => zerror!(e),
+                }
+                .into(),
+            )),
         }
     }
 
     #[staticmethod]
     pub fn from_file(path: &str) -> PyResult<Self> {
-        use zenoh_util::core::{ZError, ZErrorKind};
         match ZConfig::from_file(path) {
             Ok(inner) => Ok(Config { inner }),
-            Err(e) => Err(to_pyerr(match e {
-                zenoh::config::ConfigOpenErr::IoError(e) => zerror2!(IoError, e.to_string(), e),
-                zenoh::config::ConfigOpenErr::JsonParseErr(e) => {
-                    zerror2!(IoError, e.to_string(), e)
+            Err(e) => Err(to_pyerr(
+                match e {
+                    zenoh::config::ConfigOpenErr::IoError(e) => zerror!(e),
+                    zenoh::config::ConfigOpenErr::JsonParseErr(e) => {
+                        zerror!(e)
+                    }
+                    zenoh::config::ConfigOpenErr::InvalidConfiguration(e) => {
+                        zerror!("invalid configuration: {:?}", e)
+                    }
                 }
-                zenoh::config::ConfigOpenErr::InvalidConfiguration(e) => {
-                    zerror2!(ZErrorKind::Other {
-                        descr: format!("invalid configuration: {:?}", e)
-                    })
-                }
-            })),
+                .into(),
+            )),
         }
     }
 }
