@@ -11,15 +11,15 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-from datetime import datetime
+import time
 import argparse
 import zenoh
-from zenoh.net import config, SubInfo, Reliability, SubMode
+from zenoh import config, CongestionControl
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_pull',
-    description='zenoh-net pull example')
+    prog='z_pub_thr',
+    description='zenoh throughput pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -34,51 +34,40 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/demo/example/**',
-                    type=str,
-                    help='The selection of resources to pull.')
+parser.add_argument('payload_size',
+                    type=int,
+                    help='Sets the size of the payload to publish.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-selector = args.selector
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+size = args.payload_size
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
-
-
-def listener(sample):
-    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else datetime.fromtimestamp(
-        sample.data_info.timestamp.time)
-    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
-          .format(sample.res_name, sample.payload.decode("utf-8"), time))
-
 
 # initiate logging
 zenoh.init_logger()
 
-print("Openning session...")
-session = zenoh.net.open(conf)
+data = bytearray()
+for i in range(0, size):
+    data.append(i % 10)
+data = bytes(data)
+congestion_control = CongestionControl.Drop
 
-print("Declaring Subscriber on '{}'...".format(selector))
-sub_info = SubInfo(Reliability.Reliable, SubMode.Pull)
+session = zenoh.open(conf)
 
-sub = session.declare_subscriber(selector, sub_info, listener)
+rid = session.declare_expr('/test/thr')
 
-print("Press <enter> to pull data...")
-c = sys.stdin.read(1)
-while c != 'q':
-    sub.pull()
-    c = sys.stdin.read(1)
+pub = session.declare_publication(rid)
 
-sub.undeclare()
-session.close()
+while True:
+    session.put(rid, data, congestion_control=congestion_control)

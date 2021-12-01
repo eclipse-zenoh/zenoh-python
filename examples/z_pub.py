@@ -13,14 +13,14 @@
 import sys
 import time
 import argparse
+import itertools
 import zenoh
-from zenoh.net import config, QueryTarget
-from zenoh.net.queryable import ALL_KINDS
+from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_query',
-    description='zenoh-net query example')
+    prog='z_pub',
+    description='zenoh pub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,24 +35,30 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/demo/example/**',
+parser.add_argument('--key', '-k', dest='key',
+                    default='/demo/example/zenoh-python-pub',
                     type=str,
-                    help='The selection of resources to query.')
+                    help='The key expression to publish onto.')
+parser.add_argument('--value', '-v', dest='value',
+                    default='Pub from Python!',
+                    type=str,
+                    help='The value to publish.')
+parser.add_argument("--iter", dest="iter", type=int, help="How many puts to perform")
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-selector = args.selector
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+key = args.key
+value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -60,12 +66,21 @@ selector = args.selector
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
-print("Sending Query '{}'...".format(selector))
-replies = session.query_collect(selector, '')
-for reply in replies:
-    print(">> [Reply handler] received ({}:{})"
-          .format(reply.data.res_name, reply.data.payload.decode("utf-8")))
+print("Declaring key expression '{}'...".format(key), end='')
+rid = session.declare_expr(key)
+print(" => RId {}".format(rid))
 
+print("Declaring publication on '{}'...".format(rid))
+session.declare_publication(rid)
+
+for idx in itertools.count() if args.iter is None else range(args.iter):
+    time.sleep(1)
+    buf = "[{:4d}] {}".format(idx, value)
+    print("Putting Data ('{}': '{}')...".format(rid, buf))
+    session.put(rid, bytes(buf, encoding='utf8'))
+
+session.undeclare_publication(rid)
+session.undeclare_expr(rid)
 session.close()

@@ -14,12 +14,13 @@ import sys
 import time
 import argparse
 import zenoh
-from zenoh import Zenoh
+from zenoh import Reliability, SampleKind, SubMode, Sample, KeyExpr
+from zenoh.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_sub',
-    description='zenoh sub example')
+    prog='z_storage',
+    description='zenoh storage example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -34,49 +35,66 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--selector', '-s', dest='selector',
+parser.add_argument('--key', '-k', dest='key',
                     default='/demo/example/**',
                     type=str,
-                    help='The selection of resources to subscribe.')
+                    help='The key expression matching resources to store.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-selector = args.selector
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+key = args.key
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
+store = {}
 
-def listener(change):
-    print(">> [Subscription listener] received {:?} for {} : {} with timestamp {}"
-          .format(change.kind, change.path, '' if change.value is None else change.value.get_content(), change.timestamp))
+
+def listener(sample):
+    print(">> [Subscriber] Received {} ('{}': '{}')"
+          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8")))
+    if sample.kind == SampleKind.DELETE:
+        store.pop(str(sample.key_expr), None)
+    else:
+        store[str(sample.key_expr)] = (sample.value, sample.source_info)
+
+
+def query_handler(query):
+    print(">> [Queryable ] Received Query '{}'".format(query.selector))
+    replies = []
+    for stored_name, (data, source_info) in store.items():
+        if KeyExpr.intersect(query.key_selector, stored_name):
+            sample = Sample(stored_name, data)
+            sample.with_source_info(source_info)
+            query.reply(sample)
 
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-zenoh = Zenoh(conf)
+session = zenoh.open(conf)
 
-print("New workspace...")
-workspace = zenoh.workspace()
+print("Creating Subscriber on '{}'...".format(key))
+sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
-print("Subscribe to '{}'...".format(selector))
-sub = workspace.subscribe(selector, listener)
+print("Creating Queryable on '{}'...".format(key))
+queryable = session.queryable(key, STORAGE, query_handler)
 
-print("Press q to stop...")
+print("Enter 'q' to quit......")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
 sub.close()
-zenoh.close()
+queryable.close()
+session.close()

@@ -15,12 +15,12 @@ import time
 import datetime
 import argparse
 import zenoh
-from zenoh.net import config, SubInfo, Reliability, SubMode
+from zenoh import  Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_sub_thr',
-    description='zenoh-net throughput sub example')
+    prog='z_sub_thr',
+    description='zenoh throughput sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -53,13 +53,13 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
 m = args.samples
 n = args.number
 
@@ -94,11 +94,13 @@ def listener(sample):
 # initiate logging
 zenoh.init_logger()
 
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
-rid = session.declare_resource('/test/thr')
+rid = session.declare_expr('/test/thr')
 
-sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-sub = session.declare_subscriber(rid, sub_info, listener)
+sub = session.subscribe(rid, listener, reliablity=Reliability.Reliable, mode=SubMode.Push)
 
 time.sleep(600)
+
+session.undeclare_expr(rid)
+session.close()

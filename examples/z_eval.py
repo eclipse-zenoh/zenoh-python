@@ -11,15 +11,16 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-from datetime import datetime
+import time
 import argparse
 import zenoh
-from zenoh.net import config, SubInfo, Reliability, SubMode
+from zenoh import config, Sample
+from zenoh.queryable import EVAL
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_sub',
-    description='zenoh-net sub example')
+    prog='z_eval',
+    description='zenoh eval example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -34,50 +35,51 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--selector', '-s', dest='selector',
-                    default='/demo/example/**',
+parser.add_argument('--key', '-k', dest='key',
+                    default='/demo/example/zenoh-python-eval',
                     type=str,
-                    help='The selection of resources to subscribe.')
+                    help='The key expression matching queries to evaluate.')
+parser.add_argument('--value', '-v', dest='value',
+                    default='Eval from Python!',
+                    type=str,
+                    help='The value to reply to queries.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-selector = args.selector
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+key = args.key
+value = args.value
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-def listener(sample):
-    time = '(not specified)' if sample.data_info is None or sample.data_info.timestamp is None else datetime.fromtimestamp(
-        sample.data_info.timestamp.time)
-    print(">> [Subscription listener] Received ('{}': '{}') published at {}"
-          .format(sample.res_name, sample.payload.decode("utf-8"), time))
+def eval_callback(query):
+    print(">> [Queryable ] Received Query '{}'".format(query.selector))
+    query.reply(Sample(key_expr=key, payload=value.encode()))
 
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
-print("Declaring Subscriber on '{}'...".format(selector))
-sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
+print("Creating Queryable on '{}'...".format(key))
+queryable = session.queryable(key, EVAL, eval_callback)
 
-sub = session.declare_subscriber(selector, sub_info, listener)
-
-print("Press q to stop...")
+print("Enter 'q' to quit......")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
 
-sub.undeclare()
+queryable.close()
 session.close()

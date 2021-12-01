@@ -11,20 +11,15 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-import time
+from datetime import datetime
 import argparse
 import zenoh
-from zenoh import Zenoh, Value
-from zenoh.net import encoding
+from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_sub',
-    description='zenoh sub example')
-parser.add_argument('size',
-                    metavar='PAYLOAD_SIZE',
-                    type=int,
-                    help='Sets the size of the payload to put.')
+    prog='z_pull',
+    description='zenoh pull example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -39,37 +34,50 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
+parser.add_argument('--key', '-k', dest='key',
+                    default='/demo/example/**',
+                    type=str,
+                    help='The key expression matching resources to pull.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-print(type(args.size))
-size = args.size
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+key = args.key
 
-# zenoh code  --- --- --- --- --- --- --- --- --- --- ---
-print("Running throughput test for payload of {} bytes".format(size))
-data = bytearray()
-for i in range(0, size):
-    data.append(i % 10)
-
-v = Value.Raw(encoding.NONE, bytes(data))
-
-print("New zenoh...")
-zenoh = Zenoh(conf)
-
-print("New workspace...")
-workspace = zenoh.workspace()
+# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-print('Press Ctrl-C to stop the publisher...')
-while True:
-    workspace.put('/test/thr', v)
+def listener(sample):
+    time = '(not specified)' if sample.source_info is None or sample.timestamp is None else datetime.fromtimestamp(
+        sample.timestamp.time)
+    print(">> [Subscriber] Received {} ('{}': '{}')"
+          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8"), time))
+
+
+# initiate logging
+zenoh.init_logger()
+
+print("Openning session...")
+session = zenoh.open(conf)
+
+print("Creating Subscriber on '{}'...".format(key))
+
+sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Pull)
+
+print("Press <enter> to pull data...")
+c = sys.stdin.read(1)
+while c != 'q':
+    sub.pull()
+    c = sys.stdin.read(1)
+
+sub.close()
+session.close()

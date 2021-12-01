@@ -11,15 +11,15 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
-import time
+from datetime import datetime
 import argparse
 import zenoh
-from zenoh import Zenoh
+from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_delete',
-    description='zenoh delete example')
+    prog='z_sub',
+    description='zenoh sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -34,37 +34,49 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-put',
+parser.add_argument('--key', '-k', dest='key',
+                    default='/demo/example/**',
                     type=str,
-                    help='The name of the resource to delete.')
+                    help='The key expression to subscribe to.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-path = args.path
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+key = args.key
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
+
+
+def listener(sample):
+    time = '(not specified)' if sample.source_info is None or sample.timestamp is None else datetime.fromtimestamp(
+        sample.timestamp.time)
+    print(">> [Subscriber] Received {} ('{}': '{}')"
+          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8"), time))
+
 
 # initiate logging
 zenoh.init_logger()
 
 print("Openning session...")
-zenoh = Zenoh(conf)
+session = zenoh.open(conf)
 
-print("New workspace...")
-workspace = zenoh.workspace()
+print("Creating Subscriber on '{}'...".format(key))
 
-print("Delete Path '{}'...\n".format(path))
-workspace.delete(path)
+sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
-zenoh.close()
+print("Enter 'q' to quit...")
+c = '\0'
+while c != 'q':
+    c = sys.stdin.read(1)
+
+sub.close()
+session.close()

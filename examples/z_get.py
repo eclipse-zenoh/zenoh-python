@@ -13,14 +13,13 @@
 import sys
 import time
 import argparse
-import itertools
 import zenoh
-from zenoh.net import config
+from zenoh import config, queryable, QueryTarget, Target
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='zn_pub',
-    description='zenoh-net pub example')
+    prog='z_get',
+    description='zenoh get example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -35,29 +34,43 @@ parser.add_argument('--listener', '-l', dest='listener',
                     action='append',
                     type=str,
                     help='Locators to listen on.')
-parser.add_argument('--path', '-p', dest='path',
-                    default='/demo/example/zenoh-python-pub',
+parser.add_argument('--selector', '-s', dest='selector',
+                    default='/demo/example/**',
                     type=str,
-                    help='The name of the resource to publish.')
-parser.add_argument('--value', '-v', dest='value',
-                    default='Pub from Python!',
+                    help='The selection of resources to query.')
+parser.add_argument('--kind', '-k', dest='kind',
+                    choices=['ALL_KINDS', 'STORAGE', 'EVAL'],
+                    default='ALL_KINDS',
                     type=str,
-                    help='The value of the resource to publish.')
+                    help='The KIND of queryables to query.')
+parser.add_argument('--target', '-t', dest='target',
+                    choices=['ALL', 'BEST_MATCHING', 'ALL_COMPLETE', 'NONE'],
+                    default='ALL',
+                    type=str,
+                    help='The target queryables of the query.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else {}
+conf = zenoh.config_from_file(args.config) if args.config is not None else None
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", args.mode)
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", f"[{','.join(args.peer)}]")
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
-path = args.path
-value = args.value
+    conf.insert_json5("listeners", f"[{','.join(args.listener)}]")
+selector = args.selector
+kind = {
+    'ALL_KINDS': queryable.ALL_KINDS,
+    'STORAGE': queryable.STORAGE,
+    'EVAL': queryable.EVAL}.get(args.kind)
+target = {
+    'ALL': Target.All(),
+    'BEST_MATCHING': Target.BestMatching(),
+    'ALL_COMPLETE': Target.AllComplete(),
+    'NONE': Target.No()}.get(args.target)
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -65,20 +78,12 @@ value = args.value
 zenoh.init_logger()
 
 print("Openning session...")
-session = zenoh.net.open(conf)
+session = zenoh.open(conf)
 
-print("Declaring Resource " + path)
-rid = session.declare_resource(path)
-print(" => RId {}".format(rid))
+print("Sending Query '{}'...".format(selector))
+replies = session.get_collect(selector, target=QueryTarget(kind, target))
+for reply in replies:
+    print(">> Received ('{}': '{}')"
+          .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))
 
-print("Declaring Publisher on {}".format(rid))
-publisher = session.declare_publisher(rid)
-
-for idx in itertools.count():
-    time.sleep(1)
-    buf = "[{:4d}] {}".format(idx, value)
-    print("Writing Data ('{}': '{}')...".format(rid, buf))
-    session.write(rid, bytes(buf, encoding='utf8'))
-
-publisher.undeclare()
 session.close()
