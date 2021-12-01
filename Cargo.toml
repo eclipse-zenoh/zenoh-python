@@ -33,8 +33,8 @@ crate-type = ["cdylib"]
 complete_n = ["zenoh/complete_n"]
 
 [dependencies]
-zenoh = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "apis-merge" }
-zenoh-util = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "apis-merge" }
+zenoh = { git = "https://github.com/eclipse-zenoh/zenoh" }
+zenoh-util = { git = "https://github.com/eclipse-zenoh/zenoh" }
 validated_struct = "0.1"
 json5 = "0.4.1"
 serde_json = "1.0"
