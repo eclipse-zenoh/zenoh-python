@@ -11,6 +11,7 @@
 #   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 
 import sys
+import time
 from datetime import datetime
 import argparse
 import zenoh
@@ -74,10 +75,13 @@ print("Creating Subscriber on '{}'...".format(key))
 sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Pull)
 
 print("Press <enter> to pull data...")
-c = sys.stdin.read(1)
+c = '\0'
 while c != 'q':
-    sub.pull()
     c = sys.stdin.read(1)
+    if c == '':
+        time.sleep(1)
+    else:
+        sub.pull()
 
 sub.close()
 session.close()

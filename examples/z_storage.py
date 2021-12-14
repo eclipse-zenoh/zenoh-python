@@ -94,6 +94,8 @@ print("Enter 'q' to quit......")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
+    if c == '':
+        time.sleep(1)
 
 sub.close()
 queryable.close()
