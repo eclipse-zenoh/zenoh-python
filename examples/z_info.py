@@ -13,6 +13,7 @@
 import sys
 import time
 import argparse
+import json
 import zenoh
 from zenoh import config
 
@@ -42,11 +43,11 @@ parser.add_argument('--config', '-c', dest='config',
 args = parser.parse_args()
 conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
-    conf["mode"] = args.mode
+    conf.insert_json5("mode", json.dumps(args.mode))
 if args.peer is not None:
-    conf["peer"] = ",".join(args.peer)
+    conf.insert_json5("peers", json.dumps(args.peer))
 if args.listener is not None:
-    conf["listener"] = ",".join(args.listener)
+    conf.insert_json5("listeners", json.dumps(args.listener))
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 # initiate logging

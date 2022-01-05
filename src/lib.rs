@@ -183,8 +183,13 @@ impl Config {
         }
     }
 
-    pub fn insert_json5(&mut self, key: &str, value: &str) -> bool {
-        self.inner.insert_json(key, value).is_ok()
+    pub fn insert_json5(&mut self, key: &str, value: &str) -> PyResult<()> {
+        match self.inner.insert_json(key, value) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyException, _>(
+                e.to_string(),
+            )),
+        }
     }
     pub fn json(&self) -> String {
         serde_json::to_string(&self.inner).unwrap()
