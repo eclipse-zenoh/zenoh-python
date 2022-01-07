@@ -544,6 +544,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto-common"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683d6b536309245c849479fba3da410962a43ed8e51c26b729208ec0ac2798d0"
+dependencies = [
+ "generic-array 0.14.4",
+]
+
+[[package]]
 name = "crypto-mac"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -616,6 +625,16 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
 dependencies = [
+ "generic-array 0.14.4",
+]
+
+[[package]]
+name = "digest"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b697d66081d42af4fba142d56918a3cb21dc8eb63372c6b85d14f44fb9c5979b"
+dependencies = [
+ "crypto-common",
  "generic-array 0.14.4",
 ]
 
@@ -1151,6 +1170,12 @@ name = "libm"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7d73b3f436185384286bd8098d17ec07c9a7d2388a6599f824d8502b529702a"
+
+[[package]]
+name = "linked-hash-map"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 
 [[package]]
 name = "lock_api"
@@ -1923,11 +1948,10 @@ dependencies = [
 [[package]]
 name = "rsa"
 version = "0.5.0"
-source = "git+https://github.com/RustCrypto/RSA.git#fd1961dfe256d47a7ec783fdbb63e7ceacbc3265"
+source = "git+https://github.com/RustCrypto/RSA.git#2d68db2e0fddbccb23a9fdcec26f4a23f6d844e4"
 dependencies = [
  "byteorder",
- "digest 0.9.0",
- "lazy_static",
+ "digest 0.10.1",
  "num-bigint-dig",
  "num-integer",
  "num-iter",
@@ -2110,6 +2134,18 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.8.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4a521f2940385c165a24ee286aa8599633d162077a54bdcae2a6fd5a7bfa7a0"
+dependencies = [
+ "indexmap",
+ "ryu",
+ "serde",
+ "yaml-rust",
 ]
 
 [[package]]
@@ -2792,6 +2828,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
+name = "yaml-rust"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
+dependencies = [
+ "linked-hash-map",
+]
+
+[[package]]
 name = "yasna"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2802,8 +2847,8 @@ dependencies = [
 
 [[package]]
 name = "zenoh"
-version = "0.6.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh#e4d14457725994a55d5f4e6afbedf0d2a8a86086"
+version = "0.6.0-dev.0"
+source = "git+https://github.com/eclipse-zenoh/zenoh#852f2511f68bd3aabc410bd8da683d436e324f6a"
 dependencies = [
  "async-global-executor",
  "async-rustls",
@@ -2837,6 +2882,7 @@ dependencies = [
  "rustc_version 0.4.0",
  "serde",
  "serde_json",
+ "serde_yaml",
  "shared_memory",
  "socket2 0.4.2",
  "uhlc",
@@ -2850,30 +2896,32 @@ dependencies = [
 
 [[package]]
 name = "zenoh-macros"
-version = "0.6.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh#e4d14457725994a55d5f4e6afbedf0d2a8a86086"
+version = "0.6.0-dev.0"
+source = "git+https://github.com/eclipse-zenoh/zenoh#852f2511f68bd3aabc410bd8da683d436e324f6a"
 dependencies = [
  "proc-macro2",
  "quote",
+ "rustc_version 0.4.0",
  "syn",
  "unzip-n",
 ]
 
 [[package]]
 name = "zenoh-plugin-trait"
-version = "0.6.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh#e4d14457725994a55d5f4e6afbedf0d2a8a86086"
+version = "0.6.0-dev.0"
+source = "git+https://github.com/eclipse-zenoh/zenoh#852f2511f68bd3aabc410bd8da683d436e324f6a"
 dependencies = [
  "libloading",
  "log",
  "serde_json",
+ "zenoh-macros",
  "zenoh-util",
 ]
 
 [[package]]
 name = "zenoh-util"
-version = "0.6.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh#e4d14457725994a55d5f4e6afbedf0d2a8a86086"
+version = "0.6.0-dev.0"
+source = "git+https://github.com/eclipse-zenoh/zenoh#852f2511f68bd3aabc410bd8da683d436e324f6a"
 dependencies = [
  "aes 0.7.5",
  "anyhow",
