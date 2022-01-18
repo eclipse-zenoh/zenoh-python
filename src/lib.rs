@@ -222,18 +222,7 @@ impl Config {
     pub fn from_file(path: &str) -> PyResult<Self> {
         match ZConfig::from_file(path) {
             Ok(inner) => Ok(Config { inner }),
-            Err(e) => Err(to_pyerr(
-                match e {
-                    zenoh::config::ConfigOpenErr::IoError(e) => zerror!(e),
-                    zenoh::config::ConfigOpenErr::JsonParseErr(e) => {
-                        zerror!(e)
-                    }
-                    zenoh::config::ConfigOpenErr::InvalidConfiguration(e) => {
-                        zerror!("invalid configuration: {:?}", e)
-                    }
-                }
-                .into(),
-            )),
+            Err(e) => Err(to_pyerr(e)),
         }
     }
 }

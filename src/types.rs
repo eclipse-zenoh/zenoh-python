@@ -1110,7 +1110,7 @@ impl Target {
 /// :type target: Target, optional
 #[pyclass]
 #[pyo3(text_signature = "(kind=None, target=None)")]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub(crate) struct QueryTarget {
     pub(crate) t: zenoh::query::QueryTarget,
 }
@@ -1127,14 +1127,6 @@ impl QueryTarget {
             t.target = target.t;
         }
         QueryTarget { t }
-    }
-}
-
-impl Default for QueryTarget {
-    fn default() -> Self {
-        QueryTarget {
-            t: zenoh::query::QueryTarget::default(),
-        }
     }
 }
 
@@ -1187,7 +1179,7 @@ impl ConsolidationMode {
 /// :type reception: ConsolidationMode, optional
 #[pyclass]
 #[pyo3(text_signature = "(first_routers=None, last_router=None, reception=None)")]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub(crate) struct QueryConsolidation {
     pub(crate) c: zenoh::query::QueryConsolidation,
 }
@@ -1211,14 +1203,6 @@ impl QueryConsolidation {
             c.reception = r.c;
         }
         QueryConsolidation { c }
-    }
-}
-
-impl Default for QueryConsolidation {
-    fn default() -> Self {
-        QueryConsolidation {
-            c: zenoh::query::QueryConsolidation::default(),
-        }
     }
 }
 
@@ -1270,7 +1254,7 @@ impl Reply {
 //
 /// The kind of congestion control.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CongestionControl {
     pub(crate) cc: zenoh::publication::CongestionControl,
 }
@@ -1288,14 +1272,6 @@ impl CongestionControl {
     fn Block() -> CongestionControl {
         CongestionControl {
             cc: zenoh::publication::CongestionControl::Block,
-        }
-    }
-}
-
-impl Default for CongestionControl {
-    fn default() -> Self {
-        CongestionControl {
-            cc: zenoh::publication::CongestionControl::default(),
         }
     }
 }

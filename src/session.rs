@@ -17,7 +17,7 @@ use super::types::{
     zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, Priority, Query, QueryConsolidation,
     QueryTarget, Queryable, Reply, Sample, Subscriber, ZnSubOps,
 };
-use crate::types::{KeyExpr, Reliability, SubMode};
+use crate::types::{KeyExpr, Period, Reliability, SubMode};
 use crate::{to_pyerr, ZError};
 use async_std::channel::bounded;
 use async_std::task;
@@ -269,8 +269,10 @@ impl Session {
     /// >>>
     /// >>> s = zenoh.open({})
     /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-    /// >>> sub = s.subscribe('/key/expression', sub_info, lambda sample:
-    /// ...     print("Received : {}".format(sample)))
+    /// >>> sub = s.subscribe('/key/expression',
+    /// ...     lambda sample: print("Received : {}".format(sample)),
+    /// ...     reliability=Reliability.Reliable,
+    /// ...     mode=SubMode.Push)
     /// >>> time.sleep(60)
     #[pyo3(text_signature = "(self, key_expr, callback, **kwargs)")]
     #[args(kwargs = "**")]
@@ -282,22 +284,24 @@ impl Session {
     ) -> PyResult<Subscriber> {
         let s = self.as_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
-        let mut reliability: Option<Reliability> = None;
-        let mut mode: Option<SubMode> = None;
+        let mut sub_builder = s.subscribe(&k);
         if let Some(kwargs) = kwargs {
-            if let Some(rarg) = kwargs.get_item("reliability") {
-                reliability = rarg.extract().ok()
+            if let Some(arg) = kwargs.get_item("reliability") {
+                sub_builder = sub_builder.reliability(arg.extract::<Reliability>()?.r);
             }
-            if let Some(marg) = kwargs.get_item("mode") {
-                mode = marg.extract().ok()
+            if let Some(arg) = kwargs.get_item("mode") {
+                sub_builder = sub_builder.mode(arg.extract::<SubMode>()?.m);
+            }
+            if let Some(arg) = kwargs.get_item("period") {
+                sub_builder = sub_builder.period(Some(arg.extract::<Period>()?.p));
+            }
+            if let Some(arg) = kwargs.get_item("local") {
+                if arg.extract::<bool>()? {
+                    sub_builder = sub_builder.local();
+                }
             }
         }
-        let zn_sub = s
-            .subscribe(&k)
-            .reliability(reliability.unwrap_or_default().r)
-            .mode(mode.unwrap_or_default().m)
-            .wait()
-            .map_err(to_pyerr)?;
+        let zn_sub = sub_builder.wait().map_err(to_pyerr)?;
         // Note: workaround to allow moving of zn_sub into the task below.
         // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
         let mut static_zn_sub = unsafe {
