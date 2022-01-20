@@ -22,13 +22,13 @@ pub(crate) mod types;
 pub(crate) use types::*;
 mod session;
 use session::*;
-use zenoh_util::zerror;
+use zenoh_core::zerror;
 mod encoding;
 mod sample_kind;
 
 create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
-fn to_pyerr(err: zenoh_util::core::Error) -> PyErr {
+fn to_pyerr(err: zenoh_core::Error) -> PyErr {
     PyErr::new::<ZError, _>(err.to_string())
 }
 /// The network level zenoh API.

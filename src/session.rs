@@ -56,7 +56,7 @@ impl Session {
     /// >>> for key in info:
     /// >>>    print("{} : {}".format(key, info[key]))
     pub fn info(&self, py: Python) -> PyResult<PyObject> {
-        use zenoh_util::properties::KeyTranscoder;
+        use zenoh_cfg_properties::KeyTranscoder;
         let s = self.as_ref()?;
         let props = s.info().wait();
         let pydict: HashMap<String, String> = props

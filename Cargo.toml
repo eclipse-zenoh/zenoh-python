@@ -34,7 +34,8 @@ complete_n = ["zenoh/complete_n"]
 
 [dependencies]
 zenoh = { git = "https://github.com/eclipse-zenoh/zenoh" }
-zenoh-util = { git = "https://github.com/eclipse-zenoh/zenoh" }
+zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh" }
+zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh" }
 validated_struct = "0.1"
 json5 = "0.4.1"
 serde_json = "1.0"
