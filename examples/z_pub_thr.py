@@ -62,7 +62,7 @@ data = bytearray()
 for i in range(0, size):
     data.append(i % 10)
 data = bytes(data)
-congestion_control = CongestionControl.Drop
+congestion_control = CongestionControl.Block
 
 session = zenoh.open(conf)
 
