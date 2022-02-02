@@ -20,28 +20,38 @@ use super::types::{
 use crate::types::{KeyExpr, Period, Reliability, SubMode};
 use crate::{to_pyerr, ZError};
 use async_std::channel::bounded;
+use async_std::sync::Arc;
 use async_std::task;
 use futures::prelude::*;
 use futures::select;
 use log::warn;
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
+use pyo3::types::{IntoPyDict, PyDict, PyTuple};
+use pyo3_asyncio::async_std::future_into_py;
 use std::collections::HashMap;
 use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, ZFuture, ZInt};
 
 /// A zenoh-net session.
 #[pyclass]
-pub struct Session {
-    s: Option<zenoh::Session>,
+pub struct AsyncSession {
+    s: Option<Arc<zenoh::Session>>,
 }
 
 #[pymethods]
-impl Session {
+impl AsyncSession {
+    // NOTE: See https://github.com/awestlake87/pyo3-asyncio/issues/50 for the options
+    // to implement asyncronous methods with async-pyo3.
+    // Here we choosed to wrap the Session in an Arc, and move a clone of it in each `future_into_py()` call.
+    // Similarly, each argument coming from Python is converted to Rust and cloned (or Arc-wrapped) before
+    // moving into the `future_into_py()` call.
+
     /// Close the zenoh-net Session.
-    pub fn close(&mut self) -> PyResult<()> {
-        let s = self.take()?;
-        s.close().wait().map_err(to_pyerr)
+    pub fn close<'p>(&mut self, py: Python<'p>) -> PyResult<&'p PyAny> {
+        // NOTE: should be sufficient to take the Arc<Session>. Once all arcs are dropped, Session will close.
+        // Still, we should provide a wait to await for the actual closure...
+        let _s = self.try_take()?;
+        future_into_py(py, async move { Ok(()) })
     }
 
     /// Get informations about the zenoh-net Session.
@@ -55,16 +65,23 @@ impl Session {
     /// >>> info = s.info()
     /// >>> for key in info:
     /// >>>    print("{} : {}".format(key, info[key]))
-    pub fn info(&self, py: Python) -> PyResult<PyObject> {
-        use zenoh_cfg_properties::KeyTranscoder;
-        let s = self.as_ref()?;
-        let props = s.info().wait();
-        let pydict: HashMap<String, String> = props
-            .0
-            .into_iter()
-            .filter_map(|(k, v)| zenoh::info::InfoTranscoder::decode(k).map(|k| (k, v)))
-            .collect();
-        Ok(pydict.into_py_dict(py).to_object(py))
+    pub fn info<'p>(&self, py: Python<'p>) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        future_into_py(py, async move {
+            use zenoh_cfg_properties::KeyTranscoder;
+            let result = s
+                .info()
+                .map(|props| {
+                    let hashmap: HashMap<String, String> = props
+                        .0
+                        .into_iter()
+                        .filter_map(|(k, v)| zenoh::info::InfoTranscoder::decode(k).map(|k| (k, v)))
+                        .collect();
+                    Python::with_gil(|py| hashmap.into_py_dict(py).to_object(py))
+                })
+                .await;
+            Ok(result)
+        })
     }
 
     /// Put data.
@@ -93,9 +110,15 @@ impl Session {
     /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, key_expr, value, **kwargs)")]
     #[args(kwargs = "**")]
-    pub fn put(&self, key_expr: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
-        let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
+    pub fn put<'p>(
+        &self,
+        key_expr: &PyAny,
+        value: &PyAny,
+        kwargs: Option<&PyDict>,
+        py: Python<'p>,
+    ) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        let k = zkey_expr_of_pyany(key_expr)?.to_owned();
         let mut v = zvalue_of_pyany(value)?;
         let mut encoding: Option<Encoding> = None;
         let mut kind: Option<SampleKind> = None;
@@ -118,12 +141,14 @@ impl Session {
         if let Some(encoding) = encoding {
             v.encoding = encoding.into();
         }
-        s.put(k, v)
-            .kind(kind.unwrap_or_default().kind)
-            .congestion_control(congestion_control.unwrap_or_default().cc)
-            .priority(priority.unwrap_or_default().p)
-            .wait()
-            .map_err(to_pyerr)
+        future_into_py(py, async move {
+            s.put(k, v)
+                .kind(kind.unwrap_or_default().kind)
+                .congestion_control(congestion_control.unwrap_or_default().cc)
+                .priority(priority.unwrap_or_default().p)
+                .await
+                .map_err(to_pyerr)
+        })
     }
 
     /// Delete data.
@@ -146,9 +171,14 @@ impl Session {
     /// >>> s.delete('/key/expression')
     #[pyo3(text_signature = "(self, key_expr, **kwargs)")]
     #[args(kwargs = "**")]
-    pub fn delete(&self, key_expr: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
-        let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
+    pub fn delete<'p>(
+        &self,
+        key_expr: &PyAny,
+        kwargs: Option<&PyDict>,
+        py: Python<'p>,
+    ) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        let k = zkey_expr_of_pyany(key_expr)?.to_owned();
         let mut congestion_control: Option<CongestionControl> = None;
         let mut priority: Option<Priority> = None;
         if let Some(kwargs) = kwargs {
@@ -159,11 +189,13 @@ impl Session {
                 priority = p.extract().ok()
             }
         }
-        s.delete(k)
-            .congestion_control(congestion_control.unwrap_or_default().cc)
-            .priority(priority.unwrap_or_default().p)
-            .wait()
-            .map_err(to_pyerr)
+        future_into_py(py, async move {
+            s.delete(k)
+                .congestion_control(congestion_control.unwrap_or_default().cc)
+                .priority(priority.unwrap_or_default().p)
+                .await
+                .map_err(to_pyerr)
+        })
     }
 
     /// Associate a numerical Id with the given key expression.
@@ -187,10 +219,10 @@ impl Session {
     /// >>> s = zenoh.open({})
     /// >>> rid = s.declare_expr('/key/expression')
     #[pyo3(text_signature = "(self, key_expr)")]
-    pub fn declare_expr(&self, key_expr: &PyAny) -> PyResult<ExprId> {
-        let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        s.declare_expr(&k).wait().map_err(to_pyerr)
+    pub fn declare_expr<'p>(&self, key_expr: &PyAny, py: Python<'p>) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        let k = zkey_expr_of_pyany(key_expr)?.to_owned();
+        future_into_py(py, async move { s.declare_expr(k).await.map_err(to_pyerr) })
     }
 
     /// Undeclare the *numerical Id/key expression* association previously declared
@@ -206,9 +238,12 @@ impl Session {
     /// >>> rid = s.declare_expr('/key/expression')
     /// >>> s.undeclare_expr(rid)
     #[pyo3(text_signature = "(self, rid)")]
-    pub fn undeclare_expr(&self, rid: ExprId) -> PyResult<()> {
-        let s = self.as_ref()?;
-        s.undeclare_expr(rid).wait().map_err(to_pyerr)
+    pub fn undeclare_expr<'p>(&self, rid: ExprId, py: Python<'p>) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        future_into_py(
+            py,
+            async move { s.undeclare_expr(rid).wait().map_err(to_pyerr) },
+        )
     }
 
     /// Declare a publication for the given key expression.
@@ -232,18 +267,21 @@ impl Session {
     /// >>> rid = s.declare_publication('/key/expression')
     /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, key_expr)")]
-    fn declare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
-        let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        s.declare_publication(&k).wait().map_err(to_pyerr)?;
-        Ok(())
+    fn declare_publication<'p>(&self, key_expr: &PyAny, py: Python<'p>) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        let k = zkey_expr_of_pyany(key_expr)?.to_owned();
+        future_into_py(py, async move {
+            s.declare_publication(k).await.map_err(to_pyerr)
+        })
     }
+
     #[pyo3(text_signature = "(self, key_expr)")]
-    fn undeclare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
-        let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        s.undeclare_publication(&k).wait().map_err(to_pyerr)?;
-        Ok(())
+    fn undeclare_publication<'p>(&self, key_expr: &PyAny, py: Python<'p>) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        let k = zkey_expr_of_pyany(key_expr)?.to_owned();
+        future_into_py(py, async move {
+            s.undeclare_publication(k).await.map_err(to_pyerr)
+        })
     }
 
     /// Create a Subscriber for the given key expression.
@@ -282,6 +320,7 @@ impl Session {
         callback: &PyAny,
         kwargs: Option<&PyDict>,
     ) -> PyResult<Subscriber> {
+        // TODO AS ACYNCIO
         let s = self.as_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
         let mut sub_builder = s.subscribe(&k);
@@ -387,6 +426,7 @@ impl Session {
     /// >>> time.sleep(60)
     #[pyo3(text_signature = "(self, key_expr, kind, callback)")]
     fn queryable(&self, key_expr: &PyAny, kind: ZInt, callback: &PyAny) -> PyResult<Queryable> {
+        // TODO AS ACYNCIO
         let s = self.as_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
         let zn_quer = s.queryable(k).kind(kind).wait().map_err(to_pyerr)?;
@@ -473,6 +513,7 @@ impl Session {
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
     ) -> PyResult<()> {
+        // TODO AS ACYNCIO
         let s = self.as_ref()?;
         let mut getter = match selector.get_type().name()? {
             "KeyExpr" => {
@@ -528,102 +569,34 @@ impl Session {
         });
         Ok(())
     }
-
-    /// Query data from the matching queryables in the system.
-    ///
-    /// Replies are collected in a list.
-    ///
-    /// The *selector* parameter accepts the following types:
-    ///
-    /// * **KeyExpr** for a key expression with no value selector
-    /// * **int** for a key expression id with no value selector
-    /// * **str** for a litteral selector
-    ///
-    /// :param selector: The selection of resources to query
-    /// :type selector: str
-    /// :param target: The kind of queryables that should be target of this query
-    /// :type target: QueryTarget, optional
-    /// :param consolidation: The kind of consolidation that should be applied on replies
-    /// :type consolidation: QueryConsolidation, optional
-    /// :rtype: [:class:`Reply`]
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh, time
-    /// >>> from zenoh import QueryTarget, queryable
-    /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> replies = s.get_collect('/key/selector?value_selector')
-    /// >>> for reply in replies:
-    /// ...    print("Received : {}".format(reply.data))
-    #[pyo3(text_signature = "(self, selector, target=None, consolidation=None)")]
-    fn get_collect(
-        &self,
-        selector: &PyAny,
-        target: Option<QueryTarget>,
-        consolidation: Option<QueryConsolidation>,
-    ) -> PyResult<Py<PyList>> {
-        let s = self.as_ref()?;
-        task::block_on(async {
-            let mut replies = match selector.get_type().name()? {
-                "KeyExpr" => {
-                    let rk: PyRef<KeyExpr> = selector.extract()?;
-                    s.get(rk.inner.clone())
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c)
-                        .wait()
-                        .map_err(to_pyerr)?
-                }
-                "int" => {
-                    let id: u64 = selector.extract()?;
-                    s.get(ZKeyExpr::from(id))
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c)
-                        .wait()
-                        .map_err(to_pyerr)?
-                }
-                "str" => {
-                    let name: String = selector.extract()?;
-                    s.get(&name)
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c)
-                        .wait()
-                        .map_err(to_pyerr)?
-                }
-                x => {
-                    return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-                        "Cannot convert type '{}' to a zenoh Selector",
-                        x
-                    )))
-                }
-            };
-            let gil = Python::acquire_gil();
-            let py = gil.python();
-            let result = PyList::empty(py);
-            while let Some(reply) = replies.next().await {
-                result.append(Reply { r: reply })?;
-            }
-            Ok(result.into())
-        })
-    }
 }
 
-impl Session {
+impl AsyncSession {
     pub(crate) fn new(s: zenoh::Session) -> Self {
-        Session { s: Some(s) }
+        AsyncSession {
+            s: Some(s.into_arc()),
+        }
+    }
+
+    #[inline]
+    fn try_clone(&self) -> PyResult<Arc<zenoh::Session>> {
+        self.s
+            .clone()
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
+    }
+
+    #[inline]
+    fn try_take(&mut self) -> PyResult<Arc<zenoh::Session>> {
+        self.s
+            .take()
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
     }
 
     #[inline]
     fn as_ref(&self) -> PyResult<&zenoh::Session> {
         self.s
             .as_ref()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
-    }
-
-    #[inline]
-    fn take(&mut self) -> PyResult<zenoh::Session> {
-        self.s
-            .take()
+            .map(|a| a.as_ref())
             .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
     }
 }

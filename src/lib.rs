@@ -16,13 +16,16 @@ use async_std::task;
 use futures::prelude::*;
 use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
+use pyo3_asyncio::async_std::future_into_py;
 use zenoh::config::Config as ZConfig;
+use zenoh_core::zerror;
 
 pub(crate) mod types;
 pub(crate) use types::*;
+mod async_session;
+use async_session::*;
 mod session;
 use session::*;
-use zenoh_core::zerror;
 mod encoding;
 mod sample_kind;
 
@@ -105,16 +108,6 @@ sys.modules['zenoh.queryable'] = queryable
     )?;
 
     m.add_class::<KeyExpr>()?;
-    // force addition of "zenoh.resource_name" module
-    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
-    //     py.run(
-    //         "\
-    // import sys
-    // sys.modules['zenoh.resource_name'] = resource_name
-    //         ",
-    //         None,
-    //         Some(m.dict()),
-    //     )?;
 
     m.add_class::<Config>()?;
     m.add_class::<CongestionControl>()?;
@@ -140,6 +133,7 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<Timestamp>()?;
     m.add_class::<WhatAmI>()?;
     m.add_wrapped(wrap_pyfunction!(open))?;
+    m.add_wrapped(wrap_pyfunction!(async_open))?;
     m.add_wrapped(wrap_pyfunction!(scout))?;
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
     m.add_wrapped(wrap_pyfunction!(config_from_file))?;
@@ -248,6 +242,15 @@ impl Default for Config {
 fn open(config: Option<Config>) -> PyResult<Session> {
     let s = task::block_on(zenoh::open(config.unwrap_or_default().inner)).map_err(to_pyerr)?;
     Ok(Session::new(s))
+}
+
+#[pyfunction]
+#[pyo3(text_signature = "(config)")]
+fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
+    future_into_py(py, async {
+        let s = zenoh::open(config.unwrap_or_default().inner).await.map_err(to_pyerr)?;
+        Ok(AsyncSession::new(s))
+    })
 }
 
 /// Scout for routers and/or peers.
