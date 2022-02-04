@@ -314,86 +314,105 @@ impl AsyncSession {
     /// >>> time.sleep(60)
     #[pyo3(text_signature = "(self, key_expr, callback, **kwargs)")]
     #[args(kwargs = "**")]
-    fn subscribe(
+    fn subscribe<'p>(
         &self,
         key_expr: &PyAny,
         callback: &PyAny,
         kwargs: Option<&PyDict>,
-    ) -> PyResult<Subscriber> {
-        // TODO AS ACYNCIO
-        let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        let mut sub_builder = s.subscribe(&k);
-        if let Some(kwargs) = kwargs {
-            if let Some(arg) = kwargs.get_item("reliability") {
-                sub_builder = sub_builder.reliability(arg.extract::<Reliability>()?.r);
-            }
-            if let Some(arg) = kwargs.get_item("mode") {
-                sub_builder = sub_builder.mode(arg.extract::<SubMode>()?.m);
-            }
-            if let Some(arg) = kwargs.get_item("period") {
-                sub_builder = sub_builder.period(Some(arg.extract::<Period>()?.p));
-            }
-            if let Some(arg) = kwargs.get_item("local") {
-                if arg.extract::<bool>()? {
-                    sub_builder = sub_builder.local();
-                }
-            }
-        }
-        let zn_sub = sub_builder.wait().map_err(to_pyerr)?;
-        // Note: workaround to allow moving of zn_sub into the task below.
-        // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-        let mut static_zn_sub = unsafe {
-            std::mem::transmute::<
-                zenoh::subscriber::Subscriber<'_>,
-                zenoh::subscriber::Subscriber<'static>,
-            >(zn_sub)
-        };
-
+        py: Python<'p>,
+    ) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        let k = zkey_expr_of_pyany(key_expr)?.to_owned();
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
+        // note: extract from kwargs here because it's not Send and cannot be moved into future_into_py(py, F)
+        let mut reliability: Option<Reliability> = None;
+        let mut mode: Option<SubMode> = None;
+        let mut period: Option<Period> = None;
+        let mut local = false;
+        if let Some(kwargs) = kwargs {
+            if let Some(r) = kwargs.get_item("reliability") {
+                reliability = Some(r.extract()?);
+            }
+            if let Some(m) = kwargs.get_item("mode") {
+                mode = Some(m.extract()?);
+            }
+            if let Some(p) = kwargs.get_item("period") {
+                period = Some(p.extract()?)
+            }
+            if let Some(p) = kwargs.get_item("local") {
+                local = p.extract::<bool>()?;
+            }
+        }
 
-        let (unregister_tx, unregister_rx) = bounded::<ZnSubOps>(8);
-        // Note: This is done to ensure that even if the call-back into Python
-        // does any blocking call we do not incour the risk of blocking
-        // any of the task resolving futures.
-        let loop_handle = task::spawn_blocking(move || {
-            task::block_on(async move {
-                loop {
-                    select!(
-                        s = static_zn_sub.receiver().next().fuse() => {
-                            // Acquire Python GIL to call the callback
-                            let gil = Python::acquire_gil();
-                            let py = gil.python();
-                            let cb_args = PyTuple::new(py, &[Sample { s: s.unwrap() }]);
-                            if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                                warn!("Error calling subscriber callback:");
-                                e.print(py);
+        future_into_py(py, async move {
+            // note: create SubscriberBuilder in this async block since its lifetime is bound to s which is moved here.
+            let mut sub_builder = s.subscribe(&k);
+            if let Some(r) = reliability {
+                sub_builder = sub_builder.reliability(r.r);
+            }
+            if let Some(m) = mode {
+                sub_builder = sub_builder.mode(m.m);
+            }
+            if let Some(p) = period {
+                sub_builder = sub_builder.period(Some(p.p));
+            }
+            if local {
+                sub_builder = sub_builder.local();
+            }
+
+            let zn_sub = sub_builder.await.map_err(to_pyerr)?;
+            // Note: workaround to allow moving of zn_sub into the task below.
+            // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
+            let mut static_zn_sub = unsafe {
+                std::mem::transmute::<
+                    zenoh::subscriber::Subscriber<'_>,
+                    zenoh::subscriber::Subscriber<'static>,
+                >(zn_sub)
+            };
+
+            let (unregister_tx, unregister_rx) = bounded::<ZnSubOps>(8);
+            // Note: This is done to ensure that even if the call-back into Python
+            // does any blocking call we do not incour the risk of blocking
+            // any of the task resolving futures.
+            let loop_handle = task::spawn_blocking(move || {
+                task::block_on(async move {
+                    loop {
+                        select!(
+                            s = static_zn_sub.receiver().next().fuse() => {
+                                // Acquire Python GIL to call the callback
+                                let gil = Python::acquire_gil();
+                                let py = gil.python();
+                                let cb_args = PyTuple::new(py, &[Sample { s: s.unwrap() }]);
+                                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
+                                    warn!("Error calling subscriber callback:");
+                                    e.print(py);
+                                }
+                            },
+                            op = unregister_rx.recv().fuse() => {
+                                match op {
+                                    Ok(ZnSubOps::Pull) => {
+                                        if let Err(e) = static_zn_sub.pull().await {
+                                            warn!("Error pulling the subscriber: {}", e);
+                                        }
+                                    },
+                                    Ok(ZnSubOps::Unregister) => {
+                                        if let Err(e) = static_zn_sub.close().await {
+                                            warn!("Error undeclaring subscriber: {}", e);
+                                        }
+                                        return
+                                    },
+                                    _ => return
+                                }
                             }
-                        },
-                        op = unregister_rx.recv().fuse() => {
-                            match op {
-                                Ok(ZnSubOps::Pull) => {
-                                    if let Err(e) = static_zn_sub.pull().await {
-                                        warn!("Error pulling the subscriber: {}", e);
-                                    }
-                                },
-                                Ok(ZnSubOps::Unregister) => {
-                                    if let Err(e) = static_zn_sub.close().await {
-                                        warn!("Error undeclaring subscriber: {}", e);
-                                    }
-                                    return
-                                },
-                                _ => return
-                            }
-                        }
-                    )
-                }
+                        )
+                    }
+                })
+            });
+            Ok(Subscriber {
+                unregister_tx,
+                loop_handle: Some(loop_handle),
             })
-        });
-        Ok(Subscriber {
-            unregister_tx,
-            loop_handle: Some(loop_handle),
         })
     }
 

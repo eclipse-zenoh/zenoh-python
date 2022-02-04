@@ -17,7 +17,6 @@ from datetime import datetime
 import argparse
 import json
 import zenoh
-import zenoh.asyncio
 from zenoh import Reliability, SubMode
 
 async def main():
@@ -72,11 +71,11 @@ async def main():
     zenoh.init_logger()
 
     print("Openning session...")
-    session = await zenoh.asyncio.open(conf)
+    session = await zenoh.async_open(conf)
 
     print("Creating Subscriber on '{}'...".format(key))
 
-    sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
+    sub = await session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
     print("Enter 'q' to quit...")
     c = '\0'
@@ -85,8 +84,8 @@ async def main():
         if c == '':
             time.sleep(1)
 
-    sub.close()
-    session.close()
+    await sub.close()
+    await session.close()
 
 
 asyncio.run(main())

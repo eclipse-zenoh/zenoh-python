@@ -248,7 +248,9 @@ fn open(config: Option<Config>) -> PyResult<Session> {
 #[pyo3(text_signature = "(config)")]
 fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
     future_into_py(py, async {
-        let s = zenoh::open(config.unwrap_or_default().inner).await.map_err(to_pyerr)?;
+        let s = zenoh::open(config.unwrap_or_default().inner)
+            .await
+            .map_err(to_pyerr)?;
         Ok(AsyncSession::new(s))
     })
 }
