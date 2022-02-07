@@ -444,54 +444,61 @@ impl AsyncSession {
     /// >>> q = s.queryable('/key/expression', queryable.EVAL, callback)
     /// >>> time.sleep(60)
     #[pyo3(text_signature = "(self, key_expr, kind, callback)")]
-    fn queryable(&self, key_expr: &PyAny, kind: ZInt, callback: &PyAny) -> PyResult<Queryable> {
-        // TODO AS ACYNCIO
-        let s = self.as_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        let zn_quer = s.queryable(k).kind(kind).wait().map_err(to_pyerr)?;
-        // Note: workaround to allow moving of zn_quer into the task below.
-        // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-        let mut zn_quer = unsafe {
-            std::mem::transmute::<
-                zenoh::queryable::Queryable<'_>,
-                zenoh::queryable::Queryable<'static>,
-            >(zn_quer)
-        };
-
+    fn queryable<'p>(
+        &self,
+        key_expr: &PyAny,
+        kind: ZInt,
+        callback: &PyAny,
+        py: Python<'p>,
+    ) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+        let k = zkey_expr_of_pyany(key_expr)?.to_owned();
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
 
-        let (unregister_tx, unregister_rx) = bounded::<bool>(1);
-        // Note: This is done to ensure that even if the call-back into Python
-        // does any blocking call we do not incour the risk of blocking
-        // any of the task resolving futures.
-        let loop_handle = task::spawn_blocking(move || {
-            task::block_on(async move {
-                loop {
-                    select!(
-                        q = zn_quer.receiver().next().fuse() => {
-                            // Acquire Python GIL to call the callback
-                            let gil = Python::acquire_gil();
-                            let py = gil.python();
-                            let cb_args = PyTuple::new(py, &[Query { q: async_std::sync::Arc::new(q.unwrap()) }]);
-                            if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                                warn!("Error calling queryable callback:");
-                                e.print(py);
+        future_into_py(py, async move {
+            let zn_quer = s.queryable(k).kind(kind).await.map_err(to_pyerr)?;
+            // Note: workaround to allow moving of zn_quer into the task below.
+            // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
+            let mut zn_quer = unsafe {
+                std::mem::transmute::<
+                    zenoh::queryable::Queryable<'_>,
+                    zenoh::queryable::Queryable<'static>,
+                >(zn_quer)
+            };
+
+            let (unregister_tx, unregister_rx) = bounded::<bool>(1);
+            // Note: This is done to ensure that even if the call-back into Python
+            // does any blocking call we do not incour the risk of blocking
+            // any of the task resolving futures.
+            let loop_handle = task::spawn_blocking(move || {
+                task::block_on(async move {
+                    loop {
+                        select!(
+                            q = zn_quer.receiver().next().fuse() => {
+                                // Acquire Python GIL to call the callback
+                                let gil = Python::acquire_gil();
+                                let py = gil.python();
+                                let cb_args = PyTuple::new(py, &[Query { q: async_std::sync::Arc::new(q.unwrap()) }]);
+                                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
+                                    warn!("Error calling queryable callback:");
+                                    e.print(py);
+                                }
+                            },
+                            _ = unregister_rx.recv().fuse() => {
+                                if let Err(e) = zn_quer.close().await {
+                                    warn!("Error undeclaring queryable: {}", e);
+                                }
+                                return
                             }
-                        },
-                        _ = unregister_rx.recv().fuse() => {
-                            if let Err(e) = zn_quer.close().await {
-                                warn!("Error undeclaring queryable: {}", e);
-                            }
-                            return
-                        }
-                    )
-                }
+                        )
+                    }
+                })
+            });
+            Ok(Queryable {
+                unregister_tx,
+                loop_handle: Some(loop_handle),
             })
-        });
-        Ok(Queryable {
-            unregister_tx,
-            loop_handle: Some(loop_handle),
         })
     }
 
