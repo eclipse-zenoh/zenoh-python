@@ -1015,8 +1015,8 @@ impl Query {
     ///
     /// :type: str
     #[getter]
-    fn value_selector(&self) -> &str {
-        self.q.selector().value_selector
+    fn value_selector(&self) -> String {
+        self.q.selector().value_selector.to_string()
     }
 
     /// Send a reply to the query

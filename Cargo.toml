@@ -36,9 +36,9 @@ complete_n = ["zenoh/complete_n"]
 # zenoh = { git = "https://github.com/eclipse-zenoh/zenoh" }
 # zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh" }
 # zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh" }
-zenoh = { git = "https://github.com/JEnoch/zenoh", branch = "async_1_10" }
-zenoh-cfg-properties = { git = "https://github.com/JEnoch/zenoh", branch = "async_1_10" }
-zenoh-core = { git = "https://github.com/JEnoch/zenoh", branch = "async_1_10" }
+zenoh = { git = "https://github.com/JEnoch/zenoh", branch = "async_1_10-2" }
+zenoh-cfg-properties = { git = "https://github.com/JEnoch/zenoh", branch = "async_1_10-2" }
+zenoh-core = { git = "https://github.com/JEnoch/zenoh", branch = "async_1_10-2" }
 validated_struct = "0.1"
 json5 = "0.4.1"
 serde_json = "1.0"

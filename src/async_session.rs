@@ -30,7 +30,7 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyTuple};
 use pyo3_asyncio::async_std::future_into_py;
 use std::collections::HashMap;
-use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, ZFuture, ZInt};
+use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture, ZInt};
 
 /// A zenoh-net session.
 #[pyclass]
@@ -532,27 +532,27 @@ impl AsyncSession {
     /// ...    print("Received : {}".format(
     /// ...        reply.data if reply is not None else "FINAL")))
     #[pyo3(text_signature = "(self, selector, callback, target=None, consolidation=None)")]
-    fn get(
+    fn get<'p>(
         &self,
         selector: &PyAny,
-        callback: &PyAny,
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
-    ) -> PyResult<()> {
-        // TODO AS ACYNCIO
-        let s = self.as_ref()?;
-        let mut getter = match selector.get_type().name()? {
+        py: Python<'p>,
+    ) -> PyResult<&'p PyAny> {
+        let s = self.try_clone()?;
+
+        let selector: Selector = match selector.get_type().name()? {
             "KeyExpr" => {
-                let rk: PyRef<KeyExpr> = selector.extract()?;
-                s.get(rk.inner.clone())
+                let key_expr: PyRef<KeyExpr> = selector.extract()?;
+                key_expr.inner.clone().into()
             }
             "int" => {
                 let id: u64 = selector.extract()?;
-                s.get(ZKeyExpr::from(id))
+                ZKeyExpr::from(id).into()
             }
             "str" => {
                 let name: &str = selector.extract()?;
-                s.get(name)
+                Selector::from(name)
             }
             x => {
                 return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
@@ -560,40 +560,28 @@ impl AsyncSession {
                     x
                 )))
             }
-        };
-        if let Some(t) = target {
-            getter = getter.target(t.t);
         }
-        if let Some(c) = consolidation {
-            getter = getter.consolidation(c.c);
-        }
-        let mut zn_recv = getter.wait().map_err(to_pyerr)?;
+        .to_owned();
 
-        // Note: callback cannot be passed as such in task below because it's not Send
-        let cb_obj: Py<PyAny> = callback.into();
+        future_into_py(py, async move {
+            let mut reply_rcv = s
+                .get(selector)
+                .target(target.unwrap_or_default().t)
+                .consolidation(consolidation.unwrap_or_default().c)
+                .await
+                .map_err(to_pyerr)?;
+            // let mut reply_rcv = getter.await.map_err(to_pyerr)?;
+            let mut replies: Vec<Reply> = Vec::new();
 
-        let _ = task::spawn_blocking(move || {
-            task::block_on(async move {
-                while let Some(reply) = zn_recv.next().await {
-                    // Acquire Python GIL to call the callback
-                    let gil = Python::acquire_gil();
-                    let py = gil.python();
-                    let cb_args = PyTuple::new(py, &[Reply { r: reply }]);
-                    if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                        warn!("Error calling queryable callback:");
-                        e.print(py);
-                    }
-                }
-                let gil = Python::acquire_gil();
-                let py = gil.python();
-                let cb_args = PyTuple::new(py, &[py.None()]);
-                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                    warn!("Error calling queryable callback:");
-                    e.print(py);
-                }
-            })
-        });
-        Ok(())
+            while let Some(reply) = reply_rcv.next().await {
+                replies.push(Reply { r: reply });
+            }
+            // let result = Python::with_gil(|py| PyList::new(py, replies));
+            // let gil = Python::acquire_gil();
+            // let py = gil.python();
+            // let result = PyList::new(py, replies);
+            Ok(replies)
+        })
     }
 }
 
@@ -615,14 +603,6 @@ impl AsyncSession {
     fn try_take(&mut self) -> PyResult<Arc<zenoh::Session>> {
         self.s
             .take()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
-    }
-
-    #[inline]
-    fn as_ref(&self) -> PyResult<&zenoh::Session> {
-        self.s
-            .as_ref()
-            .map(|a| a.as_ref())
             .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
     }
 }
