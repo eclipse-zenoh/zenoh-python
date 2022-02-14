@@ -16,14 +16,13 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, Sample
-from zenoh.queryable import EVAL
+from zenoh import config, queryable, QueryTarget, Target
 
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
     parser = argparse.ArgumentParser(
-        prog='z_eval',
-        description='zenoh eval example')
+        prog='z_get',
+        description='zenoh get example')
     parser.add_argument('--mode', '-m', dest='mode',
                         choices=['peer', 'client'],
                         type=str,
@@ -38,14 +37,20 @@ async def main():
                         action='append',
                         type=str,
                         help='Locators to listen on.')
-    parser.add_argument('--key', '-k', dest='key',
-                        default='/demo/example/zenoh-python-eval',
+    parser.add_argument('--selector', '-s', dest='selector',
+                        default='/demo/example/**',
                         type=str,
-                        help='The key expression matching queries to evaluate.')
-    parser.add_argument('--value', '-v', dest='value',
-                        default='Eval from Python!',
+                        help='The selection of resources to query.')
+    parser.add_argument('--kind', '-k', dest='kind',
+                        choices=['ALL_KINDS', 'STORAGE', 'EVAL'],
+                        default='ALL_KINDS',
                         type=str,
-                        help='The value to reply to queries.')
+                        help='The KIND of queryables to query.')
+    parser.add_argument('--target', '-t', dest='target',
+                        choices=['ALL', 'BEST_MATCHING', 'ALL_COMPLETE', 'NONE'],
+                        default='ALL',
+                        type=str,
+                        help='The target queryables of the query.')
     parser.add_argument('--config', '-c', dest='config',
                         metavar='FILE',
                         type=str,
@@ -59,30 +64,18 @@ async def main():
         conf.insert_json5("peers", json.dumps(args.peer))
     if args.listener is not None:
         conf.insert_json5("listeners", json.dumps(args.listener))
-    key = args.key
-    value = args.value
+    selector = args.selector
+    kind = {
+        'ALL_KINDS': queryable.ALL_KINDS,
+        'STORAGE': queryable.STORAGE,
+        'EVAL': queryable.EVAL}.get(args.kind)
+    target = {
+        'ALL': Target.All(),
+        'BEST_MATCHING': Target.BestMatching(),
+        'ALL_COMPLETE': Target.AllComplete(),
+        'NONE': Target.No()}.get(args.target)
 
     # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
-
-    # Note: As an example the concrete implementation of the eval callback is implemented here as a coroutine.
-    #       It checks if the query's value_selector (the substring after '?') is a float, and if yes, sleeps for this number of seconds.
-    #       Run example/asyncio/z_get_parallel.py example to see how 3 concurrent get() are executed in parallel in this z_eval.py
-    async def eval_corouting(query):
-        opt = query.value_selector[1:]
-        try:
-            sleep_time = float(opt)
-            print("  Sleeping {} secs before replying".format(sleep_time))
-            await asyncio.sleep(sleep_time)
-        except ValueError:
-            pass
-        print("  Replying to query on {}".format(query.selector))
-        reply = "{} (this is the reply to query on {})".format(value, query.selector)
-        query.reply(Sample(key_expr=key, payload=reply.encode()))
-
-    async def eval_callback(query):
-        print(">> [Queryable ] Received Query '{}'".format(query.selector))
-        # schedule a task that will call eval_corouting(query)
-        asyncio.create_task(eval_corouting(query))
 
     # initiate logging
     zenoh.init_logger()
@@ -90,17 +83,23 @@ async def main():
     print("Openning session...")
     session = await zenoh.async_open(conf)
 
-    print("Creating Queryable on '{}'...".format(key))
-    queryable = await session.queryable(key, EVAL, eval_callback)
 
-    print("Enter 'q' to quit......")
-    c = '\0'
-    while c != 'q':
-        c = sys.stdin.read(1)
-        if c == '':
-            time.sleep(1)
+    async def do_query(sleep_time):
+        print("Sending Query '{}?{}'...".format(selector, sleep_time))
+        replies = await session.get("{}?{}".format(selector, sleep_time), target=QueryTarget(kind, target))
+        for reply in replies:
+            print(">> Received ('{}': '{}')"
+                .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))
 
-    await queryable.close()
+    start = time.time()
+    await asyncio.gather(
+        asyncio.create_task(do_query(1)),
+        asyncio.create_task(do_query(2)),
+        asyncio.create_task(do_query(3)),
+    )
+    end = time.time()
+    print(f'Time: {end-start:.2f} sec')
+
     await session.close()
 
 asyncio.run(main())

@@ -472,26 +472,36 @@ impl AsyncSession {
             // does any blocking call we do not incour the risk of blocking
             // any of the task resolving futures.
             let loop_handle = task::spawn_blocking(move || {
-                task::block_on(async move {
-                    loop {
-                        select!(
-                            q = zn_quer.receiver().next().fuse() => {
-                                // Acquire Python GIL to call the callback
-                                let gil = Python::acquire_gil();
-                                let py = gil.python();
-                                let cb_args = PyTuple::new(py, &[Query { q: async_std::sync::Arc::new(q.unwrap()) }]);
-                                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                                    warn!("Error calling queryable callback:");
-                                    e.print(py);
+                Python::with_gil(|py| {
+                    // Run a Python event loop in this task, to allow coroutines execution within the callback
+                    match pyo3_asyncio::async_std::run(py, async move {
+                        loop {
+                            select!(
+                                q = zn_quer.receiver().next().fuse() => {
+                                    // call the async callback and transform the resulting Python awaitable into a Rust future
+                                    let future = match Python::with_gil(|py| {
+                                        let cb_args = PyTuple::new(py, &[Query { q: async_std::sync::Arc::new(q.unwrap()) }]);
+                                        cb_obj.as_ref(py).call1(cb_args).and_then(pyo3_asyncio::async_std::into_future)
+                                    }) {
+                                        Ok(f) => f,
+                                        Err(e) => { warn!("Error calling async queryable callback: {}", e); continue }
+                                    };
+                                    // await the future (by default callbacks are executed in sequence)
+                                    if let Err(e) = future.await {
+                                        warn!("Error suring axecution of async queryable callback: {}", e);
+                                    }
+                                },
+                                _ = unregister_rx.recv().fuse() => {
+                                    if let Err(e) = zn_quer.close().await {
+                                        warn!("Error undeclaring queryable: {}", e);
+                                    }
+                                    return Ok(())
                                 }
-                            },
-                            _ = unregister_rx.recv().fuse() => {
-                                if let Err(e) = zn_quer.close().await {
-                                    warn!("Error undeclaring queryable: {}", e);
-                                }
-                                return
-                            }
-                        )
+                            )
+                        }
+                    }) {
+                        Ok(()) => warn!("Queryable loop running"),
+                        Err(e) => warn!("Failed to start Queryable loop: {}", e),
                     }
                 })
             });
