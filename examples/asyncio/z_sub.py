@@ -60,7 +60,7 @@ async def main():
     # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-    def listener(sample):
+    async def listener(sample):
         time = '(not specified)' if sample.source_info is None or sample.timestamp is None else datetime.fromtimestamp(
             sample.timestamp.time)
         print(">> [Subscriber] Received {} ('{}': '{}')"
