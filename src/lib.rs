@@ -22,12 +22,14 @@ use zenoh_core::zerror;
 
 pub(crate) mod types;
 pub(crate) use types::*;
-mod async_session;
-use async_session::*;
 mod session;
 use session::*;
+mod async_types;
 mod encoding;
 mod sample_kind;
+use async_types::*;
+mod async_session;
+use async_session::*;
 
 create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
@@ -132,6 +134,9 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<Target>()?;
     m.add_class::<Timestamp>()?;
     m.add_class::<WhatAmI>()?;
+    m.add_class::<AsyncSession>()?;
+    m.add_class::<AsyncSubscriber>()?;
+    m.add_class::<AsyncQueryable>()?;
     m.add_wrapped(wrap_pyfunction!(open))?;
     m.add_wrapped(wrap_pyfunction!(async_open))?;
     m.add_wrapped(wrap_pyfunction!(scout))?;

@@ -11,14 +11,14 @@
 // Contributors:
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
+use super::async_types::{AsyncQueryable, AsyncSubscriber};
 use super::encoding::Encoding;
 use super::sample_kind::SampleKind;
 use super::types::{
-    zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, Priority, Query, QueryConsolidation,
-    QueryTarget, Queryable, Reply, Sample, Subscriber, ZnSubOps,
+    zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, KeyExpr, Period, Priority, Query,
+    QueryConsolidation, QueryTarget, Reliability, Reply, Sample, SubMode, ZnSubOps,
 };
-use crate::types::{KeyExpr, Period, Reliability, SubMode};
-use crate::{to_pyerr, ZError};
+use super::{to_pyerr, ZError};
 use async_std::channel::bounded;
 use async_std::sync::Arc;
 use async_std::task;
@@ -284,7 +284,7 @@ impl AsyncSession {
         })
     }
 
-    /// Create a Subscriber for the given key expression.
+    /// Create a AsyncSubscriber for the given key expression.
     ///
     /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
@@ -298,7 +298,7 @@ impl AsyncSession {
     /// :type info: SubInfo
     /// :param callback: the subscription callback
     /// :type callback: function(:class:`Sample`)
-    /// :rtype: Subscriber
+    /// :rtype: AsyncSubscriber
     ///
     /// :Examples:
     ///
@@ -409,14 +409,14 @@ impl AsyncSession {
                     }
                 })
             });
-            Ok(Subscriber {
+            Ok(AsyncSubscriber {
                 unregister_tx,
                 loop_handle: Some(loop_handle),
             })
         })
     }
 
-    /// Create a Queryable for the given key expression.
+    /// Create a AsyncQueryable for the given key expression.
     ///
     /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
@@ -430,7 +430,7 @@ impl AsyncSession {
     /// :type info: int
     /// :param callback: the queryable callback
     /// :type callback: function(:class:`Query`)
-    /// :rtype: Queryable
+    /// :rtype: AsyncQueryable
     ///
     /// :Examples:
     ///
@@ -495,7 +495,7 @@ impl AsyncSession {
                     }
                 })
             });
-            Ok(Queryable {
+            Ok(AsyncQueryable {
                 unregister_tx,
                 loop_handle: Some(loop_handle),
             })

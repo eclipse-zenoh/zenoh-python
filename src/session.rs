@@ -14,11 +14,11 @@
 use super::encoding::Encoding;
 use super::sample_kind::SampleKind;
 use super::types::{
-    zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, Priority, Query, QueryConsolidation,
-    QueryTarget, Queryable, Reply, Sample, Subscriber, ZnSubOps,
+    zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, KeyExpr, Period, Priority, Query,
+    QueryConsolidation, QueryTarget, Queryable, Reliability, Reply, Sample, SubMode, Subscriber,
+    ZnSubOps,
 };
-use crate::types::{KeyExpr, Period, Reliability, SubMode};
-use crate::{to_pyerr, ZError};
+use super::{to_pyerr, ZError};
 use async_std::channel::bounded;
 use async_std::task;
 use futures::prelude::*;
