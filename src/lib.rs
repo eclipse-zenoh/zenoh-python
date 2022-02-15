@@ -140,6 +140,7 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_wrapped(wrap_pyfunction!(open))?;
     m.add_wrapped(wrap_pyfunction!(async_open))?;
     m.add_wrapped(wrap_pyfunction!(scout))?;
+    m.add_wrapped(wrap_pyfunction!(async_scout))?;
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
     m.add_wrapped(wrap_pyfunction!(config_from_file))?;
     Ok(())
@@ -283,6 +284,30 @@ fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
 #[pyo3(text_signature = "(whatami, scout_duration, config)")]
 fn scout(whatami: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyResult<Vec<Hello>> {
     task::block_on(async move {
+        let mut result = Vec::<Hello>::new();
+        let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)
+            .await
+            .unwrap();
+        let scout = async {
+            while let Some(h) = receiver.next().await {
+                result.push(Hello { h })
+            }
+        };
+        let timeout = async_std::task::sleep(std::time::Duration::from_secs_f64(scout_duration));
+        FutureExt::race(scout, timeout).await;
+        Ok(result)
+    })
+}
+
+#[pyfunction]
+#[pyo3(text_signature = "(whatami, scout_duration, config)")]
+fn async_scout<'p>(
+    whatami: WhatAmI,
+    scout_duration: f64,
+    config: Option<Config>,
+    py: Python<'p>,
+) -> PyResult<&'p PyAny> {
+    future_into_py(py, async move {
         let mut result = Vec::<Hello>::new();
         let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)
             .await
