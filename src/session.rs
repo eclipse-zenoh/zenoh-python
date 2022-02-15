@@ -438,99 +438,6 @@ impl Session {
 
     /// Query data from the matching queryables in the system.
     ///
-    /// The replies are provided by calling the provided ``callback`` for each reply.
-    /// The ``callback`` is called a last time with ``None`` when the query is complete.
-    ///
-    /// The *selector* parameter accepts the following types:
-    ///
-    /// * **KeyExpr** for a key expression with no value selector
-    /// * **int** for a key expression id with no value selector
-    /// * **str** for a litteral selector
-    ///
-    /// :param selector: The selection of resources to query
-    /// :type selector: str
-    /// :param callback: the query callback which will receive the replies
-    /// :type callback: function(:class:`Reply`)
-    /// :param target: The kind of queryables that should be target of this query
-    /// :type target: QueryTarget, optional
-    /// :param consolidation: The kind of consolidation that should be applied on replies
-    /// :type consolidation: QueryConsolidation, optional
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh, time
-    /// >>> from zenoh import QueryTarget, queryable
-    /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> s.get('/key/selector?value_selector', lambda reply:
-    /// ...    print("Received : {}".format(
-    /// ...        reply.data if reply is not None else "FINAL")))
-    #[pyo3(text_signature = "(self, selector, callback, target=None, consolidation=None)")]
-    fn get(
-        &self,
-        selector: &PyAny,
-        callback: &PyAny,
-        target: Option<QueryTarget>,
-        consolidation: Option<QueryConsolidation>,
-    ) -> PyResult<()> {
-        let s = self.as_ref()?;
-        let mut getter = match selector.get_type().name()? {
-            "KeyExpr" => {
-                let rk: PyRef<KeyExpr> = selector.extract()?;
-                s.get(rk.inner.clone())
-            }
-            "int" => {
-                let id: u64 = selector.extract()?;
-                s.get(ZKeyExpr::from(id))
-            }
-            "str" => {
-                let name: &str = selector.extract()?;
-                s.get(name)
-            }
-            x => {
-                return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-                    "Cannot convert type '{}' to a zenoh Selector",
-                    x
-                )))
-            }
-        };
-        if let Some(t) = target {
-            getter = getter.target(t.t);
-        }
-        if let Some(c) = consolidation {
-            getter = getter.consolidation(c.c);
-        }
-        let mut zn_recv = getter.wait().map_err(to_pyerr)?;
-
-        // Note: callback cannot be passed as such in task below because it's not Send
-        let cb_obj: Py<PyAny> = callback.into();
-
-        let _ = task::spawn_blocking(move || {
-            task::block_on(async move {
-                while let Some(reply) = zn_recv.next().await {
-                    // Acquire Python GIL to call the callback
-                    let gil = Python::acquire_gil();
-                    let py = gil.python();
-                    let cb_args = PyTuple::new(py, &[Reply { r: reply }]);
-                    if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                        warn!("Error calling queryable callback:");
-                        e.print(py);
-                    }
-                }
-                let gil = Python::acquire_gil();
-                let py = gil.python();
-                let cb_args = PyTuple::new(py, &[py.None()]);
-                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                    warn!("Error calling queryable callback:");
-                    e.print(py);
-                }
-            })
-        });
-        Ok(())
-    }
-
-    /// Query data from the matching queryables in the system.
-    ///
     /// Replies are collected in a list.
     ///
     /// The *selector* parameter accepts the following types:
@@ -550,14 +457,13 @@ impl Session {
     /// :Examples:
     ///
     /// >>> import zenoh, time
-    /// >>> from zenoh import QueryTarget, queryable
     /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> replies = s.get_collect('/key/selector?value_selector')
+    /// >>> s = zenoh.open()
+    /// >>> replies = s.get('/key/selector?value_selector')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
     #[pyo3(text_signature = "(self, selector, target=None, consolidation=None)")]
-    fn get_collect(
+    fn get(
         &self,
         selector: &PyAny,
         target: Option<QueryTarget>,
