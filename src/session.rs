@@ -30,7 +30,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
 use std::collections::HashMap;
 use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, ZFuture, ZInt};
 
-/// A zenoh-net session.
+/// A zenoh session.
 #[pyclass]
 pub struct Session {
     s: Option<zenoh::Session>,
@@ -38,20 +38,20 @@ pub struct Session {
 
 #[pymethods]
 impl Session {
-    /// Close the zenoh-net Session.
+    /// Close the zenoh Session.
     pub fn close(&mut self) -> PyResult<()> {
         let s = self.take()?;
         s.close().wait().map_err(to_pyerr)
     }
 
-    /// Get informations about the zenoh-net Session.
+    /// Get informations about the zenoh Session.
     ///
     /// :rtype: dict {str: str}
     ///
     /// :Example:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> info = s.info()
     /// >>> for key in info:
     /// >>>    print("{} : {}".format(key, info[key]))
@@ -76,7 +76,7 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression matching resources to write
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param value: The value to write
     /// :type value: Value
     /// :param encoding: The encoding of the value
@@ -84,12 +84,12 @@ impl Session {
     /// :param kind: The kind of value
     /// :type kind: int, optional
     /// :param congestion_control: The value for the congestion control
-    /// :type congestion_control: CongestionControl, optional
+    /// :type congestion_control: :class:`CongestionControl`, optional
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, key_expr, value, **kwargs)")]
     #[args(kwargs = "**")]
@@ -135,14 +135,14 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression matching resources to delete
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param congestion_control: The value for the congestion control
-    /// :type congestion_control: CongestionControl, optional
+    /// :type congestion_control: :class:`CongestionControl`, optional
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> s.delete('/key/expression')
     #[pyo3(text_signature = "(self, key_expr, **kwargs)")]
     #[args(kwargs = "**")]
@@ -178,13 +178,13 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression to map to a numerical Id
-    /// :type key_expr: KeyExpr
-    /// :rtype: int
+    /// :type key_expr: :class:`KeyExpr`
+    /// :rtype: :class:`ExprId`
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> rid = s.declare_expr('/key/expression')
     #[pyo3(text_signature = "(self, key_expr)")]
     pub fn declare_expr(&self, key_expr: &PyAny) -> PyResult<ExprId> {
@@ -197,12 +197,12 @@ impl Session {
     /// with :meth:`declare_expr`.
     ///
     /// :param rid: The numerical Id to unmap
-    /// :type rid: ExprId
+    /// :type rid: :class:`ExprId`
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> rid = s.declare_expr('/key/expression')
     /// >>> s.undeclare_expr(rid)
     #[pyo3(text_signature = "(self, rid)")]
@@ -223,12 +223,12 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression to publish
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> rid = s.declare_publication('/key/expression')
     /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, key_expr)")]
@@ -256,19 +256,24 @@ impl Session {
     ///
     /// :param key_expr: The key expression to subscribe
     /// :type key_expr: KeyExpr
-    /// :param info: The :class:`SubInfo` to configure the subscription
-    /// :type info: SubInfo
     /// :param callback: the subscription callback
     /// :type callback: function(:class:`Sample`)
-    /// :rtype: Subscriber
+    /// :param reliability: the subscription reliability
+    /// :type reliability: :class:`Reliability`, optional
+    /// :param mode: the subscription mode
+    /// :type mode: :class:`SubMode`, optional
+    /// :param period: the subscription period
+    /// :type period: :class:`Period`, optional
+    /// :param local: if the subscription is local only
+    /// :type local: bool
+    /// :rtype: :class:`Subscriber`
     ///
     /// :Examples:
     ///
     /// >>> import zenoh, time
-    /// >>> from zenoh import SubInfo, Reliability, SubMode
+    /// >>> from zenoh import Reliability, SubMode
     /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
+    /// >>> s = zenoh.open()
     /// >>> sub = s.subscribe('/key/expression',
     /// ...     lambda sample: print("Received : {}".format(sample)),
     /// ...     reliability=Reliability.Reliable,
@@ -367,12 +372,12 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression the Queryable will reply to
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param info: The kind of Queryable
     /// :type info: int
     /// :param callback: the queryable callback
     /// :type callback: function(:class:`Query`)
-    /// :rtype: Queryable
+    /// :rtype: :class:`Queryable`
     ///
     /// :Examples:
     ///
@@ -382,7 +387,7 @@ impl Session {
     /// ...     print("Received : {}".format(query))
     /// ...     query.reply(Sample('/key/expression', bytes('value', encoding='utf8')))
     /// >>>
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> q = s.queryable('/key/expression', queryable.EVAL, callback)
     /// >>> time.sleep(60)
     #[pyo3(text_signature = "(self, key_expr, kind, callback)")]
@@ -449,9 +454,9 @@ impl Session {
     /// :param selector: The selection of resources to query
     /// :type selector: str
     /// :param target: The kind of queryables that should be target of this query
-    /// :type target: QueryTarget, optional
+    /// :type target: :class:`QueryTarget`, optional
     /// :param consolidation: The kind of consolidation that should be applied on replies
-    /// :type consolidation: QueryConsolidation, optional
+    /// :type consolidation: :class:`QueryConsolidation`, optional
     /// :rtype: [:class:`Reply`]
     ///
     /// :Examples:
@@ -523,13 +528,13 @@ impl Session {
     fn as_ref(&self) -> PyResult<&zenoh::Session> {
         self.s
             .as_ref()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
     }
 
     #[inline]
     fn take(&mut self) -> PyResult<zenoh::Session> {
         self.s
             .take()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
     }
 }

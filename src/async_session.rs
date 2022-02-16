@@ -32,7 +32,7 @@ use pyo3_asyncio::async_std::future_into_py;
 use std::collections::HashMap;
 use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture, ZInt};
 
-/// A zenoh-net session.
+/// A zenoh session to be used with asyncio.
 #[pyclass]
 pub struct AsyncSession {
     s: Option<Arc<zenoh::Session>>,
@@ -46,7 +46,7 @@ impl AsyncSession {
     // Similarly, each argument coming from Python is converted to Rust and cloned (or Arc-wrapped) before
     // moving into the `future_into_py()` call.
 
-    /// Close the zenoh-net Session.
+    /// Close the zenoh Session.
     pub fn close<'p>(&mut self, py: Python<'p>) -> PyResult<&'p PyAny> {
         // NOTE: should be sufficient to take the Arc<Session>. Once all arcs are dropped, Session will close.
         // Still, we should provide a wait to await for the actual closure...
@@ -54,17 +54,22 @@ impl AsyncSession {
         future_into_py(py, async move { Ok(()) })
     }
 
-    /// Get informations about the zenoh-net Session.
+    /// Get informations about the zenoh Session.
+    ///
+    /// This method is a **coroutine**.
     ///
     /// :rtype: dict {str: str}
     ///
     /// :Example:
     ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open({})
-    /// >>> info = s.info()
-    /// >>> for key in info:
-    /// >>>    print("{} : {}".format(key, info[key]))
+    /// >>> import asyncio, zenoh
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    info = await s.info()
+    /// >>>    for key in info:
+    /// >>>       print("{} : {}".format(key, info[key]))
+    /// >>>
+    /// >>> asyncio.run(main())
     pub fn info<'p>(&self, py: Python<'p>) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
         future_into_py(py, async move {
@@ -92,8 +97,10 @@ impl AsyncSession {
     /// * **str** for a literal key expression
     /// * **(int, str)** for a mapped key expression with suffix
     ///
+    /// This method is a **coroutine**.
+    ///
     /// :param key_expr: The key expression matching resources to write
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param value: The value to write
     /// :type value: Value
     /// :param encoding: The encoding of the value
@@ -101,13 +108,16 @@ impl AsyncSession {
     /// :param kind: The kind of value
     /// :type kind: int, optional
     /// :param congestion_control: The value for the congestion control
-    /// :type congestion_control: CongestionControl, optional
+    /// :type congestion_control: :class:`CongestionControl`, optional
     ///
     /// :Examples:
     ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open({})
-    /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
+    /// >>> import asyncio, zenoh
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    await s.put('/key/expression', bytes('value', encoding='utf8'))
+    /// >>>
+    /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, key_expr, value, **kwargs)")]
     #[args(kwargs = "**")]
     pub fn put<'p>(
@@ -159,16 +169,21 @@ impl AsyncSession {
     /// * **str** for a literal key expression
     /// * **(int, str)** for a mapped key expression with suffix
     ///
+    /// This method is a **coroutine**.
+    ///
     /// :param key_expr: The key expression matching resources to delete
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param congestion_control: The value for the congestion control
-    /// :type congestion_control: CongestionControl, optional
+    /// :type congestion_control: :class:`CongestionControl`, optional
     ///
     /// :Examples:
     ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open({})
-    /// >>> s.delete('/key/expression')
+    /// >>> import asyncio, zenoh
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    await s.delete('/key/expression')
+    /// >>>
+    /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, key_expr, **kwargs)")]
     #[args(kwargs = "**")]
     pub fn delete<'p>(
@@ -209,15 +224,20 @@ impl AsyncSession {
     /// * **str** for a literal key expression
     /// * **(int, str)** for a mapped key expression with suffix
     ///
+    /// This method is a **coroutine**.
+    ///
     /// :param key_expr: The key expression to map to a numerical Id
-    /// :type key_expr: KeyExpr
-    /// :rtype: int
+    /// :type key_expr: :class:`KeyExpr`
+    /// :rtype: :class:`ExprId`
     ///
     /// :Examples:
     ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open({})
-    /// >>> rid = s.declare_expr('/key/expression')
+    /// >>> import asyncio, zenoh
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    rid = await s.declare_expr('/key/expression')
+    /// >>>
+    /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, key_expr)")]
     pub fn declare_expr<'p>(&self, key_expr: &PyAny, py: Python<'p>) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
@@ -228,15 +248,20 @@ impl AsyncSession {
     /// Undeclare the *numerical Id/key expression* association previously declared
     /// with :meth:`declare_expr`.
     ///
+    /// This method is a **coroutine**.
+    ///
     /// :param rid: The numerical Id to unmap
     /// :type rid: ExprId
     ///
     /// :Examples:
     ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open({})
-    /// >>> rid = s.declare_expr('/key/expression')
-    /// >>> s.undeclare_expr(rid)
+    /// >>> import asyncio, zenoh
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    rid = await s.declare_expr('/key/expression')
+    /// >>>    await s.undeclare_expr(rid)
+    /// >>>
+    /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, rid)")]
     pub fn undeclare_expr<'p>(&self, rid: ExprId, py: Python<'p>) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
@@ -257,15 +282,20 @@ impl AsyncSession {
     /// * **str** for a literal key expression
     /// * **(int, str)** for a mapped key expression with suffix
     ///
+    /// This method is a **coroutine**.
+    ///
     /// :param key_expr: The key expression to publish
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     ///
     /// :Examples:
     ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open({})
-    /// >>> rid = s.declare_publication('/key/expression')
-    /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
+    /// >>> import asyncio, zenoh
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    rid = await s.declare_publication('/key/expression')
+    /// >>>    await s.put('/key/expression', bytes('value', encoding='utf8'))
+    /// >>>
+    /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, key_expr)")]
     fn declare_publication<'p>(&self, key_expr: &PyAny, py: Python<'p>) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
@@ -284,7 +314,7 @@ impl AsyncSession {
         })
     }
 
-    /// Create a AsyncSubscriber for the given key expression.
+    /// Create an AsyncSubscriber for the given key expression.
     ///
     /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
@@ -292,26 +322,38 @@ impl AsyncSession {
     /// * **str** for a literal key expression
     /// * **(int, str)** for a mapped key expression with suffix
     ///
+    /// This method is a **coroutine**.
+    ///
     /// :param key_expr: The key expression to subscribe
     /// :type key_expr: KeyExpr
-    /// :param info: The :class:`SubInfo` to configure the subscription
-    /// :type info: SubInfo
-    /// :param callback: the subscription callback
-    /// :type callback: function(:class:`Sample`)
-    /// :rtype: AsyncSubscriber
+    /// :param callback: the subscription callback (must be a **coroutine**)
+    /// :type callback: async function(:class:`Sample`)
+    /// :param reliability: the subscription reliability
+    /// :type reliability: :class:`Reliability`, optional
+    /// :param mode: the subscription mode
+    /// :type mode: :class:`SubMode`, optional
+    /// :param period: the subscription period
+    /// :type period: :class:`Period`, optional
+    /// :param local: if the subscription is local only
+    /// :type local: bool
+    /// :rtype: :class:`AsyncSubscriber`
     ///
     /// :Examples:
     ///
-    /// >>> import zenoh, time
-    /// >>> from zenoh import SubInfo, Reliability, SubMode
+    /// >>> import asyncio, zenoh
+    /// >>> from zenoh import Reliability, SubMode
     /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-    /// >>> sub = s.subscribe('/key/expression',
-    /// ...     lambda sample: print("Received : {}".format(sample)),
-    /// ...     reliability=Reliability.Reliable,
-    /// ...     mode=SubMode.Push)
-    /// >>> time.sleep(60)
+    /// >>> async def callback(sample):
+    /// >>>    print("Received : {}".format(sample))
+    /// >>>
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    sub = await s.subscribe('/key/expression', callback,
+    /// ...       reliability=Reliability.Reliable,
+    /// ...       mode=SubMode.Push)
+    /// >>>    await asycio.sleep(60)
+    /// >>>
+    /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, key_expr, callback, **kwargs)")]
     #[args(kwargs = "**")]
     fn subscribe<'p>(
@@ -426,7 +468,7 @@ impl AsyncSession {
         })
     }
 
-    /// Create a AsyncQueryable for the given key expression.
+    /// Create an AsyncQueryable for the given key expression.
     ///
     /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
     ///
@@ -434,25 +476,31 @@ impl AsyncSession {
     /// * **str** for a literal key expression
     /// * **(int, str)** for a mapped key expression with suffix
     ///
+    /// This method is a **coroutine**.
+    ///
     /// :param key_expr: The key expression the Queryable will reply to
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param info: The kind of Queryable
     /// :type info: int
-    /// :param callback: the queryable callback
-    /// :type callback: function(:class:`Query`)
-    /// :rtype: AsyncQueryable
+    /// :param callback: the queryable callback (must be a **coroutine**)
+    /// :type callback: async function(:class:`Query`)
+    /// :rtype: :class:`Queryable`
     ///
     /// :Examples:
     ///
-    /// >>> import zenoh, time
+    /// >>> import asyncio, zenoh
     /// >>> from zenoh import Sample, queryable
-    /// >>> def callback(query):
+    /// >>>
+    /// >>> async def callback(query):
     /// ...     print("Received : {}".format(query))
     /// ...     query.reply(Sample('/key/expression', bytes('value', encoding='utf8')))
     /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> q = s.queryable('/key/expression', queryable.EVAL, callback)
-    /// >>> time.sleep(60)
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    q = await s.queryable('/key/expression', queryable.EVAL, callback)
+    /// >>>    await asycio.sleep(60)
+    /// >>>
+    /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, key_expr, kind, callback)")]
     fn queryable<'p>(
         &self,
@@ -524,8 +572,7 @@ impl AsyncSession {
 
     /// Query data from the matching queryables in the system.
     ///
-    /// The replies are provided by calling the provided ``callback`` for each reply.
-    /// The ``callback`` is called a last time with ``None`` when the query is complete.
+    /// Replies are collected in a list.
     ///
     /// The *selector* parameter accepts the following types:
     ///
@@ -533,24 +580,27 @@ impl AsyncSession {
     /// * **int** for a key expression id with no value selector
     /// * **str** for a litteral selector
     ///
+    /// This method is a **coroutine**.
+    ///
     /// :param selector: The selection of resources to query
     /// :type selector: str
-    /// :param callback: the query callback which will receive the replies
-    /// :type callback: function(:class:`Reply`)
     /// :param target: The kind of queryables that should be target of this query
-    /// :type target: QueryTarget, optional
+    /// :type target: :class:`QueryTarget`, optional
     /// :param consolidation: The kind of consolidation that should be applied on replies
-    /// :type consolidation: QueryConsolidation, optional
+    /// :type consolidation: :class:`QueryConsolidation`, optional
+    /// :rtype: [:class:`Reply`]
     ///
     /// :Examples:
     ///
-    /// >>> import zenoh, time
-    /// >>> from zenoh import QueryTarget, queryable
+    /// >>> import asyncio, zenoh
     /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> s.get('/key/selector?value_selector', lambda reply:
-    /// ...    print("Received : {}".format(
-    /// ...        reply.data if reply is not None else "FINAL")))
+    /// >>> async def main():
+    /// >>>    s = await zenoh.async_open()
+    /// >>>    replies = await s.get('/key/selector?value_selector')
+    /// >>>    for reply in replies:
+    /// ...       print("Received : {}".format(reply.data))
+    /// >>>
+    /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, selector, callback, target=None, consolidation=None)")]
     fn get<'p>(
         &self,
@@ -616,13 +666,13 @@ impl AsyncSession {
     fn try_clone(&self) -> PyResult<Arc<zenoh::Session>> {
         self.s
             .clone()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
     }
 
     #[inline]
     fn try_take(&mut self) -> PyResult<Arc<zenoh::Session>> {
         self.s
             .take()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
     }
 }

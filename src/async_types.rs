@@ -17,7 +17,7 @@ use log::warn;
 use pyo3::prelude::*;
 use pyo3_asyncio::async_std::future_into_py;
 
-/// A subscriber
+/// A subscriber to be used with asyncio.
 #[pyclass]
 pub(crate) struct AsyncSubscriber {
     pub(crate) unregister_tx: Sender<ZnSubOps>,
@@ -27,6 +27,8 @@ pub(crate) struct AsyncSubscriber {
 #[pymethods]
 impl AsyncSubscriber {
     /// Pull available data for a pull-mode subscriber.
+    ///
+    /// This method is a **coroutine**.
     fn pull<'p>(&self, py: Python<'p>) -> PyResult<&'p PyAny> {
         let s = self.unregister_tx.clone();
         future_into_py(py, async move {
@@ -38,6 +40,8 @@ impl AsyncSubscriber {
     }
 
     /// Close the subscriber.
+    ///
+    /// This method is a **coroutine**.
     fn close<'p>(&mut self, py: Python<'p>) -> PyResult<&'p PyAny> {
         if let Some(handle) = self.loop_handle.take() {
             let s = self.unregister_tx.clone();
@@ -54,7 +58,7 @@ impl AsyncSubscriber {
     }
 }
 
-/// An entity able to reply to queries.
+/// A queryable to be used with asyncio.
 #[pyclass]
 pub(crate) struct AsyncQueryable {
     pub(crate) unregister_tx: Sender<bool>,
@@ -64,6 +68,8 @@ pub(crate) struct AsyncQueryable {
 #[pymethods]
 impl AsyncQueryable {
     /// Close the queryable.
+    ///
+    /// This method is a **coroutine**.
     fn close<'p>(&mut self, py: Python<'p>) -> PyResult<&'p PyAny> {
         if let Some(handle) = self.loop_handle.take() {
             let s = self.unregister_tx.clone();
