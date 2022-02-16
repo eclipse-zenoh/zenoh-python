@@ -134,6 +134,7 @@ impl AsyncSession {
         let mut kind: Option<SampleKind> = None;
         let mut congestion_control: Option<CongestionControl> = None;
         let mut priority: Option<Priority> = None;
+        let mut local_routing: Option<bool> = None;
         if let Some(kwargs) = kwargs {
             if let Some(e) = kwargs.get_item("encoding") {
                 encoding = e.extract().ok()
@@ -147,17 +148,23 @@ impl AsyncSession {
             if let Some(p) = kwargs.get_item("priority") {
                 priority = p.extract().ok()
             }
+            if let Some(lr) = kwargs.get_item("local_routing") {
+                local_routing = lr.extract().ok()
+            }
         }
         if let Some(encoding) = encoding {
             v.encoding = encoding.into();
         }
         future_into_py(py, async move {
-            s.put(k, v)
+            let mut writer = s
+                .put(k, v)
                 .kind(kind.unwrap_or_default().kind)
                 .congestion_control(congestion_control.unwrap_or_default().cc)
-                .priority(priority.unwrap_or_default().p)
-                .await
-                .map_err(to_pyerr)
+                .priority(priority.unwrap_or_default().p);
+            if let Some(local_routing) = local_routing {
+                writer = writer.local_routing(local_routing);
+            }
+            writer.await.map_err(to_pyerr)
         })
     }
 
@@ -196,6 +203,7 @@ impl AsyncSession {
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
         let mut congestion_control: Option<CongestionControl> = None;
         let mut priority: Option<Priority> = None;
+        let mut local_routing: Option<bool> = None;
         if let Some(kwargs) = kwargs {
             if let Some(cc) = kwargs.get_item("congestion_control") {
                 congestion_control = cc.extract().ok()
@@ -203,13 +211,19 @@ impl AsyncSession {
             if let Some(p) = kwargs.get_item("priority") {
                 priority = p.extract().ok()
             }
+            if let Some(lr) = kwargs.get_item("local_routing") {
+                local_routing = lr.extract().ok()
+            }
         }
         future_into_py(py, async move {
-            s.delete(k)
+            let mut writer = s
+                .delete(k)
                 .congestion_control(congestion_control.unwrap_or_default().cc)
-                .priority(priority.unwrap_or_default().p)
-                .await
-                .map_err(to_pyerr)
+                .priority(priority.unwrap_or_default().p);
+            if let Some(local_routing) = local_routing {
+                writer = writer.local_routing(local_routing);
+            }
+            writer.await.map_err(to_pyerr)
         })
     }
 
@@ -601,12 +615,15 @@ impl AsyncSession {
     /// ...       print("Received : {}".format(reply.data))
     /// >>>
     /// >>> asyncio.run(main())
-    #[pyo3(text_signature = "(self, selector, callback, target=None, consolidation=None)")]
+    #[pyo3(
+        text_signature = "(self, selector, callback, target=None, consolidation=None, local_routing=True)"
+    )]
     fn get<'p>(
         &self,
         selector: &PyAny,
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
+        local_routing: Option<bool>,
         py: Python<'p>,
     ) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
@@ -634,22 +651,19 @@ impl AsyncSession {
         .to_owned();
 
         future_into_py(py, async move {
-            let mut reply_rcv = s
+            let mut getter = s
                 .get(selector)
                 .target(target.unwrap_or_default().t)
-                .consolidation(consolidation.unwrap_or_default().c)
-                .await
-                .map_err(to_pyerr)?;
-            // let mut reply_rcv = getter.await.map_err(to_pyerr)?;
+                .consolidation(consolidation.unwrap_or_default().c);
+            if let Some(local_routing) = local_routing {
+                getter = getter.local_routing(local_routing)
+            }
+            let mut reply_rcv = getter.await.map_err(to_pyerr)?;
             let mut replies: Vec<Reply> = Vec::new();
 
             while let Some(reply) = reply_rcv.next().await {
                 replies.push(Reply { r: reply });
             }
-            // let result = Python::with_gil(|py| PyList::new(py, replies));
-            // let gil = Python::acquire_gil();
-            // let py = gil.python();
-            // let result = PyList::new(py, replies);
             Ok(replies)
         })
     }

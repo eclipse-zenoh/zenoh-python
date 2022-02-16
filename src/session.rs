@@ -28,7 +28,7 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
 use std::collections::HashMap;
-use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, ZFuture, ZInt};
+use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture, ZInt};
 
 /// A zenoh session.
 #[pyclass]
@@ -493,39 +493,18 @@ impl Session {
     ) -> PyResult<Py<PyList>> {
         let s = self.as_ref()?;
         task::block_on(async {
-            let mut replies = match selector.get_type().name()? {
+            let selector: Selector = match selector.get_type().name()? {
                 "KeyExpr" => {
-                    let rk: PyRef<KeyExpr> = selector.extract()?;
-                    let mut getter = s
-                        .get(rk.inner.clone())
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c);
-                    if let Some(local_routing) = local_routing {
-                        getter = getter.local_routing(local_routing)
-                    }
-                    getter.wait().map_err(to_pyerr)?
+                    let key_expr: PyRef<KeyExpr> = selector.extract()?;
+                    key_expr.inner.clone().into()
                 }
                 "int" => {
                     let id: u64 = selector.extract()?;
-                    let mut getter = s
-                        .get(ZKeyExpr::from(id))
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c);
-                    if let Some(local_routing) = local_routing {
-                        getter = getter.local_routing(local_routing)
-                    }
-                    getter.wait().map_err(to_pyerr)?
+                    ZKeyExpr::from(id).into()
                 }
                 "str" => {
-                    let name: String = selector.extract()?;
-                    let mut getter = s
-                        .get(&name)
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c);
-                    if let Some(local_routing) = local_routing {
-                        getter = getter.local_routing(local_routing)
-                    }
-                    getter.wait().map_err(to_pyerr)?
+                    let name: &str = selector.extract()?;
+                    Selector::from(name)
                 }
                 x => {
                     return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
@@ -534,6 +513,14 @@ impl Session {
                     )))
                 }
             };
+            let mut getter = s
+                .get(selector)
+                .target(target.unwrap_or_default().t)
+                .consolidation(consolidation.unwrap_or_default().c);
+            if let Some(local_routing) = local_routing {
+                getter = getter.local_routing(local_routing)
+            }
+            let mut replies = getter.wait().map_err(to_pyerr)?;
             let gil = Python::acquire_gil();
             let py = gil.python();
             let result = PyList::empty(py);
