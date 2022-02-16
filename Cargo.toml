@@ -23,7 +23,6 @@ authors = [
 ]
 
 edition = "2018"
-maintainer = "ADLINK zenoh team, <zenoh@adlink-labs.tech>"
 
 [lib]
 name = "zenoh"

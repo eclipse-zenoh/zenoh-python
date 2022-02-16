@@ -330,12 +330,12 @@ fn scout(whatami: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyRes
 /// >>> asyncio.run(main())
 #[pyfunction]
 #[pyo3(text_signature = "(whatami, scout_duration, config)")]
-fn async_scout<'p>(
+fn async_scout(
     whatami: WhatAmI,
     scout_duration: f64,
     config: Option<Config>,
-    py: Python<'p>,
-) -> PyResult<&'p PyAny> {
+    py: Python,
+) -> PyResult<&PyAny> {
     future_into_py(py, async move {
         let mut result = Vec::<Hello>::new();
         let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)
