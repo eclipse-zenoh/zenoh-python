@@ -23,7 +23,6 @@ authors = [
 ]
 
 edition = "2018"
-maintainer = "ADLINK zenoh team, <zenoh@adlink-labs.tech>"
 
 [lib]
 name = "zenoh"
@@ -44,6 +43,7 @@ uhlc = "0.4.0"
 futures = "0.3.12"
 log = "0.4"
 env_logger = "0.9.0"
+pyo3-asyncio = { version = "0.15", features = ["attributes", "async-std-runtime"] }
 
 [dependencies.pyo3]
 version = "0.15"

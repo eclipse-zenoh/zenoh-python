@@ -16,22 +16,27 @@ use async_std::task;
 use futures::prelude::*;
 use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
+use pyo3_asyncio::async_std::future_into_py;
 use zenoh::config::Config as ZConfig;
+use zenoh_core::zerror;
 
 pub(crate) mod types;
 pub(crate) use types::*;
 mod session;
 use session::*;
-use zenoh_core::zerror;
+mod async_types;
 mod encoding;
 mod sample_kind;
+use async_types::*;
+mod async_session;
+use async_session::*;
 
 create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
 fn to_pyerr(err: zenoh_core::Error) -> PyErr {
     PyErr::new::<ZError, _>(err.to_string())
 }
-/// The network level zenoh API.
+/// The zenoh API.
 ///
 /// Examples:
 /// ^^^^^^^^^
@@ -40,32 +45,26 @@ fn to_pyerr(err: zenoh_core::Error) -> PyErr {
 /// """""""
 ///
 /// >>> import zenoh
-/// >>> s = zenoh.open({})
-/// >>> s.put('/resource/name', bytes('value', encoding='utf8'))
+/// >>> s = zenoh.open()
+/// >>> s.put('/resource/name', bytes('value', 'utf8'))
 ///
 /// Subscribe
 /// """""""""
 ///
 /// >>> import zenoh
-/// >>> from zenoh import SubInfo, Reliability, SubMode
 /// >>> def listener(sample):
-/// ...     print("Received : {}".format(sample))
+/// ...     print("Received: {} = {}".format(sample.key_expr, sample.payload.decode("utf-8")))
 /// >>>
-/// >>> s = zenoh.open({})
-/// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
-/// >>> sub = s.subscribe('/resource/name', sub_info, listener)
+/// >>> s = zenoh.open()
+/// >>> sub = s.subscribe('/resource/*', listener)
 ///
 /// Get
 /// """
 ///
-/// >>> import zenoh, time
-/// >>> from zenoh import QueryTarget, queryable
-/// >>> def get_callback(reply):
-/// ...     print("Received : {}".format(reply))
-/// >>>
-/// >>> s = zenoh.open({})
-/// >>> s.get('/resource/name', 'predicate', get_callback)
-/// >>> time.sleep(1)
+/// >>> import zenoh
+/// >>> s = zenoh.open()
+/// >>> for reply in s.get('/resource/name'):
+/// ...     print("Received: {} = {}".format(reply.data.key_expr, reply.data.payload.decode('utf-8'))
 #[pymodule]
 pub fn zenoh(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<config>()?;
@@ -105,16 +104,6 @@ sys.modules['zenoh.queryable'] = queryable
     )?;
 
     m.add_class::<KeyExpr>()?;
-    // force addition of "zenoh.resource_name" module
-    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
-    //     py.run(
-    //         "\
-    // import sys
-    // sys.modules['zenoh.resource_name'] = resource_name
-    //         ",
-    //         None,
-    //         Some(m.dict()),
-    //     )?;
 
     m.add_class::<Config>()?;
     m.add_class::<CongestionControl>()?;
@@ -139,8 +128,13 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<Target>()?;
     m.add_class::<Timestamp>()?;
     m.add_class::<WhatAmI>()?;
+    m.add_class::<AsyncSession>()?;
+    m.add_class::<AsyncSubscriber>()?;
+    m.add_class::<AsyncQueryable>()?;
     m.add_wrapped(wrap_pyfunction!(open))?;
+    m.add_wrapped(wrap_pyfunction!(async_open))?;
     m.add_wrapped(wrap_pyfunction!(scout))?;
+    m.add_wrapped(wrap_pyfunction!(async_scout))?;
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
     m.add_wrapped(wrap_pyfunction!(config_from_file))?;
     Ok(())
@@ -159,10 +153,10 @@ fn init_logger() {
     env_logger::init();
 }
 
-/// Parse a configuration file for zenoh, returning a dictionary of str:str.
-/// The file must contain 1 "key=value" property per line. Comments lines starting with '#' character are ignored.
+/// Parse a configuration file for zenoh, returning a Config object.
 ///
 /// :param path: The path to the config file.
+/// :rtype: Config
 ///
 #[pyfunction]
 fn config_from_file(path: &str) -> PyResult<Config> {
@@ -233,11 +227,11 @@ impl Default for Config {
     }
 }
 
-/// Open a zenoh-net Session.
+/// Open a zenoh Session.
 ///
-/// :param config: The configuration of the zenoh-net session
-/// :type config: dict {str: str}
-/// :rtype: Session
+/// :param config: The configuration of the zenoh session
+/// :type config: :class:`Config`, optional
+/// :rtype: :class:`Session`
 ///
 /// :Example:
 ///
@@ -250,29 +244,99 @@ fn open(config: Option<Config>) -> PyResult<Session> {
     Ok(Session::new(s))
 }
 
+/// Coroutine to open a zenoh AsyncSession (similar to a Session, but for asyncio usage).
+///
+/// :param config: The configuration of the zenoh session
+/// :type config: :class:`Config`, optional
+/// :rtype: :class:`AsyncSession`
+///
+/// :Example:
+///
+/// >>> import asyncio, zenoh
+/// >>> async def main():
+/// >>>    z = await zenoh.async_open()
+/// >>>
+/// >>> asyncio.run(main())
+#[pyfunction]
+#[pyo3(text_signature = "(config)")]
+fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
+    future_into_py(py, async {
+        let s = zenoh::open(config.unwrap_or_default().inner)
+            .await
+            .map_err(to_pyerr)?;
+        Ok(AsyncSession::new(s))
+    })
+}
+
 /// Scout for routers and/or peers.
 ///
-/// This spawns a task that periodically sends scout messages for a specified duration and returns
+/// Sends scout messages for a specified duration and returns
 /// a list of received :class:`Hello` messages.
 ///
 /// :param whatami: The kind of zenoh process to scout for
 /// :type whatami: int
-/// :param config: The configuration to use for scouting
-/// :type config: dict {str: str}
 /// :param scout_duration: the duration of scout (in seconds)
 /// :type scout_duration: float
+/// :param config: The configuration to use for scouting
+/// :type config: :class:`Config`, optional
 /// :rtype: list of :class:`Hello`
 ///
 /// :Example:
 ///
 /// >>> import zenoh
-/// >>> hellos = zenoh.scout(zenoh.whatami.PEER | zenoh.whatami.ROUTER, {}, 1.0)
+/// >>> hellos = zenoh.scout(WhatAmI.Peer | WhatAmI.Router, 1.0)
 /// >>> for hello in hellos:
 /// >>>     print(hello)
 #[pyfunction]
 #[pyo3(text_signature = "(whatami, scout_duration, config)")]
 fn scout(whatami: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyResult<Vec<Hello>> {
     task::block_on(async move {
+        let mut result = Vec::<Hello>::new();
+        let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)
+            .await
+            .unwrap();
+        let scout = async {
+            while let Some(h) = receiver.next().await {
+                result.push(Hello { h })
+            }
+        };
+        let timeout = async_std::task::sleep(std::time::Duration::from_secs_f64(scout_duration));
+        FutureExt::race(scout, timeout).await;
+        Ok(result)
+    })
+}
+
+/// Coroutine to scout for routers and/or peers.
+///
+/// Sends scout messages for a specified duration and returns
+/// a list of received :class:`Hello` messages.
+///
+/// :param whatami: The kind of zenoh process to scout for
+/// :type whatami: int
+/// :param scout_duration: the duration of scout (in seconds)
+/// :type scout_duration: float
+/// :param config: The configuration to use for scouting
+/// :type config: :class:`Config`, optional
+/// :rtype: list of :class:`Hello`
+///
+/// :Example:
+///
+/// >>> import asyncio, zenoh
+/// >>> async def main():
+/// >>>    hellos = await zenoh.async_scout(WhatAmI.Peer | WhatAmI.Router, 1.0)
+/// >>>    for hello in hellos:
+/// >>>       print(hello)
+/// >>>
+/// >>> asyncio.run(main())
+#[pyfunction]
+#[pyo3(text_signature = "(whatami, scout_duration, config)")]
+fn async_scout(
+    whatami: WhatAmI,
+    scout_duration: f64,
+    config: Option<Config>,
+    py: Python,
+) -> PyResult<&PyAny> {
+    future_into_py(py, async move {
         let mut result = Vec::<Hello>::new();
         let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)
             .await

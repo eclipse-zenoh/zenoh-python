@@ -14,11 +14,11 @@
 use super::encoding::Encoding;
 use super::sample_kind::SampleKind;
 use super::types::{
-    zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, Priority, Query, QueryConsolidation,
-    QueryTarget, Queryable, Reply, Sample, Subscriber, ZnSubOps,
+    zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, KeyExpr, Period, Priority, Query,
+    QueryConsolidation, QueryTarget, Queryable, Reliability, Reply, Sample, SubMode, Subscriber,
+    ZnSubOps,
 };
-use crate::types::{KeyExpr, Period, Reliability, SubMode};
-use crate::{to_pyerr, ZError};
+use super::{to_pyerr, ZError};
 use async_std::channel::bounded;
 use async_std::task;
 use futures::prelude::*;
@@ -28,9 +28,9 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
 use std::collections::HashMap;
-use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, ZFuture, ZInt};
+use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture, ZInt};
 
-/// A zenoh-net session.
+/// A zenoh session.
 #[pyclass]
 pub struct Session {
     s: Option<zenoh::Session>,
@@ -38,20 +38,20 @@ pub struct Session {
 
 #[pymethods]
 impl Session {
-    /// Close the zenoh-net Session.
+    /// Close the zenoh Session.
     pub fn close(&mut self) -> PyResult<()> {
         let s = self.take()?;
         s.close().wait().map_err(to_pyerr)
     }
 
-    /// Get informations about the zenoh-net Session.
+    /// Get informations about the zenoh Session.
     ///
     /// :rtype: dict {str: str}
     ///
     /// :Example:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> info = s.info()
     /// >>> for key in info:
     /// >>>    print("{} : {}".format(key, info[key]))
@@ -76,7 +76,7 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression matching resources to write
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param value: The value to write
     /// :type value: Value
     /// :param encoding: The encoding of the value
@@ -84,12 +84,12 @@ impl Session {
     /// :param kind: The kind of value
     /// :type kind: int, optional
     /// :param congestion_control: The value for the congestion control
-    /// :type congestion_control: CongestionControl, optional
+    /// :type congestion_control: :class:`CongestionControl`, optional
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, key_expr, value, **kwargs)")]
     #[args(kwargs = "**")]
@@ -142,14 +142,14 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression matching resources to delete
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param congestion_control: The value for the congestion control
-    /// :type congestion_control: CongestionControl, optional
+    /// :type congestion_control: :class:`CongestionControl`, optional
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> s.delete('/key/expression')
     #[pyo3(text_signature = "(self, key_expr, **kwargs)")]
     #[args(kwargs = "**")]
@@ -192,13 +192,13 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression to map to a numerical Id
-    /// :type key_expr: KeyExpr
-    /// :rtype: int
+    /// :type key_expr: :class:`KeyExpr`
+    /// :rtype: :class:`ExprId`
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> rid = s.declare_expr('/key/expression')
     #[pyo3(text_signature = "(self, key_expr)")]
     pub fn declare_expr(&self, key_expr: &PyAny) -> PyResult<ExprId> {
@@ -211,12 +211,12 @@ impl Session {
     /// with :meth:`declare_expr`.
     ///
     /// :param rid: The numerical Id to unmap
-    /// :type rid: ExprId
+    /// :type rid: :class:`ExprId`
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> rid = s.declare_expr('/key/expression')
     /// >>> s.undeclare_expr(rid)
     #[pyo3(text_signature = "(self, rid)")]
@@ -237,12 +237,12 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression to publish
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     ///
     /// :Examples:
     ///
     /// >>> import zenoh
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> rid = s.declare_publication('/key/expression')
     /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, key_expr)")]
@@ -270,19 +270,24 @@ impl Session {
     ///
     /// :param key_expr: The key expression to subscribe
     /// :type key_expr: KeyExpr
-    /// :param info: The :class:`SubInfo` to configure the subscription
-    /// :type info: SubInfo
     /// :param callback: the subscription callback
     /// :type callback: function(:class:`Sample`)
-    /// :rtype: Subscriber
+    /// :param reliability: the subscription reliability
+    /// :type reliability: :class:`Reliability`, optional
+    /// :param mode: the subscription mode
+    /// :type mode: :class:`SubMode`, optional
+    /// :param period: the subscription period
+    /// :type period: :class:`Period`, optional
+    /// :param local: if the subscription is local only
+    /// :type local: bool
+    /// :rtype: :class:`Subscriber`
     ///
     /// :Examples:
     ///
     /// >>> import zenoh, time
-    /// >>> from zenoh import SubInfo, Reliability, SubMode
+    /// >>> from zenoh import Reliability, SubMode
     /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> sub_info = SubInfo(Reliability.Reliable, SubMode.Push)
+    /// >>> s = zenoh.open()
     /// >>> sub = s.subscribe('/key/expression',
     /// ...     lambda sample: print("Received : {}".format(sample)),
     /// ...     reliability=Reliability.Reliable,
@@ -381,12 +386,12 @@ impl Session {
     /// * **(int, str)** for a mapped key expression with suffix
     ///
     /// :param key_expr: The key expression the Queryable will reply to
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param info: The kind of Queryable
     /// :type info: int
     /// :param callback: the queryable callback
     /// :type callback: function(:class:`Query`)
-    /// :rtype: Queryable
+    /// :rtype: :class:`Queryable`
     ///
     /// :Examples:
     ///
@@ -396,7 +401,7 @@ impl Session {
     /// ...     print("Received : {}".format(query))
     /// ...     query.reply(Sample('/key/expression', bytes('value', encoding='utf8')))
     /// >>>
-    /// >>> s = zenoh.open({})
+    /// >>> s = zenoh.open()
     /// >>> q = s.queryable('/key/expression', queryable.EVAL, callback)
     /// >>> time.sleep(60)
     #[pyo3(text_signature = "(self, key_expr, kind, callback)")]
@@ -452,116 +457,6 @@ impl Session {
 
     /// Query data from the matching queryables in the system.
     ///
-    /// The replies are provided by calling the provided ``callback`` for each reply.
-    /// The ``callback`` is called a last time with ``None`` when the query is complete.
-    ///
-    /// The *selector* parameter accepts the following types:
-    ///
-    /// * **KeyExpr** for a key expression with no value selector
-    /// * **int** for a key expression id with no value selector
-    /// * **str** for a litteral selector
-    ///
-    /// :param selector: The selection of resources to query
-    /// :type selector: str
-    /// :param callback: the query callback which will receive the replies
-    /// :type callback: function(:class:`Reply`)
-    /// :param target: The kind of queryables that should be target of this query
-    /// :type target: QueryTarget, optional
-    /// :param consolidation: The kind of consolidation that should be applied on replies
-    /// :type consolidation: QueryConsolidation, optional
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh, time
-    /// >>> from zenoh import QueryTarget, queryable
-    /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> s.get('/key/selector?value_selector', lambda reply:
-    /// ...    print("Received : {}".format(
-    /// ...        reply.data if reply is not None else "FINAL")))
-    #[pyo3(
-        text_signature = "(self, selector, callback, target=None, consolidation=None, local_routing=True)"
-    )]
-    fn get(
-        &self,
-        selector: &PyAny,
-        callback: &PyAny,
-        target: Option<QueryTarget>,
-        consolidation: Option<QueryConsolidation>,
-        local_routing: Option<bool>,
-    ) -> PyResult<()> {
-        let s = self.as_ref()?;
-        let mut zn_recv = match selector.get_type().name()? {
-            "KeyExpr" => {
-                let rk: PyRef<KeyExpr> = selector.extract()?;
-                let mut getter = s
-                    .get(rk.inner.clone())
-                    .target(target.unwrap_or_default().t)
-                    .consolidation(consolidation.unwrap_or_default().c);
-                if let Some(local_routing) = local_routing {
-                    getter = getter.local_routing(local_routing)
-                }
-                getter.wait().map_err(to_pyerr)?
-            }
-            "int" => {
-                let id: u64 = selector.extract()?;
-                let mut getter = s
-                    .get(ZKeyExpr::from(id))
-                    .target(target.unwrap_or_default().t)
-                    .consolidation(consolidation.unwrap_or_default().c);
-                if let Some(local_routing) = local_routing {
-                    getter = getter.local_routing(local_routing)
-                }
-                getter.wait().map_err(to_pyerr)?
-            }
-            "str" => {
-                let name: String = selector.extract()?;
-                let mut getter = s
-                    .get(&name)
-                    .target(target.unwrap_or_default().t)
-                    .consolidation(consolidation.unwrap_or_default().c);
-                if let Some(local_routing) = local_routing {
-                    getter = getter.local_routing(local_routing)
-                }
-                getter.wait().map_err(to_pyerr)?
-            }
-            x => {
-                return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-                    "Cannot convert type '{}' to a zenoh Selector",
-                    x
-                )))
-            }
-        };
-
-        // Note: callback cannot be passed as such in task below because it's not Send
-        let cb_obj: Py<PyAny> = callback.into();
-
-        let _ = task::spawn_blocking(move || {
-            task::block_on(async move {
-                while let Some(reply) = zn_recv.next().await {
-                    // Acquire Python GIL to call the callback
-                    let gil = Python::acquire_gil();
-                    let py = gil.python();
-                    let cb_args = PyTuple::new(py, &[Reply { r: reply }]);
-                    if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                        warn!("Error calling queryable callback:");
-                        e.print(py);
-                    }
-                }
-                let gil = Python::acquire_gil();
-                let py = gil.python();
-                let cb_args = PyTuple::new(py, &[py.None()]);
-                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                    warn!("Error calling queryable callback:");
-                    e.print(py);
-                }
-            })
-        });
-        Ok(())
-    }
-
-    /// Query data from the matching queryables in the system.
-    ///
     /// Replies are collected in a list.
     ///
     /// The *selector* parameter accepts the following types:
@@ -573,24 +468,23 @@ impl Session {
     /// :param selector: The selection of resources to query
     /// :type selector: str
     /// :param target: The kind of queryables that should be target of this query
-    /// :type target: QueryTarget, optional
+    /// :type target: :class:`QueryTarget`, optional
     /// :param consolidation: The kind of consolidation that should be applied on replies
-    /// :type consolidation: QueryConsolidation, optional
+    /// :type consolidation: :class:`QueryConsolidation`, optional
     /// :rtype: [:class:`Reply`]
     ///
     /// :Examples:
     ///
     /// >>> import zenoh, time
-    /// >>> from zenoh import QueryTarget, queryable
     /// >>>
-    /// >>> s = zenoh.open({})
-    /// >>> replies = s.get_collect('/key/selector?value_selector')
+    /// >>> s = zenoh.open()
+    /// >>> replies = s.get('/key/selector?value_selector')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
     #[pyo3(
         text_signature = "(self, selector, target=None, consolidation=None, local_routing=True)"
     )]
-    fn get_collect(
+    fn get(
         &self,
         selector: &PyAny,
         target: Option<QueryTarget>,
@@ -599,39 +493,18 @@ impl Session {
     ) -> PyResult<Py<PyList>> {
         let s = self.as_ref()?;
         task::block_on(async {
-            let mut replies = match selector.get_type().name()? {
+            let selector: Selector = match selector.get_type().name()? {
                 "KeyExpr" => {
-                    let rk: PyRef<KeyExpr> = selector.extract()?;
-                    let mut getter = s
-                        .get(rk.inner.clone())
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c);
-                    if let Some(local_routing) = local_routing {
-                        getter = getter.local_routing(local_routing)
-                    }
-                    getter.wait().map_err(to_pyerr)?
+                    let key_expr: PyRef<KeyExpr> = selector.extract()?;
+                    key_expr.inner.clone().into()
                 }
                 "int" => {
                     let id: u64 = selector.extract()?;
-                    let mut getter = s
-                        .get(ZKeyExpr::from(id))
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c);
-                    if let Some(local_routing) = local_routing {
-                        getter = getter.local_routing(local_routing)
-                    }
-                    getter.wait().map_err(to_pyerr)?
+                    ZKeyExpr::from(id).into()
                 }
                 "str" => {
-                    let name: String = selector.extract()?;
-                    let mut getter = s
-                        .get(&name)
-                        .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c);
-                    if let Some(local_routing) = local_routing {
-                        getter = getter.local_routing(local_routing)
-                    }
-                    getter.wait().map_err(to_pyerr)?
+                    let name: &str = selector.extract()?;
+                    Selector::from(name)
                 }
                 x => {
                     return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
@@ -640,6 +513,14 @@ impl Session {
                     )))
                 }
             };
+            let mut getter = s
+                .get(selector)
+                .target(target.unwrap_or_default().t)
+                .consolidation(consolidation.unwrap_or_default().c);
+            if let Some(local_routing) = local_routing {
+                getter = getter.local_routing(local_routing)
+            }
+            let mut replies = getter.wait().map_err(to_pyerr)?;
             let gil = Python::acquire_gil();
             let py = gil.python();
             let result = PyList::empty(py);
@@ -660,13 +541,13 @@ impl Session {
     fn as_ref(&self) -> PyResult<&zenoh::Session> {
         self.s
             .as_ref()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
     }
 
     #[inline]
     fn take(&mut self) -> PyResult<zenoh::Session> {
         self.s
             .take()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh-net session was closed"))
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
     }
 }
