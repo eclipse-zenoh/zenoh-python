@@ -101,6 +101,7 @@ impl Session {
         let mut kind: Option<SampleKind> = None;
         let mut congestion_control: Option<CongestionControl> = None;
         let mut priority: Option<Priority> = None;
+        let mut local_routing: Option<bool> = None;
         if let Some(kwargs) = kwargs {
             if let Some(e) = kwargs.get_item("encoding") {
                 encoding = e.extract().ok()
@@ -114,16 +115,22 @@ impl Session {
             if let Some(p) = kwargs.get_item("priority") {
                 priority = p.extract().ok()
             }
+            if let Some(lr) = kwargs.get_item("local_routing") {
+                local_routing = lr.extract().ok()
+            }
         }
         if let Some(encoding) = encoding {
             v.encoding = encoding.into();
         }
-        s.put(k, v)
+        let mut writer = s
+            .put(k, v)
             .kind(kind.unwrap_or_default().kind)
             .congestion_control(congestion_control.unwrap_or_default().cc)
-            .priority(priority.unwrap_or_default().p)
-            .wait()
-            .map_err(to_pyerr)
+            .priority(priority.unwrap_or_default().p);
+        if let Some(local_routing) = local_routing {
+            writer = writer.local_routing(local_routing);
+        }
+        writer.wait().map_err(to_pyerr)
     }
 
     /// Delete data.
@@ -151,6 +158,7 @@ impl Session {
         let k = zkey_expr_of_pyany(key_expr)?;
         let mut congestion_control: Option<CongestionControl> = None;
         let mut priority: Option<Priority> = None;
+        let mut local_routing: Option<bool> = None;
         if let Some(kwargs) = kwargs {
             if let Some(cc) = kwargs.get_item("congestion_control") {
                 congestion_control = cc.extract().ok()
@@ -158,12 +166,18 @@ impl Session {
             if let Some(p) = kwargs.get_item("priority") {
                 priority = p.extract().ok()
             }
+            if let Some(lr) = kwargs.get_item("local_routing") {
+                local_routing = lr.extract().ok()
+            }
         }
-        s.delete(k)
+        let mut writer = s
+            .delete(k)
             .congestion_control(congestion_control.unwrap_or_default().cc)
-            .priority(priority.unwrap_or_default().p)
-            .wait()
-            .map_err(to_pyerr)
+            .priority(priority.unwrap_or_default().p);
+        if let Some(local_routing) = local_routing {
+            writer = writer.local_routing(local_routing);
+        }
+        writer.wait().map_err(to_pyerr)
     }
 
     /// Associate a numerical Id with the given key expression.
@@ -467,39 +481,51 @@ impl Session {
     /// >>> replies = s.get('/key/selector?value_selector')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
-    #[pyo3(text_signature = "(self, selector, target=None, consolidation=None)")]
+    #[pyo3(
+        text_signature = "(self, selector, target=None, consolidation=None, local_routing=True)"
+    )]
     fn get(
         &self,
         selector: &PyAny,
         target: Option<QueryTarget>,
         consolidation: Option<QueryConsolidation>,
+        local_routing: Option<bool>,
     ) -> PyResult<Py<PyList>> {
         let s = self.as_ref()?;
         task::block_on(async {
             let mut replies = match selector.get_type().name()? {
                 "KeyExpr" => {
                     let rk: PyRef<KeyExpr> = selector.extract()?;
-                    s.get(rk.inner.clone())
+                    let mut getter = s
+                        .get(rk.inner.clone())
                         .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c)
-                        .wait()
-                        .map_err(to_pyerr)?
+                        .consolidation(consolidation.unwrap_or_default().c);
+                    if let Some(local_routing) = local_routing {
+                        getter = getter.local_routing(local_routing)
+                    }
+                    getter.wait().map_err(to_pyerr)?
                 }
                 "int" => {
                     let id: u64 = selector.extract()?;
-                    s.get(ZKeyExpr::from(id))
+                    let mut getter = s
+                        .get(ZKeyExpr::from(id))
                         .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c)
-                        .wait()
-                        .map_err(to_pyerr)?
+                        .consolidation(consolidation.unwrap_or_default().c);
+                    if let Some(local_routing) = local_routing {
+                        getter = getter.local_routing(local_routing)
+                    }
+                    getter.wait().map_err(to_pyerr)?
                 }
                 "str" => {
                     let name: String = selector.extract()?;
-                    s.get(&name)
+                    let mut getter = s
+                        .get(&name)
                         .target(target.unwrap_or_default().t)
-                        .consolidation(consolidation.unwrap_or_default().c)
-                        .wait()
-                        .map_err(to_pyerr)?
+                        .consolidation(consolidation.unwrap_or_default().c);
+                    if let Some(local_routing) = local_routing {
+                        getter = getter.local_routing(local_routing)
+                    }
+                    getter.wait().map_err(to_pyerr)?
                 }
                 x => {
                     return Err(PyErr::new::<exceptions::PyValueError, _>(format!(

@@ -1008,7 +1008,7 @@ impl Query {
     /// :type: KeyExpr
     #[getter]
     fn key_selector(&self) -> KeyExpr {
-        self.q.selector().key_selector.to_owned().into()
+        self.q.key_selector().clone().to_owned().into()
     }
 
     /// The value_selector of the query
@@ -1016,7 +1016,7 @@ impl Query {
     /// :type: str
     #[getter]
     fn value_selector(&self) -> String {
-        self.q.selector().value_selector.to_string()
+        self.q.value_selector().to_string()
     }
 
     /// Send a reply to the query
