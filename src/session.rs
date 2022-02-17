@@ -513,10 +513,10 @@ impl Session {
                     )))
                 }
             };
-            let mut getter = s
-                .get(selector)
-                .target(target.unwrap_or_default().t)
-                .consolidation(consolidation.unwrap_or_default().c);
+            let mut getter = s.get(selector).target(target.unwrap_or_default().t);
+            if let Some(consolidation) = consolidation {
+                getter = getter.consolidation(consolidation.c);
+            }
             if let Some(local_routing) = local_routing {
                 getter = getter.local_routing(local_routing)
             }
