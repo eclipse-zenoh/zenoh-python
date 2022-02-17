@@ -103,8 +103,9 @@ sys.modules['zenoh.queryable'] = queryable
         Some(m.dict()),
     )?;
 
-    m.add_class::<KeyExpr>()?;
-
+    m.add_class::<AsyncSession>()?;
+    m.add_class::<AsyncSubscriber>()?;
+    m.add_class::<AsyncQueryable>()?;
     m.add_class::<Config>()?;
     m.add_class::<CongestionControl>()?;
     m.add_class::<ConsolidationMode>()?;
@@ -127,10 +128,8 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<Subscriber>()?;
     m.add_class::<Target>()?;
     m.add_class::<Timestamp>()?;
+    m.add_class::<Value>()?;
     m.add_class::<WhatAmI>()?;
-    m.add_class::<AsyncSession>()?;
-    m.add_class::<AsyncSubscriber>()?;
-    m.add_class::<AsyncQueryable>()?;
     m.add_wrapped(wrap_pyfunction!(open))?;
     m.add_wrapped(wrap_pyfunction!(async_open))?;
     m.add_wrapped(wrap_pyfunction!(scout))?;
