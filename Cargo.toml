@@ -35,6 +35,7 @@ complete_n = ["zenoh/complete_n"]
 zenoh = { git = "https://github.com/eclipse-zenoh/zenoh" }
 zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh" }
 zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh" }
+zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh" }
 validated_struct = "0.1"
 json5 = "0.4.1"
 serde_json = "1.0"
@@ -43,7 +44,10 @@ uhlc = "0.4.0"
 futures = "0.3.12"
 log = "0.4"
 env_logger = "0.9.0"
-pyo3-asyncio = { version = "0.15", features = ["attributes", "async-std-runtime"] }
+pyo3-asyncio = { version = "0.15", features = [
+    "attributes",
+    "async-std-runtime",
+] }
 
 [dependencies.pyo3]
 version = "0.15"
