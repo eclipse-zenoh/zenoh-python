@@ -26,6 +26,7 @@ use pyo3::PyObjectProtocol;
 use zenoh::config::whatami::WhatAmIMatcher;
 use zenoh::config::WhatAmI as ZWhatAmI;
 use zenoh::prelude::{Encoding, KeyExpr as ZKeyExpr, ZInt};
+use zenoh_buffers::traits::SplitBuffer;
 
 // zenoh.config (simulate the package as a class, and consts as class attributes)
 /// Constants and helpers to build the configuration to pass to :func:`zenoh.open`.
@@ -462,13 +463,12 @@ impl Value {
     ///
     /// :rtype: depend on the encoding flag (e.g. str for a StringUtf8 Value, int for an Integer Value ...)
     fn get_content(&self, py: Python) -> PyObject {
-        let payload = self.v.payload.contiguous();
         if !self.v.encoding.suffix.is_empty() {
-            return self.v.payload.to_vec().into_py(py);
+            return self.v.payload.contiguous().into_owned().into_py(py);
         }
-        let vec_payload = || payload.to_vec().into_py(py);
+        let vec_payload = || self.v.payload.contiguous().into_owned().into_py(py);
         match self.v.encoding.prefix {
-            Self::STRING => payload.to_string().into_py(py),
+            Self::STRING => String::from_utf8_lossy(&self.v.payload.contiguous()).into_py(py),
             Self::APP_PROPERTIES => self
                 .v
                 .as_properties()
@@ -789,7 +789,7 @@ impl Sample {
     /// :type: bytes
     #[getter]
     fn payload<'a>(&self, py: Python<'a>) -> &'a PyBytes {
-        PyBytes::new(py, self.s.value.payload.contiguous().as_slice())
+        PyBytes::new(py, self.s.value.payload.contiguous().as_ref())
     }
 
     /// The data payload
