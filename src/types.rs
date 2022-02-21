@@ -1165,8 +1165,7 @@ impl ConsolidationMode {
     }
 }
 
-// zenoh.QueryConsolidation (simulate the enum as a class with static methods for the cases,
-// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+// zenoh.ConsolidationStrategy
 //
 /// The kind of consolidation that should be applied on replies to a :meth:`Session.get`
 /// at the different stages of the reply process.
@@ -1180,19 +1179,19 @@ impl ConsolidationMode {
 #[pyclass]
 #[pyo3(text_signature = "(first_routers=None, last_router=None, reception=None)")]
 #[derive(Clone, Default)]
-pub(crate) struct QueryConsolidation {
-    pub(crate) c: zenoh::query::QueryConsolidation,
+pub(crate) struct ConsolidationStrategy {
+    pub(crate) c: zenoh::query::ConsolidationStrategy,
 }
 
 #[pymethods]
-impl QueryConsolidation {
+impl ConsolidationStrategy {
     #[new]
     fn new(
         first_routers: Option<ConsolidationMode>,
         last_router: Option<ConsolidationMode>,
         reception: Option<ConsolidationMode>,
-    ) -> QueryConsolidation {
-        let mut c = zenoh::query::QueryConsolidation::default();
+    ) -> ConsolidationStrategy {
+        let mut c = zenoh::query::ConsolidationStrategy::default();
         if let Some(f) = first_routers {
             c.first_routers = f.c;
         }
@@ -1202,7 +1201,158 @@ impl QueryConsolidation {
         if let Some(r) = reception {
             c.reception = r.c;
         }
-        QueryConsolidation { c }
+        ConsolidationStrategy { c }
+    }
+
+    /// No consolidation performed.
+    ///
+    /// This is usefull when querying timeseries data bases or
+    /// when using quorums.
+    #[staticmethod]
+    fn none() -> Self {
+        Self {
+            c: zenoh::query::ConsolidationStrategy::none(),
+        }
+    }
+
+    /// Lazy consolidation performed at all stages.
+    ///
+    /// This strategy offers the best latency. Replies are directly
+    /// transmitted to the application when received without needing
+    /// to wait for all replies.
+    ///
+    /// This mode does not garantie that there will be no duplicates.
+    #[staticmethod]
+    pub fn lazy() -> Self {
+        Self {
+            c: zenoh::query::ConsolidationStrategy::lazy(),
+        }
+    }
+
+    /// Full consolidation performed at reception.
+    ///
+    /// This is the default strategy. It offers the best latency while
+    /// garantying that there will be no duplicates.
+    #[staticmethod]
+    pub fn reception() -> Self {
+        Self {
+            c: zenoh::query::ConsolidationStrategy::reception(),
+        }
+    }
+
+    /// Full consolidation performed on last router and at reception.
+    ///
+    /// This mode offers a good latency while optimizing bandwidth on
+    /// the last transport link between the router and the application.
+    #[staticmethod]
+    pub fn last_router() -> Self {
+        Self {
+            c: zenoh::query::ConsolidationStrategy::last_router(),
+        }
+    }
+
+    /// Full consolidation performed everywhere.
+    ///
+    /// This mode optimizes bandwidth on all links in the system
+    /// but will provide a very poor latency.
+    #[staticmethod]
+    pub fn full() -> Self {
+        Self {
+            c: zenoh::query::ConsolidationStrategy::full(),
+        }
+    }
+}
+
+// zenoh.QueryConsolidation (simulate the enum as a class with static methods for the cases,
+// waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
+//
+/// The replies consolidation strategy to apply on replies to a :meth:`Session.get`.
+#[pyclass]
+#[pyo3(text_signature = "(first_routers=None, last_router=None, reception=None)")]
+#[derive(Clone, Default)]
+pub(crate) struct QueryConsolidation {
+    pub(crate) c: zenoh::query::QueryConsolidation,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl QueryConsolidation {
+    /// Automatic query consolidation strategy selection.
+    ///
+    /// A query consolidation strategy will automatically be selected depending
+    /// the query selector. If the selector contains time range properties,
+    /// no consolidation is performed. Otherwise the reception strategy is used.
+    #[staticmethod]
+    fn Auto() -> Self {
+        QueryConsolidation {
+            c: zenoh::query::QueryConsolidation::Auto,
+        }
+    }
+
+    /// User defined query consolidation strategy.
+    #[staticmethod]
+    fn Manual(strategy: ConsolidationStrategy) -> Self {
+        QueryConsolidation {
+            c: zenoh::query::QueryConsolidation::Manual(strategy.c),
+        }
+    }
+
+    /// No consolidation performed.
+    ///
+    /// This is usefull when querying timeseries data bases or
+    /// when using quorums.
+    #[staticmethod]
+    fn none() -> Self {
+        Self {
+            c: zenoh::query::QueryConsolidation::none(),
+        }
+    }
+
+    /// Lazy consolidation performed at all stages.
+    ///
+    /// This strategy offers the best latency. Replies are directly
+    /// transmitted to the application when received without needing
+    /// to wait for all replies.
+    ///
+    /// This mode does not garantie that there will be no duplicates.
+    #[staticmethod]
+    pub fn lazy() -> Self {
+        Self {
+            c: zenoh::query::QueryConsolidation::lazy(),
+        }
+    }
+
+    /// Full consolidation performed at reception.
+    ///
+    /// This is the default strategy. It offers the best latency while
+    /// garantying that there will be no duplicates.
+    #[staticmethod]
+    pub fn reception() -> Self {
+        Self {
+            c: zenoh::query::QueryConsolidation::reception(),
+        }
+    }
+
+    /// Full consolidation performed on last router and at reception.
+    ///
+    /// This mode offers a good latency while optimizing bandwidth on
+    /// the last transport link between the router and the application.
+    #[staticmethod]
+    pub fn last_router() -> Self {
+        Self {
+            c: zenoh::query::QueryConsolidation::last_router(),
+        }
+    }
+
+    /// Full consolidation performed everywhere.
+    ///
+    /// This mode optimizes bandwidth on all links in the system
+    /// but will provide a very poor latency.
+    #[staticmethod]
+    pub fn full() -> Self {
+        Self {
+            c: zenoh::query::QueryConsolidation::full(),
+        }
     }
 }
 
