@@ -78,7 +78,7 @@ impl Session {
     /// :param key_expr: The key expression matching resources to write
     /// :type key_expr: :class:`KeyExpr`
     /// :param value: The value to write
-    /// :type value: Value
+    /// :type value: any type convertible to a :class:`Value`
     /// :param encoding: The encoding of the value
     /// :type encoding: int, optional
     /// :param kind: The kind of value
@@ -90,7 +90,7 @@ impl Session {
     ///
     /// >>> import zenoh
     /// >>> s = zenoh.open()
-    /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
+    /// >>> s.put('/key/expression', 'value')
     #[pyo3(text_signature = "(self, key_expr, value, **kwargs)")]
     #[args(kwargs = "**")]
     pub fn put(&self, key_expr: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
