@@ -48,7 +48,7 @@ impl config {
     /// - Accepted values : `"peer"`, `"client"`.
     /// - Default value : `"peer"`.
     #[classattr]
-    pub fn Z_CONFIG_MODE_KEY() -> &'static str {
+    pub fn MODE_KEY() -> &'static str {
         "mode"
     }
 
@@ -58,7 +58,7 @@ impl config {
     /// - Default value : None.
     /// - Multiple values accepted.
     #[classattr]
-    pub fn Z_CONFIG_CONNECT_KEY() -> &'static str {
+    pub fn CONNECT_KEY() -> &'static str {
         "connect/endpoints"
     }
 
@@ -68,7 +68,7 @@ impl config {
     /// - Default value : None.
     /// - Multiple values accepted.
     #[classattr]
-    pub fn Z_CONFIG_LISTEN_KEY() -> &'static str {
+    pub fn LISTEN_KEY() -> &'static str {
         "listen/endpoints"
     }
 
@@ -77,7 +77,7 @@ impl config {
     /// - Accepted values : `<string>`.
     /// - Default value : None.
     #[classattr]
-    pub fn Z_CONFIG_USER_KEY() -> &'static str {
+    pub fn USER_KEY() -> &'static str {
         "transport/auth/usrpwd/user"
     }
 
@@ -86,7 +86,7 @@ impl config {
     /// - Accepted values : `<string>`.
     /// - Default value : None.
     #[classattr]
-    fn Z_CONFIG_PASSWORD_KEY() -> &'static str {
+    fn PASSWORD_KEY() -> &'static str {
         "transport/auth/usrpwd/password"
     }
 
@@ -95,7 +95,7 @@ impl config {
     /// - Accepted values : `"true"`, `"false"`.
     /// - Default value : `"true"`.
     #[classattr]
-    pub fn Z_CONFIG_MULTICAST_SCOUTING_KEY() -> &'static str {
+    pub fn MULTICAST_SCOUTING_KEY() -> &'static str {
         "scouting/multicast/enabled"
     }
 
@@ -104,7 +104,7 @@ impl config {
     /// - Accepted values : `"auto"`, `<ip address>`, `<interface name>`.
     /// - Default value : `"auto"`.
     #[classattr]
-    pub fn Z_CONFIG_MULTICAST_INTERFACE_KEY() -> &'static str {
+    pub fn MULTICAST_INTERFACE_KEY() -> &'static str {
         "scouting/multicast/interface"
     }
 
@@ -113,7 +113,7 @@ impl config {
     /// - Accepted values : `<ip address>:<port>`.
     /// - Default value : `"224.0.0.224:7447"`.
     #[classattr]
-    pub fn Z_CONFIG_MULTICAST_IPV4_ADDRESS_KEY() -> &'static str {
+    pub fn MULTICAST_IPV4_ADDRESS_KEY() -> &'static str {
         "scouting/multicast/address"
     }
 
@@ -122,7 +122,7 @@ impl config {
     /// - Accepted values : `<float in seconds>`.
     /// - Default value : `"3.0"`.
     #[classattr]
-    pub fn Z_CONFIG_SCOUTING_TIMEOUT_KEY() -> &'static str {
+    pub fn SCOUTING_TIMEOUT_KEY() -> &'static str {
         "scouting/timeout"
     }
 
@@ -131,7 +131,7 @@ impl config {
     /// - Accepted values : `<float in seconds>`.
     /// - Default value : `"0.2"`.
     #[classattr]
-    pub fn Z_CONFIG_SCOUTING_DELAY_KEY() -> &'static str {
+    pub fn SCOUTING_DELAY_KEY() -> &'static str {
         "scouting/delay"
     }
 
@@ -140,13 +140,13 @@ impl config {
     /// - Accepted values : `"true"`, `"false"`.
     /// - Default value : `"false"`.
     #[classattr]
-    pub fn Z_CONFIG_ADD_TIMESTAMP_KEY() -> &'static str {
+    pub fn ADD_TIMESTAMP_KEY() -> &'static str {
         "add_timestamp"
     }
 
     /// Indicates if local writes/queries should reach local subscribers/queryables.
     #[classattr]
-    pub fn Z_CONFIG_LOCAL_ROUTING_KEY() -> &'static str {
+    pub fn LOCAL_ROUTING_KEY() -> &'static str {
         "local_routing"
     }
 }
