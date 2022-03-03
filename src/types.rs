@@ -33,7 +33,9 @@ use zenoh::prelude::{
 use zenoh_buffers::traits::SplitBuffer;
 
 // zenoh.config (simulate the package as a class, and consts as class attributes)
-/// Constants and helpers to build the configuration to pass to :func:`zenoh.open`.
+//
+/// The following constants define the several configuration keys accepted for a zenoh
+/// session configuration and the associated accepted values.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct config {}
@@ -41,85 +43,112 @@ pub(crate) struct config {}
 #[allow(non_snake_case)]
 #[pymethods]
 impl config {
+    /// The library mode.
+    ///
+    /// - Accepted values : `"peer"`, `"client"`.
+    /// - Default value : `"peer"`.
     #[classattr]
-    pub fn ZN_MODE_STR() -> &'static str {
-        zenoh::config::ZN_MODE_STR
+    pub fn Z_CONFIG_MODE_KEY() -> &'static str {
+        "mode"
     }
 
+    /// The locator of a peer to connect to.
+    ///
+    /// - Accepted values : `<locator>` (ex: `"tcp/10.10.10.10:7447"`).
+    /// - Default value : None.
+    /// - Multiple values accepted.
     #[classattr]
-    pub fn ZN_CONNECT_STR() -> &'static str {
-        zenoh::config::ZN_CONNECT_STR
+    pub fn Z_CONFIG_CONNECT_KEY() -> &'static str {
+        "connect/endpoints"
     }
 
+    /// A locator to listen on.
+    ///
+    /// - Accepted values : `<locator>` (ex: `"tcp/10.10.10.10:7447"`).
+    /// - Default value : None.
+    /// - Multiple values accepted.
     #[classattr]
-    pub fn ZN_LISTEN_STR() -> &'static str {
-        zenoh::config::ZN_LISTEN_STR
+    pub fn Z_CONFIG_LISTEN_KEY() -> &'static str {
+        "listen/endpoints"
     }
 
+    /// The user name to use for authentication.
+    ///
+    /// - Accepted values : `<string>`.
+    /// - Default value : None.
     #[classattr]
-    pub fn ZN_USER_STR() -> &'static str {
-        zenoh::config::ZN_USER_STR
+    pub fn Z_CONFIG_USER_KEY() -> &'static str {
+        "transport/auth/usrpwd/user"
     }
 
+    /// The password to use for authentication.
+    ///
+    /// - Accepted values : `<string>`.
+    /// - Default value : None.
     #[classattr]
-    fn ZN_PASSWORD_STR() -> &'static str {
-        zenoh::config::ZN_PASSWORD_STR
+    fn Z_CONFIG_PASSWORD_KEY() -> &'static str {
+        "transport/auth/usrpwd/password"
     }
 
+    /// Activates/Desactivates multicast scouting.
+    ///
+    /// - Accepted values : `"true"`, `"false"`.
+    /// - Default value : `"true"`.
     #[classattr]
-    pub fn ZN_MULTICAST_SCOUTING_STR() -> &'static str {
-        zenoh::config::ZN_MULTICAST_SCOUTING_STR
+    pub fn Z_CONFIG_MULTICAST_SCOUTING_KEY() -> &'static str {
+        "scouting/multicast/enabled"
     }
 
+    /// The network interface to use for multicast scouting.
+    ///
+    /// - Accepted values : `"auto"`, `<ip address>`, `<interface name>`.
+    /// - Default value : `"auto"`.
     #[classattr]
-    pub fn ZN_MULTICAST_INTERFACE_STR() -> &'static str {
-        zenoh::config::ZN_MULTICAST_INTERFACE_STR
+    pub fn Z_CONFIG_MULTICAST_INTERFACE_KEY() -> &'static str {
+        "scouting/multicast/interface"
     }
 
+    /// The multicast address and ports to use for multicast scouting.
+    ///
+    /// - Accepted values : `<ip address>:<port>`.
+    /// - Default value : `"224.0.0.224:7447"`.
     #[classattr]
-    pub fn ZN_MULTICAST_IPV4_ADDRESS_STR() -> &'static str {
-        zenoh::config::ZN_MULTICAST_IPV4_ADDRESS_STR
+    pub fn Z_CONFIG_MULTICAST_IPV4_ADDRESS_KEY() -> &'static str {
+        "scouting/multicast/address"
     }
 
+    /// In client mode, the period dedicated to scouting a router before failing.
+    ///
+    /// - Accepted values : `<float in seconds>`.
+    /// - Default value : `"3.0"`.
     #[classattr]
-    pub fn ZN_SCOUTING_TIMEOUT_STR() -> &'static str {
-        zenoh::config::ZN_SCOUTING_TIMEOUT_STR
+    pub fn Z_CONFIG_SCOUTING_TIMEOUT_KEY() -> &'static str {
+        "scouting/timeout"
     }
 
+    /// In peer mode, the period dedicated to scouting first remote peers before doing anything else.
+    ///
+    /// - Accepted values : `<float in seconds>`.
+    /// - Default value : `"0.2"`.
     #[classattr]
-    pub fn ZN_SCOUTING_DELAY_STR() -> &'static str {
-        zenoh::config::ZN_SCOUTING_DELAY_STR
+    pub fn Z_CONFIG_SCOUTING_DELAY_KEY() -> &'static str {
+        "scouting/delay"
     }
 
+    /// Indicates if data messages should be timestamped.
+    ///
+    /// - Accepted values : `"true"`, `"false"`.
+    /// - Default value : `"false"`.
     #[classattr]
-    pub fn ZN_ADD_TIMESTAMP_STR() -> &'static str {
-        zenoh::config::ZN_ADD_TIMESTAMP_STR
+    pub fn Z_CONFIG_ADD_TIMESTAMP_KEY() -> &'static str {
+        "add_timestamp"
     }
 
+    /// Indicates if local writes/queries should reach local subscribers/queryables.
     #[classattr]
-    pub fn ZN_LOCAL_ROUTING_STR() -> &'static str {
-        zenoh::config::ZN_LOCAL_ROUTING_STR
+    pub fn Z_CONFIG_LOCAL_ROUTING_KEY() -> &'static str {
+        "local_routing"
     }
-
-    // #[staticmethod]
-    // pub fn empty<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
-    //     props_to_pylist(py, zenoh::config::empty())
-    // }
-
-    // #[staticmethod]
-    // pub fn default<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
-    //     props_to_pylist(py, zenoh::config::default())
-    // }
-
-    // #[staticmethod]
-    // pub fn peer<'p>(py: Python<'p>) -> Vec<(ZInt, &'p PyBytes)> {
-    //     props_to_pylist(py, zenoh::config::peer())
-    // }
-
-    // #[staticmethod]
-    // pub fn client<'p>(py: Python<'p>, peer: Option<String>) -> Vec<(ZInt, &'p PyBytes)> {
-    //     props_to_pylist(py, zenoh::config::client(peer))
-    // }
 }
 
 // zenoh.info (simulate the package as a class, and consts as class attributes)
@@ -226,7 +255,7 @@ pub(crate) struct Hello {
 impl Hello {
     /// The PeerId of the Hello message sender
     ///
-    /// :type: :class:`PeerId` or ``None``
+    /// :type: :class:`PeerId` or `None`
     #[getter]
     fn pid(&self) -> Option<PeerId> {
         self.h.pid.as_ref().map(|p| PeerId { p: *p })
@@ -234,7 +263,7 @@ impl Hello {
 
     /// The mode of the Hello message sender (bitmask of constants from :class:`whatami`)
     ///
-    /// :type: :class:`whatami` or ``None``
+    /// :type: :class:`whatami` or `None`
     #[getter]
     fn whatami(&self) -> Option<WhatAmI> {
         self.h.whatami.map(|w| WhatAmI { inner: w.into() })
@@ -242,7 +271,7 @@ impl Hello {
 
     /// The locators list of the Hello message sender
     ///
-    /// :type: list of str or ``None``
+    /// :type: list of str or `None`
     #[getter]
     fn locators(&self) -> Option<Vec<String>> {
         self.h
@@ -627,7 +656,7 @@ pub(crate) struct SourceInfo {
 impl SourceInfo {
     /// The :class:`PeerId` of the data source.
     ///
-    /// :type: :class:`PeerId` or ``None``
+    /// :type: :class:`PeerId` or `None`
     #[getter]
     fn source_id(&self) -> Option<PeerId> {
         self.i.source_id.as_ref().map(|p| PeerId { p: *p })
@@ -635,7 +664,7 @@ impl SourceInfo {
 
     /// The source sequence number of the data.
     ///
-    /// :type: int or ``None``
+    /// :type: int or `None`
     #[getter]
     fn source_sn(&self) -> Option<ZInt> {
         self.i.source_sn
@@ -643,7 +672,7 @@ impl SourceInfo {
 
     /// The :class:`PeerId` of the 1st router that routed the data.
     ///
-    /// :type: :class:`PeerId` or ``None``
+    /// :type: :class:`PeerId` or `None`
     #[getter]
     fn first_router_id(&self) -> Option<PeerId> {
         self.i.first_router_id.as_ref().map(|p| PeerId { p: *p })
@@ -651,7 +680,7 @@ impl SourceInfo {
 
     /// The first router sequence number of the data.
     ///
-    /// :type: int or ``None``
+    /// :type: int or `None`
     #[getter]
     fn first_router_sn(&self) -> Option<ZInt> {
         self.i.first_router_sn
@@ -742,7 +771,7 @@ impl Sample {
 
     /// Some information about the data
     ///
-    /// :type: :class:`SourceInfo` or ``None``
+    /// :type: :class:`SourceInfo` or `None`
     #[getter]
     fn source_info(&self) -> Option<SourceInfo> {
         Some(SourceInfo {
@@ -752,7 +781,7 @@ impl Sample {
 
     /// The timestamp
     ///
-    /// :type: :class:`Timestamp` or ``None``
+    /// :type: :class:`Timestamp` or `None`
     #[getter]
     fn timestamp(&self) -> Option<Timestamp> {
         self.s.timestamp.map(|t| Timestamp { t })
