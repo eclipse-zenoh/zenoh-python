@@ -28,16 +28,16 @@ async def main():
                         choices=['peer', 'client'],
                         type=str,
                         help='The zenoh session mode.')
-    parser.add_argument('--peer', '-e', dest='peer',
-                        metavar='LOCATOR',
+    parser.add_argument('--connect', '-e', dest='connect',
+                        metavar='ENDPOINT',
                         action='append',
                         type=str,
-                        help='Peer locators used to initiate the zenoh session.')
-    parser.add_argument('--listener', '-l', dest='listener',
-                        metavar='LOCATOR',
+                        help='Endpoints to connect to.')
+    parser.add_argument('--listen', '-l', dest='listen',
+                        metavar='ENDPOINT',
                         action='append',
                         type=str,
-                        help='Locators to listen on.')
+                        help='Endpoints to listen on.')
     parser.add_argument('--key', '-k', dest='key',
                         default='/demo/example/**',
                         type=str,
@@ -50,11 +50,11 @@ async def main():
     args = parser.parse_args()
     conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
     if args.mode is not None:
-        conf.insert_json5("mode", json.dumps(args.mode))
-    if args.peer is not None:
-        conf.insert_json5("peers", json.dumps(args.peer))
-    if args.listener is not None:
-        conf.insert_json5("listeners", json.dumps(args.listener))
+        conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
+    if args.connect is not None:
+        conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
+    if args.listen is not None:
+        conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
     key = args.key
 
     # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---

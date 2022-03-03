@@ -12,7 +12,175 @@
 //   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 //
 use pyo3::prelude::*;
-use zenoh::prelude::Encoding as ZEncoding;
+use pyo3::PyObjectProtocol;
+use zenoh::prelude::{Encoding as ZEncoding, KnownEncoding as ZKnownEncoding};
+
+#[pyclass]
+#[derive(Clone)]
+pub struct KnownEncoding {
+    inner: ZKnownEncoding,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl KnownEncoding {
+    #[classattr]
+    fn Empty() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::Empty,
+        }
+    }
+
+    #[classattr]
+    fn AppOctetStream() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppOctetStream,
+        }
+    }
+
+    #[classattr]
+    fn AppCustom() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppCustom,
+        }
+    }
+
+    #[classattr]
+    fn TextPlain() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::TextPlain,
+        }
+    }
+
+    #[classattr]
+    fn AppProperties() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppProperties,
+        }
+    }
+
+    #[classattr]
+    fn AppJson() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppJson,
+        }
+    }
+
+    #[classattr]
+    fn AppSql() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppSql,
+        }
+    }
+
+    #[classattr]
+    fn AppInteger() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppInteger,
+        }
+    }
+
+    #[classattr]
+    fn AppFloat() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppFloat,
+        }
+    }
+
+    #[classattr]
+    fn AppXml() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppXml,
+        }
+    }
+
+    #[classattr]
+    fn AppXhtmlXml() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppXhtmlXml,
+        }
+    }
+
+    #[classattr]
+    fn AppXWwwFormUrlencoded() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::AppXWwwFormUrlencoded,
+        }
+    }
+
+    #[classattr]
+    fn TextJson() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::TextJson,
+        }
+    }
+
+    #[classattr]
+    fn TextHtml() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::TextHtml,
+        }
+    }
+
+    #[classattr]
+    fn TextXml() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::TextXml,
+        }
+    }
+
+    #[classattr]
+    fn TextCss() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::TextCss,
+        }
+    }
+
+    #[classattr]
+    fn TextCsv() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::TextCsv,
+        }
+    }
+
+    #[classattr]
+    fn TextJavascript() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::TextJavascript,
+        }
+    }
+
+    #[classattr]
+    fn ImageJpeg() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::ImageJpeg,
+        }
+    }
+
+    #[classattr]
+    fn ImagePng() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::ImagePng,
+        }
+    }
+
+    #[classattr]
+    fn ImageGif() -> Self {
+        KnownEncoding {
+            inner: ZKnownEncoding::ImageGif,
+        }
+    }
+}
+impl From<ZKnownEncoding> for KnownEncoding {
+    fn from(e: ZKnownEncoding) -> Self {
+        KnownEncoding { inner: e }
+    }
+}
+impl From<KnownEncoding> for ZKnownEncoding {
+    fn from(e: KnownEncoding) -> Self {
+        e.inner
+    }
+}
 
 // zenoh.encoding (simulate the package as a class, and consts as class attributes)
 /// Constants defining the different encoding flags.
@@ -20,7 +188,7 @@ use zenoh::prelude::Encoding as ZEncoding;
 #[pyclass]
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Encoding {
-    e: ZEncoding,
+    pub(crate) e: ZEncoding,
 }
 impl From<ZEncoding> for Encoding {
     fn from(e: ZEncoding) -> Self {
@@ -36,13 +204,46 @@ impl From<Encoding> for ZEncoding {
 #[allow(non_snake_case)]
 #[pymethods]
 impl Encoding {
-    #[classattr]
-    pub fn APP_OCTET_STREAM() -> Self {
-        ZEncoding::APP_OCTET_STREAM.into()
+    #[new]
+    fn new(prefix: KnownEncoding, suffix: Option<String>) -> Self {
+        if let Some(suffix) = suffix {
+            Encoding {
+                e: ZEncoding::WithSuffix(prefix.inner, suffix.into()),
+            }
+        } else {
+            Encoding {
+                e: ZEncoding::Exact(prefix.inner),
+            }
+        }
+    }
+
+    /// the encoding flag of the Value.
+    ///
+    /// :type: int
+    #[getter]
+    fn prefix(&self) -> PyResult<KnownEncoding> {
+        Ok(self.e.prefix().clone().into())
+    }
+
+    /// the encoding flag of the Value.
+    ///
+    /// :type: int
+    #[getter]
+    fn get_suffix(&self) -> PyResult<&str> {
+        Ok(self.e.suffix())
+    }
+
+    fn with_suffix(&self, suffix: String) -> Self {
+        self.e.clone().with_suffix(suffix).into()
     }
 
     #[classattr]
-    pub fn NONE() -> Self {
+    pub fn EMPTY() -> Self {
+        ZEncoding::EMPTY.into()
+    }
+
+    #[classattr]
+    pub fn APP_OCTET_STREAM() -> Self {
         ZEncoding::APP_OCTET_STREAM.into()
     }
 
@@ -136,6 +337,12 @@ impl Encoding {
     #[staticmethod]
     fn from_str(s: String) -> Self {
         ZEncoding::from(s).into()
+    }
+}
+#[pyproto]
+impl PyObjectProtocol for Encoding {
+    fn __str__(&self) -> PyResult<String> {
+        Ok(self.e.to_string())
     }
 }
 impl std::fmt::Display for Encoding {

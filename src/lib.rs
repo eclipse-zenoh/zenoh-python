@@ -188,11 +188,6 @@ impl Config {
         serde_json::to_string(&self.inner).unwrap()
     }
 
-    pub fn keys(&self) -> Vec<String> {
-        use validated_struct::ValidatedMap;
-        self.inner.keys()
-    }
-
     #[staticmethod]
     pub fn from_json5(input: &str) -> PyResult<Self> {
         let mut d = match json5::Deserializer::from_str(input) {
