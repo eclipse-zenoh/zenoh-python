@@ -90,6 +90,9 @@ session.put(key, value)
 
 # - Custom encoding
 # session.put('/demo/example/Custom',
-#             (b'\x48\x69\x21', Encoding.APP_CUSTOM.with_suffix('my_encoding')))
+#             (b'\x48\x69\x21', 'my_encoding'))
+
+# - UTF-16 String specifying the charset as Encoding suffix
+# session.put('/demo/example/UTF-16', ('hello'.encode('utf-16'), Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16')))
 
 session.close()
