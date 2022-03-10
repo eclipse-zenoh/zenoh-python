@@ -38,8 +38,8 @@ fn to_pyerr(err: zenoh_core::Error) -> PyErr {
 }
 /// The zenoh API.
 ///
-/// Examples:
-/// ^^^^^^^^^
+/// Examples of use:
+/// ^^^^^^^^^^^^^^^^
 ///
 /// Publish
 /// """""""
@@ -156,12 +156,23 @@ fn init_logger() {
 ///
 /// :param path: The path to the config file.
 /// :rtype: Config
-///
 #[pyfunction]
 fn config_from_file(path: &str) -> PyResult<Config> {
     Config::from_file(path)
 }
 
+/// The main configuration structure for Zenoh.
+///
+/// To construct a configuration, we advise that you use a configuration file
+/// (JSON, JSON5 and YAML are currently supported, please use the proper extension for your format as the deserializer will be picked according to it).
+/// A Config object can then be amended calling :func:`Config.insert_json5`.
+///
+/// :Example:
+///
+/// >>> import zenoh, json
+/// >>> conf = zenoh.Config.from_file('zenoh-config.json5')
+/// >>> conf.insert_json5(zenoh.config.MODE_KEY, json.dumps('client'))
+/// >>> print(conf.json())
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -169,6 +180,7 @@ pub struct Config {
 }
 #[pymethods]
 impl Config {
+    /// Constructor of a default configuration.
     #[new]
     pub fn new() -> Self {
         Config {
@@ -176,6 +188,10 @@ impl Config {
         }
     }
 
+    /// Parse a configuration file for zenoh, returning a Config object.
+    ///
+    /// :param path: The path to the config file.
+    /// :rtype: Config
     pub fn insert_json5(&mut self, key: &str, value: &str) -> PyResult<()> {
         match self.inner.insert_json(key, value) {
             Ok(()) => Ok(()),
@@ -184,10 +200,18 @@ impl Config {
             )),
         }
     }
+
+    /// Returns the config as a JSON string
+    ///
+    /// :rtype: str
     pub fn json(&self) -> String {
         serde_json::to_string(&self.inner).unwrap()
     }
 
+    /// Parse a JSON5 string configuration for zenoh, returning a Config object.
+    ///
+    /// :param input: The configuration as a JSON5 string.
+    /// :rtype: Config
     #[staticmethod]
     pub fn from_json5(input: &str) -> PyResult<Self> {
         let mut d = match json5::Deserializer::from_str(input) {
@@ -206,6 +230,10 @@ impl Config {
         }
     }
 
+    /// Parse a configuration file for zenoh, returning a Config object.
+    ///
+    /// :param path: The path to the config file.
+    /// :rtype: Config
     #[staticmethod]
     pub fn from_file(path: &str) -> PyResult<Self> {
         match ZConfig::from_file(path) {
