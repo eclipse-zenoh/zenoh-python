@@ -12,20 +12,167 @@
 ..   ADLINK zenoh team, <zenoh@adlink-labs.tech>
 ..
 
+*******************
+Zenoh API Reference
+*******************
+
+module zenoh
 ============
-zenoh-python
-============
+.. automodule:: zenoh
+    :members: init_logger, config_from_file, open, async_open, scout, async_scout
 
-The *zenoh-python* library provides a Python `zenoh client API <zenoh-api.html>`_ for zenoh.
 
-An introduction to zenoh and its concepts is available on `zenoh.io <https://zenoh.io>`_.
+Config
+------
+.. autoclass:: zenoh.Config
+    :members:
 
-Note that this library also provides a low-level API (`zenoh-net <zenoh-net-api.html>`_)
-that gives access to the zenoh protocol primitives and allow some
-advanced use cases where a fine tuning of the protocol is required.
+Session
+-------
+.. autoclass:: zenoh.Session
+    :members:
 
-.. toctree::
-    :maxdepth: 1
+CongestionControl
+-----------------
+.. autoclass:: zenoh.CongestionControl
+    :members:
 
-    zenoh API <zenoh-api>
-    zenoh-net API <zenoh-net-api>
+ConsolidationMode
+-----------------
+.. autoclass:: zenoh.ConsolidationMode
+    :members:
+
+Encoding
+--------
+.. autoclass:: zenoh.Encoding
+    :members:
+
+Hello
+-----
+.. autoclass:: zenoh.Hello
+    :members:
+
+PeerId
+------
+.. autoclass:: zenoh.PeerId
+    :members:
+
+Period
+------
+.. autoclass:: zenoh.Period
+    :members:
+
+Query
+-----
+.. autoclass:: zenoh.Query
+    :members:
+
+Queryable
+---------
+.. autoclass:: zenoh.Queryable
+    :members:
+
+QueryConsolidation
+------------------
+.. autoclass:: zenoh.QueryConsolidation
+    :members:
+
+QueryTarget
+-----------
+.. autoclass:: zenoh.QueryTarget
+    :members:
+
+Reliability
+-----------
+.. autoclass:: zenoh.Reliability
+    :members:
+
+Reply
+-----
+.. autoclass:: zenoh.Reply
+    :members:
+
+KeyExpr
+-------
+.. autoclass:: zenoh.KeyExpr
+    :members:
+
+Sample
+------
+.. autoclass:: zenoh.Sample
+    :members:
+
+SampleKind
+----------
+.. autoclass:: zenoh.SampleKind
+    :members:
+
+SourceInfo
+----------
+.. autoclass:: zenoh.SourceInfo
+    :members:
+
+SubMode
+-------
+.. autoclass:: zenoh.SubMode
+    :members:
+
+Subscriber
+----------
+.. autoclass:: zenoh.Subscriber
+    :members:
+
+Target
+------
+.. autoclass:: zenoh.Target
+    :members:
+
+Timestamp
+---------
+.. autoclass:: zenoh.Timestamp
+    :members:
+
+Value
+-----
+.. autoclass:: zenoh.Value
+    :members:
+
+WhatAmI
+-------
+.. autoclass:: zenoh.WhatAmI
+    :members:
+
+AsyncSession
+------------
+.. autoclass:: zenoh.AsyncSession
+    :members:
+
+AsyncSubscriber
+---------------
+.. autoclass:: zenoh.AsyncSubscriber
+    :members:
+
+AsyncQueryable
+--------------
+.. autoclass:: zenoh.AsyncQueryable
+    :members:
+
+
+
+module zenoh.config
+===================
+.. automodule:: zenoh.config
+    :members:
+    :undoc-members:
+
+module zenoh.info
+=================
+.. automodule:: zenoh.info
+    :members:
+    :undoc-members:
+
+module zenoh.config
+===================
+.. automodule:: zenoh.queryable
+    :members:
+    :undoc-members:
