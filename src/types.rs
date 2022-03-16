@@ -424,7 +424,7 @@ impl Selector {
     ///
     /// :type: str
     #[getter]
-    fn value_selector<'a>(&'a self) -> &'a str {
+    fn value_selector(&self) -> &str {
         self.s.value_selector.as_ref()
     }
 
@@ -524,7 +524,7 @@ impl ValueSelector {
     ///
     /// :type: str
     #[getter]
-    fn filter<'a>(&'a self) -> &'a str {
+    fn filter(&self) -> &str {
         self.filter.as_ref()
     }
 
@@ -532,7 +532,7 @@ impl ValueSelector {
     ///
     /// :type: str
     #[getter]
-    fn properties<'a>(&'a self) -> HashMap<String, String> {
+    fn properties(&self) -> HashMap<String, String> {
         self.properties.clone()
     }
 
@@ -540,7 +540,7 @@ impl ValueSelector {
     ///
     /// :type: str
     #[getter]
-    fn fragment<'a>(&'a self) -> Option<&'a str> {
+    fn fragment(&self) -> Option<&str> {
         self.fragment.as_ref().map(|s| s.as_ref())
     }
 }
@@ -769,7 +769,7 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<ZValue> {
                 } else {
                     tuple.get_item(1)?.extract::<Encoding>()?.e
                 };
-                Ok(ZValue::new(Vec::from(buf).into()).encoding(encoding_descr.into()))
+                Ok(ZValue::new(Vec::from(buf).into()).encoding(encoding_descr))
             } else {
                 Err(PyErr::new::<exceptions::PyValueError, _>(format!(
                     "Cannot convert type '{:?}' to a zenoh Value",
