@@ -68,15 +68,16 @@ async def main():
     #       It checks if the query's value_selector (the substring after '?') is a float, and if yes, sleeps for this number of seconds.
     #       Run example/asyncio/z_get_parallel.py example to see how 3 concurrent get() are executed in parallel in this z_eval.py
     async def eval_corouting(query):
-        opt = query.value_selector[1:]
+        selector = query.selector
+        value_selector = selector.parse_value_selector()
         try:
-            sleep_time = float(opt)
+            sleep_time = float(value_selector.properties.get('sleep'))
             print("  Sleeping {} secs before replying".format(sleep_time))
             await asyncio.sleep(sleep_time)
         except ValueError:
             pass
-        print("  Replying to query on {}".format(query.selector))
-        reply = "{} (this is the reply to query on {})".format(value, query.selector)
+        print("  Replying to query on {}".format(selector))
+        reply = "{} (this is the reply to query on {})".format(value, selector)
         query.reply(Sample(key_expr=key, payload=reply.encode()))
 
     async def eval_callback(query):
