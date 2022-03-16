@@ -222,7 +222,7 @@ impl Encoding {
     /// :type: int
     #[getter]
     fn prefix(&self) -> PyResult<KnownEncoding> {
-        Ok(self.e.prefix().clone().into())
+        Ok((*self.e.prefix()).into())
     }
 
     /// the encoding flag of the Value.
