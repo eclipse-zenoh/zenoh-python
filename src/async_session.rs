@@ -615,15 +615,12 @@ impl AsyncSession {
     /// ...       print("Received : {}".format(reply.data))
     /// >>>
     /// >>> asyncio.run(main())
-    #[pyo3(
-        text_signature = "(self, selector, callback, target=None, consolidation=None, local_routing=True)"
-    )]
+    #[pyo3(text_signature = "(self, selector, **kwargs)")]
+    #[args(kwargs = "**")]
     fn get<'p>(
         &self,
         selector: &PyAny,
-        target: Option<QueryTarget>,
-        consolidation: Option<QueryConsolidation>,
-        local_routing: Option<bool>,
+        kwargs: Option<&PyDict>,
         py: Python<'p>,
     ) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
@@ -649,14 +646,32 @@ impl AsyncSession {
             }
         }
         .to_owned();
+        // note: extract from kwargs here because it's not Send and cannot be moved into future_into_py(py, F)
+        let mut target: Option<QueryTarget> = None;
+        let mut consolidation: Option<QueryConsolidation> = None;
+        let mut local_routing: Option<bool> = None;
+        if let Some(kwargs) = kwargs {
+            if let Some(arg) = kwargs.get_item("target") {
+                target = Some(arg.extract::<QueryTarget>()?);
+            }
+            if let Some(arg) = kwargs.get_item("consolidation") {
+                consolidation = Some(arg.extract::<QueryConsolidation>()?);
+            }
+            if let Some(arg) = kwargs.get_item("local_routing") {
+                local_routing = Some(arg.extract::<bool>()?);
+            }
+        }
 
         future_into_py(py, async move {
-            let mut getter = s.get(selector).target(target.unwrap_or_default().t);
-            if let Some(consolidation) = consolidation {
-                getter = getter.consolidation(consolidation.c);
+            let mut getter = s.get(selector);
+            if let Some(t) = target {
+                getter = getter.target(t.t);
             }
-            if let Some(local_routing) = local_routing {
-                getter = getter.local_routing(local_routing)
+            if let Some(c) = consolidation {
+                getter = getter.consolidation(c.c);
+            }
+            if let Some(lr) = local_routing {
+                getter = getter.local_routing(lr);
             }
             let mut reply_rcv = getter.await.map_err(to_pyerr)?;
             let mut replies: Vec<Reply> = Vec::new();

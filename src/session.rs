@@ -481,16 +481,9 @@ impl Session {
     /// >>> replies = s.get('/key/selector?value_selector')
     /// >>> for reply in replies:
     /// ...    print("Received : {}".format(reply.data))
-    #[pyo3(
-        text_signature = "(self, selector, target=None, consolidation=None, local_routing=True)"
-    )]
-    fn get(
-        &self,
-        selector: &PyAny,
-        target: Option<QueryTarget>,
-        consolidation: Option<QueryConsolidation>,
-        local_routing: Option<bool>,
-    ) -> PyResult<Py<PyList>> {
+    #[pyo3(text_signature = "(self, selector, **kwargs)")]
+    #[args(kwargs = "**")]
+    fn get(&self, selector: &PyAny, kwargs: Option<&PyDict>) -> PyResult<Py<PyList>> {
         let s = self.as_ref()?;
         task::block_on(async {
             let selector: Selector = match selector.get_type().name()? {
@@ -513,12 +506,17 @@ impl Session {
                     )))
                 }
             };
-            let mut getter = s.get(selector).target(target.unwrap_or_default().t);
-            if let Some(consolidation) = consolidation {
-                getter = getter.consolidation(consolidation.c);
-            }
-            if let Some(local_routing) = local_routing {
-                getter = getter.local_routing(local_routing)
+            let mut getter = s.get(selector);
+            if let Some(kwargs) = kwargs {
+                if let Some(arg) = kwargs.get_item("target") {
+                    getter = getter.target(arg.extract::<QueryTarget>()?.t);
+                }
+                if let Some(arg) = kwargs.get_item("consolidation") {
+                    getter = getter.consolidation(arg.extract::<QueryConsolidation>()?.c);
+                }
+                if let Some(arg) = kwargs.get_item("local_routing") {
+                    getter = getter.local_routing(arg.extract::<bool>()?);
+                }
             }
             let mut replies = getter.wait().map_err(to_pyerr)?;
             let gil = Python::acquire_gil();
