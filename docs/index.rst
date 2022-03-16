@@ -97,6 +97,16 @@ KeyExpr
 .. autoclass:: zenoh.KeyExpr
     :members:
 
+Selector
+--------
+.. autoclass:: zenoh.Selector
+    :members:
+
+ValueSelector
+-------------
+.. autoclass:: zenoh.ValueSelector
+    :members:
+
 Sample
 ------
 .. autoclass:: zenoh.Sample

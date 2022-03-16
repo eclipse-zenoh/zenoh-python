@@ -120,6 +120,8 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<Reliability>()?;
     m.add_class::<Reply>()?;
     m.add_class::<KeyExpr>()?;
+    m.add_class::<Selector>()?;
+    m.add_class::<ValueSelector>()?;
     m.add_class::<Sample>()?;
     m.add_class::<sample_kind::SampleKind>()?;
     m.add_class::<Session>()?;
