@@ -460,55 +460,7 @@ impl From<ZSelector<'static>> for Selector {
     }
 }
 
-/// A class that can be used to help decoding or encoding the `value_selector` part of a [`Query`](crate::queryable::Query).
-///
-/// # Examples
-/// ```
-/// use std::convert::TryInto;
-/// use zenoh::prelude::*;
-///
-/// let value_selector: ValueSelector = "?x>1&y<2&z=4(p1=v1;p2=v2;pn=vn)[a;b;x;y;z]".try_into().unwrap();
-/// assert_eq!(value_selector.filter, "x>1&y<2&z=4");
-/// assert_eq!(value_selector.properties.get("p2").unwrap().as_str(), "v2");
-/// assert_eq!(value_selector.fragment, Some("a;b;x;y;z"));
-/// ```
-///
-/// ```no_run
-/// # async_std::task::block_on(async {
-/// # use futures::prelude::*;
-/// # use zenoh::prelude::*;
-/// # let session = zenoh::open(config::peer()).await.unwrap();
-///
-/// use std::convert::TryInto;
-///
-/// let mut queryable = session.queryable("/key/expression").await.unwrap();
-/// while let Some(query) = queryable.next().await {
-///     let selector = query.selector();
-///     let value_selector = selector.parse_value_selector().unwrap();
-///     println!("filter: {}", value_selector.filter);
-///     println!("properties: {}", value_selector.properties);
-///     println!("fragment: {:?}", value_selector.fragment);
-/// }
-/// # })
-/// ```
-///
-/// ```
-/// # async_std::task::block_on(async {
-/// # use futures::prelude::*;
-/// # use zenoh::prelude::*;
-/// # let session = zenoh::open(config::peer()).await.unwrap();
-/// # let mut properties = Properties::default();
-///
-/// let value_selector = ValueSelector::empty()
-///     .with_filter("x>1&y<2")
-///     .with_properties(properties)
-///     .with_fragment(Some("x;y"));
-///
-/// let mut replies = session.get(
-///     &Selector::from("/key/expression").with_value_selector(&value_selector.to_string())
-/// ).await.unwrap();
-/// # })
-/// ```
+/// A class that can be used to help decoding or encoding the `value_selector` part of a :class:`Selector`.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub struct ValueSelector {
@@ -563,9 +515,10 @@ impl PyObjectProtocol for PeerId {
 /// It can be created directly from the supported primitive types.
 /// The value is automatically encoded in the payload and the Encoding is set accordingly.
 ///
-/// Or it can be created from a tuple (payload, encoding), where:
-///  - payload has type 'bytes' or 'str' (the string is automatically converted into bytes)
-///  - encoding has type `:class:`Encoding`
+/// Or it can be created from a tuple **(payload, encoding)**, where:
+///
+///  - payload has type **bytes** or **str** (the string is automatically converted into bytes)
+///  - encoding has type :class:`Encoding`
 ///
 /// :Examples:
 ///
@@ -648,7 +601,7 @@ impl Value {
 
     /// the payload the Value.
     ///
-    /// :type: bytes
+    /// :type: **bytes**
     #[getter]
     fn payload<'a>(&self, py: Python<'a>) -> &'a PyBytes {
         PyBytes::new(py, self.v.payload.contiguous().as_ref())
@@ -656,7 +609,7 @@ impl Value {
 
     /// the encoding of the Value.
     ///
-    /// :type: int
+    /// :type: :class:`Encoding`
     #[getter]
     fn encoding(&self) -> PyResult<Encoding> {
         Ok(self.v.encoding.clone().into())
@@ -796,7 +749,7 @@ impl Timestamp {
     /// The time in seconds since the UNIX EPOCH (January 1, 1970, 00:00:00 (UTC))
     /// as a floating point number.
     ///
-    /// :type: float
+    /// :type: **float**
     #[getter]
     fn time(&self) -> f64 {
         self.t.get_time().to_duration().as_secs_f64()
@@ -804,7 +757,7 @@ impl Timestamp {
 
     /// The identifier of the timestamp source
     ///
-    /// :type: bytes
+    /// :type: **bytes**
     #[getter]
     fn id(&self) -> &[u8] {
         self.t.get_id().as_slice()
@@ -1088,7 +1041,7 @@ impl Subscriber {
 
 // zenoh.queryable (simulate the package as a class, and consts as class attributes)
 //
-/// Constants defining the different modes of a zenoh :class:`Queryable`.
+/// Constants defining the different modes of a zenoh :class:`zenoh.Queryable`.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct queryable {}
