@@ -62,6 +62,11 @@ Period
 .. autoclass:: zenoh.Period
     :members:
 
+Priority
+--------
+.. autoclass:: zenoh.Priority
+    :members:
+
 Query
 -----
 .. autoclass:: zenoh.Query
@@ -117,6 +122,11 @@ SampleKind
 .. autoclass:: zenoh.SampleKind
     :members:
 
+Priority
+----------
+.. autoclass:: zenoh.Priority
+    :members:
+
 SourceInfo
 ----------
 .. autoclass:: zenoh.SourceInfo
@@ -167,22 +177,32 @@ AsyncQueryable
 .. autoclass:: zenoh.AsyncQueryable
     :members:
 
+ZError
+------
+.. autoexception:: zenoh.ZError
+    :members:
 
 
-module zenoh.config
-===================
-.. automodule:: zenoh.config
+------------
+
+module zenoh.queryable
+======================
+.. autoclass:: zenoh.queryable
     :members:
     :undoc-members:
+
+------------
 
 module zenoh.info
 =================
-.. automodule:: zenoh.info
+.. autoclass:: zenoh.info
     :members:
     :undoc-members:
 
+------------
+
 module zenoh.config
 ===================
-.. automodule:: zenoh.queryable
+.. autoclass:: zenoh.config
     :members:
     :undoc-members:
