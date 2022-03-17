@@ -69,13 +69,13 @@ async def main():
     #       Run example/asyncio/z_get_parallel.py example to see how 3 concurrent get() are executed in parallel in this z_eval.py
     async def eval_corouting(query):
         selector = query.selector
-        value_selector = selector.parse_value_selector()
         try:
-            sleep_time = float(value_selector.properties.get('sleep'))
-            print("  Sleeping {} secs before replying".format(sleep_time))
-            await asyncio.sleep(sleep_time)
-        except ValueError:
-            pass
+            sleep_time = selector.parse_value_selector().properties.get('sleep')
+            if sleep_time is not None:
+                print("  Sleeping {} secs before replying".format(float(sleep_time)))
+                await asyncio.sleep(float(sleep_time))
+        except Exception as e:
+            print("  WARN: error in value selector: {}. Ignore it.".format(e))
         print("  Replying to query on {}".format(selector))
         reply = "{} (this is the reply to query on {})".format(value, selector)
         query.reply(Sample(key_expr=key, payload=reply.encode()))
@@ -92,7 +92,7 @@ async def main():
     session = await zenoh.async_open(conf)
 
     print("Creating Queryable on '{}'...".format(key))
-    queryable = await session.queryable(key, EVAL, eval_callback)
+    queryable = await session.queryable(key, eval_callback, kind=EVAL)
 
     print("Enter 'q' to quit......")
     c = '\0'
