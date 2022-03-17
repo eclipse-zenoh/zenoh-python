@@ -58,7 +58,7 @@ impl AsyncSession {
     ///
     /// This method is a **coroutine**.
     ///
-    /// :rtype: dict {str: str}
+    /// :rtype: **dict[str, str]**
     ///
     /// :Example:
     ///
@@ -102,13 +102,23 @@ impl AsyncSession {
     /// :param key_expr: The key expression matching resources to write
     /// :type key_expr: :class:`KeyExpr`
     /// :param value: The value to write
-    /// :type value: Value
-    /// :param encoding: The encoding of the value
-    /// :type encoding: int, optional
-    /// :param kind: The kind of value
-    /// :type kind: int, optional
-    /// :param congestion_control: The value for the congestion control
-    /// :type congestion_control: :class:`CongestionControl`, optional
+    /// :type value: any type convertible to a :class:`Value`
+    /// :param \**kwargs:
+    ///    See below
+    ///
+    /// :Keyword Arguments:
+    ///    * **encoding** (:class:`Encoding`) --
+    ///      Set the encoding of the written data
+    ///    * **kind** ( **int** ) --
+    ///      Set the kind of the written data
+    ///    * **congestion_control** (:class:`CongestionControl`) --
+    ///      Set the congestion control to apply when routing the data
+    ///    * **priority** (:class:`Priority`) --
+    ///      Set the priority of the written data
+    ///    * **local_routing** ( **bool** ) --
+    ///      Enable or disable local routing
+    ///
+    /// :raise: :class:`ZError`
     ///
     /// :Examples:
     ///
@@ -180,8 +190,18 @@ impl AsyncSession {
     ///
     /// :param key_expr: The key expression matching resources to delete
     /// :type key_expr: :class:`KeyExpr`
-    /// :param congestion_control: The value for the congestion control
-    /// :type congestion_control: :class:`CongestionControl`, optional
+    /// :param \**kwargs:
+    ///    See below
+    ///
+    /// :Keyword Arguments:
+    ///    * **congestion_control** (:class:`CongestionControl`) --
+    ///      Set the congestion control to apply when routing the data
+    ///    * **priority** (:class:`Priority`) --
+    ///      Set the priority of the written data
+    ///    * **local_routing** ( **bool** ) --
+    ///      Enable or disable local routing
+    ///
+    /// :raise: :class:`ZError`
     ///
     /// :Examples:
     ///
@@ -242,7 +262,8 @@ impl AsyncSession {
     ///
     /// :param key_expr: The key expression to map to a numerical Id
     /// :type key_expr: :class:`KeyExpr`
-    /// :rtype: :class:`ExprId`
+    /// :rtype: **int**
+    /// :raise: :class:`ZError`
     ///
     /// :Examples:
     ///
@@ -266,6 +287,7 @@ impl AsyncSession {
     ///
     /// :param rid: The numerical Id to unmap
     /// :type rid: ExprId
+    /// :raise: :class:`ZError`
     ///
     /// :Examples:
     ///
@@ -300,6 +322,7 @@ impl AsyncSession {
     ///
     /// :param key_expr: The key expression to publish
     /// :type key_expr: :class:`KeyExpr`
+    /// :raise: :class:`ZError`
     ///
     /// :Examples:
     ///
@@ -339,18 +362,24 @@ impl AsyncSession {
     /// This method is a **coroutine**.
     ///
     /// :param key_expr: The key expression to subscribe
-    /// :type key_expr: KeyExpr
+    /// :type key_expr: :class:`KeyExpr`
     /// :param callback: the subscription callback (must be a **coroutine**)
     /// :type callback: async function(:class:`Sample`)
-    /// :param reliability: the subscription reliability
-    /// :type reliability: :class:`Reliability`, optional
-    /// :param mode: the subscription mode
-    /// :type mode: :class:`SubMode`, optional
-    /// :param period: the subscription period
-    /// :type period: :class:`Period`, optional
-    /// :param local: if the subscription is local only
-    /// :type local: bool
-    /// :rtype: :class:`AsyncSubscriber`
+    /// :param \**kwargs:
+    ///    See below
+    ///
+    /// :Keyword Arguments:
+    ///    * **reliability** (:class:`Reliability`) --
+    ///      Set the subscription reliability (BestEffort by default)
+    ///    * **mode** (:class:`SubMode`) --
+    ///      Set the subscription mode (Push by default)
+    ///    * **period** (:class:`Period`) --
+    ///      Set the subscription period
+    ///    * **local** ( **bool** ) --
+    ///      If true make the subscription local only (false by default)
+    ///
+    /// :rtype: :class:`Subscriber`
+    /// :raise: :class:`ZError`
     ///
     /// :Examples:
     ///
@@ -494,11 +523,20 @@ impl AsyncSession {
     ///
     /// :param key_expr: The key expression the Queryable will reply to
     /// :type key_expr: :class:`KeyExpr`
-    /// :param info: The kind of Queryable
-    /// :type info: int
     /// :param callback: the queryable callback (must be a **coroutine**)
     /// :type callback: async function(:class:`Query`)
+    /// :param \**kwargs:
+    ///    See below
+    ///
+    /// :Keyword Arguments:
+    ///    * **kind** ( **int** ) --
+    ///      Set the queryable kind. This must be a mask of constants defined in :mod:`zenoh.queryable`)
+    ///      (`queryable.EVAL` by default)
+    ///    * **complete** ( **bool** ) --
+    ///      Set the queryable completeness (true by default)
+    ///
     /// :rtype: :class:`Queryable`
+    /// :raise: :class:`ZError`
     ///
     /// :Examples:
     ///
@@ -515,21 +553,40 @@ impl AsyncSession {
     /// >>>    await asycio.sleep(60)
     /// >>>
     /// >>> asyncio.run(main())
-    #[pyo3(text_signature = "(self, key_expr, kind, callback)")]
+    #[pyo3(text_signature = "(self, key_expr, callback, **kwargs)")]
+    #[args(kwargs = "**")]
     fn queryable<'p>(
         &self,
         key_expr: &PyAny,
-        kind: ZInt,
         callback: &PyAny,
+        kwargs: Option<&PyDict>,
         py: Python<'p>,
     ) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
+        // note: extract from kwargs here because it's not Send and cannot be moved into future_into_py(py, F)
+        let mut kind: Option<ZInt> = None;
+        let mut complete: Option<bool> = None;
+        if let Some(kwargs) = kwargs {
+            if let Some(k) = kwargs.get_item("kind") {
+                kind = Some(k.extract()?);
+            }
+            if let Some(p) = kwargs.get_item("local") {
+                complete = Some(p.extract::<bool>()?);
+            }
+        }
 
         future_into_py(py, async move {
-            let zn_quer = s.queryable(k).kind(kind).await.map_err(to_pyerr)?;
+            let mut builder = s.queryable(k);
+            if let Some(k) = kind {
+                builder = builder.kind(k);
+            }
+            if let Some(c) = complete {
+                builder = builder.complete(c);
+            }
+            let zn_quer = builder.await.map_err(to_pyerr)?;
             // Note: workaround to allow moving of zn_quer into the task below.
             // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
             let mut zn_quer = unsafe {
@@ -588,7 +645,7 @@ impl AsyncSession {
     ///
     /// Replies are collected in a list.
     ///
-    /// The *selector* parameter accepts the following types:
+    /// The *selector* parameter also accepts the following types that can be converted to a :class:`Selector`:
     ///
     /// * **KeyExpr** for a key expression with no value selector
     /// * **int** for a key expression id with no value selector
@@ -597,12 +654,20 @@ impl AsyncSession {
     /// This method is a **coroutine**.
     ///
     /// :param selector: The selection of resources to query
-    /// :type selector: str
-    /// :param target: The kind of queryables that should be target of this query
-    /// :type target: :class:`QueryTarget`, optional
-    /// :param consolidation: The kind of consolidation that should be applied on replies
-    /// :type consolidation: :class:`QueryConsolidation`, optional
+    /// :type selector: :class:`Selector`
+    /// :param \**kwargs:
+    ///    See below
+    ///
+    /// :Keyword Arguments:
+    ///    * **target** (:class:`QueryTarget`) --
+    ///      Set the kind of queryables that should be target of this query
+    ///    * **consolidation** (:class:`QueryConsolidation`) --
+    ///      Set the consolidation mode of the query
+    ///    * **local_routing** ( **bool** ) --
+    ///      Enable or disable local routing
+    ///
     /// :rtype: [:class:`Reply`]
+    /// :raise: :class:`ZError`
     ///
     /// :Examples:
     ///
