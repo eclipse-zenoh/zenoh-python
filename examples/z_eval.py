@@ -75,7 +75,7 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Creating Queryable on '{}'...".format(key))
-queryable = session.queryable(key, EVAL, eval_callback)
+queryable = session.queryable(key, eval_callback, kind=EVAL)
 
 print("Enter 'q' to quit......")
 c = '\0'
