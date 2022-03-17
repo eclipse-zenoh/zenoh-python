@@ -83,16 +83,20 @@ session.put(key, value)
 
 # - Json (str format)
 # session.put('/demo/example/Json',
-#             (json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]), Encoding.TEXT_JSON))
+#             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]),
+#             encoding=Encoding.TEXT_JSON)
 
 # - Raw ('application/octet-stream' encoding by default)
 # session.put('/demo/example/Raw', b'\x48\x69\x21')
 
 # - Custom encoding
 # session.put('/demo/example/Custom',
-#             (b'\x48\x69\x21', 'my_encoding'))
+#             b'\x48\x69\x21',
+#             encoding='my_encoding')
 
 # - UTF-16 String specifying the charset as Encoding suffix
-# session.put('/demo/example/UTF-16', ('hello'.encode('utf-16'), Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16')))
+# session.put('/demo/example/UTF-16',
+#             'hello'.encode('utf-16'),
+#             encoding=Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16'))
 
 session.close()
