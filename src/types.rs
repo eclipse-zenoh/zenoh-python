@@ -16,6 +16,7 @@ use std::ops::BitOr;
 //
 use crate::encoding::Encoding;
 use crate::sample_kind::SampleKind;
+use crate::to_pyerr;
 use async_std::channel::Sender;
 use async_std::task;
 use log::warn;
@@ -27,8 +28,8 @@ use pyo3::PyObjectProtocol;
 use zenoh::config::whatami::WhatAmIMatcher;
 use zenoh::config::WhatAmI as ZWhatAmI;
 use zenoh::prelude::{
-    Encoding as ZEncoding, KeyExpr as ZKeyExpr, KnownEncoding as ZKnownEncoding, Value as ZValue,
-    ZInt,
+    Encoding as ZEncoding, KeyExpr as ZKeyExpr, KnownEncoding as ZKnownEncoding,
+    Selector as ZSelector, Value as ZValue, ZInt,
 };
 use zenoh_buffers::traits::SplitBuffer;
 
@@ -372,6 +373,130 @@ pub(crate) fn zkey_expr_of_pyany(obj: &PyAny) -> PyResult<ZKeyExpr> {
     }
 }
 
+/// An expression identifying a selection of resources.
+///
+/// A selector is the conjunction of an key expression identifying a set
+/// of resource keys and a value selector filtering out the resource values.
+///
+/// Structure of a selector:::
+///
+///    /s1/s2/..../sn?x>1&y<2&...&z=4(p1=v1;p2=v2;...;pn=vn)[a;b;x;y;...;z]
+///    |key_selector||---------------- value_selector --------------------|
+///                   |--- filter --| |---- properties ---|  |--fragment-|
+///
+/// where:
+///  * **key_selector**: an expression identifying a set of Resources.
+///  * **filter**: a list of `value_selectors` separated by `'&'` allowing to perform filtering on the values
+///    associated with the matching keys. Each `value_selector` has the form "`field`-`operator`-`value`" value where:
+///
+///      * *field* is the name of a field in the value (is applicable and is existing. otherwise the `value_selector` is false)
+///      * *operator* is one of a comparison operators: `<` , `>` , `<=` , `>=` , `=` , `!=`
+///      * *value* is the the value to compare the field’s value with
+///
+///  * **fragment**: a list of fields names allowing to return a sub-part of each value.
+///    This feature only applies to structured values using a “self-describing” encoding, such as JSON or XML.
+///    It allows to select only some fields within the structure. A new structure with only the selected fields
+///    will be used in place of the original value.
+///
+/// *NOTE: the filters and fragments are not yet supported in current zenoh version.*
+#[allow(non_camel_case_types)]
+#[pyclass]
+pub struct Selector {
+    pub(crate) s: ZSelector<'static>,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl Selector {
+    /// The part of this selector identifying which keys should be part of the selection.
+    /// I.e. all characters before `?`.
+    ///
+    /// :type: :class:`KeyExpr`
+    #[getter]
+    fn key_selector(&self) -> KeyExpr {
+        KeyExpr {
+            inner: self.s.key_selector.to_owned(),
+        }
+    }
+
+    /// the part of this selector identifying which values should be part of the selection.
+    /// I.e. all characters starting from `?`.
+    ///
+    /// :type: str
+    #[getter]
+    fn value_selector(&self) -> &str {
+        self.s.value_selector.as_ref()
+    }
+
+    /// Parses the `value_selector` part of this `Selector`.
+    ///
+    /// :rtype: :class:`ValueSelector`
+    fn parse_value_selector(&self) -> PyResult<ValueSelector> {
+        let zvs = self.s.parse_value_selector().map_err(to_pyerr)?;
+        Ok(ValueSelector {
+            filter: zvs.filter.to_owned(),
+            properties: zvs.properties.0,
+            fragment: zvs.fragment.map(|cow| cow.to_owned()),
+        })
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Selector {
+    fn __str__(&self) -> String {
+        self.s.to_string()
+    }
+}
+
+impl From<Selector> for ZSelector<'static> {
+    fn from(s: Selector) -> ZSelector<'static> {
+        s.s
+    }
+}
+
+impl From<ZSelector<'static>> for Selector {
+    fn from(s: ZSelector<'static>) -> Selector {
+        Selector { s }
+    }
+}
+
+/// A class that can be used to help decoding or encoding the `value_selector` part of a :class:`Selector`.
+#[allow(non_camel_case_types)]
+#[pyclass]
+pub struct ValueSelector {
+    pub(crate) filter: String,
+    pub(crate) properties: HashMap<String, String>,
+    pub(crate) fragment: Option<String>,
+}
+
+#[allow(non_snake_case)]
+#[pymethods]
+impl ValueSelector {
+    /// the filter part of this `ValueSelector`, if any (all characters after `?` and before `(` or `[`)
+    ///
+    /// :type: str
+    #[getter]
+    fn filter(&self) -> &str {
+        self.filter.as_ref()
+    }
+
+    /// the properties part of this `ValueSelector`) (all characters between ``( )`` and after `?`)
+    ///
+    /// :type: str
+    #[getter]
+    fn properties(&self) -> HashMap<String, String> {
+        self.properties.clone()
+    }
+
+    /// the filter part of this `ValueSelector`, if any (all characters after `?` and before `(` or `[`)
+    ///
+    /// :type: str
+    #[getter]
+    fn fragment(&self) -> Option<&str> {
+        self.fragment.as_ref().map(|s| s.as_ref())
+    }
+}
+
 /// A Peer id
 #[pyclass]
 pub(crate) struct PeerId {
@@ -390,9 +515,10 @@ impl PyObjectProtocol for PeerId {
 /// It can be created directly from the supported primitive types.
 /// The value is automatically encoded in the payload and the Encoding is set accordingly.
 ///
-/// Or it can be created from a tuple (payload, encoding), where:
-///  - payload has type 'bytes' or 'str' (the string is automatically converted into bytes)
-///  - encoding has type `:class:`Encoding`
+/// Or it can be created from a tuple **(payload, encoding)**, where:
+///
+///  - payload has type **bytes** or **str** (the string is automatically converted into bytes)
+///  - encoding has type :class:`Encoding`
 ///
 /// :Examples:
 ///
@@ -475,7 +601,7 @@ impl Value {
 
     /// the payload the Value.
     ///
-    /// :type: bytes
+    /// :type: **bytes**
     #[getter]
     fn payload<'a>(&self, py: Python<'a>) -> &'a PyBytes {
         PyBytes::new(py, self.v.payload.contiguous().as_ref())
@@ -483,7 +609,7 @@ impl Value {
 
     /// the encoding of the Value.
     ///
-    /// :type: int
+    /// :type: :class:`Encoding`
     #[getter]
     fn encoding(&self) -> PyResult<Encoding> {
         Ok(self.v.encoding.clone().into())
@@ -596,7 +722,7 @@ pub(crate) fn zvalue_of_pyany(obj: &PyAny) -> PyResult<ZValue> {
                 } else {
                     tuple.get_item(1)?.extract::<Encoding>()?.e
                 };
-                Ok(ZValue::new(Vec::from(buf).into()).encoding(encoding_descr.into()))
+                Ok(ZValue::new(Vec::from(buf).into()).encoding(encoding_descr))
             } else {
                 Err(PyErr::new::<exceptions::PyValueError, _>(format!(
                     "Cannot convert type '{:?}' to a zenoh Value",
@@ -623,7 +749,7 @@ impl Timestamp {
     /// The time in seconds since the UNIX EPOCH (January 1, 1970, 00:00:00 (UTC))
     /// as a floating point number.
     ///
-    /// :type: float
+    /// :type: **float**
     #[getter]
     fn time(&self) -> f64 {
         self.t.get_time().to_duration().as_secs_f64()
@@ -631,7 +757,7 @@ impl Timestamp {
 
     /// The identifier of the timestamp source
     ///
-    /// :type: bytes
+    /// :type: **bytes**
     #[getter]
     fn id(&self) -> &[u8] {
         self.t.get_id().as_slice()
@@ -915,7 +1041,7 @@ impl Subscriber {
 
 // zenoh.queryable (simulate the package as a class, and consts as class attributes)
 //
-/// Constants defining the different modes of a zenoh :class:`Queryable`.
+/// Constants defining the different modes of a zenoh :class:`zenoh.Queryable`.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub(crate) struct queryable {}
@@ -956,18 +1082,18 @@ impl pyo3::conversion::ToPyObject for Query {
 impl Query {
     /// The key_selector of the query
     ///
-    /// :type: String
+    /// :type: :class:`Selector`
     #[getter]
-    fn selector(&self) -> String {
-        self.q.selector().to_string()
+    fn selector(&self) -> Selector {
+        self.q.selector().to_owned().into()
     }
 
     /// The key_selector of the query
     ///
-    /// :type: KeyExpr
+    /// :type: :class:`KeyExpr`
     #[getter]
     fn key_selector(&self) -> KeyExpr {
-        self.q.key_selector().clone().to_owned().into()
+        self.q.key_selector().to_owned().into()
     }
 
     /// The value_selector of the query

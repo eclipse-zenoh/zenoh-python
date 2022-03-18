@@ -85,8 +85,8 @@ async def main():
 
 
     async def do_query(sleep_time):
-        print("Sending Query '{}?{}'...".format(selector, sleep_time))
-        replies = await session.get("{}?{}".format(selector, sleep_time), target=QueryTarget(kind, target))
+        print("Sending Query '{}?(sleep={})'...".format(selector, sleep_time))
+        replies = await session.get("{}?(sleep={})".format(selector, sleep_time), target=QueryTarget(kind, target))
         for reply in replies:
             print(">> Received ('{}': '{}')"
                 .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))

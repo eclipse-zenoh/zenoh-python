@@ -68,15 +68,16 @@ async def main():
     #       It checks if the query's value_selector (the substring after '?') is a float, and if yes, sleeps for this number of seconds.
     #       Run example/asyncio/z_get_parallel.py example to see how 3 concurrent get() are executed in parallel in this z_eval.py
     async def eval_corouting(query):
-        opt = query.value_selector[1:]
+        selector = query.selector
         try:
-            sleep_time = float(opt)
-            print("  Sleeping {} secs before replying".format(sleep_time))
-            await asyncio.sleep(sleep_time)
-        except ValueError:
-            pass
-        print("  Replying to query on {}".format(query.selector))
-        reply = "{} (this is the reply to query on {})".format(value, query.selector)
+            sleep_time = selector.parse_value_selector().properties.get('sleep')
+            if sleep_time is not None:
+                print("  Sleeping {} secs before replying".format(float(sleep_time)))
+                await asyncio.sleep(float(sleep_time))
+        except Exception as e:
+            print("  WARN: error in value selector: {}. Ignore it.".format(e))
+        print("  Replying to query on {}".format(selector))
+        reply = "{} (this is the reply to query on {})".format(value, selector)
         query.reply(Sample(key_expr=key, payload=reply.encode()))
 
     async def eval_callback(query):
@@ -91,7 +92,7 @@ async def main():
     session = await zenoh.async_open(conf)
 
     print("Creating Queryable on '{}'...".format(key))
-    queryable = await session.queryable(key, EVAL, eval_callback)
+    queryable = await session.queryable(key, eval_callback, kind=EVAL)
 
     print("Enter 'q' to quit......")
     c = '\0'

@@ -13,6 +13,7 @@
 //
 use async_std::prelude::FutureExt;
 use async_std::task;
+use encoding::KnownEncoding;
 use futures::prelude::*;
 use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
@@ -38,8 +39,8 @@ fn to_pyerr(err: zenoh_core::Error) -> PyErr {
 }
 /// The zenoh API.
 ///
-/// Examples:
-/// ^^^^^^^^^
+/// Examples of use:
+/// ^^^^^^^^^^^^^^^^
 ///
 /// Publish
 /// """""""
@@ -103,25 +104,28 @@ sys.modules['zenoh.queryable'] = queryable
         Some(m.dict()),
     )?;
 
+    m.add_class::<AsyncQueryable>()?;
     m.add_class::<AsyncSession>()?;
     m.add_class::<AsyncSubscriber>()?;
-    m.add_class::<AsyncQueryable>()?;
     m.add_class::<Config>()?;
     m.add_class::<CongestionControl>()?;
     m.add_class::<ConsolidationMode>()?;
     m.add_class::<encoding::Encoding>()?;
     m.add_class::<Hello>()?;
+    m.add_class::<KeyExpr>()?;
+    m.add_class::<KnownEncoding>()?;
     m.add_class::<PeerId>()?;
     m.add_class::<Period>()?;
+    m.add_class::<Priority>()?;
     m.add_class::<Query>()?;
     m.add_class::<Queryable>()?;
     m.add_class::<QueryConsolidation>()?;
     m.add_class::<QueryTarget>()?;
     m.add_class::<Reliability>()?;
     m.add_class::<Reply>()?;
-    m.add_class::<KeyExpr>()?;
     m.add_class::<Sample>()?;
     m.add_class::<sample_kind::SampleKind>()?;
+    m.add_class::<Selector>()?;
     m.add_class::<Session>()?;
     m.add_class::<SourceInfo>()?;
     m.add_class::<SubMode>()?;
@@ -129,13 +133,15 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<Target>()?;
     m.add_class::<Timestamp>()?;
     m.add_class::<Value>()?;
+    m.add_class::<ValueSelector>()?;
     m.add_class::<WhatAmI>()?;
+    m.add("ZError", py.get_type::<ZError>())?;
+    m.add_wrapped(wrap_pyfunction!(init_logger))?;
+    m.add_wrapped(wrap_pyfunction!(config_from_file))?;
     m.add_wrapped(wrap_pyfunction!(open))?;
     m.add_wrapped(wrap_pyfunction!(async_open))?;
     m.add_wrapped(wrap_pyfunction!(scout))?;
     m.add_wrapped(wrap_pyfunction!(async_scout))?;
-    m.add_wrapped(wrap_pyfunction!(init_logger))?;
-    m.add_wrapped(wrap_pyfunction!(config_from_file))?;
     Ok(())
 }
 /// Initialize the logger used by the Rust implementation of this API.
@@ -155,13 +161,24 @@ fn init_logger() {
 /// Parse a configuration file for zenoh, returning a Config object.
 ///
 /// :param path: The path to the config file.
-/// :rtype: Config
-///
+/// :rtype: :class:`Config`
 #[pyfunction]
 fn config_from_file(path: &str) -> PyResult<Config> {
     Config::from_file(path)
 }
 
+/// The main configuration structure for Zenoh.
+///
+/// To construct a configuration, we advise that you use a configuration file
+/// (JSON, JSON5 and YAML are currently supported, please use the proper extension for your format as the deserializer will be picked according to it).
+/// A Config object can then be amended calling :func:`Config.insert_json5`.
+///
+/// :Example:
+///
+/// >>> import zenoh, json
+/// >>> conf = zenoh.Config.from_file('zenoh-config.json5')
+/// >>> conf.insert_json5(zenoh.config.MODE_KEY, json.dumps('client'))
+/// >>> print(conf.json())
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -169,6 +186,7 @@ pub struct Config {
 }
 #[pymethods]
 impl Config {
+    /// Constructor of a default configuration.
     #[new]
     pub fn new() -> Self {
         Config {
@@ -176,6 +194,11 @@ impl Config {
         }
     }
 
+    /// Parse a configuration file for zenoh, returning a Config object.
+    ///
+    /// :param path: The path to the config file.
+    /// :rtype: :class:`Config`
+    /// :raise: :class:`ZError`
     pub fn insert_json5(&mut self, key: &str, value: &str) -> PyResult<()> {
         match self.inner.insert_json(key, value) {
             Ok(()) => Ok(()),
@@ -184,10 +207,19 @@ impl Config {
             )),
         }
     }
+
+    /// Returns the config as a JSON string
+    ///
+    /// :rtype: str
     pub fn json(&self) -> String {
         serde_json::to_string(&self.inner).unwrap()
     }
 
+    /// Parse a JSON5 string configuration for zenoh, returning a Config object.
+    ///
+    /// :param input: The configuration as a JSON5 string.
+    /// :rtype: :class:`Config`
+    /// :raise: :class:`ZError`
     #[staticmethod]
     pub fn from_json5(input: &str) -> PyResult<Self> {
         let mut d = match json5::Deserializer::from_str(input) {
@@ -206,6 +238,11 @@ impl Config {
         }
     }
 
+    /// Parse a configuration file for zenoh, returning a Config object.
+    ///
+    /// :param path: The path to the config file.
+    /// :rtype: :class:`Config`
+    /// :raise: :class:`ZError`
     #[staticmethod]
     pub fn from_file(path: &str) -> PyResult<Self> {
         match ZConfig::from_file(path) {
@@ -226,6 +263,7 @@ impl Default for Config {
 /// :param config: The configuration of the zenoh session
 /// :type config: :class:`Config`, optional
 /// :rtype: :class:`Session`
+/// :raise: :class:`ZError`
 ///
 /// :Example:
 ///
@@ -243,6 +281,7 @@ fn open(config: Option<Config>) -> PyResult<Session> {
 /// :param config: The configuration of the zenoh session
 /// :type config: :class:`Config`, optional
 /// :rtype: :class:`AsyncSession`
+/// :raise: :class:`ZError`
 ///
 /// :Example:
 ///
@@ -268,12 +307,13 @@ fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
 /// a list of received :class:`Hello` messages.
 ///
 /// :param whatami: The kind of zenoh process to scout for
-/// :type whatami: int
+/// :type whatami: **int**
 /// :param scout_duration: the duration of scout (in seconds)
-/// :type scout_duration: float
+/// :type scout_duration: **float**
 /// :param config: The configuration to use for scouting
 /// :type config: :class:`Config`, optional
 /// :rtype: list of :class:`Hello`
+/// :raise: :class:`ZError`
 ///
 /// :Example:
 ///
@@ -306,12 +346,13 @@ fn scout(whatami: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyRes
 /// a list of received :class:`Hello` messages.
 ///
 /// :param whatami: The kind of zenoh process to scout for
-/// :type whatami: int
+/// :type whatami: **int**
 /// :param scout_duration: the duration of scout (in seconds)
-/// :type scout_duration: float
+/// :type scout_duration: **float**
 /// :param config: The configuration to use for scouting
 /// :type config: :class:`Config`, optional
 /// :rtype: list of :class:`Hello`
+/// :raise: :class:`ZError`
 ///
 /// :Example:
 ///
