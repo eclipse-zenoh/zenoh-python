@@ -22,35 +22,59 @@ module zenoh
     :members: init_logger, config_from_file, open, async_open, scout, async_scout
 
 
+AsyncQueryable
+--------------
+.. autoclass:: zenoh.AsyncQueryable
+    :members:
+
+AsyncSession
+------------
+.. autoclass:: zenoh.AsyncSession
+    :members:
+
+AsyncSubscriber
+---------------
+.. autoclass:: zenoh.AsyncSubscriber
+    :members:
+
 Config
 ------
 .. autoclass:: zenoh.Config
-    :members:
-
-Session
--------
-.. autoclass:: zenoh.Session
     :members:
 
 CongestionControl
 -----------------
 .. autoclass:: zenoh.CongestionControl
     :members:
+    :undoc-members:
 
 ConsolidationMode
 -----------------
 .. autoclass:: zenoh.ConsolidationMode
     :members:
+    :undoc-members:
 
 Encoding
 --------
 .. autoclass:: zenoh.Encoding
     :members:
+    :undoc-members:
 
 Hello
 -----
 .. autoclass:: zenoh.Hello
     :members:
+
+KeyExpr
+-------
+.. autoclass:: zenoh.KeyExpr
+    :members:
+
+KnownEncoding
+-------------
+.. autoclass:: zenoh.KnownEncoding
+    :members:
+    :undoc-members:
 
 PeerId
 ------
@@ -61,11 +85,13 @@ Period
 ------
 .. autoclass:: zenoh.Period
     :members:
+    :special-members: __init__
 
 Priority
 --------
 .. autoclass:: zenoh.Priority
     :members:
+    :undoc-members:
 
 Query
 -----
@@ -91,25 +117,11 @@ Reliability
 -----------
 .. autoclass:: zenoh.Reliability
     :members:
+    :undoc-members:
 
 Reply
 -----
 .. autoclass:: zenoh.Reply
-    :members:
-
-KeyExpr
--------
-.. autoclass:: zenoh.KeyExpr
-    :members:
-
-Selector
---------
-.. autoclass:: zenoh.Selector
-    :members:
-
-ValueSelector
--------------
-.. autoclass:: zenoh.ValueSelector
     :members:
 
 Sample
@@ -121,10 +133,16 @@ SampleKind
 ----------
 .. autoclass:: zenoh.SampleKind
     :members:
+    :undoc-members:
 
-Priority
-----------
-.. autoclass:: zenoh.Priority
+Selector
+--------
+.. autoclass:: zenoh.Selector
+    :members:
+
+Session
+-------
+.. autoclass:: zenoh.Session
     :members:
 
 SourceInfo
@@ -136,6 +154,7 @@ SubMode
 -------
 .. autoclass:: zenoh.SubMode
     :members:
+    :undoc-members:
 
 Subscriber
 ----------
@@ -146,6 +165,7 @@ Target
 ------
 .. autoclass:: zenoh.Target
     :members:
+    :undoc-members:
 
 Timestamp
 ---------
@@ -157,25 +177,16 @@ Value
 .. autoclass:: zenoh.Value
     :members:
 
+ValueSelector
+-------------
+.. autoclass:: zenoh.ValueSelector
+    :members:
+
 WhatAmI
 -------
 .. autoclass:: zenoh.WhatAmI
     :members:
-
-AsyncSession
-------------
-.. autoclass:: zenoh.AsyncSession
-    :members:
-
-AsyncSubscriber
----------------
-.. autoclass:: zenoh.AsyncSubscriber
-    :members:
-
-AsyncQueryable
---------------
-.. autoclass:: zenoh.AsyncQueryable
-    :members:
+    :undoc-members:
 
 ZError
 ------
@@ -183,15 +194,15 @@ ZError
     :members:
 
 
-------------
+***********
+submodules
+***********
 
-module zenoh.queryable
-======================
-.. autoclass:: zenoh.queryable
+module zenoh.config
+===================
+.. autoclass:: zenoh.config
     :members:
     :undoc-members:
-
-------------
 
 module zenoh.info
 =================
@@ -199,10 +210,8 @@ module zenoh.info
     :members:
     :undoc-members:
 
-------------
-
-module zenoh.config
-===================
-.. autoclass:: zenoh.config
+module zenoh.queryable
+======================
+.. autoclass:: zenoh.queryable
     :members:
     :undoc-members:
