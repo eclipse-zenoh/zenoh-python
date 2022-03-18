@@ -15,6 +15,7 @@ use pyo3::prelude::*;
 use pyo3::PyObjectProtocol;
 use zenoh::prelude::{Encoding as ZEncoding, KnownEncoding as ZKnownEncoding};
 
+/// An encoding known by zenoh and which maps to an integer for wire-efficiency.
 #[pyclass]
 #[derive(Clone)]
 pub struct KnownEncoding {
@@ -183,7 +184,8 @@ impl From<KnownEncoding> for ZKnownEncoding {
 }
 
 // zenoh.encoding (simulate the package as a class, and consts as class attributes)
-/// Constants defining the different encoding flags.
+/// A zenoh encoding is a HTTP Mime type represented, for wire efficiency,
+/// as an integer prefix (that maps to a string) and a string suffix.
 #[allow(non_camel_case_types)]
 #[pyclass]
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -217,22 +219,27 @@ impl Encoding {
         }
     }
 
-    /// the encoding flag of the Value.
+    /// the Encoding's prefix.
     ///
-    /// :type: int
+    /// :type: :class:`KnownEncoding`
     #[getter]
     fn prefix(&self) -> PyResult<KnownEncoding> {
         Ok((*self.e.prefix()).into())
     }
 
-    /// the encoding flag of the Value.
+    /// the Encoding's suffix.
     ///
-    /// :type: int
+    /// :type: **str**
     #[getter]
     fn get_suffix(&self) -> PyResult<&str> {
         Ok(self.e.suffix())
     }
 
+    /// Returns a copy of this Encoding, but changing its suffix.
+    ///
+    /// :param suffix: The new suffix
+    /// :type suffix: **str**
+    /// :rtype: :class:`Encoding`
     fn with_suffix(&self, suffix: String) -> Self {
         self.e.clone().with_suffix(suffix).into()
     }
