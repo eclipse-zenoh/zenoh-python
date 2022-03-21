@@ -1,3 +1,5 @@
+use crate::ConfigNotifier;
+
 //
 // Copyright (c) 2017, 2020 ADLINK Technology Inc.
 //
@@ -65,6 +67,40 @@ impl Session {
             .filter_map(|(k, v)| zenoh::info::InfoTranscoder::decode(k).map(|k| (k, v)))
             .collect();
         Ok(pydict.into_py_dict(py).to_object(py))
+    }
+
+    /// Get informations about the zenoh Session.
+    ///
+    /// :rtype: dict {str: str}
+    ///
+    /// :Example:
+    ///
+    /// >>> import zenoh
+    /// >>> s = zenoh.open()
+    /// >>> info = s.info()
+    /// >>> for key in info:
+    /// >>>    print("{} : {}".format(key, info[key]))
+    ///
+    ///
+    /// Get the current configuration of the zenoh Session.
+    ///
+    /// The returned ConfigNotifier can be used to read the current
+    /// zenoh configuration through the json function or
+    /// modify the zenoh configuration through the insert_json5 funtion.
+    ///
+    /// :rtype: dict {str: str}
+    ///
+    /// :Example:
+    ///
+    /// >>> import zenoh
+    /// >>> s = zenoh.open()
+    /// >>> config = s.config()
+    /// >>> config.insert_json5("connect/endpoints", "[\"tcp/10.10.10.10:7448\"]")
+    ///
+    pub fn config(&self) -> PyResult<ConfigNotifier> {
+        Ok(ConfigNotifier {
+            inner: self.as_ref()?.config().clone(),
+        })
     }
 
     /// Put data.

@@ -18,7 +18,8 @@ use futures::prelude::*;
 use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
 use pyo3_asyncio::async_std::future_into_py;
-use zenoh::config::Config as ZConfig;
+use zenoh::config::{Config as ZConfig, Notifier};
+use zenoh::prelude::ValidatedMap;
 use zenoh_core::zerror;
 
 pub(crate) mod types;
@@ -255,6 +256,26 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub struct ConfigNotifier {
+    inner: Notifier<ZConfig>,
+}
+#[pymethods]
+impl ConfigNotifier {
+    pub fn insert_json5(&mut self, key: &str, value: &str) -> PyResult<()> {
+        match self.inner.insert_json5(key, value) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(PyErr::new::<pyo3::exceptions::PyException, _>(
+                e.to_string(),
+            )),
+        }
+    }
+    pub fn json(&self) -> String {
+        serde_json::to_string(&*self.inner.lock()).unwrap()
     }
 }
 
