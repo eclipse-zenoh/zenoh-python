@@ -200,7 +200,7 @@ impl Config {
     /// :rtype: :class:`Config`
     /// :raise: :class:`ZError`
     pub fn insert_json5(&mut self, key: &str, value: &str) -> PyResult<()> {
-        match self.inner.insert_json(key, value) {
+        match self.inner.insert_json5(key, value) {
             Ok(()) => Ok(()),
             Err(e) => Err(PyErr::new::<pyo3::exceptions::PyException, _>(
                 e.to_string(),
