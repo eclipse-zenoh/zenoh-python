@@ -80,7 +80,7 @@ for idx in itertools.count() if args.iter is None else range(args.iter):
     time.sleep(1)
     buf = "[{:4d}] {}".format(idx, value)
     print("Putting Data ('{}': '{}')...".format(rid, buf))
-    session.put(rid, bytes(buf, encoding='utf8'))
+    session.put(rid, buf)
 
 session.undeclare_publication(rid)
 session.undeclare_expr(rid)
