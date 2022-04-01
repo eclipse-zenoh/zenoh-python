@@ -1456,13 +1456,13 @@ impl pyo3::conversion::ToPyObject for Reply {
 
 #[pymethods]
 impl Reply {
-    /// The data
+    /// The sample
     ///
     /// :type: Sample
     #[getter]
-    fn data(&self) -> Sample {
+    fn sample(&self) -> Sample {
         Sample {
-            s: self.r.data.clone(),
+            s: self.r.sample.clone(),
         }
     }
 

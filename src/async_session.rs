@@ -677,7 +677,7 @@ impl AsyncSession {
     /// >>>    s = await zenoh.async_open()
     /// >>>    replies = await s.get('/key/selector?value_selector')
     /// >>>    for reply in replies:
-    /// ...       print("Received : {}".format(reply.data))
+    /// ...       print("Received : {}".format(reply.sample))
     /// >>>
     /// >>> asyncio.run(main())
     #[pyo3(text_signature = "(self, selector, **kwargs)")]

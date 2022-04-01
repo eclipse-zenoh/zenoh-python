@@ -66,7 +66,7 @@ fn to_pyerr(err: zenoh_core::Error) -> PyErr {
 /// >>> import zenoh
 /// >>> s = zenoh.open()
 /// >>> for reply in s.get('/resource/name'):
-/// ...     print("Received: {} = {}".format(reply.data.key_expr, reply.data.payload.decode('utf-8'))
+/// ...     print("Received: {} = {}".format(reply.sample.key_expr, reply.sample.payload.decode('utf-8'))
 #[pymodule]
 pub fn zenoh(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<config>()?;
