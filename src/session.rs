@@ -578,7 +578,7 @@ impl Session {
     /// >>> s = zenoh.open()
     /// >>> replies = s.get('/key/selector?value_selector')
     /// >>> for reply in replies:
-    /// ...    print("Received : {}".format(reply.data))
+    /// ...    print("Received : {}".format(reply.sample))
     #[pyo3(text_signature = "(self, selector, **kwargs)")]
     #[args(kwargs = "**")]
     fn get(&self, selector: &PyAny, kwargs: Option<&PyDict>) -> PyResult<Py<PyList>> {

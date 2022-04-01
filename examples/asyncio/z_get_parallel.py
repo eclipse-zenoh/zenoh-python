@@ -89,7 +89,7 @@ async def main():
         replies = await session.get("{}?(sleep={})".format(selector, sleep_time), target=QueryTarget(kind, target))
         for reply in replies:
             print(">> Received ('{}': '{}')"
-                .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))
+                .format(reply.sample.key_expr, reply.sample.payload.decode("utf-8")))
 
     start = time.time()
     await asyncio.gather(

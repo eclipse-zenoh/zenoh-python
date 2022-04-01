@@ -85,6 +85,6 @@ print("Sending Query '{}'...".format(selector))
 replies = session.get(selector, target=QueryTarget(kind, target))
 for reply in replies:
     print(">> Received ('{}': '{}')"
-          .format(reply.data.key_expr, reply.data.payload.decode("utf-8")))
+          .format(reply.sample.key_expr, reply.sample.payload.decode("utf-8")))
 
 session.close()
