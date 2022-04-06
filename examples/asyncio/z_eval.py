@@ -1,4 +1,5 @@
-# Copyright (c) 2017, 2020 ADLINK Technology Inc.
+#
+# Copyright (c) 2022 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -8,7 +9,8 @@
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 #
 # Contributors:
-#   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+#   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
+#
 
 import asyncio
 import sys
@@ -18,6 +20,7 @@ import json
 import zenoh
 from zenoh import config, Sample
 from zenoh.queryable import EVAL
+
 
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
@@ -52,7 +55,8 @@ async def main():
                         help='A configuration file.')
 
     args = parser.parse_args()
-    conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+    conf = zenoh.config_from_file(
+        args.config) if args.config is not None else zenoh.Config()
     if args.mode is not None:
         conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
     if args.connect is not None:
@@ -72,7 +76,8 @@ async def main():
         try:
             sleep_time = selector.parse_value_selector().properties.get('sleep')
             if sleep_time is not None:
-                print("  Sleeping {} secs before replying".format(float(sleep_time)))
+                print("  Sleeping {} secs before replying".format(
+                    float(sleep_time)))
                 await asyncio.sleep(float(sleep_time))
         except Exception as e:
             print("  WARN: error in value selector: {}. Ignore it.".format(e))

@@ -1,4 +1,5 @@
-# Copyright (c) 2017, 2020 ADLINK Technology Inc.
+#
+# Copyright (c) 2022 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -8,7 +9,8 @@
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 #
 # Contributors:
-#   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+#   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
+#
 
 from setuptools import find_packages, setup
 try:
@@ -33,8 +35,8 @@ setup(
     description="The python API for Eclipse zenoh",
     long_description=readme(),
     long_description_content_type='text/markdown',
-    author="ADLINK zenoh team",
-    author_email="zenoh@adlink-labs.tech",
+    author="ZettaScale Zenoh team",
+    author_email="zenoh@zettascale.tech",
     license="EPL-2.0 OR Apache-2.0",
     classifiers=[
         "Programming Language :: Python :: 3 :: Only",

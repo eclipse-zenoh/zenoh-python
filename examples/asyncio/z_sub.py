@@ -1,4 +1,5 @@
-# Copyright (c) 2017, 2020 ADLINK Technology Inc.
+#
+# Copyright (c) 2022 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -8,7 +9,8 @@
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 #
 # Contributors:
-#   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+#   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
+#
 
 import asyncio
 import sys
@@ -18,6 +20,7 @@ import argparse
 import json
 import zenoh
 from zenoh import Reliability, SubMode
+
 
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
@@ -48,7 +51,8 @@ async def main():
                         help='A configuration file.')
 
     args = parser.parse_args()
-    conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+    conf = zenoh.config_from_file(
+        args.config) if args.config is not None else zenoh.Config()
     if args.mode is not None:
         conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
     if args.connect is not None:
@@ -59,7 +63,6 @@ async def main():
 
     # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-
     async def listener(sample):
         # try to decode the sample's value according to it's encoding. If not possible, use the value's payload (byte buffer)
         try:
@@ -67,10 +70,10 @@ async def main():
         except TypeError:
             value = sample.value.payload
         # if sample has a timestamp, get it's datetime
-        time = '(not specified)' if sample.timestamp is None else datetime.fromtimestamp(sample.timestamp.time)
+        time = '(not specified)' if sample.timestamp is None else datetime.fromtimestamp(
+            sample.timestamp.time)
         print(">> [Subscriber] Received {} on '{}': {}  (encoding:{}, timestamp:{})"
-            .format(sample.kind, sample.key_expr, value, sample.value.encoding, time))
-
+              .format(sample.kind, sample.key_expr, value, sample.value.encoding, time))
 
     # initiate logging
     zenoh.init_logger()

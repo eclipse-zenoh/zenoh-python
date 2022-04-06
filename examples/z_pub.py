@@ -1,4 +1,5 @@
-# Copyright (c) 2017, 2020 ADLINK Technology Inc.
+#
+# Copyright (c) 2022 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -8,7 +9,8 @@
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 #
 # Contributors:
-#   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+#   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
+#
 
 import sys
 import time
@@ -44,14 +46,16 @@ parser.add_argument('--value', '-v', dest='value',
                     default='Pub from Python!',
                     type=str,
                     help='The value to publish.')
-parser.add_argument("--iter", dest="iter", type=int, help="How many puts to perform")
+parser.add_argument("--iter", dest="iter", type=int,
+                    help="How many puts to perform")
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.config_from_file(
+    args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
 if args.connect is not None:

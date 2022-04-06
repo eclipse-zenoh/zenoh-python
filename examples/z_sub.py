@@ -1,4 +1,5 @@
-# Copyright (c) 2017, 2020 ADLINK Technology Inc.
+#
+# Copyright (c) 2022 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -8,7 +9,8 @@
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 #
 # Contributors:
-#   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+#   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
+#
 
 import sys
 import time
@@ -46,7 +48,8 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.config_from_file(
+    args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
 if args.connect is not None:
@@ -65,7 +68,8 @@ def listener(sample):
     except TypeError:
         value = sample.value.payload
     # if sample has a timestamp, get it's datetime
-    time = '(not specified)' if sample.timestamp is None else datetime.fromtimestamp(sample.timestamp.time)
+    time = '(not specified)' if sample.timestamp is None else datetime.fromtimestamp(
+        sample.timestamp.time)
     print(">> [Subscriber] Received {} on '{}': {}  (encoding:{}, timestamp:{})"
           .format(sample.kind, sample.key_expr, value, sample.value.encoding, time))
 
@@ -78,7 +82,8 @@ session = zenoh.open(conf)
 
 print("Creating Subscriber on '{}'...".format(key))
 
-sub = session.subscribe(key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
+sub = session.subscribe(
+    key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
 print("Enter 'q' to quit...")
 c = '\0'

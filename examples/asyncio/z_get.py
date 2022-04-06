@@ -1,4 +1,5 @@
-# Copyright (c) 2017, 2020 ADLINK Technology Inc.
+#
+# Copyright (c) 2022 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -8,7 +9,8 @@
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 #
 # Contributors:
-#   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+#   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
+#
 
 import asyncio
 import sys
@@ -17,6 +19,7 @@ import argparse
 import json
 import zenoh
 from zenoh import config, queryable, QueryTarget, Target
+
 
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
@@ -47,7 +50,8 @@ async def main():
                         type=str,
                         help='The KIND of queryables to query.')
     parser.add_argument('--target', '-t', dest='target',
-                        choices=['ALL', 'BEST_MATCHING', 'ALL_COMPLETE', 'NONE'],
+                        choices=['ALL', 'BEST_MATCHING',
+                                 'ALL_COMPLETE', 'NONE'],
                         default='ALL',
                         type=str,
                         help='The target queryables of the query.')
@@ -57,7 +61,8 @@ async def main():
                         help='A configuration file.')
 
     args = parser.parse_args()
-    conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+    conf = zenoh.config_from_file(
+        args.config) if args.config is not None else zenoh.Config()
     if args.mode is not None:
         conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
     if args.connect is not None:
@@ -87,7 +92,7 @@ async def main():
     replies = await session.get(selector, target=QueryTarget(kind, target))
     for reply in replies:
         print(">> Received ('{}': '{}')"
-            .format(reply.sample.key_expr, reply.sample.payload.decode("utf-8")))
+              .format(reply.sample.key_expr, reply.sample.payload.decode("utf-8")))
 
     await session.close()
 

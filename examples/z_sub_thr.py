@@ -1,4 +1,5 @@
-# Copyright (c) 2017, 2020 ADLINK Technology Inc.
+#
+# Copyright (c) 2022 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -8,7 +9,8 @@
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 #
 # Contributors:
-#   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+#   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
+#
 
 import sys
 import time
@@ -16,7 +18,7 @@ import datetime
 import argparse
 import json
 import zenoh
-from zenoh import  Reliability, SubMode
+from zenoh import Reliability, SubMode
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -54,7 +56,8 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.config_from_file(
+    args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
 if args.connect is not None:
@@ -99,7 +102,8 @@ session = zenoh.open(conf)
 
 rid = session.declare_expr('/test/thr')
 
-sub = session.subscribe(rid, listener, reliablity=Reliability.Reliable, mode=SubMode.Push)
+sub = session.subscribe(
+    rid, listener, reliablity=Reliability.Reliable, mode=SubMode.Push)
 
 time.sleep(600)
 

@@ -1,7 +1,7 @@
 use crate::ConfigNotifier;
 
 //
-// Copyright (c) 2017, 2020 ADLINK Technology Inc.
+// Copyright (c) 2017, 2022 ZettaScale Technology Inc.
 //
 // This program and the accompanying materials are made available under the
 // terms of the Eclipse Public License 2.0 which is available at
@@ -11,7 +11,7 @@ use crate::ConfigNotifier;
 // SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 //
 // Contributors:
-//   ADLINK zenoh team, <zenoh@adlink-labs.tech>
+//   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
 use super::encoding::Encoding;
 use super::sample_kind::SampleKind;
