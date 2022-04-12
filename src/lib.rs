@@ -314,8 +314,8 @@ fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
 /// Sends scout messages for a specified duration and returns
 /// a list of received :class:`Hello` messages.
 ///
-/// :param whatami: The kind of zenoh process to scout for
-/// :type whatami: **int**
+/// :param what: The kind of zenoh process to scout for
+/// :type what: **int**
 /// :param scout_duration: the duration of scout (in seconds)
 /// :type scout_duration: **float**
 /// :param config: The configuration to use for scouting
@@ -330,11 +330,11 @@ fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
 /// >>> for hello in hellos:
 /// >>>     print(hello)
 #[pyfunction]
-#[pyo3(text_signature = "(whatami, scout_duration, config)")]
-fn scout(whatami: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyResult<Vec<Hello>> {
+#[pyo3(text_signature = "(what, scout_duration, config)")]
+fn scout(what: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyResult<Vec<Hello>> {
     task::block_on(async move {
         let mut result = Vec::<Hello>::new();
-        let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)
+        let mut receiver = zenoh::scout(what, config.unwrap_or_default().inner)
             .await
             .unwrap();
         let scout = async {
@@ -353,8 +353,8 @@ fn scout(whatami: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyRes
 /// Sends scout messages for a specified duration and returns
 /// a list of received :class:`Hello` messages.
 ///
-/// :param whatami: The kind of zenoh process to scout for
-/// :type whatami: **int**
+/// :param what: The kind of zenoh process to scout for
+/// :type what: **int**
 /// :param scout_duration: the duration of scout (in seconds)
 /// :type scout_duration: **float**
 /// :param config: The configuration to use for scouting
@@ -372,16 +372,16 @@ fn scout(whatami: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyRes
 /// >>>
 /// >>> asyncio.run(main())
 #[pyfunction]
-#[pyo3(text_signature = "(whatami, scout_duration, config)")]
+#[pyo3(text_signature = "(what, scout_duration, config)")]
 fn async_scout(
-    whatami: WhatAmI,
+    what: WhatAmI,
     scout_duration: f64,
     config: Option<Config>,
     py: Python,
 ) -> PyResult<&PyAny> {
     future_into_py(py, async move {
         let mut result = Vec::<Hello>::new();
-        let mut receiver = zenoh::scout(whatami, config.unwrap_or_default().inner)
+        let mut receiver = zenoh::scout(what, config.unwrap_or_default().inner)
             .await
             .unwrap();
         let scout = async {
