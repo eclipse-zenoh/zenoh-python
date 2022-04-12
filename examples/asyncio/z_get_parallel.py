@@ -24,8 +24,8 @@ from zenoh import config, queryable, QueryTarget, Target
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
     parser = argparse.ArgumentParser(
-        prog='z_get',
-        description='zenoh get example')
+        prog='z_get_parallel',
+        description='zenoh parallel get example')
     parser.add_argument('--mode', '-m', dest='mode',
                         choices=['peer', 'client'],
                         type=str,
