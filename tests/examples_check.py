@@ -150,12 +150,6 @@ if ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in "".join
 if any(("z_get" in error) for error in errors):
 	get.dbg()
 
-time.sleep(1)
-put_float = Pyrun("z_put_float.py")
-if put_float.status():
-	put_float.dbg()
-	errors.append(put_float.status())
-
 try:
 	sub.process.stdin.write(b"q\n")
 	sub.process.stdin.flush()
@@ -172,8 +166,6 @@ if not ("Received PUT ('/demo/example/zenoh-python-pub': '[   1] Pub from Python
 	errors.append("z_sub didn't catch second z_pub")
 if not ("Received DELETE ('/demo/example/zenoh-python-put': '')" in subout):
 	errors.append("z_sub didn't catch delete")
-if not ("Received PUT ('/demo/example/zenoh-python-put': '3.141592653589793')" in subout):
-	errors.append("z_sub didn't catch put float")
 if any(("z_sub" in error) for error in errors):
 	sub.dbg()
 
@@ -193,8 +185,6 @@ if not ("Received PUT ('/demo/example/zenoh-python-pub': '[   1] Pub from Python
 	errors.append("z_storage didn't catch second z_pub")
 if not ("Received DELETE ('/demo/example/zenoh-python-put': '')" in storageout):
 	errors.append("z_storage didn't catch delete")
-if not ("Received PUT ('/demo/example/zenoh-python-put': '3.141592653589793')" in storageout):
-	errors.append("z_storage didn't catch put float")
 if not ("Received Query '/demo/example/zenoh-python-put'" in storageout):
 	errors.append("z_storage didn't catch query")
 if any(("z_storage" in error) for error in errors):
