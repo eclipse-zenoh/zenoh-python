@@ -311,6 +311,19 @@ impl Session {
         s.declare_publication(&k).wait().map_err(to_pyerr)?;
         Ok(())
     }
+
+    /// Undeclare the publication previously declared with :meth:`declare_publication`.
+    ///
+    /// Similarly to :meth:`declare_publication` method, the *key_expr* parameter also accepts
+    /// the following types that can be converted to a :class:`KeyExpr`:
+    ///
+    /// * **int** for a mapped key expression
+    /// * **str** for a literal key expression
+    /// * **(int, str)** for a mapped key expression with suffix
+    ///
+    /// :param key_expr: The same key expression that was used to declare the publication
+    /// :type key_expr: :class:`ExprId`
+    /// :raise: :class:`ZError`
     #[pyo3(text_signature = "(self, key_expr)")]
     fn undeclare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
         let s = self.as_ref()?;
