@@ -93,7 +93,7 @@ sub = session.subscribe(
     key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
 print("Creating Queryable on '{}'...".format(key))
-queryable = session.queryable(key, STORAGE, query_handler)
+queryable = session.queryable(key, query_handler, kind=STORAGE)
 
 print("Enter 'q' to quit......")
 c = '\0'
