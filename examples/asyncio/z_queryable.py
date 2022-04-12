@@ -19,14 +19,13 @@ import argparse
 import json
 import zenoh
 from zenoh import config, Sample
-from zenoh.queryable import EVAL
 
 
 async def main():
     # --- Command line argument parsing --- --- --- --- --- ---
     parser = argparse.ArgumentParser(
-        prog='z_eval',
-        description='zenoh eval example')
+        prog='z_queryable',
+        description='zenoh queryable example')
     parser.add_argument('--mode', '-m', dest='mode',
                         choices=['peer', 'client'],
                         type=str,
@@ -42,11 +41,11 @@ async def main():
                         type=str,
                         help='Endpoints to listen on.')
     parser.add_argument('--key', '-k', dest='key',
-                        default='/demo/example/zenoh-python-eval',
+                        default='/demo/example/zenoh-python-queryable',
                         type=str,
-                        help='The key expression matching queries to evaluate.')
+                        help='The key expression matching queries to reply to.')
     parser.add_argument('--value', '-v', dest='value',
-                        default='Eval from Python!',
+                        default='Queryable from Python!',
                         type=str,
                         help='The value to reply to queries.')
     parser.add_argument('--config', '-c', dest='config',
@@ -68,10 +67,10 @@ async def main():
 
     # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-    # Note: As an example the concrete implementation of the eval callback is implemented here as a coroutine.
+    # Note: As an example the concrete implementation of the queryable callback is implemented here as a coroutine.
     #       It checks if the query's value_selector (the substring after '?') is a float, and if yes, sleeps for this number of seconds.
-    #       Run example/asyncio/z_get_parallel.py example to see how 3 concurrent get() are executed in parallel in this z_eval.py
-    async def eval_corouting(query):
+    #       Run example/asyncio/z_get_parallel.py example to see how 3 concurrent get() are executed in parallel in this z_queryable.py
+    async def queryable_corouting(query):
         selector = query.selector
         try:
             sleep_time = selector.parse_value_selector().properties.get('sleep')
@@ -85,10 +84,10 @@ async def main():
         reply = "{} (this is the reply to query on {})".format(value, selector)
         query.reply(Sample(key_expr=key, payload=reply.encode()))
 
-    async def eval_callback(query):
+    async def queryable_callback(query):
         print(">> [Queryable ] Received Query '{}'".format(query.selector))
-        # schedule a task that will call eval_corouting(query)
-        asyncio.create_task(eval_corouting(query))
+        # schedule a task that will call queryable_corouting(query)
+        asyncio.create_task(queryable_corouting(query))
 
     # initiate logging
     zenoh.init_logger()
@@ -97,7 +96,7 @@ async def main():
     session = await zenoh.async_open(conf)
 
     print("Creating Queryable on '{}'...".format(key))
-    queryable = await session.queryable(key, eval_callback, kind=EVAL)
+    queryable = await session.queryable(key, queryable_callback)
 
     print("Enter 'q' to quit......")
     c = '\0'

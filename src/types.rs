@@ -1039,32 +1039,6 @@ impl Subscriber {
     }
 }
 
-// zenoh.queryable (simulate the package as a class, and consts as class attributes)
-//
-/// Constants defining the different modes of a zenoh :class:`zenoh.Queryable`.
-#[allow(non_camel_case_types)]
-#[pyclass]
-pub(crate) struct queryable {}
-
-#[allow(non_snake_case)]
-#[pymethods]
-impl queryable {
-    #[classattr]
-    fn ALL_KINDS() -> ZInt {
-        zenoh::queryable::ALL_KINDS
-    }
-
-    #[classattr]
-    fn STORAGE() -> ZInt {
-        zenoh::queryable::STORAGE
-    }
-
-    #[classattr]
-    fn EVAL() -> ZInt {
-        zenoh::queryable::EVAL
-    }
-}
-
 /// Type received by a queryable callback. See :meth:`Session.register_queryable`.
 #[pyclass]
 #[derive(Clone)]
@@ -1142,76 +1116,48 @@ impl Queryable {
 /// The queryables that should be target of a :class:`Query`
 #[pyclass]
 #[derive(Clone)]
-pub(crate) struct Target {
-    pub(crate) t: zenoh::query::Target,
+pub(crate) struct QueryTarget {
+    pub(crate) t: zenoh::query::QueryTarget,
 }
 
 #[allow(non_snake_case)]
 #[pymethods]
-impl Target {
+impl QueryTarget {
     #[staticmethod]
-    fn BestMatching() -> Target {
-        Target {
-            t: zenoh::query::Target::BestMatching,
+    fn BestMatching() -> QueryTarget {
+        QueryTarget {
+            t: zenoh::query::QueryTarget::BestMatching,
         }
     }
 
     #[cfg(features = "complete_n")]
     #[staticmethod]
     #[pyo3(text_signature = "(n)")]
-    fn Complete(n: ZInt) -> Target {
-        Target {
-            t: zenoh::query::Target::Complete { n },
+    fn Complete(n: ZInt) -> QueryTarget {
+        QueryTarget {
+            t: zenoh::query::QueryTarget::Complete { n },
         }
     }
 
     #[staticmethod]
-    fn All() -> Target {
-        Target {
-            t: zenoh::query::Target::All,
+    fn All() -> QueryTarget {
+        QueryTarget {
+            t: zenoh::query::QueryTarget::All,
         }
     }
 
     #[staticmethod]
-    fn AllComplete() -> Target {
-        Target {
-            t: zenoh::query::Target::AllComplete,
+    fn AllComplete() -> QueryTarget {
+        QueryTarget {
+            t: zenoh::query::QueryTarget::AllComplete,
         }
     }
 
     #[staticmethod]
-    fn No() -> Target {
-        Target {
-            t: zenoh::query::Target::None,
+    fn No() -> QueryTarget {
+        QueryTarget {
+            t: zenoh::query::QueryTarget::None,
         }
-    }
-}
-
-/// The queryables that should be target of a :class:`Query`.
-///
-/// :param kind: the kind of queryable (one constant from :class:`queryable`)
-/// :type kind: int, optional
-/// :param target: a characteristic of the queryable.
-/// :type target: Target, optional
-#[pyclass]
-#[pyo3(text_signature = "(kind=None, target=None)")]
-#[derive(Clone, Default)]
-pub(crate) struct QueryTarget {
-    pub(crate) t: zenoh::query::QueryTarget,
-}
-
-#[pymethods]
-impl QueryTarget {
-    #[new]
-    fn new(kind: Option<ZInt>, target: Option<Target>) -> QueryTarget {
-        let mut t = zenoh::query::QueryTarget::default();
-        if let Some(k) = kind {
-            t.kind = k;
-        }
-        if let Some(target) = target {
-            t.target = target.t;
-        }
-        QueryTarget { t }
     }
 }
 
@@ -1464,14 +1410,6 @@ impl Reply {
         Sample {
             s: self.r.sample.clone(),
         }
-    }
-
-    /// The kind of reply source
-    ///
-    /// :type: int
-    #[getter]
-    fn replier_kind(&self) -> ZInt {
-        self.r.replier_kind
     }
 
     /// The identifier of reply source

@@ -30,7 +30,7 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
 use std::collections::HashMap;
-use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture, ZInt};
+use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture};
 
 /// A zenoh session.
 #[pyclass]
@@ -458,9 +458,6 @@ impl Session {
     ///    See below
     ///
     /// :Keyword Arguments:
-    ///    * **kind** ( **int** ) --
-    ///      Set the queryable kind. This must be a mask of constants defined in :mod:`zenoh.queryable`)
-    ///      (`queryable.EVAL` by default)
     ///    * **complete** ( **bool** ) --
     ///      Set the queryable completeness (true by default)
     ///
@@ -476,7 +473,7 @@ impl Session {
     /// ...     query.reply(Sample('/key/expression', bytes('value', encoding='utf8')))
     /// >>>
     /// >>> s = zenoh.open()
-    /// >>> q = s.queryable('/key/expression', callback, kind=queryable.EVAL)
+    /// >>> q = s.queryable('/key/expression', callback)
     /// >>> time.sleep(60)
     #[pyo3(text_signature = "(self, key_expr, callback, **kwargs)")]
     #[args(kwargs = "**")]
@@ -490,9 +487,6 @@ impl Session {
         let k = zkey_expr_of_pyany(key_expr)?;
         let mut builder = s.queryable(k);
         if let Some(kwargs) = kwargs {
-            if let Some(arg) = kwargs.get_item("kind") {
-                builder = builder.kind(arg.extract::<ZInt>()?);
-            }
             if let Some(arg) = kwargs.get_item("complete") {
                 builder = builder.complete(arg.extract::<bool>()?);
             }

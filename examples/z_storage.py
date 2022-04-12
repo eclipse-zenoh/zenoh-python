@@ -18,7 +18,6 @@ import argparse
 import json
 import zenoh
 from zenoh import Reliability, SampleKind, SubMode, Sample, KeyExpr
-from zenoh.queryable import STORAGE
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -93,7 +92,7 @@ sub = session.subscribe(
     key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
 
 print("Creating Queryable on '{}'...".format(key))
-queryable = session.queryable(key, query_handler, kind=STORAGE)
+queryable = session.queryable(key, query_handler)
 
 print("Enter 'q' to quit......")
 c = '\0'

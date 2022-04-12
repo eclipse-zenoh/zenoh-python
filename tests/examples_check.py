@@ -93,31 +93,31 @@ if not ("Received PUT ('/demo/example/zenoh-python-pub': '[   1] Pub from Python
 if any(("z_pull" in error) for error in errors):
 	pull.dbg()
 
-eval = Pyrun("z_eval.py", ["-k=/demo/example/zenoh-python-eval"])
+queryable = Pyrun("z_queryable.py", ["-k=/demo/example/zenoh-python-queryable"])
 time.sleep(1)
-get = Pyrun("z_get.py", ["-s=/demo/example/zenoh-python-eval"])
+get = Pyrun("z_get.py", ["-s=/demo/example/zenoh-python-queryable"])
 if get.status():
 	get.dbg()
 	errors.append(get.status())
-if not ("Received ('/demo/example/zenoh-python-eval': 'Eval from Python!')" in "".join(get.stdout)):
+if not ("Received ('/demo/example/zenoh-python-queryable': 'Queryable from Python!')" in "".join(get.stdout)):
 	get.dbg()
-	eval.dbg()
-	errors.append("z_get didn't get a response from z_eval")
+	queryable.dbg()
+	errors.append("z_get didn't get a response from z_queryable")
 
 try:
-	eval.process.stdin.write(b"q\n")
-	eval.process.stdin.flush()
-	eval.process.stdin.close()
+	queryable.process.stdin.write(b"q\n")
+	queryable.process.stdin.flush()
+	queryable.process.stdin.close()
 except Exception as e:
-	errors.append(f"eval stdin sequence failed: {e}")
-if eval.status():
-	eval.dbg()
-	errors.append(eval.status())
-evalout = "".join(eval.stdout)
-if not ("Received Query '/demo/example/zenoh-python-eval'" in evalout):
-	errors.append("z_eval didn't catch query")
-if any(("z_eval" in error) for error in errors):
-	eval.dbg()
+	errors.append(f"queryable stdin sequence failed: {e}")
+if queryable.status():
+	queryable.dbg()
+	errors.append(queryable.status())
+queryableout = "".join(queryable.stdout)
+if not ("Received Query '/demo/example/zenoh-python-queryable'" in queryableout):
+	errors.append("z_queryable didn't catch query")
+if any(("z_queryable" in error) for error in errors):
+	queryable.dbg()
 
 time.sleep(1)
 get = Pyrun("z_get.py", ["-s=/demo/example/zenoh-python-put"])

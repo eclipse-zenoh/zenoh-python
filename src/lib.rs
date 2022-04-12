@@ -93,18 +93,6 @@ sys.modules['zenoh.info'] = info
         Some(m.dict()),
     )?;
 
-    m.add_class::<queryable>()?;
-    // force addition of "zenoh.queryable" module
-    // (see https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601)
-    py.run(
-        "\
-import sys
-sys.modules['zenoh.queryable'] = queryable
-        ",
-        None,
-        Some(m.dict()),
-    )?;
-
     m.add_class::<AsyncQueryable>()?;
     m.add_class::<AsyncSession>()?;
     m.add_class::<AsyncSubscriber>()?;
@@ -131,7 +119,6 @@ sys.modules['zenoh.queryable'] = queryable
     m.add_class::<SourceInfo>()?;
     m.add_class::<SubMode>()?;
     m.add_class::<Subscriber>()?;
-    m.add_class::<Target>()?;
     m.add_class::<Timestamp>()?;
     m.add_class::<Value>()?;
     m.add_class::<ValueSelector>()?;

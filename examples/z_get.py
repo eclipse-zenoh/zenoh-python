@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, queryable, QueryTarget, Target
+from zenoh import config, QueryTarget
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -41,11 +41,6 @@ parser.add_argument('--selector', '-s', dest='selector',
                     default='/demo/example/**',
                     type=str,
                     help='The selection of resources to query.')
-parser.add_argument('--kind', '-k', dest='kind',
-                    choices=['ALL_KINDS', 'STORAGE', 'EVAL'],
-                    default='ALL_KINDS',
-                    type=str,
-                    help='The KIND of queryables to query.')
 parser.add_argument('--target', '-t', dest='target',
                     choices=['ALL', 'BEST_MATCHING', 'ALL_COMPLETE', 'NONE'],
                     default='ALL',
@@ -66,15 +61,11 @@ if args.connect is not None:
 if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 selector = args.selector
-kind = {
-    'ALL_KINDS': queryable.ALL_KINDS,
-    'STORAGE': queryable.STORAGE,
-    'EVAL': queryable.EVAL}.get(args.kind)
 target = {
-    'ALL': Target.All(),
-    'BEST_MATCHING': Target.BestMatching(),
-    'ALL_COMPLETE': Target.AllComplete(),
-    'NONE': Target.No()}.get(args.target)
+    'ALL': QueryTarget.All(),
+    'BEST_MATCHING': QueryTarget.BestMatching(),
+    'ALL_COMPLETE': QueryTarget.AllComplete(),
+    'NONE': QueryTarget.No()}.get(args.target)
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -85,7 +76,7 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-replies = session.get(selector, target=QueryTarget(kind, target))
+replies = session.get(selector, target=target)
 for reply in replies:
     print(">> Received ('{}': '{}')"
           .format(reply.sample.key_expr, reply.sample.payload.decode("utf-8")))

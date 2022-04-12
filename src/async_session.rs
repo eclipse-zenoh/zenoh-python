@@ -30,7 +30,7 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyTuple};
 use pyo3_asyncio::async_std::future_into_py;
 use std::collections::HashMap;
-use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture, ZInt};
+use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture};
 
 /// A zenoh session to be used with asyncio.
 #[pyclass]
@@ -567,12 +567,8 @@ impl AsyncSession {
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
         // note: extract from kwargs here because it's not Send and cannot be moved into future_into_py(py, F)
-        let mut kind: Option<ZInt> = None;
         let mut complete: Option<bool> = None;
         if let Some(kwargs) = kwargs {
-            if let Some(k) = kwargs.get_item("kind") {
-                kind = Some(k.extract()?);
-            }
             if let Some(p) = kwargs.get_item("local") {
                 complete = Some(p.extract::<bool>()?);
             }
@@ -580,9 +576,6 @@ impl AsyncSession {
 
         future_into_py(py, async move {
             let mut builder = s.queryable(k);
-            if let Some(k) = kind {
-                builder = builder.kind(k);
-            }
             if let Some(c) = complete {
                 builder = builder.complete(c);
             }

@@ -34,10 +34,10 @@ crate-type = ["cdylib"]
 complete_n = ["zenoh/complete_n"]
 
 [dependencies]
-zenoh = { git = "https://github.com/eclipse-zenoh/zenoh" }
-zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh" }
-zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh" }
-zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh" }
+zenoh = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
+zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
+zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
+zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
 validated_struct = "0.1"
 json5 = "0.4.1"
 serde_json = "1.0"
