@@ -46,6 +46,17 @@ impl AsyncSession {
     // Similarly, each argument coming from Python is converted to Rust and cloned (or Arc-wrapped) before
     // moving into the `future_into_py()` call.
 
+    /// Returns the identifier for this session.
+    ///
+    /// :raise: :class:`ZError`
+    ///
+    /// :type: **str**
+    #[getter]
+    fn id(&self) -> PyResult<String> {
+        let _s = self.try_ref()?;
+        Ok(_s.id().wait())
+    }
+
     /// Close the zenoh Session.
     pub fn close<'p>(&mut self, py: Python<'p>) -> PyResult<&'p PyAny> {
         // NOTE: should be sufficient to take the Arc<Session>. Once all arcs are dropped, Session will close.
@@ -59,6 +70,8 @@ impl AsyncSession {
     /// This method is a **coroutine**.
     ///
     /// :rtype: **dict[str, str]**
+    ///
+    /// :raise: :class:`ZError`
     ///
     /// :Example:
     ///
@@ -759,6 +772,13 @@ impl AsyncSession {
         AsyncSession {
             s: Some(s.into_arc()),
         }
+    }
+
+    #[inline]
+    fn try_ref(&self) -> PyResult<&Arc<zenoh::Session>> {
+        self.s
+            .as_ref()
+            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
     }
 
     #[inline]

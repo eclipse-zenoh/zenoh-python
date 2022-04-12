@@ -40,6 +40,15 @@ pub struct Session {
 
 #[pymethods]
 impl Session {
+    /// Returns the identifier for this session.
+    ///
+    /// :type: **str**
+    #[getter]
+    fn id(&self) -> PyResult<String> {
+        let s = self.as_ref()?;
+        Ok(s.id().wait())
+    }
+
     /// Close the zenoh Session.
     pub fn close(&mut self) -> PyResult<()> {
         let s = self.take()?;
@@ -71,7 +80,7 @@ impl Session {
 
     /// Get informations about the zenoh Session.
     ///
-    /// :rtype: dict {str: str}
+    /// :rtype:  **dict[str, str]**
     ///
     /// :Example:
     ///
