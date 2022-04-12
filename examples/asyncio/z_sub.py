@@ -64,16 +64,8 @@ async def main():
     # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
     async def listener(sample):
-        # try to decode the sample's value according to it's encoding. If not possible, use the value's payload (byte buffer)
-        try:
-            value = sample.value.decode()
-        except TypeError:
-            value = sample.value.payload
-        # if sample has a timestamp, get it's datetime
-        time = '(not specified)' if sample.timestamp is None else datetime.fromtimestamp(
-            sample.timestamp.time)
-        print(">> [Subscriber] Received {} on '{}': {}  (encoding:{}, timestamp:{})"
-              .format(sample.kind, sample.key_expr, value, sample.value.encoding, time))
+        print(">> [Subscriber] Received {} ('{}': '{}')"
+            .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8")))
 
     # initiate logging
     zenoh.init_logger()
