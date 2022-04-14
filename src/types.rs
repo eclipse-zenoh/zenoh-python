@@ -289,7 +289,22 @@ impl PyObjectProtocol for Hello {
     }
 }
 
-// zenoh.resource_name (simulate the package as a class with static methodss)
+/// A zenoh **resource** is represented by a pair composed by a **key** and a
+/// **value**, such as, ``(/car/telemetry/speed, 320)``.  A **resource key**
+/// is an arbitrary array of characters, with the exclusion of the symbols
+/// ``*``, ``**``, ``?``, ``[``, ``]``, and ``#``,
+/// which have special meaning in the context of zenoh.
+///
+/// A key including any number of the wildcard symbols, ``*`` and ``**``,
+/// such as, ``/car/telemetry/*``, is called a **key expression** as it
+/// denotes a set of keys. The wildcard character ``*`` expands to an
+/// arbitrary string not including zenoh's reserved characters and the ``/``
+/// character, while the ``**`` expands to  strings that may also include the
+/// ``/`` character.
+///
+/// Finally, it is worth mentioning that for time and space efficiency matters,
+/// zenoh will automatically map key expressions to small integers. The mapping is automatic,
+/// but it can be triggered excplicily by with :meth:`Session.declare_expr`.
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub struct KeyExpr {
@@ -299,6 +314,18 @@ pub struct KeyExpr {
 #[allow(non_snake_case)]
 #[pymethods]
 impl KeyExpr {
+    /// The numeric scope (0 marks global scope)
+    #[getter]
+    fn scope(&self) -> ZInt {
+        self.inner.scope
+    }
+
+    /// The string suffix (or the complete key expression if scope==0)
+    #[getter]
+    fn suffix(&self) -> String {
+        self.inner.suffix.to_string()
+    }
+
     /// Return true if both resource names intersect.
     ///
     /// :param s1: the 1st resource name
@@ -1113,7 +1140,7 @@ impl Queryable {
 // zenoh.Target (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
-/// The queryables that should be target of a :class:`Query`
+/// The zenoh queryables that should be target of a :meth:`Session.get`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct QueryTarget {
@@ -1161,7 +1188,7 @@ impl QueryTarget {
     }
 }
 
-// zenoh.QueryConsolidation (simulate the enum as a class with static methods for the cases,
+// zenoh.ConsolidationMode (simulate the enum as a class with static methods for the cases,
 // waiting for https://github.com/PyO3/pyo3/issues/834 to be fixed)
 //
 /// The kind of consolidation that should be applied on replies to a :meth:`Session.get`.
