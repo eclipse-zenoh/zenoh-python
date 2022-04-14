@@ -642,6 +642,21 @@ impl Session {
             Ok(result.into())
         })
     }
+
+    /// Convert a :class:`KeyExpr` into the corresponding stringified key expression
+    /// (i.e. the scope is converted its corresponding key expression and the suffix is concatenated).
+    ///
+    /// :param key_expr: The selection of resources to query
+    /// :type key_expr: :class:`KeyExpr`
+    ///
+    /// :rtype: **str**
+    /// :raise: :class:`ZError`
+    #[pyo3(text_signature = "(self, key_expr)")]
+    fn key_expr_to_expr(&self, key_expr: &KeyExpr) -> PyResult<String> {
+        self.as_ref()?
+            .key_expr_to_expr(&key_expr.inner)
+            .map_err(to_pyerr)
+    }
 }
 
 impl Session {
