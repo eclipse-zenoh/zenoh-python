@@ -161,12 +161,6 @@ Subscriber
 .. autoclass:: zenoh.Subscriber
     :members:
 
-Target
-------
-.. autoclass:: zenoh.Target
-    :members:
-    :undoc-members:
-
 Timestamp
 ---------
 .. autoclass:: zenoh.Timestamp
@@ -207,11 +201,5 @@ module zenoh.config
 module zenoh.info
 =================
 .. autoclass:: zenoh.info
-    :members:
-    :undoc-members:
-
-module zenoh.queryable
-======================
-.. autoclass:: zenoh.queryable
     :members:
     :undoc-members:
