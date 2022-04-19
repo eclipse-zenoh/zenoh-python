@@ -52,11 +52,6 @@ impl SampleKind {
     pub fn DELETE() -> Self {
         ZSampleKind::Delete.into()
     }
-
-    #[classattr]
-    pub fn DEFAULT() -> Self {
-        ZSampleKind::default().into()
-    }
 }
 
 #[pyproto]
