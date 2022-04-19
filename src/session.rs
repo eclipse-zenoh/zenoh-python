@@ -114,14 +114,9 @@ impl Session {
 
     /// Put data.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// :param key_expr: The key expression matching resources to write
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :param value: The value to write
     /// :type value: any type convertible to a :class:`Value`
     /// :param \**kwargs:
@@ -190,14 +185,9 @@ impl Session {
 
     /// Delete data.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// :param key_expr: The key expression matching resources to delete
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :param \**kwargs:
     ///    See below
     ///
@@ -250,14 +240,9 @@ impl Session {
     /// This numerical Id will be used on the network to save bandwidth and
     /// ease the retrieval of the concerned resource in the routing tables.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// :param key_expr: The key expression to map to a numerical Id
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :rtype: **int**
     /// :raise: :class:`ZError`
     ///
@@ -297,14 +282,9 @@ impl Session {
     /// Written expressions that match the given key expression will only be sent on the network
     /// if matching subscribers exist in the system.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// :param key_expr: The key expression to publish
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :raise: :class:`ZError`
     ///
     /// :Examples:
@@ -323,15 +303,9 @@ impl Session {
 
     /// Undeclare the publication previously declared with :meth:`declare_publication`.
     ///
-    /// Similarly to :meth:`declare_publication` method, the *key_expr* parameter also accepts
-    /// the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// :param key_expr: The same key expression that was used to declare the publication
-    /// :type key_expr: :class:`ExprId`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :raise: :class:`ZError`
     #[pyo3(text_signature = "(self, key_expr)")]
     fn undeclare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
@@ -343,14 +317,9 @@ impl Session {
 
     /// Create a Subscriber for the given key expression.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// :param key_expr: The key expression to subscribe
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :param callback: the subscription callback
     /// :type callback: function(:class:`Sample`)
     /// :param \**kwargs:
@@ -466,14 +435,9 @@ impl Session {
 
     /// Create a Queryable for the given key expression.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// :param key_expr: The key expression the Queryable will reply to
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :param callback: the queryable callback
     /// :type callback: function(:class:`Query`)
     /// :param \**kwargs:
@@ -647,7 +611,8 @@ impl Session {
     /// (i.e. the scope is converted its corresponding key expression and the suffix is concatenated).
     ///
     /// :param key_expr: The selection of resources to query
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     ///
     /// :rtype: **str**
     /// :raise: :class:`ZError`

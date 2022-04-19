@@ -104,16 +104,11 @@ impl AsyncSession {
 
     /// Put data.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// This method is a **coroutine**.
     ///
     /// :param key_expr: The key expression matching resources to write
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :param value: The value to write
     /// :type value: any type convertible to a :class:`Value`
     /// :param \**kwargs:
@@ -193,16 +188,11 @@ impl AsyncSession {
 
     /// Delete data.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// This method is a **coroutine**.
     ///
     /// :param key_expr: The key expression matching resources to delete
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :param \**kwargs:
     ///    See below
     ///
@@ -265,16 +255,11 @@ impl AsyncSession {
     /// This numerical Id will be used on the network to save bandwidth and
     /// ease the retrieval of the concerned resource in the routing tables.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// This method is a **coroutine**.
     ///
     /// :param key_expr: The key expression to map to a numerical Id
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :rtype: **int**
     /// :raise: :class:`ZError`
     ///
@@ -325,16 +310,11 @@ impl AsyncSession {
     /// Written expressions that match the given key expression will only be sent on the network
     /// if matching subscribers exist in the system.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// This method is a **coroutine**.
     ///
     /// :param key_expr: The key expression to publish
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :raise: :class:`ZError`
     ///
     /// :Examples:
@@ -357,15 +337,9 @@ impl AsyncSession {
 
     /// Undeclare the publication previously declared with :meth:`declare_publication`.
     ///
-    /// Similarly to :meth:`declare_publication` method, the *key_expr* parameter also accepts
-    /// the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// :param key_expr: The same key expression that was used to declare the publication
-    /// :type key_expr: :class:`ExprId`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :raise: :class:`ZError`
     #[pyo3(text_signature = "(self, key_expr)")]
     fn undeclare_publication<'p>(&self, key_expr: &PyAny, py: Python<'p>) -> PyResult<&'p PyAny> {
@@ -378,16 +352,11 @@ impl AsyncSession {
 
     /// Create an AsyncSubscriber for the given key expression.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// This method is a **coroutine**.
     ///
     /// :param key_expr: The key expression to subscribe
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :param callback: the subscription callback (must be a **coroutine**)
     /// :type callback: async function(:class:`Sample`)
     /// :param \**kwargs:
@@ -538,16 +507,11 @@ impl AsyncSession {
 
     /// Create an AsyncQueryable for the given key expression.
     ///
-    /// The *key_expr* parameter also accepts the following types that can be converted to a :class:`KeyExpr`:
-    ///
-    /// * **int** for a mapped key expression
-    /// * **str** for a literal key expression
-    /// * **(int, str)** for a mapped key expression with suffix
-    ///
     /// This method is a **coroutine**.
     ///
     /// :param key_expr: The key expression the Queryable will reply to
-    /// :type key_expr: :class:`KeyExpr`
+    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+    ///                 (see its constructor's accepted parameters)
     /// :param callback: the queryable callback (must be a **coroutine**)
     /// :type callback: async function(:class:`Query`)
     /// :param \**kwargs:
