@@ -23,7 +23,7 @@ use log::warn;
 use pyo3::exceptions;
 use pyo3::number::PyNumberOrProtocol;
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyTuple};
+use pyo3::types::{PyBytes, PyDict, PyTuple};
 use pyo3::PyObjectProtocol;
 use zenoh::config::whatami::WhatAmIMatcher;
 use zenoh::config::WhatAmI as ZWhatAmI;
@@ -305,6 +305,12 @@ impl PyObjectProtocol for Hello {
 /// Finally, it is worth mentioning that for time and space efficiency matters,
 /// zenoh will automatically map key expressions to small integers. The mapping is automatic,
 /// but it can be triggered excplicily by with :meth:`Session.declare_expr`.
+///
+/// The KeyExpr constructor accepts any of the following types as parameters:
+///
+/// * **int** for a mapped key expression (see :meth:`Session.declare_expr`)
+/// * **str** for a literal key expression
+/// * **(int, str)** for a mapped key expression with suffix
 #[allow(non_camel_case_types)]
 #[pyclass]
 pub struct KeyExpr {
@@ -314,6 +320,14 @@ pub struct KeyExpr {
 #[allow(non_snake_case)]
 #[pymethods]
 impl KeyExpr {
+    #[new]
+    fn new(key_expr: &PyAny) -> PyResult<Self> {
+        let inner = zkey_expr_of_pyany(key_expr)?;
+        Ok(KeyExpr {
+            inner: inner.to_owned(),
+        })
+    }
+
     /// The numeric scope (0 marks global scope)
     #[getter]
     fn scope(&self) -> ZInt {
@@ -840,16 +854,23 @@ impl SourceInfo {
     }
 }
 
-/// A zenoh sample.
+/// A zenoh sample. It can be constructed with:
 ///
-/// :param key_expr: the resource name
-/// :type key_expr: str
-/// :param payload: the data payload
-/// :type payload: bytes
-/// :param source_info: some information about the data
-/// :type source_info: SourceInfo, optional
+/// :param key_expr: The key expression of this Sample
+/// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
+///                 (see its constructor's accepted parameters)
+/// :param value: The value of this Sample
+/// :type value: any type convertible to a :class:`Value` (see below)
+/// :param \**kwargs:
+///    See below
+///
+/// :Keyword Arguments:
+///    * **timestamp** (:class:`Timestamp`) --
+///      The Timestamp of this Sample
+///    * **source_info** (:class:`SourceInfo`) --
+///      Infos on the source of this Sample.
 #[pyclass]
-#[pyo3(text_signature = "(key_expr, payload, source_info=None)")]
+#[pyo3(text_signature = "(key_expr, payload, timestamp=None, source_info=None)")]
 #[derive(Clone)]
 pub(crate) struct Sample {
     pub(crate) s: zenoh::prelude::Sample,
@@ -864,49 +885,32 @@ impl pyo3::conversion::ToPyObject for Sample {
 #[pymethods]
 impl Sample {
     #[new]
-    fn new(key_expr: &PyAny, payload: &PyAny) -> Self {
+    fn new(key_expr: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<Self> {
         let key_expr = zkey_expr_of_pyany(key_expr).unwrap();
-        let payload = zvalue_of_pyany(payload).unwrap();
-        Sample {
-            s: zenoh::prelude::Sample::new(key_expr.to_owned(), payload),
+        let value = zvalue_of_pyany(value).unwrap();
+        let mut s = zenoh::prelude::Sample::new(key_expr.to_owned(), value);
+        if let Some(kwargs) = kwargs {
+            if let Some(arg) = kwargs.get_item("timestamp") {
+                s = s.with_timestamp(arg.extract::<Timestamp>()?.t);
+            }
+            if let Some(arg) = kwargs.get_item("source_info") {
+                s = s.with_source_info(arg.extract::<SourceInfo>()?.i);
+            }
         }
-    }
-    pub fn with_timestamp(&mut self, timestamp: Timestamp) {
-        unsafe {
-            let s = std::ptr::read(self);
-            let s = s.s.with_timestamp(timestamp.t);
-            std::ptr::write(self, Sample { s });
-        }
-    }
-    pub fn with_source_info(&mut self, info: SourceInfo) {
-        unsafe {
-            let s = std::ptr::read(self);
-            let s = s.s.with_source_info(info.i);
-            std::ptr::write(self, Sample { s });
-        }
+        Ok(Sample { s })
     }
 
-    /// The resource name
+    /// The key expression
     ///
-    /// :type: str
+    /// :type: :class:`KeyExpr`
     #[getter]
     fn key_expr(&self) -> KeyExpr {
         self.s.key_expr.to_owned().into()
     }
 
-    /// The data payload
+    /// The value
     ///
-    /// DEPRECATED: use the strictly equivalent code: `sample.value.payload`
-    ///
-    /// :type: bytes
-    #[getter]
-    fn payload<'a>(&self, py: Python<'a>) -> &'a PyBytes {
-        PyBytes::new(py, self.s.value.payload.contiguous().as_ref())
-    }
-
-    /// The data payload
-    ///
-    /// :type: bytes
+    /// :type: :class:`Value`
     #[getter]
     fn value(&self) -> Value {
         Value {
@@ -916,7 +920,7 @@ impl Sample {
 
     /// The data payload
     ///
-    /// :type: bytes
+    /// :type: :class:`SampleKind`
     #[getter]
     fn kind(&self) -> SampleKind {
         self.s.kind.into()
