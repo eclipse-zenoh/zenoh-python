@@ -1070,7 +1070,7 @@ impl Subscriber {
     }
 }
 
-/// Type received by a queryable callback. See :meth:`Session.register_queryable`.
+/// Type received by a queryable callback. See :meth:`Session.queryable`.
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Query {
@@ -1085,7 +1085,7 @@ impl pyo3::conversion::ToPyObject for Query {
 
 #[pymethods]
 impl Query {
-    /// The key_selector of the query
+    /// The full :class:`Selector` of this Query.
     ///
     /// :type: :class:`Selector`
     #[getter]
@@ -1093,7 +1093,7 @@ impl Query {
         self.q.selector().to_owned().into()
     }
 
-    /// The key_selector of the query
+    /// The key selector part of this Query.
     ///
     /// :type: :class:`KeyExpr`
     #[getter]
@@ -1101,7 +1101,7 @@ impl Query {
         self.q.key_selector().to_owned().into()
     }
 
-    /// The value_selector of the query
+    /// The value selector part of this Query.
     ///
     /// :type: str
     #[getter]
@@ -1109,7 +1109,7 @@ impl Query {
         self.q.value_selector().to_string()
     }
 
-    /// Send a reply to the query
+    /// Send a reply to this query
     ///
     /// :param sample: the reply sample
     /// :type: Sample
