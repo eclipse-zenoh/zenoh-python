@@ -82,7 +82,7 @@ async def main():
             print("  WARN: error in value selector: {}. Ignore it.".format(e))
         print("  Replying to query on {}".format(selector))
         reply = "{} (this is the reply to query on {})".format(value, selector)
-        query.reply(Sample(key_expr=key, payload=reply.encode()))
+        query.reply(Sample(key_expr=key, value=reply.encode()))
 
     async def queryable_callback(query):
         print(">> [Queryable ] Received Query '{}'".format(query.selector))

@@ -76,8 +76,7 @@ def query_handler(query):
     replies = []
     for stored_name, (data, source_info) in store.items():
         if KeyExpr.intersect(query.key_selector, stored_name):
-            sample = Sample(stored_name, data)
-            sample.with_source_info(source_info)
+            sample = Sample(stored_name, data, source_info=source_info)
             query.reply(sample)
 
 

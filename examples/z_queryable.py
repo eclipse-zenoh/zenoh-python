@@ -67,7 +67,7 @@ value = args.value
 
 def queryable_callback(query):
     print(">> [Queryable ] Received Query '{}'".format(query.selector))
-    query.reply(Sample(key_expr=key, payload=value.encode()))
+    query.reply(Sample(key_expr=key, value=value.encode()))
 
 
 # initiate logging
