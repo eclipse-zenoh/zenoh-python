@@ -630,6 +630,48 @@ impl IntoPyAlt<PyObject> for serde_json::Number {
     }
 }
 
+fn decode_value(value: &ZValue, py: Python) -> PyResult<PyObject> {
+    match value.encoding.prefix() {
+        ZKnownEncoding::Empty | ZKnownEncoding::AppOctetStream => {
+            Ok(value.payload.contiguous().into_py(py))
+        }
+        ZKnownEncoding::TextPlain => {
+            Ok(String::from_utf8_lossy(&value.payload.contiguous()).into_py(py))
+        }
+        ZKnownEncoding::AppProperties => {
+            value
+                .as_properties()
+                .map(|v| v.0.into_py(py))
+                .ok_or_else(|| {
+                    exceptions::PyTypeError::new_err(
+                        "Failed to decode Value's payload as Properties",
+                    )
+                })
+        }
+        ZKnownEncoding::AppJson | ZKnownEncoding::TextJson => value
+            .as_json()
+            .map(|v: serde_json::Value| v.into_py_alt(py))
+            .ok_or_else(|| {
+                exceptions::PyTypeError::new_err("Failed to decode Value's payload as JSON")
+            }),
+        ZKnownEncoding::AppInteger => {
+            value
+                .as_integer()
+                .map(|v: i64| v.into_py(py))
+                .ok_or_else(|| {
+                    exceptions::PyTypeError::new_err("Failed to decode Value's payload as Integer")
+                })
+        }
+        ZKnownEncoding::AppFloat => value.as_float().map(|v: f64| v.into_py(py)).ok_or_else(|| {
+            exceptions::PyTypeError::new_err("Failed to decode Value's payload as Float")
+        }),
+        _ => Err(exceptions::PyTypeError::new_err(format!(
+            "Don't know how to decode Value's payload with encoding: {}",
+            value.encoding
+        ))),
+    }
+}
+
 #[allow(non_snake_case)]
 #[pymethods]
 impl Value {
@@ -660,51 +702,7 @@ impl Value {
     ///
     /// :rtype: depend on the encoding flag (e.g. str for a StringUtf8 Value, int for an Integer Value ...)
     fn decode(&self, py: Python) -> PyResult<PyObject> {
-        match self.v.encoding.prefix() {
-            ZKnownEncoding::Empty | ZKnownEncoding::AppOctetStream => {
-                Ok(self.v.payload.contiguous().into_py(py))
-            }
-            ZKnownEncoding::TextPlain => {
-                Ok(String::from_utf8_lossy(&self.v.payload.contiguous()).into_py(py))
-            }
-            ZKnownEncoding::AppProperties => self
-                .v
-                .as_properties()
-                .map(|v| v.0.into_py(py))
-                .ok_or_else(|| {
-                    exceptions::PyTypeError::new_err(
-                        "Failed to decode Value's payload as Properties",
-                    )
-                }),
-            ZKnownEncoding::AppJson | ZKnownEncoding::TextJson => self
-                .v
-                .as_json()
-                .map(|v: serde_json::Value| v.into_py_alt(py))
-                .ok_or_else(|| {
-                    exceptions::PyTypeError::new_err("Failed to decode Value's payload as JSON")
-                }),
-            ZKnownEncoding::AppInteger => self
-                .v
-                .as_integer()
-                .map(|v: i64| v.into_py(py))
-                .ok_or_else(|| {
-                    exceptions::PyTypeError::new_err("Failed to decode Value's payload as Integer")
-                }),
-            ZKnownEncoding::AppFloat => {
-                self.v
-                    .as_float()
-                    .map(|v: f64| v.into_py(py))
-                    .ok_or_else(|| {
-                        exceptions::PyTypeError::new_err(
-                            "Failed to decode Value's payload as Float",
-                        )
-                    })
-            }
-            _ => Err(exceptions::PyTypeError::new_err(format!(
-                "Don't know how to decode Value's payload with encoding: {}",
-                self.v.encoding
-            ))),
-        }
+        decode_value(&self.v, py)
     }
 }
 
@@ -942,6 +940,35 @@ impl Sample {
     #[getter]
     fn timestamp(&self) -> Option<Timestamp> {
         self.s.timestamp.map(|t| Timestamp { t })
+    }
+
+    /// the payload of the Value of this Sample.
+    ///
+    /// This is a shortcut for sample.value.payload.
+    ///
+    /// :type: **bytes**
+    #[getter]
+    fn payload<'a>(&self, py: Python<'a>) -> &'a PyBytes {
+        PyBytes::new(py, self.s.value.payload.contiguous().as_ref())
+    }
+
+    /// the encoding of the Value of this Sample.
+    ///
+    /// This is a shortcut for sample.value.encoding.
+    ///
+    /// :type: :class:`Encoding`
+    #[getter]
+    fn encoding(&self) -> PyResult<Encoding> {
+        Ok(self.s.value.encoding.clone().into())
+    }
+
+    /// Try to decode the value's payload of this Sample according to it's encoding, and return a typed object or primitive.
+    ///
+    /// This is a shortcut for sample.value.decode().
+    ///
+    /// :rtype: depend on the encoding flag (e.g. str for a StringUtf8 Value, int for an Integer Value ...)
+    fn decode(&self, py: Python) -> PyResult<PyObject> {
+        decode_value(&self.s.value, py)
     }
 }
 
