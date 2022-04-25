@@ -883,6 +883,7 @@ impl pyo3::conversion::ToPyObject for Sample {
 #[pymethods]
 impl Sample {
     #[new]
+    #[args(kwargs = "**")]
     fn new(key_expr: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<Self> {
         let key_expr = zkey_expr_of_pyany(key_expr).unwrap();
         let value = zvalue_of_pyany(value).unwrap();
