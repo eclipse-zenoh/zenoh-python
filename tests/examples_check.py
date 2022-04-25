@@ -125,10 +125,7 @@ if get.status():
 	get.dbg()
 	errors.append(get.status())
 if not ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in "".join(get.stdout)):
-	storage.dbg()
-	errors.append("z_get didn't get a response from z_storage about put")
-if not ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in "".join(get.stdout)):
-	storage.dbg()
+	get.dbg()
 	errors.append("z_get didn't get a response from z_storage about put")
 if any(("z_get" in error) for error in errors):
 	get.dbg()
