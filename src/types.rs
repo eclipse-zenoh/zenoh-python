@@ -25,11 +25,12 @@ use pyo3::number::PyNumberOrProtocol;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyTuple};
 use pyo3::PyObjectProtocol;
+use std::convert::TryFrom;
 use zenoh::config::whatami::WhatAmIMatcher;
 use zenoh::config::WhatAmI as ZWhatAmI;
 use zenoh::prelude::{
     Encoding as ZEncoding, KeyExpr as ZKeyExpr, KnownEncoding as ZKnownEncoding,
-    Selector as ZSelector, Value as ZValue, ZInt,
+    Selector as ZSelector, Value as ZValue, ZFuture, ZInt,
 };
 use zenoh_buffers::traits::SplitBuffer;
 
@@ -254,12 +255,12 @@ pub(crate) struct Hello {
 
 #[pymethods]
 impl Hello {
-    /// The PeerId of the Hello message sender
+    /// The ZenohId of the Hello message sender
     ///
-    /// :type: :class:`PeerId` or `None`
+    /// :type: :class:`ZenohId` or `None`
     #[getter]
-    fn pid(&self) -> Option<PeerId> {
-        self.h.pid.as_ref().map(|p| PeerId { p: *p })
+    fn pid(&self) -> Option<ZenohId> {
+        self.h.pid.as_ref().map(|p| ZenohId { p: *p })
     }
 
     /// The mode of the Hello message sender (bitmask of constants from :class:`whatami`)
@@ -538,14 +539,14 @@ impl ValueSelector {
     }
 }
 
-/// A Peer id
+/// A Zenoh id
 #[pyclass]
-pub(crate) struct PeerId {
-    pub(crate) p: zenoh::prelude::PeerId,
+pub(crate) struct ZenohId {
+    pub(crate) p: zenoh::prelude::ZenohId,
 }
 
 #[pyproto]
-impl PyObjectProtocol for PeerId {
+impl PyObjectProtocol for ZenohId {
     fn __str__(&self) -> String {
         self.p.to_string()
     }
@@ -638,33 +639,18 @@ fn decode_value(value: &ZValue, py: Python) -> PyResult<PyObject> {
         ZKnownEncoding::TextPlain => {
             Ok(String::from_utf8_lossy(&value.payload.contiguous()).into_py(py))
         }
-        ZKnownEncoding::AppProperties => {
-            value
-                .as_properties()
-                .map(|v| v.0.into_py(py))
-                .ok_or_else(|| {
-                    exceptions::PyTypeError::new_err(
-                        "Failed to decode Value's payload as Properties",
-                    )
-                })
-        }
-        ZKnownEncoding::AppJson | ZKnownEncoding::TextJson => value
-            .as_json()
-            .map(|v: serde_json::Value| v.into_py_alt(py))
-            .ok_or_else(|| {
-                exceptions::PyTypeError::new_err("Failed to decode Value's payload as JSON")
-            }),
-        ZKnownEncoding::AppInteger => {
-            value
-                .as_integer()
-                .map(|v: i64| v.into_py(py))
-                .ok_or_else(|| {
-                    exceptions::PyTypeError::new_err("Failed to decode Value's payload as Integer")
-                })
-        }
-        ZKnownEncoding::AppFloat => value.as_float().map(|v: f64| v.into_py(py)).ok_or_else(|| {
-            exceptions::PyTypeError::new_err("Failed to decode Value's payload as Float")
-        }),
+        ZKnownEncoding::AppProperties => zenoh::properties::Properties::try_from(value)
+            .map(|v| v.0.into_py(py))
+            .map_err(|e| exceptions::PyTypeError::new_err(e.to_string())),
+        ZKnownEncoding::AppJson | ZKnownEncoding::TextJson => serde_json::Value::try_from(value)
+            .map(|v| v.into_py_alt(py))
+            .map_err(|e| exceptions::PyTypeError::new_err(e.to_string())),
+        ZKnownEncoding::AppInteger => i64::try_from(value)
+            .map(|v| v.into_py(py))
+            .map_err(|e| exceptions::PyTypeError::new_err(e.to_string())),
+        ZKnownEncoding::AppFloat => f64::try_from(value)
+            .map(|v| v.into_py(py))
+            .map_err(|e| exceptions::PyTypeError::new_err(e.to_string())),
         _ => Err(exceptions::PyTypeError::new_err(format!(
             "Don't know how to decode Value's payload with encoding: {}",
             value.encoding
@@ -819,12 +805,12 @@ pub(crate) struct SourceInfo {
 
 #[pymethods]
 impl SourceInfo {
-    /// The :class:`PeerId` of the data source.
+    /// The :class:`ZenohId` of the data source.
     ///
-    /// :type: :class:`PeerId` or `None`
+    /// :type: :class:`ZenohId` or `None`
     #[getter]
-    fn source_id(&self) -> Option<PeerId> {
-        self.i.source_id.as_ref().map(|p| PeerId { p: *p })
+    fn source_id(&self) -> Option<ZenohId> {
+        self.i.source_id.as_ref().map(|p| ZenohId { p: *p })
     }
 
     /// The source sequence number of the data.
@@ -835,12 +821,12 @@ impl SourceInfo {
         self.i.source_sn
     }
 
-    /// The :class:`PeerId` of the 1st router that routed the data.
+    /// The :class:`ZenohId` of the 1st router that routed the data.
     ///
-    /// :type: :class:`PeerId` or `None`
+    /// :type: :class:`ZenohId` or `None`
     #[getter]
-    fn first_router_id(&self) -> Option<PeerId> {
-        self.i.first_router_id.as_ref().map(|p| PeerId { p: *p })
+    fn first_router_id(&self) -> Option<ZenohId> {
+        self.i.first_router_id.as_ref().map(|p| ZenohId { p: *p })
     }
 
     /// The first router sequence number of the data.
@@ -1143,7 +1129,9 @@ impl Query {
     /// :type: Sample
     #[pyo3(text_signature = "(self, sample)")]
     fn reply(&self, sample: Sample) {
-        self.q.reply(sample.s);
+        if let Err(e) = self.q.reply(Ok(sample.s)).wait() {
+            warn!("Error in Query::reply() : {}", e);
+        }
     }
 }
 
@@ -1467,15 +1455,15 @@ impl Reply {
     #[getter]
     fn sample(&self) -> Sample {
         Sample {
-            s: self.r.sample.clone(),
+            s: self.r.sample.as_ref().unwrap().clone(),
         }
     }
 
     /// The identifier of reply source
     ///
-    /// :type: PeerId
-    fn replier_id(&self) -> PeerId {
-        PeerId {
+    /// :type: ZenohId
+    fn replier_id(&self) -> ZenohId {
+        ZenohId {
             p: self.r.replier_id,
         }
     }

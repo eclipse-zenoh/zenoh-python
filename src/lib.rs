@@ -103,7 +103,7 @@ sys.modules['zenoh.info'] = info
     m.add_class::<Hello>()?;
     m.add_class::<KeyExpr>()?;
     m.add_class::<KnownEncoding>()?;
-    m.add_class::<PeerId>()?;
+    m.add_class::<ZenohId>()?;
     m.add_class::<Period>()?;
     m.add_class::<Priority>()?;
     m.add_class::<Query>()?;
