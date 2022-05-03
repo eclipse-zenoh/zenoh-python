@@ -100,6 +100,7 @@ sys.modules['zenoh.info'] = info
     m.add_class::<CongestionControl>()?;
     m.add_class::<ConsolidationMode>()?;
     m.add_class::<encoding::Encoding>()?;
+    m.add_class::<Error>()?;
     m.add_class::<Hello>()?;
     m.add_class::<KeyExpr>()?;
     m.add_class::<KnownEncoding>()?;

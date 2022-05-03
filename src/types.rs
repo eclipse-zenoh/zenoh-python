@@ -29,7 +29,7 @@ use std::convert::TryFrom;
 use zenoh::config::whatami::WhatAmIMatcher;
 use zenoh::config::WhatAmI as ZWhatAmI;
 use zenoh::prelude::{
-    Encoding as ZEncoding, KeyExpr as ZKeyExpr, KnownEncoding as ZKnownEncoding,
+    Encoding as ZEncoding, KeyExpr as ZKeyExpr, KnownEncoding as ZKnownEncoding, Sample as ZSample,
     Selector as ZSelector, Value as ZValue, ZFuture, ZInt,
 };
 use zenoh_buffers::traits::SplitBuffer;
@@ -857,7 +857,7 @@ impl SourceInfo {
 #[pyo3(text_signature = "(key_expr, payload, timestamp=None, source_info=None)")]
 #[derive(Clone)]
 pub(crate) struct Sample {
-    pub(crate) s: zenoh::prelude::Sample,
+    pub(crate) s: ZSample,
 }
 
 impl pyo3::conversion::ToPyObject for Sample {
@@ -967,6 +967,113 @@ impl PyObjectProtocol for Sample {
 
     fn __repr__(&self) -> String {
         self.__str__()
+    }
+}
+
+/// An error resulting from a get operation. The error
+/// can either be a user error returned by a queryable
+/// or an infrastructure error.
+///
+/// It can be constructed with:
+///
+/// :param value: The value of this Error
+/// :type value: any type convertible to a :class:`Value`
+#[pyclass]
+#[pyo3(text_signature = "(value)")]
+#[derive(Clone)]
+pub(crate) struct Error {
+    pub(crate) v: zenoh::prelude::Value,
+}
+
+impl pyo3::conversion::ToPyObject for Error {
+    fn to_object(&self, py: Python) -> pyo3::PyObject {
+        pyo3::IntoPy::into_py(pyo3::Py::new(py, self.clone()).unwrap(), py)
+    }
+}
+
+#[pymethods]
+impl Error {
+    #[new]
+    fn new(value: &PyAny) -> PyResult<Self> {
+        let v = zvalue_of_pyany(value).unwrap();
+        Ok(Error { v })
+    }
+
+    /// The Value of this Error
+    ///
+    /// :type: Value
+    #[getter]
+    fn value(&self) -> Value {
+        Value { v: self.v.clone() }
+    }
+
+    /// the payload of the Value of this Error.
+    ///
+    /// :type: **bytes**
+    #[getter]
+    fn payload<'a>(&self, py: Python<'a>) -> &'a PyBytes {
+        PyBytes::new(py, self.v.payload.contiguous().as_ref())
+    }
+
+    /// the encoding of the Value of this Error.
+    ///
+    /// :type: :class:`Encoding`
+    #[getter]
+    fn encoding(&self) -> PyResult<Encoding> {
+        Ok(self.v.encoding.clone().into())
+    }
+
+    /// Try to decode this Error value's payload according to it's encoding, and return a typed object or primitive.
+    ///
+    /// :rtype: depend on the encoding flag (e.g. str for a StringUtf8 Value, int for an Integer Value ...)
+    fn decode(&self, py: Python) -> PyResult<PyObject> {
+        decode_value(&self.v, py)
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Error {
+    fn __str__(&self) -> String {
+        format!("{:?}", self.v)
+    }
+
+    fn __repr__(&self) -> String {
+        self.__str__()
+    }
+}
+
+#[derive(FromPyObject, Clone)]
+enum Result {
+    #[pyo3(transparent)]
+    Ok(Sample),
+    #[pyo3(transparent)]
+    Err(Error),
+}
+
+impl IntoPy<PyObject> for Result {
+    fn into_py(self, py: Python) -> pyo3::PyObject {
+        match self {
+            Result::Ok(s) => s.into_py(py),
+            Result::Err(e) => e.into_py(py),
+        }
+    }
+}
+
+impl From<std::result::Result<ZSample, ZValue>> for Result {
+    fn from(r: std::result::Result<ZSample, ZValue>) -> Self {
+        match r {
+            Ok(s) => Result::Ok(Sample { s }),
+            Err(v) => Result::Err(Error { v }),
+        }
+    }
+}
+
+impl From<Result> for std::result::Result<ZSample, ZValue> {
+    fn from(r: Result) -> Self {
+        match r {
+            Result::Ok(s) => std::result::Result::Ok(s.s),
+            Result::Err(v) => std::result::Result::Err(v.v),
+        }
     }
 }
 
@@ -1128,8 +1235,8 @@ impl Query {
     /// :param sample: the reply sample
     /// :type: Sample
     #[pyo3(text_signature = "(self, sample)")]
-    fn reply(&self, sample: Sample) {
-        if let Err(e) = self.q.reply(Ok(sample.s)).wait() {
+    fn reply(&self, sample: Result) {
+        if let Err(e) = self.q.reply(sample.into()).wait() {
             warn!("Error in Query::reply() : {}", e);
         }
     }
@@ -1453,10 +1560,8 @@ impl Reply {
     ///
     /// :type: Sample
     #[getter]
-    fn sample(&self) -> Sample {
-        Sample {
-            s: self.r.sample.as_ref().unwrap().clone(),
-        }
+    fn sample(&self) -> Result {
+        self.r.sample.clone().into()
     }
 
     /// The identifier of reply source

@@ -82,8 +82,12 @@ async def main():
     print("Sending Query '{}'...".format(selector))
     replies = await session.get(selector, target=target)
     for reply in replies:
-        print(">> Received ('{}': '{}')"
-              .format(reply.sample.key_expr, reply.sample.payload.decode("utf-8")))
+        if isinstance(reply.sample, zenoh.Sample):
+            print(">> Received ('{}': '{}')"
+                .format(reply.sample.key_expr, reply.sample.payload.decode("utf-8")))
+        else: 
+            print(">> Received (ERROR: '{}')"
+                .format(reply.sample.payload.decode("utf-8")))
 
     await session.close()
 
