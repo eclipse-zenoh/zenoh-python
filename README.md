@@ -12,6 +12,8 @@
 [Eclipse zenoh](http://zenoh.io) is an extremely efficient and fault-tolerant [Named Data Networking](http://named-data.net) (NDN) protocol 
 that is able to scale down to extremely constrainded devices and networks.
 
+Check the website [zenoh.io](http://zenoh.io) and the [roadmap](https://github.com/eclipse-zenoh/roadmap) for more detailed information.
+
 -------------------------------
 ## How to install it
 
