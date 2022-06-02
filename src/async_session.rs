@@ -16,21 +16,19 @@ use super::encoding::Encoding;
 use super::sample_kind::SampleKind;
 use super::types::{
     zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, KeyExpr, Period, Priority, Query,
-    QueryConsolidation, QueryTarget, Reliability, Reply, Sample, SubMode, ZnSubOps,
+    QueryConsolidation, QueryTarget, Reliability, Reply, Sample, SubMode,
 };
 use super::{to_pyerr, ZError};
-use async_std::channel::bounded;
 use async_std::sync::Arc;
-use async_std::task;
 use futures::prelude::*;
-use futures::select;
 use log::warn;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyTuple};
 use pyo3_asyncio::async_std::future_into_py;
 use std::collections::HashMap;
-use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture};
+use zenoh::prelude::r#async::AsyncResolve;
+use zenoh::prelude::{KeyExpr as ZKeyExpr, *};
 
 /// A zenoh session to be used with asyncio.
 #[pyclass]
@@ -53,16 +51,19 @@ impl AsyncSession {
     /// :type: **str**
     #[getter]
     fn id(&self) -> PyResult<String> {
-        let _s = self.try_ref()?;
-        Ok(_s.id().wait())
+        let s = self.try_ref()?;
+        Ok(s.id())
     }
 
     /// Close the zenoh Session.
     pub fn close<'p>(&mut self, py: Python<'p>) -> PyResult<&'p PyAny> {
-        // NOTE: should be sufficient to take the Arc<Session>. Once all arcs are dropped, Session will close.
-        // Still, we should provide a wait to await for the actual closure...
-        let _s = self.try_take()?;
-        future_into_py(py, async move { Ok(()) })
+        let s = self.try_take()?;
+        match Arc::try_unwrap(s) {
+            Ok(s) => future_into_py(py, s.close().res().map_err(to_pyerr)),
+            Err(_) => Err(PyErr::new::<exceptions::PyValueError, _>(
+                "Failed to close Session: not owner of the last reference",
+            )),
+        }
     }
 
     /// Get informations about the zenoh Session.
@@ -85,20 +86,19 @@ impl AsyncSession {
     /// >>> asyncio.run(main())
     pub fn info<'p>(&self, py: Python<'p>) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
+        use zenoh_cfg_properties::KeyTranscoder;
         future_into_py(py, async move {
-            use zenoh_cfg_properties::KeyTranscoder;
-            let result = s
-                .info()
+            s.info()
+                .res()
                 .map(|props| {
                     let hashmap: HashMap<String, String> = props
                         .0
                         .into_iter()
                         .filter_map(|(k, v)| zenoh::info::InfoTranscoder::decode(k).map(|k| (k, v)))
                         .collect();
-                    Python::with_gil(|py| hashmap.into_py_dict(py).to_object(py))
+                    Python::with_gil(|py| Ok(hashmap.into_py_dict(py).to_object(py)))
                 })
-                .await;
-            Ok(result)
+                .await
         })
     }
 
@@ -147,43 +147,26 @@ impl AsyncSession {
     ) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
-        let mut v = zvalue_of_pyany(value)?;
-        let mut encoding: Option<Encoding> = None;
-        let mut kind: Option<SampleKind> = None;
-        let mut congestion_control: Option<CongestionControl> = None;
-        let mut priority: Option<Priority> = None;
-        let mut local_routing: Option<bool> = None;
+        let v = zvalue_of_pyany(value)?;
+        let mut builder = s.put(k, v);
         if let Some(kwargs) = kwargs {
-            if let Some(e) = kwargs.get_item("encoding") {
-                encoding = e.extract().ok()
+            if let Some(arg) = kwargs.get_item("encoding") {
+                builder = builder.encoding(arg.extract::<Encoding>()?.e);
             }
-            if let Some(k) = kwargs.get_item("kind") {
-                kind = k.extract().ok()
+            if let Some(arg) = kwargs.get_item("kind") {
+                builder = builder.kind(arg.extract::<SampleKind>()?.kind);
             }
-            if let Some(cc) = kwargs.get_item("congestion_control") {
-                congestion_control = cc.extract().ok()
+            if let Some(arg) = kwargs.get_item("congestion_control") {
+                builder = builder.congestion_control(arg.extract::<CongestionControl>()?.cc);
             }
-            if let Some(p) = kwargs.get_item("priority") {
-                priority = p.extract().ok()
+            if let Some(arg) = kwargs.get_item("priority") {
+                builder = builder.priority(arg.extract::<Priority>()?.p);
             }
-            if let Some(lr) = kwargs.get_item("local_routing") {
-                local_routing = lr.extract().ok()
+            if let Some(arg) = kwargs.get_item("local_routing") {
+                builder = builder.local_routing(arg.extract::<bool>()?);
             }
         }
-        if let Some(encoding) = encoding {
-            v.encoding = encoding.into();
-        }
-        future_into_py(py, async move {
-            let mut writer = s
-                .put(k, v)
-                .kind(kind.unwrap_or_default().kind)
-                .congestion_control(congestion_control.unwrap_or_default().cc)
-                .priority(priority.unwrap_or_default().p);
-            if let Some(local_routing) = local_routing {
-                writer = writer.local_routing(local_routing);
-            }
-            writer.await.map_err(to_pyerr)
-        })
+        future_into_py(py, builder.res().map_err(to_pyerr))
     }
 
     /// Delete data.
@@ -224,30 +207,19 @@ impl AsyncSession {
     ) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
-        let mut congestion_control: Option<CongestionControl> = None;
-        let mut priority: Option<Priority> = None;
-        let mut local_routing: Option<bool> = None;
+        let mut builder = s.delete(k);
         if let Some(kwargs) = kwargs {
-            if let Some(cc) = kwargs.get_item("congestion_control") {
-                congestion_control = cc.extract().ok()
+            if let Some(arg) = kwargs.get_item("congestion_control") {
+                builder = builder.congestion_control(arg.extract::<CongestionControl>()?.cc);
             }
-            if let Some(p) = kwargs.get_item("priority") {
-                priority = p.extract().ok()
+            if let Some(arg) = kwargs.get_item("priority") {
+                builder = builder.priority(arg.extract::<Priority>()?.p);
             }
-            if let Some(lr) = kwargs.get_item("local_routing") {
-                local_routing = lr.extract().ok()
+            if let Some(arg) = kwargs.get_item("local_routing") {
+                builder = builder.local_routing(arg.extract::<bool>()?);
             }
         }
-        future_into_py(py, async move {
-            let mut writer = s
-                .delete(k)
-                .congestion_control(congestion_control.unwrap_or_default().cc)
-                .priority(priority.unwrap_or_default().p);
-            if let Some(local_routing) = local_routing {
-                writer = writer.local_routing(local_routing);
-            }
-            writer.await.map_err(to_pyerr)
-        })
+        future_into_py(py, builder.res().map_err(to_pyerr))
     }
 
     /// Associate a numerical Id with the given key expression.
@@ -275,7 +247,9 @@ impl AsyncSession {
     pub fn declare_expr<'p>(&self, key_expr: &PyAny, py: Python<'p>) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
-        future_into_py(py, async move { s.declare_expr(k).await.map_err(to_pyerr) })
+        future_into_py(py, async move {
+            s.declare_expr(k).res().map_err(to_pyerr).await
+        })
     }
 
     /// Undeclare the *numerical Id/key expression* association previously declared
@@ -299,10 +273,9 @@ impl AsyncSession {
     #[pyo3(text_signature = "(self, rid)")]
     pub fn undeclare_expr<'p>(&self, rid: ExprId, py: Python<'p>) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
-        future_into_py(
-            py,
-            async move { s.undeclare_expr(rid).wait().map_err(to_pyerr) },
-        )
+        future_into_py(py, async move {
+            s.undeclare_expr(rid).res().map_err(to_pyerr).await
+        })
     }
 
     /// Declare a publication for the given key expression.
@@ -331,7 +304,7 @@ impl AsyncSession {
         let s = self.try_clone()?;
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
         future_into_py(py, async move {
-            s.declare_publication(k).await.map_err(to_pyerr)
+            s.declare_publication(k).res().map_err(to_pyerr).await
         })
     }
 
@@ -346,7 +319,7 @@ impl AsyncSession {
         let s = self.try_clone()?;
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
         future_into_py(py, async move {
-            s.undeclare_publication(k).await.map_err(to_pyerr)
+            s.undeclare_publication(k).res().map_err(to_pyerr).await
         })
     }
 
@@ -402,107 +375,56 @@ impl AsyncSession {
     ) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
-        // Note: callback cannot be passed as such in task below because it's not Send
-        let cb_obj: Py<PyAny> = callback.into();
-        // note: extract from kwargs here because it's not Send and cannot be moved into future_into_py(py, F)
-        let mut reliability: Option<Reliability> = None;
-        let mut mode: Option<SubMode> = None;
-        let mut period: Option<Period> = None;
-        let mut local = false;
+        let mut builder = s.subscribe(&k);
         if let Some(kwargs) = kwargs {
-            if let Some(r) = kwargs.get_item("reliability") {
-                reliability = Some(r.extract()?);
+            if let Some(any) = kwargs.get_item("reliability") {
+                builder = builder.reliability(any.extract::<Reliability>()?.r);
             }
-            if let Some(m) = kwargs.get_item("mode") {
-                mode = Some(m.extract()?);
+            if let Some(any) = kwargs.get_item("mode") {
+                builder = builder.mode(any.extract::<SubMode>()?.m);
             }
-            if let Some(p) = kwargs.get_item("period") {
-                period = Some(p.extract()?)
+            if let Some(any) = kwargs.get_item("period") {
+                builder = builder.period(Some(any.extract::<Period>()?.p));
             }
-            if let Some(p) = kwargs.get_item("local") {
-                local = p.extract::<bool>()?;
+            if let Some(any) = kwargs.get_item("local") {
+                if any.extract::<bool>()? {
+                    builder = builder.local();
+                }
             }
         }
 
-        future_into_py(py, async move {
-            // note: create SubscriberBuilder in this async block since its lifetime is bound to s which is moved here.
-            let mut sub_builder = s.subscribe(&k);
-            if let Some(r) = reliability {
-                sub_builder = sub_builder.reliability(r.r);
-            }
-            if let Some(m) = mode {
-                sub_builder = sub_builder.mode(m.m);
-            }
-            if let Some(p) = period {
-                sub_builder = sub_builder.period(Some(p.p));
-            }
-            if local {
-                sub_builder = sub_builder.local();
-            }
-
-            let zn_sub = sub_builder.await.map_err(to_pyerr)?;
-            // Note: workaround to allow moving of zn_sub into the task below.
-            // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-            let mut static_zn_sub = unsafe {
-                std::mem::transmute::<
-                    zenoh::subscriber::Subscriber<'_>,
-                    zenoh::subscriber::Subscriber<'static>,
-                >(zn_sub)
-            };
-
-            let (unregister_tx, unregister_rx) = bounded::<ZnSubOps>(8);
-            // Note: This is done to ensure that even if the call-back into Python
-            // does any blocking call we do not incour the risk of blocking
-            // any of the task resolving futures.
-            let loop_handle = task::spawn_blocking(move || {
-                Python::with_gil(|py| {
-                    // Run a Python event loop in this task, to allow coroutines execution within the callback
-                    match pyo3_asyncio::async_std::run(py, async move {
-                        loop {
-                            select!(
-                                    s = static_zn_sub.receiver().next().fuse() => {
-                                        // call the async callback and transform the resulting Python awaitable into a Rust future
-                                        let future = match Python::with_gil(|py| {
-                                            let cb_args = PyTuple::new(py, &[Sample { s: s.unwrap() }]);
-                                            cb_obj.as_ref(py).call1(cb_args).and_then(pyo3_asyncio::async_std::into_future)
-                                        }) {
-                                            Ok(f) => f,
-                                            Err(e) => { warn!("Error calling async queryable callback: {}", e); continue }
-                                        };
-                                        // await the future (by default callbacks are executed in sequence)
-                                        if let Err(e) = future.await {
-                                            warn!("Error suring axecution of async queryable callback: {}", e);
-                                        }
-                                    },
-                                op = unregister_rx.recv().fuse() => {
-                                    match op {
-                                        Ok(ZnSubOps::Pull) => {
-                                            if let Err(e) = static_zn_sub.pull().await {
-                                                warn!("Error pulling the subscriber: {}", e);
-                                            }
-                                        },
-                                        Ok(ZnSubOps::Unregister) => {
-                                            if let Err(e) = static_zn_sub.close().await {
-                                                warn!("Error undeclaring subscriber: {}", e);
-                                            }
-                                            return Ok(())
-                                        },
-                                        _ => return Ok(())
-                                    }
-                                }
-                            )
-                        }
+        // Note: PyAny callback object cannot be passed as such in Rust callback below because it's not Send
+        let cb_obj: Py<PyAny> = callback.into();
+        let cbbuilder = builder.callback(move |s| {
+            // Note: clone cb_obj required since it's moved into the closure below
+            let cb_obj = cb_obj.clone();
+            Python::with_gil(|py| {
+                // Run a Python event loop to run the coroutine Python callback
+                if let Err(e) = pyo3_asyncio::async_std::run(py, async move {
+                    // call the async callback and transform the resulting Python awaitable into a Rust future
+                    match Python::with_gil(|py| {
+                        let cb_args = PyTuple::new(py, &[Sample { s }]);
+                        cb_obj
+                            .as_ref(py)
+                            .call1(cb_args)
+                            .and_then(pyo3_asyncio::async_std::into_future)
                     }) {
-                        Ok(()) => warn!("Queryable loop running"),
-                        Err(e) => warn!("Failed to start Queryable loop: {}", e),
+                        Ok(f) => f.await,
+                        Err(e) => Err(e),
                     }
-                })
-            });
-            Ok(AsyncSubscriber {
-                unregister_tx,
-                loop_handle: Some(loop_handle),
+                }) {
+                    warn!("Error calling async subscriber callback: {}", e);
+                }
             })
-        })
+        });
+
+        future_into_py(
+            py,
+            cbbuilder
+                .res()
+                .map(|result| result.map(|sub| AsyncSubscriber { inner: Some(sub) }))
+                .map_err(to_pyerr),
+        )
     }
 
     /// Create an AsyncQueryable for the given key expression.
@@ -553,74 +475,50 @@ impl AsyncSession {
     ) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
         let k = zkey_expr_of_pyany(key_expr)?.to_owned();
-        // Note: callback cannot be passed as such in task below because it's not Send
-        let cb_obj: Py<PyAny> = callback.into();
-        // note: extract from kwargs here because it's not Send and cannot be moved into future_into_py(py, F)
-        let mut complete: Option<bool> = None;
+        let mut builder = s.queryable(k);
         if let Some(kwargs) = kwargs {
-            if let Some(p) = kwargs.get_item("local") {
-                complete = Some(p.extract::<bool>()?);
+            if let Some(any) = kwargs.get_item("complete") {
+                builder = builder.complete(any.extract::<bool>()?);
             }
         }
 
-        future_into_py(py, async move {
-            let mut builder = s.queryable(k);
-            if let Some(c) = complete {
-                builder = builder.complete(c);
-            }
-            let zn_quer = builder.await.map_err(to_pyerr)?;
-            // Note: workaround to allow moving of zn_quer into the task below.
-            // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-            let mut zn_quer = unsafe {
-                std::mem::transmute::<
-                    zenoh::queryable::Queryable<'_>,
-                    zenoh::queryable::Queryable<'static>,
-                >(zn_quer)
-            };
-
-            let (unregister_tx, unregister_rx) = bounded::<bool>(1);
-            // Note: This is done to ensure that even if the call-back into Python
-            // does any blocking call we do not incour the risk of blocking
-            // any of the task resolving futures.
-            let loop_handle = task::spawn_blocking(move || {
-                Python::with_gil(|py| {
-                    // Run a Python event loop in this task, to allow coroutines execution within the callback
-                    match pyo3_asyncio::async_std::run(py, async move {
-                        loop {
-                            select!(
-                                q = zn_quer.receiver().next().fuse() => {
-                                    // call the async callback and transform the resulting Python awaitable into a Rust future
-                                    let future = match Python::with_gil(|py| {
-                                        let cb_args = PyTuple::new(py, &[Query { q: async_std::sync::Arc::new(q.unwrap()) }]);
-                                        cb_obj.as_ref(py).call1(cb_args).and_then(pyo3_asyncio::async_std::into_future)
-                                    }) {
-                                        Ok(f) => f,
-                                        Err(e) => { warn!("Error calling async queryable callback: {}", e); continue }
-                                    };
-                                    // await the future (by default callbacks are executed in sequence)
-                                    if let Err(e) = future.await {
-                                        warn!("Error suring axecution of async queryable callback: {}", e);
-                                    }
-                                },
-                                _ = unregister_rx.recv().fuse() => {
-                                    if let Err(e) = zn_quer.close().await {
-                                        warn!("Error undeclaring queryable: {}", e);
-                                    }
-                                    return Ok(())
-                                }
-                            )
-                        }
+        // Note: PyAny callback object cannot be passed as such in Rust callback below because it's not Send
+        let cb_obj: Py<PyAny> = callback.into();
+        let cbbuilder = builder.callback(move |q| {
+            // Note: clone cb_obj required since it's moved into the closure below
+            let cb_obj = cb_obj.clone();
+            Python::with_gil(|py| {
+                // Run a Python event loop to run the coroutine Python callback
+                if let Err(e) = pyo3_asyncio::async_std::run(py, async move {
+                    // call the async callback and transform the resulting Python awaitable into a Rust future
+                    match Python::with_gil(|py| {
+                        let cb_args = PyTuple::new(
+                            py,
+                            &[Query {
+                                q: async_std::sync::Arc::new(q),
+                            }],
+                        );
+                        cb_obj
+                            .as_ref(py)
+                            .call1(cb_args)
+                            .and_then(pyo3_asyncio::async_std::into_future)
                     }) {
-                        Ok(()) => warn!("Queryable loop running"),
-                        Err(e) => warn!("Failed to start Queryable loop: {}", e),
+                        Ok(f) => f.await,
+                        Err(e) => Err(e),
                     }
-                })
-            });
-            Ok(AsyncQueryable {
-                unregister_tx,
-                loop_handle: Some(loop_handle),
+                }) {
+                    warn!("Error calling async queryable callback: {}", e);
+                }
             })
-        })
+        });
+
+        future_into_py(
+            py,
+            cbbuilder
+                .res()
+                .map(|result| result.map(|quer| AsyncQueryable { inner: Some(quer) }))
+                .map_err(to_pyerr),
+        )
     }
 
     /// Query data from the matching queryables in the system.
@@ -671,7 +569,6 @@ impl AsyncSession {
         py: Python<'p>,
     ) -> PyResult<&'p PyAny> {
         let s = self.try_clone()?;
-
         let selector: Selector = match selector.get_type().name()? {
             "KeyExpr" => {
                 let key_expr: PyRef<KeyExpr> = selector.extract()?;
@@ -693,37 +590,26 @@ impl AsyncSession {
             }
         }
         .to_owned();
-        // note: extract from kwargs here because it's not Send and cannot be moved into future_into_py(py, F)
-        let mut target: Option<QueryTarget> = None;
-        let mut consolidation: Option<QueryConsolidation> = None;
-        let mut local_routing: Option<bool> = None;
+
+        let mut builder = s.get(selector);
         if let Some(kwargs) = kwargs {
-            if let Some(arg) = kwargs.get_item("target") {
-                target = Some(arg.extract::<QueryTarget>()?);
+            if let Some(any) = kwargs.get_item("target") {
+                builder = builder.target(any.extract::<QueryTarget>()?.t);
             }
-            if let Some(arg) = kwargs.get_item("consolidation") {
-                consolidation = Some(arg.extract::<QueryConsolidation>()?);
+            if let Some(any) = kwargs.get_item("consolidation") {
+                builder = builder.consolidation(any.extract::<QueryConsolidation>()?.c);
             }
-            if let Some(arg) = kwargs.get_item("local_routing") {
-                local_routing = Some(arg.extract::<bool>()?);
+            if let Some(any) = kwargs.get_item("local_routing") {
+                builder = builder.local_routing(any.extract::<bool>()?);
             }
         }
-
+        let fut = builder.res().map_err(to_pyerr);
         future_into_py(py, async move {
-            let mut getter = s.get(selector);
-            if let Some(t) = target {
-                getter = getter.target(t.t);
-            }
-            if let Some(c) = consolidation {
-                getter = getter.consolidation(c.c);
-            }
-            if let Some(lr) = local_routing {
-                getter = getter.local_routing(lr);
-            }
-            let mut reply_rcv = getter.await.map_err(to_pyerr)?;
+            // let reply_rcv = builder.res().await.map_err(to_pyerr)?;
+            let reply_rcv = fut.await?;
             let mut replies: Vec<Reply> = Vec::new();
 
-            while let Some(reply) = reply_rcv.next().await {
+            while let Ok(reply) = reply_rcv.recv_async().await {
                 replies.push(Reply { r: reply });
             }
             Ok(replies)

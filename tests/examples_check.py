@@ -68,7 +68,7 @@ if put.status():
 	errors.append(put.status())
 time.sleep(1)
 pub = Pyrun("z_pub.py", ["--iter=2"])
-time.sleep(3)
+time.sleep(4)
 try:
 	pull.process.stdin.write(b"\n")
 	pull.process.stdin.flush()

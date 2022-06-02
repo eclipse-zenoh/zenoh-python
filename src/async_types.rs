@@ -11,58 +11,52 @@
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
-use crate::types::*;
-use async_std::channel::Sender;
-use log::warn;
+use crate::{to_pyerr, ZError};
+use futures::prelude::*;
 use pyo3::prelude::*;
 use pyo3_asyncio::async_std::future_into_py;
+use zenoh::prelude::r#async::AsyncResolve;
+use zenoh::queryable::CallbackQueryable;
+use zenoh::subscriber::CallbackSubscriber;
 
 /// A subscriber to be used with asyncio.
 #[pyclass]
 pub(crate) struct AsyncSubscriber {
-    pub(crate) unregister_tx: Sender<ZnSubOps>,
-    pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
+    pub(crate) inner: Option<CallbackSubscriber<'static>>,
 }
 
 #[pymethods]
 impl AsyncSubscriber {
     /// Pull available data for a pull-mode subscriber.
     ///
-    /// This method is a **coroutine**.
-    fn pull<'p>(&self, py: Python<'p>) -> PyResult<&'p PyAny> {
-        let s = self.unregister_tx.clone();
-        future_into_py(py, async move {
-            if let Err(e) = s.send(ZnSubOps::Pull).await {
-                warn!("Error in Subscriber::pull() : {}", e);
-            }
-            Ok(())
-        })
+    /// This method is NOT a **coroutine**.
+    fn pull(&self, _py: Python) -> PyResult<()> {
+        let inner = self
+            .inner
+            .as_ref()
+            .ok_or_else(|| PyErr::new::<ZError, _>("the AsyncSubscriber was closed"))?;
+        // no choice but to call pull() as sync:
+        // self.inner cannot be passed into a future because self has an anonymous lifetime.
+        use zenoh::prelude::sync::SyncResolve;
+        inner.pull().res_sync().map_err(to_pyerr)
     }
 
     /// Close the subscriber.
     ///
     /// This method is a **coroutine**.
     fn close<'p>(&mut self, py: Python<'p>) -> PyResult<&'p PyAny> {
-        if let Some(handle) = self.loop_handle.take() {
-            let s = self.unregister_tx.clone();
-            future_into_py(py, async move {
-                if let Err(e) = s.send(ZnSubOps::Unregister).await {
-                    warn!("Error in Subscriber::close() : {}", e);
-                }
-                handle.await;
-                Ok(())
-            })
-        } else {
-            future_into_py(py, async move { Ok(()) })
-        }
+        let inner = self
+            .inner
+            .take()
+            .ok_or_else(|| PyErr::new::<ZError, _>("the AsyncSubscriber was already closed"))?;
+        future_into_py(py, inner.close().res().map_err(to_pyerr))
     }
 }
 
 /// A queryable to be used with asyncio.
 #[pyclass]
 pub(crate) struct AsyncQueryable {
-    pub(crate) unregister_tx: Sender<bool>,
-    pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
+    pub(crate) inner: Option<CallbackQueryable<'static>>,
 }
 
 #[pymethods]
@@ -71,17 +65,10 @@ impl AsyncQueryable {
     ///
     /// This method is a **coroutine**.
     fn close<'p>(&mut self, py: Python<'p>) -> PyResult<&'p PyAny> {
-        if let Some(handle) = self.loop_handle.take() {
-            let s = self.unregister_tx.clone();
-            future_into_py(py, async move {
-                if let Err(e) = s.send(true).await {
-                    warn!("Error in Queryable::close() : {}", e);
-                }
-                handle.await;
-                Ok(())
-            })
-        } else {
-            future_into_py(py, async move { Ok(()) })
-        }
+        let inner = self
+            .inner
+            .take()
+            .ok_or_else(|| PyErr::new::<ZError, _>("the AsyncQueryable was already closed"))?;
+        future_into_py(py, inner.close().res().map_err(to_pyerr))
     }
 }

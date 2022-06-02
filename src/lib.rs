@@ -12,12 +12,11 @@
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
 use async_std::prelude::FutureExt;
-use async_std::task;
 use encoding::KnownEncoding;
-use futures::prelude::*;
 use pyo3::prelude::*;
 use pyo3::{create_exception, wrap_pyfunction};
 use pyo3_asyncio::async_std::future_into_py;
+use std::time::{Duration, Instant};
 use zenoh::config::{Config as ZConfig, Notifier};
 use zenoh::prelude::ValidatedMap;
 use zenoh_core::zerror;
@@ -281,7 +280,10 @@ impl ConfigNotifier {
 #[pyfunction]
 #[pyo3(text_signature = "(config)")]
 fn open(config: Option<Config>) -> PyResult<Session> {
-    let s = task::block_on(zenoh::open(config.unwrap_or_default().inner)).map_err(to_pyerr)?;
+    use zenoh::prelude::sync::SyncResolve;
+    let s = zenoh::open(config.unwrap_or_default().inner)
+        .res()
+        .map_err(to_pyerr)?;
     Ok(Session::new(s))
 }
 
@@ -302,8 +304,10 @@ fn open(config: Option<Config>) -> PyResult<Session> {
 #[pyfunction]
 #[pyo3(text_signature = "(config)")]
 fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
+    use zenoh::prelude::r#async::AsyncResolve;
     future_into_py(py, async {
         let s = zenoh::open(config.unwrap_or_default().inner)
+            .res()
             .await
             .map_err(to_pyerr)?;
         Ok(AsyncSession::new(s))
@@ -333,20 +337,16 @@ fn async_open(py: Python, config: Option<Config>) -> PyResult<&PyAny> {
 #[pyfunction]
 #[pyo3(text_signature = "(what, scout_duration, config)")]
 fn scout(what: WhatAmI, scout_duration: f64, config: Option<Config>) -> PyResult<Vec<Hello>> {
-    task::block_on(async move {
-        let mut result = Vec::<Hello>::new();
-        let mut receiver = zenoh::scout(what, config.unwrap_or_default().inner)
-            .await
-            .unwrap();
-        let scout = async {
-            while let Some(h) = receiver.next().await {
-                result.push(Hello { h })
-            }
-        };
-        let timeout = async_std::task::sleep(std::time::Duration::from_secs_f64(scout_duration));
-        FutureExt::race(scout, timeout).await;
-        Ok(result)
-    })
+    use zenoh::prelude::sync::SyncResolve;
+    let mut result = Vec::<Hello>::new();
+    let receiver = zenoh::scout(what, config.unwrap_or_default().inner)
+        .res()
+        .map_err(to_pyerr)?;
+    let deadline = Instant::now() + Duration::from_secs_f64(scout_duration);
+    while let Ok(h) = receiver.recv_deadline(deadline) {
+        result.push(Hello { h })
+    }
+    Ok(result)
 }
 
 /// Coroutine to scout for routers and/or peers.
@@ -380,13 +380,15 @@ fn async_scout(
     config: Option<Config>,
     py: Python,
 ) -> PyResult<&PyAny> {
+    use zenoh::prelude::r#async::AsyncResolve;
     future_into_py(py, async move {
         let mut result = Vec::<Hello>::new();
-        let mut receiver = zenoh::scout(what, config.unwrap_or_default().inner)
+        let receiver = zenoh::scout(what, config.unwrap_or_default().inner)
+            .res()
             .await
             .unwrap();
         let scout = async {
-            while let Some(h) = receiver.next().await {
+            while let Ok(h) = receiver.recv_async().await {
                 result.push(Hello { h })
             }
         };

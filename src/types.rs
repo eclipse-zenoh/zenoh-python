@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::ops::BitOr;
-
 //
 // Copyright (c) 2017, 2022 ZettaScale Technology Inc.
 //
@@ -16,22 +13,25 @@ use std::ops::BitOr;
 //
 use crate::encoding::Encoding;
 use crate::sample_kind::SampleKind;
-use crate::to_pyerr;
-use async_std::channel::Sender;
-use async_std::task;
+use crate::{to_pyerr, ZError};
 use log::warn;
 use pyo3::exceptions;
 use pyo3::number::PyNumberOrProtocol;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyTuple};
 use pyo3::PyObjectProtocol;
+use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::ops::BitOr;
 use zenoh::config::whatami::WhatAmIMatcher;
 use zenoh::config::WhatAmI as ZWhatAmI;
+use zenoh::prelude::sync::SyncResolve;
 use zenoh::prelude::{
     Encoding as ZEncoding, KeyExpr as ZKeyExpr, KnownEncoding as ZKnownEncoding, Sample as ZSample,
-    Selector as ZSelector, Value as ZValue, ZFuture, ZInt,
+    Selector as ZSelector, Value as ZValue, ZInt,
 };
+use zenoh::queryable::CallbackQueryable;
+use zenoh::subscriber::CallbackSubscriber;
 use zenoh_buffers::traits::SplitBuffer;
 
 // zenoh.config (simulate the package as a class, and consts as class attributes)
@@ -1155,39 +1155,30 @@ impl Period {
     }
 }
 
-pub(crate) enum ZnSubOps {
-    Pull,
-    Unregister,
-}
-
 /// A subscriber
 #[pyclass]
 pub(crate) struct Subscriber {
-    pub(crate) unregister_tx: Sender<ZnSubOps>,
-    pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
+    pub(crate) inner: Option<CallbackSubscriber<'static>>,
 }
 
 #[pymethods]
 impl Subscriber {
     /// Pull available data for a pull-mode subscriber.
-    fn pull(&self) {
-        task::block_on(async {
-            if let Err(e) = self.unregister_tx.send(ZnSubOps::Pull).await {
-                warn!("Error in Subscriber::pull() : {}", e);
-            }
-        });
+    fn pull(&self) -> PyResult<()> {
+        let inner = self
+            .inner
+            .as_ref()
+            .ok_or_else(|| PyErr::new::<ZError, _>("the Subscriber was closed"))?;
+        inner.pull().res().map_err(to_pyerr)
     }
 
     /// Close the subscriber.
-    fn close(&mut self) {
-        if let Some(handle) = self.loop_handle.take() {
-            task::block_on(async {
-                if let Err(e) = self.unregister_tx.send(ZnSubOps::Unregister).await {
-                    warn!("Error in Subscriber::close() : {}", e);
-                }
-                handle.await;
-            });
-        }
+    fn close(&mut self) -> PyResult<()> {
+        let inner = self
+            .inner
+            .take()
+            .ok_or_else(|| PyErr::new::<ZError, _>("the Subscriber was already closed"))?;
+        inner.close().res().map_err(to_pyerr)
     }
 }
 
@@ -1236,7 +1227,7 @@ impl Query {
     /// :type: Sample
     #[pyo3(text_signature = "(self, sample)")]
     fn reply(&self, sample: Result) {
-        if let Err(e) = self.q.reply(sample.into()).wait() {
+        if let Err(e) = self.q.reply(sample.into()).res() {
             warn!("Error in Query::reply() : {}", e);
         }
     }
@@ -1245,22 +1236,18 @@ impl Query {
 /// An entity able to reply to queries.
 #[pyclass]
 pub(crate) struct Queryable {
-    pub(crate) unregister_tx: Sender<bool>,
-    pub(crate) loop_handle: Option<async_std::task::JoinHandle<()>>,
+    pub(crate) inner: Option<CallbackQueryable<'static>>,
 }
 
 #[pymethods]
 impl Queryable {
     /// Close the queryable.
-    fn close(&mut self) {
-        if let Some(handle) = self.loop_handle.take() {
-            task::block_on(async {
-                if let Err(e) = self.unregister_tx.send(true).await {
-                    warn!("Error in Queryable::close() : {}", e);
-                }
-                handle.await;
-            });
-        }
+    fn close(&mut self) -> PyResult<()> {
+        let inner = self
+            .inner
+            .take()
+            .ok_or_else(|| PyErr::new::<ZError, _>("the Queryable was already closed"))?;
+        inner.close().res().map_err(to_pyerr)
     }
 }
 

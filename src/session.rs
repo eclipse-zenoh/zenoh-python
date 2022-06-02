@@ -18,24 +18,22 @@ use super::sample_kind::SampleKind;
 use super::types::{
     zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, KeyExpr, Period, Priority, Query,
     QueryConsolidation, QueryTarget, Queryable, Reliability, Reply, Sample, SubMode, Subscriber,
-    ZnSubOps,
 };
 use super::{to_pyerr, ZError};
-use async_std::channel::bounded;
-use async_std::task;
-use futures::prelude::*;
-use futures::select;
 use log::warn;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
 use std::collections::HashMap;
-use zenoh::prelude::{ExprId, KeyExpr as ZKeyExpr, Selector, ZFuture};
+use std::sync::Arc;
+use zenoh::prelude::sync::SyncResolve;
+use zenoh::prelude::{KeyExpr as ZKeyExpr, *};
+use zenoh::subscriber::CallbackSubscriber;
 
 /// A zenoh session.
 #[pyclass]
 pub struct Session {
-    s: Option<zenoh::Session>,
+    s: Option<Arc<zenoh::Session>>,
 }
 
 #[pymethods]
@@ -45,14 +43,19 @@ impl Session {
     /// :type: **str**
     #[getter]
     fn id(&self) -> PyResult<String> {
-        let s = self.as_ref()?;
-        Ok(s.id().wait())
+        let s = self.try_ref()?;
+        Ok(s.id())
     }
 
     /// Close the zenoh Session.
     pub fn close(&mut self) -> PyResult<()> {
-        let s = self.take()?;
-        s.close().wait().map_err(to_pyerr)
+        let s = self.try_take()?;
+        match Arc::try_unwrap(s) {
+            Ok(s) => s.close().res().map_err(to_pyerr),
+            Err(_) => Err(PyErr::new::<exceptions::PyValueError, _>(
+                "Failed to close Session: not owner of the last reference",
+            )),
+        }
     }
 
     /// Get informations about the zenoh Session.
@@ -68,8 +71,8 @@ impl Session {
     /// >>>    print("{} : {}".format(key, info[key]))
     pub fn info(&self, py: Python) -> PyResult<PyObject> {
         use zenoh_cfg_properties::KeyTranscoder;
-        let s = self.as_ref()?;
-        let props = s.info().wait();
+        let s = self.try_ref()?;
+        let props = s.info().res();
         let pydict: HashMap<String, String> = props
             .0
             .into_iter()
@@ -108,7 +111,7 @@ impl Session {
     ///
     pub fn config(&self) -> PyResult<ConfigNotifier> {
         Ok(ConfigNotifier {
-            inner: self.as_ref()?.config().clone(),
+            inner: self.try_ref()?.config().clone(),
         })
     }
 
@@ -144,43 +147,28 @@ impl Session {
     #[pyo3(text_signature = "(self, key_expr, value, **kwargs)")]
     #[args(kwargs = "**")]
     pub fn put(&self, key_expr: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
-        let s = self.as_ref()?;
+        let s = self.try_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
-        let mut v = zvalue_of_pyany(value)?;
-        let mut encoding: Option<Encoding> = None;
-        let mut kind: Option<SampleKind> = None;
-        let mut congestion_control: Option<CongestionControl> = None;
-        let mut priority: Option<Priority> = None;
-        let mut local_routing: Option<bool> = None;
+        let v = zvalue_of_pyany(value)?;
+        let mut builder = s.put(k, v);
         if let Some(kwargs) = kwargs {
-            if let Some(e) = kwargs.get_item("encoding") {
-                encoding = e.extract().ok()
+            if let Some(arg) = kwargs.get_item("encoding") {
+                builder = builder.encoding(arg.extract::<Encoding>()?.e);
             }
-            if let Some(k) = kwargs.get_item("kind") {
-                kind = k.extract().ok()
+            if let Some(arg) = kwargs.get_item("kind") {
+                builder = builder.kind(arg.extract::<SampleKind>()?.kind);
             }
-            if let Some(cc) = kwargs.get_item("congestion_control") {
-                congestion_control = cc.extract().ok()
+            if let Some(arg) = kwargs.get_item("congestion_control") {
+                builder = builder.congestion_control(arg.extract::<CongestionControl>()?.cc);
             }
-            if let Some(p) = kwargs.get_item("priority") {
-                priority = p.extract().ok()
+            if let Some(arg) = kwargs.get_item("priority") {
+                builder = builder.priority(arg.extract::<Priority>()?.p);
             }
-            if let Some(lr) = kwargs.get_item("local_routing") {
-                local_routing = lr.extract().ok()
+            if let Some(arg) = kwargs.get_item("local_routing") {
+                builder = builder.local_routing(arg.extract::<bool>()?);
             }
         }
-        if let Some(encoding) = encoding {
-            v.encoding = encoding.into();
-        }
-        let mut writer = s
-            .put(k, v)
-            .kind(kind.unwrap_or_default().kind)
-            .congestion_control(congestion_control.unwrap_or_default().cc)
-            .priority(priority.unwrap_or_default().p);
-        if let Some(local_routing) = local_routing {
-            writer = writer.local_routing(local_routing);
-        }
-        writer.wait().map_err(to_pyerr)
+        builder.res().map_err(to_pyerr)
     }
 
     /// Delete data.
@@ -209,30 +197,21 @@ impl Session {
     #[pyo3(text_signature = "(self, key_expr, **kwargs)")]
     #[args(kwargs = "**")]
     pub fn delete(&self, key_expr: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
-        let s = self.as_ref()?;
+        let s = self.try_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
-        let mut congestion_control: Option<CongestionControl> = None;
-        let mut priority: Option<Priority> = None;
-        let mut local_routing: Option<bool> = None;
+        let mut builder = s.delete(k);
         if let Some(kwargs) = kwargs {
-            if let Some(cc) = kwargs.get_item("congestion_control") {
-                congestion_control = cc.extract().ok()
+            if let Some(arg) = kwargs.get_item("congestion_control") {
+                builder = builder.congestion_control(arg.extract::<CongestionControl>()?.cc);
             }
-            if let Some(p) = kwargs.get_item("priority") {
-                priority = p.extract().ok()
+            if let Some(arg) = kwargs.get_item("priority") {
+                builder = builder.priority(arg.extract::<Priority>()?.p);
             }
-            if let Some(lr) = kwargs.get_item("local_routing") {
-                local_routing = lr.extract().ok()
+            if let Some(arg) = kwargs.get_item("local_routing") {
+                builder = builder.local_routing(arg.extract::<bool>()?);
             }
         }
-        let mut writer = s
-            .delete(k)
-            .congestion_control(congestion_control.unwrap_or_default().cc)
-            .priority(priority.unwrap_or_default().p);
-        if let Some(local_routing) = local_routing {
-            writer = writer.local_routing(local_routing);
-        }
-        writer.wait().map_err(to_pyerr)
+        builder.res().map_err(to_pyerr)
     }
 
     /// Associate a numerical Id with the given key expression.
@@ -253,9 +232,9 @@ impl Session {
     /// >>> rid = s.declare_expr('/key/expression')
     #[pyo3(text_signature = "(self, key_expr)")]
     pub fn declare_expr(&self, key_expr: &PyAny) -> PyResult<ExprId> {
-        let s = self.as_ref()?;
+        let s = self.try_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
-        s.declare_expr(&k).wait().map_err(to_pyerr)
+        s.declare_expr(&k).res().map_err(to_pyerr)
     }
 
     /// Undeclare the *numerical Id/key expression* association previously declared
@@ -273,8 +252,8 @@ impl Session {
     /// >>> s.undeclare_expr(rid)
     #[pyo3(text_signature = "(self, rid)")]
     pub fn undeclare_expr(&self, rid: ExprId) -> PyResult<()> {
-        let s = self.as_ref()?;
-        s.undeclare_expr(rid).wait().map_err(to_pyerr)
+        let s = self.try_ref()?;
+        s.undeclare_expr(rid).res().map_err(to_pyerr)
     }
 
     /// Declare a publication for the given key expression.
@@ -295,9 +274,9 @@ impl Session {
     /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
     #[pyo3(text_signature = "(self, key_expr)")]
     fn declare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
-        let s = self.as_ref()?;
+        let s = self.try_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
-        s.declare_publication(&k).wait().map_err(to_pyerr)?;
+        s.declare_publication(&k).res().map_err(to_pyerr)?;
         Ok(())
     }
 
@@ -309,9 +288,9 @@ impl Session {
     /// :raise: :class:`ZError`
     #[pyo3(text_signature = "(self, key_expr)")]
     fn undeclare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
-        let s = self.as_ref()?;
+        let s = self.try_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
-        s.undeclare_publication(&k).wait().map_err(to_pyerr)?;
+        s.undeclare_publication(&k).res().map_err(to_pyerr)?;
         Ok(())
     }
 
@@ -357,80 +336,42 @@ impl Session {
         callback: &PyAny,
         kwargs: Option<&PyDict>,
     ) -> PyResult<Subscriber> {
-        let s = self.as_ref()?;
+        let s = self.try_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
-        let mut sub_builder = s.subscribe(&k);
+        let mut builder = s.subscribe(&k);
         if let Some(kwargs) = kwargs {
             if let Some(arg) = kwargs.get_item("reliability") {
-                sub_builder = sub_builder.reliability(arg.extract::<Reliability>()?.r);
+                builder = builder.reliability(arg.extract::<Reliability>()?.r);
             }
             if let Some(arg) = kwargs.get_item("mode") {
-                sub_builder = sub_builder.mode(arg.extract::<SubMode>()?.m);
+                builder = builder.mode(arg.extract::<SubMode>()?.m);
             }
             if let Some(arg) = kwargs.get_item("period") {
-                sub_builder = sub_builder.period(Some(arg.extract::<Period>()?.p));
+                builder = builder.period(Some(arg.extract::<Period>()?.p));
             }
             if let Some(arg) = kwargs.get_item("local") {
                 if arg.extract::<bool>()? {
-                    sub_builder = sub_builder.local();
+                    builder = builder.local();
                 }
             }
         }
-        let zn_sub = sub_builder.wait().map_err(to_pyerr)?;
-        // Note: workaround to allow moving of zn_sub into the task below.
-        // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-        let mut static_zn_sub = unsafe {
-            std::mem::transmute::<
-                zenoh::subscriber::Subscriber<'_>,
-                zenoh::subscriber::Subscriber<'static>,
-            >(zn_sub)
-        };
 
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
-
-        let (unregister_tx, unregister_rx) = bounded::<ZnSubOps>(8);
-        // Note: This is done to ensure that even if the call-back into Python
-        // does any blocking call we do not incour the risk of blocking
-        // any of the task resolving futures.
-        let loop_handle = task::spawn_blocking(move || {
-            task::block_on(async move {
-                loop {
-                    select!(
-                        s = static_zn_sub.receiver().next().fuse() => {
-                            // Acquire Python GIL to call the callback
-                            let gil = Python::acquire_gil();
-                            let py = gil.python();
-                            let cb_args = PyTuple::new(py, &[Sample { s: s.unwrap() }]);
-                            if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                                warn!("Error calling subscriber callback:");
-                                e.print(py);
-                            }
-                        },
-                        op = unregister_rx.recv().fuse() => {
-                            match op {
-                                Ok(ZnSubOps::Pull) => {
-                                    if let Err(e) = static_zn_sub.pull().await {
-                                        warn!("Error pulling the subscriber: {}", e);
-                                    }
-                                },
-                                Ok(ZnSubOps::Unregister) => {
-                                    if let Err(e) = static_zn_sub.close().await {
-                                        warn!("Error undeclaring subscriber: {}", e);
-                                    }
-                                    return
-                                },
-                                _ => return
-                            }
-                        }
-                    )
+        let z_sub: CallbackSubscriber<'static> = builder
+            .callback(move |s| {
+                // Acquire Python GIL to call the callback
+                let gil = Python::acquire_gil();
+                let py = gil.python();
+                let cb_args = PyTuple::new(py, &[Sample { s }]);
+                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
+                    warn!("Error calling subscriber callback:");
+                    e.print(py);
                 }
             })
-        });
-        Ok(Subscriber {
-            unregister_tx,
-            loop_handle: Some(loop_handle),
-        })
+            .res()
+            .map_err(to_pyerr)?;
+        Ok(Subscriber { inner: Some(z_sub) })
     }
 
     /// Create a Queryable for the given key expression.
@@ -469,7 +410,7 @@ impl Session {
         callback: &PyAny,
         kwargs: Option<&PyDict>,
     ) -> PyResult<Queryable> {
-        let s = self.as_ref()?;
+        let s = self.try_ref()?;
         let k = zkey_expr_of_pyany(key_expr)?;
         let mut builder = s.queryable(k);
         if let Some(kwargs) = kwargs {
@@ -477,51 +418,29 @@ impl Session {
                 builder = builder.complete(arg.extract::<bool>()?);
             }
         }
-        let zn_quer = builder.wait().map_err(to_pyerr)?;
-
-        // Note: workaround to allow moving of zn_quer into the task below.
-        // Otherwise, s is moved also, but can't because it doesn't have 'static lifetime.
-        let mut zn_quer = unsafe {
-            std::mem::transmute::<
-                zenoh::queryable::Queryable<'_>,
-                zenoh::queryable::Queryable<'static>,
-            >(zn_quer)
-        };
 
         // Note: callback cannot be passed as such in task below because it's not Send
         let cb_obj: Py<PyAny> = callback.into();
-
-        let (unregister_tx, unregister_rx) = bounded::<bool>(1);
-        // Note: This is done to ensure that even if the call-back into Python
-        // does any blocking call we do not incour the risk of blocking
-        // any of the task resolving futures.
-        let loop_handle = task::spawn_blocking(move || {
-            task::block_on(async move {
-                loop {
-                    select!(
-                        q = zn_quer.receiver().next().fuse() => {
-                            // Acquire Python GIL to call the callback
-                            let gil = Python::acquire_gil();
-                            let py = gil.python();
-                            let cb_args = PyTuple::new(py, &[Query { q: async_std::sync::Arc::new(q.unwrap()) }]);
-                            if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                                warn!("Error calling queryable callback:");
-                                e.print(py);
-                            }
-                        },
-                        _ = unregister_rx.recv().fuse() => {
-                            if let Err(e) = zn_quer.close().await {
-                                warn!("Error undeclaring queryable: {}", e);
-                            }
-                            return
-                        }
-                    )
+        let z_quer = builder
+            .callback(move |q| {
+                // Acquire Python GIL to call the callback
+                let gil = Python::acquire_gil();
+                let py = gil.python();
+                let cb_args = PyTuple::new(
+                    py,
+                    &[Query {
+                        q: async_std::sync::Arc::new(q),
+                    }],
+                );
+                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
+                    warn!("Error calling queryable callback:");
+                    e.print(py);
                 }
             })
-        });
+            .res()
+            .map_err(to_pyerr)?;
         Ok(Queryable {
-            unregister_tx,
-            loop_handle: Some(loop_handle),
+            inner: Some(z_quer),
         })
     }
 
@@ -562,49 +481,47 @@ impl Session {
     #[pyo3(text_signature = "(self, selector, **kwargs)")]
     #[args(kwargs = "**")]
     fn get(&self, selector: &PyAny, kwargs: Option<&PyDict>) -> PyResult<Py<PyList>> {
-        let s = self.as_ref()?;
-        task::block_on(async {
-            let selector: Selector = match selector.get_type().name()? {
-                "KeyExpr" => {
-                    let key_expr: PyRef<KeyExpr> = selector.extract()?;
-                    key_expr.inner.clone().into()
-                }
-                "int" => {
-                    let id: u64 = selector.extract()?;
-                    ZKeyExpr::from(id).into()
-                }
-                "str" => {
-                    let name: &str = selector.extract()?;
-                    Selector::from(name)
-                }
-                x => {
-                    return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-                        "Cannot convert type '{}' to a zenoh Selector",
-                        x
-                    )))
-                }
-            };
-            let mut getter = s.get(selector);
-            if let Some(kwargs) = kwargs {
-                if let Some(arg) = kwargs.get_item("target") {
-                    getter = getter.target(arg.extract::<QueryTarget>()?.t);
-                }
-                if let Some(arg) = kwargs.get_item("consolidation") {
-                    getter = getter.consolidation(arg.extract::<QueryConsolidation>()?.c);
-                }
-                if let Some(arg) = kwargs.get_item("local_routing") {
-                    getter = getter.local_routing(arg.extract::<bool>()?);
-                }
+        let s = self.try_ref()?;
+        let selector: Selector = match selector.get_type().name()? {
+            "KeyExpr" => {
+                let key_expr: PyRef<KeyExpr> = selector.extract()?;
+                key_expr.inner.clone().into()
             }
-            let mut replies = getter.wait().map_err(to_pyerr)?;
-            let gil = Python::acquire_gil();
-            let py = gil.python();
-            let result = PyList::empty(py);
-            while let Some(reply) = replies.next().await {
-                result.append(Reply { r: reply })?;
+            "int" => {
+                let id: u64 = selector.extract()?;
+                ZKeyExpr::from(id).into()
             }
-            Ok(result.into())
-        })
+            "str" => {
+                let name: &str = selector.extract()?;
+                Selector::from(name)
+            }
+            x => {
+                return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
+                    "Cannot convert type '{}' to a zenoh Selector",
+                    x
+                )))
+            }
+        };
+        let mut builder = s.get(selector);
+        if let Some(kwargs) = kwargs {
+            if let Some(arg) = kwargs.get_item("target") {
+                builder = builder.target(arg.extract::<QueryTarget>()?.t);
+            }
+            if let Some(arg) = kwargs.get_item("consolidation") {
+                builder = builder.consolidation(arg.extract::<QueryConsolidation>()?.c);
+            }
+            if let Some(arg) = kwargs.get_item("local_routing") {
+                builder = builder.local_routing(arg.extract::<bool>()?);
+            }
+        }
+        let receiver = builder.res().map_err(to_pyerr)?;
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+        let result = PyList::empty(py);
+        while let Ok(reply) = receiver.recv() {
+            result.append(Reply { r: reply })?;
+        }
+        Ok(result.into())
     }
 
     /// Convert a :class:`KeyExpr` into the corresponding stringified key expression
@@ -618,7 +535,7 @@ impl Session {
     /// :raise: :class:`ZError`
     #[pyo3(text_signature = "(self, key_expr)")]
     fn key_expr_to_expr(&self, key_expr: &KeyExpr) -> PyResult<String> {
-        self.as_ref()?
+        self.try_ref()?
             .key_expr_to_expr(&key_expr.inner)
             .map_err(to_pyerr)
     }
@@ -626,18 +543,20 @@ impl Session {
 
 impl Session {
     pub(crate) fn new(s: zenoh::Session) -> Self {
-        Session { s: Some(s) }
+        Session {
+            s: Some(s.into_arc()),
+        }
     }
 
     #[inline]
-    fn as_ref(&self) -> PyResult<&zenoh::Session> {
+    fn try_ref(&self) -> PyResult<&Arc<zenoh::Session>> {
         self.s
             .as_ref()
             .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
     }
 
     #[inline]
-    fn take(&mut self) -> PyResult<zenoh::Session> {
+    fn try_take(&mut self) -> PyResult<Arc<zenoh::Session>> {
         self.s
             .take()
             .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
