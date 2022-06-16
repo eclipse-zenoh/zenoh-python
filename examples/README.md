@@ -35,7 +35,7 @@
 
 ### z_put
 
-   Puts a path/value into Zenoh.  
+   Puts a path/value into Zenoh.
    The path/value will be received by all matching subscribers, for instance the [z_sub](#z_sub)
    and [z_storage](#z_storage) examples.
 
@@ -45,7 +45,7 @@
    ```
    or
    ```bash
-      python3 z_put.py -p /demo/example/test -v 'Hello World'
+      python3 z_put.py -k /demo/example/test -v 'Hello World'
    ```
 
 ### z_pub
@@ -60,12 +60,12 @@
    ```
    or
    ```bash
-      python3 z_pub.py -p /demo/example/test -v 'Hello World'
+      python3 z_pub.py -k /demo/example/test -v 'Hello World'
    ```
 
 ### z_sub
 
-   Creates a subscriber with a key expression.  
+   Creates a subscriber with a key expression.
    The subscriber will be notified of each put made on any key expression matching
    the subscriber's key expression, and will print this notification.
 
@@ -75,12 +75,12 @@
    ```
    or
    ```bash
-      python3 z_sub.py -s /demo/**
+      python3 z_sub.py -k '/demo/**'
    ```
 
 ### z_pull
 
-   Creates a pull subscriber with a selector.  
+   Creates a pull subscriber with a selector.
    The pull subscriber will receive each put made on any key expression matching
    the subscriber's key expression and will pull on demand and print the received
    key/value.
@@ -91,12 +91,12 @@
    ```
    or
    ```bash
-      python3 z_pull.py -s /demo/**
+      python3 z_pull.py -k '/demo/**'
    ```
 
 ### z_get
 
-   Sends a query message for a selector.  
+   Sends a query message for a selector.
    The queryables with a matching path or selector (for instance [z_queryable](#z_queryable) and [z_storage](#z_storage))
    will receive this query and reply with paths/values that will be received by the query callback.
 
@@ -106,12 +106,12 @@
    ```
    or
    ```bash
-      python3 z_get.py -s /demo/**
+      python3 z_get.py -s '/demo/**'
    ```
 
 ### z_queryable
 
-   Creates a queryable function with a key expression.  
+   Creates a queryable function with a key expression.
    This queryable function will be triggered by each call to a get operation on zenoh
    with a selector that matches the key expression, and will return a value to the querier.
 
@@ -121,12 +121,12 @@
    ```
    or
    ```bash
-      python3 z_queryable.py -p /demo/example/queryable -v 'This is the result'
+      python3 z_queryable.py -k /demo/example/queryable -v 'This is the result'
    ```
 
 ### z_storage
 
-   Trivial implementation of a storage in memory.  
+   Trivial implementation of a storage in memory.
    This examples creates a subscriber and a queryable on the same key expression.
    The subscriber callback will store the received key/values in an hashmap.
    The queryable callback will answer to queries with the key/values stored in the hashmap
@@ -138,7 +138,7 @@
    ```
    or
    ```bash
-      python3 z_storage.py -s /demo/**
+      python3 z_storage.py -k '/demo/**'
    ```
 
 ### z_pub_thr & z_sub_thr
