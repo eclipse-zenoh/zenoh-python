@@ -50,6 +50,14 @@ Steps:
    ```bash
    pip install -r requirements-dev.txt
    ```
+
+ * Ensure your system can find the building tool maturin.
+ For example, it is placed at _$HOME/.local/bin/maturin_ by default on Ubuntu 20.04.
+
+    ```bash
+    export PATH="$HOME/.local/bin:$PATH"
+    ```
+
  * Build zenoh-python
    ```bash
    maturin build --release
