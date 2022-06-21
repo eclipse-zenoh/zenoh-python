@@ -120,6 +120,13 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: arm-unknown-linux-gnueabihf
+          default: true
       - name: install cross toolchain
         run: |
           brew tap messense/macos-cross-toolchains
