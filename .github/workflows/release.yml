@@ -112,3 +112,28 @@ jobs:
         with:
           name: wheels
           path: dist
+
+  linux-armv6:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: install cross toolchain
+        run: |
+          brew tap messense/macos-cross-toolchains
+          brew install arm-unknown-linux-gnueabihf
+
+          export CC_arm_unknown_linux_gnueabihf=arm-unknown-linux-gnueabihf-gcc
+          export CXX_arm_unknown_linux_gnueabihf=arm-unknown-linux-gnueabihf-g++
+          export AR_arm_unknown_linux_gnueabihf=arm-unknown-linux-gnueabihf-ar
+          export CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-unknown-linux-gnueabihf-gcc
+
+          pip3 install maturin
+          maturin build --release --target arm-unknown-linux-gnueabihf --out dist
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist
