@@ -14,11 +14,12 @@
 
 use std::sync::Arc;
 
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyDict};
 use zenoh::Session;
 use zenoh_core::SyncResolve;
 
-use crate::ToPyErr;
+use crate::enums::{_CongestionControl, _Encoding, _Priority, _SampleKind};
+use crate::{PyAnyToValue, ToPyErr};
 
 #[pyclass]
 #[derive(Clone)]
@@ -31,5 +32,35 @@ impl _Session {
         let config = config.and_then(|c| c.0.take()).unwrap_or_default();
         let session = zenoh::open(config).res_sync().map_err(|e| e.to_pyerr())?;
         Ok(_Session(Arc::new(session)))
+    }
+    #[args(kwargs = "**")]
+    pub fn put(
+        &self,
+        key_expr: &crate::keyexpr::_KeyExpr,
+        value: &PyAny,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<()> {
+        let s = &self.0;
+        let k = &key_expr.0;
+        let v = value.to_value()?;
+        let mut builder = s.put(k, v);
+        if let Some(kwargs) = kwargs {
+            if let Some(arg) = kwargs.get_item("encoding") {
+                builder = builder.encoding(arg.extract::<_Encoding>()?.0);
+            }
+            if let Some(arg) = kwargs.get_item("kind") {
+                builder = builder.kind(arg.extract::<_SampleKind>()?.0);
+            }
+            if let Some(arg) = kwargs.get_item("congestion_control") {
+                builder = builder.congestion_control(arg.extract::<_CongestionControl>()?.0);
+            }
+            if let Some(arg) = kwargs.get_item("priority") {
+                builder = builder.priority(arg.extract::<_Priority>()?.0);
+            }
+            if let Some(arg) = kwargs.get_item("local_routing") {
+                builder = builder.local_routing(arg.extract::<bool>()?);
+            }
+        }
+        builder.res_sync().map_err(|e| e.to_pyerr())
     }
 }

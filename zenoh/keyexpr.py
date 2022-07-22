@@ -30,6 +30,8 @@ class KeyExpr:
 
 		You may use `KeyExpr.autocanonize(expr)` instead if you are unsure if the expression
 		you will use for construction will be canon.
+
+		Raises a zenoh.ZError exception if `expr` is not a valid key expression.
 		"""
 		if isinstance(expr, KeyExpr):
 			self.inner = expr.inner
@@ -41,6 +43,8 @@ class KeyExpr:
 		"""
 		This alternative constructor for key expressions will attempt to canonize the passed
 		expression before checking if it is valid.
+
+		Raises a zenoh.ZError exception if `expr` is not a valid key expression.
 		"""
 		e = KeyExpr.__new__(KeyExpr)
 		if isinstance(expr, KeyExpr):
@@ -68,6 +72,14 @@ class KeyExpr:
 		Corresponds to set equality
 		"""
 		return self.inner.equals(other.inner)
+	
+	def __div__(self, other: [str, 'KeyExpr']) -> 'KeyExpr':
+		"""
+		Joins two key expressions with a `/`.
+
+		Raises a zenoh.ZError exception if `other` is not a valid key expression.
+		"""
+		KeyExpr.autocanonize(f"{self}/{other}")
 	
 	def __str__(self):
 		return self.inner.as_str()

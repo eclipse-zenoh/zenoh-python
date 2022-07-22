@@ -20,7 +20,7 @@ use crate::ToPyErr;
 
 #[pyclass]
 #[derive(Clone)]
-pub struct _KeyExpr(KeyExpr<'static>);
+pub struct _KeyExpr(pub(crate) KeyExpr<'static>);
 
 #[pymethods]
 impl _KeyExpr {

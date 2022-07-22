@@ -13,6 +13,7 @@
 //
 use pyo3::prelude::*;
 mod config;
+mod enums;
 mod keyexpr;
 mod session;
 
@@ -40,6 +41,10 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<config::_Config>()?;
     m.add_class::<keyexpr::_KeyExpr>()?;
     m.add_class::<session::_Session>()?;
+    m.add_class::<enums::_Encoding>()?;
+    m.add_class::<enums::_Priority>()?;
+    m.add_class::<enums::_SampleKind>()?;
+    m.add_class::<enums::_CongestionControl>()?;
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
     Ok(())
 }
@@ -56,4 +61,13 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
 #[pyfunction]
 fn init_logger() {
     env_logger::init();
+}
+
+pub(crate) trait PyAnyToValue {
+    fn to_value(self) -> PyResult<zenoh::prelude::Value>;
+}
+impl PyAnyToValue for &PyAny {
+    fn to_value(self) -> PyResult<zenoh::prelude::Value> {
+        todo!()
+    }
 }
