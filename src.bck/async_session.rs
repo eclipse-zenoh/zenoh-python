@@ -85,21 +85,7 @@ impl AsyncSession {
     /// >>>
     /// >>> asyncio.run(main())
     pub fn info<'p>(&self, py: Python<'p>) -> PyResult<&'p PyAny> {
-        let s = self.try_clone()?;
-        use zenoh_cfg_properties::KeyTranscoder;
-        future_into_py(py, async move {
-            s.info()
-                .res()
-                .map(|props| {
-                    let hashmap: HashMap<String, String> = props
-                        .0
-                        .into_iter()
-                        .filter_map(|(k, v)| zenoh::info::InfoTranscoder::decode(k).map(|k| (k, v)))
-                        .collect();
-                    Python::with_gil(|py| Ok(hashmap.into_py_dict(py).to_object(py)))
-                })
-                .await
-        })
+        todo!()
     }
 
     /// Put data.
