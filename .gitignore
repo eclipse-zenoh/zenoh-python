@@ -35,3 +35,5 @@ docs/_*
 *.bak
 
 .vscode/
+
+**/pycache
