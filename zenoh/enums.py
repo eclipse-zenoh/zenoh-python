@@ -1,51 +1,124 @@
 from .zenoh import _Encoding, _SampleKind, _CongestionControl, _Priority
 
-class Encoding:
-	def __init__(self, inner: _Encoding):
-		self.inner = inner
+class Priority(_Priority):
+	def __new__(cls, inner: _SampleKind):
+		return super().__new__(cls, inner)
+	@staticmethod
+	def REAL_TIME():
+		return Priority(_Priority.REAL_TIME)
+	@staticmethod
+	def REAL_TIME():
+		return Priority(_Priority.REAL_TIME)
+	@staticmethod
+	def INTERACTIVE_HIGH():
+		return Priority(_Priority.INTERACTIVE_HIGH)
+	@staticmethod
+	def INTERACTIVE_LOW():
+		return Priority(_Priority.INTERACTIVE_LOW)
+	@staticmethod
+	def DATA_HIGH():
+		return Priority(_Priority.DATA_HIGH)
+	@staticmethod
+	def DATA():
+		return Priority(_Priority.DATA)
+	@staticmethod
+	def DATA_LOW():
+		return Priority(_Priority.DATA_LOW)
+	@staticmethod
+	def BACKGROUND():
+		return Priority(_Priority.BACKGROUND)
+
+class SampleKind(_SampleKind):
+	def __new__(cls, inner: _SampleKind):
+		return super().__new__(cls, inner)
+	@staticmethod
+	def PUT() -> 'SampleKind':
+		return SampleKind(_SampleKind.PUT)
+	@staticmethod
+	def DELETE() -> 'SampleKind':
+		return SampleKind(_SampleKind.DELETE)
+
+class CongestionControl(_CongestionControl):
+	def __new__(cls, inner: _CongestionControl):
+		return super().__new__(cls, inner)
+	@staticmethod
+	def BLOCK() -> 'CongestionControl':
+		return CongestionControl(_CongestionControl.BLOCK)
+	@staticmethod
+	def DROP() -> 'CongestionControl':
+		return CongestionControl(_CongestionControl.DROP)
+
+class Encoding(_Encoding):
+	def __new__(cls, inner: _Encoding):
+		return super().__new__(cls, inner)
 	@staticmethod
 	def from_str(s: str) -> 'Encoding':
-		return Encoding(_Encoding.from_str(s))
+		return super(Encoding, Encoding).from_str(s)
 	def append(self, s: str):
-		self.inner.append(s)
+		super().append(s)
 	def __eq__(self, other: 'Encoding'):
-		self.inner.equals(other.inner)
-	EMPTY = Encoding(_Encoding.EMPTY)
-	APP_OCTET_STREAM = Encoding(_Encoding.APP_OCTET_STREAM)
-	APP_CUSTOM = Encoding(_Encoding.APP_CUSTOM)
-	TEXT_PLAIN = Encoding(_Encoding.TEXT_PLAIN)
-	APP_PROPERTIES = Encoding(_Encoding.APP_PROPERTIES)
-	APP_JSON = Encoding(_Encoding.APP_JSON)
-	APP_SQL = Encoding(_Encoding.APP_SQL)
-	APP_INTEGER = Encoding(_Encoding.APP_INTEGER)
-	APP_FLOAT = Encoding(_Encoding.APP_FLOAT)
-	APP_XML = Encoding(_Encoding.APP_XML)
-	APP_XHTML_XML = Encoding(_Encoding.APP_XHTML_XML)
-	APP_X_WWW_FORM_URLENCODED = Encoding(_Encoding.APP_X_WWW_FORM_URLENCODED)
-	TEXT_JSON = Encoding(_Encoding.TEXT_JSON)
-	TEXT_HTML = Encoding(_Encoding.TEXT_HTML)
-	TEXT_XML = Encoding(_Encoding.TEXT_XML)
-	TEXT_CSS = Encoding(_Encoding.TEXT_CSS)
-	TEXT_CSV = Encoding(_Encoding.TEXT_CSV)
-	TEXT_JAVASCRIPT = Encoding(_Encoding.TEXT_JAVASCRIPT)
-	IMAGE_JPEG = Encoding(_Encoding.IMAGE_JPEG)
-	IMAGE_PNG = Encoding(_Encoding.IMAGE_PNG)
-	IMAGE_GIF = Encoding(_Encoding.IMAGE_GIF)
+		return super().equals(other)
+	@staticmethod
+	def EMPTY():
+		return Encoding(_Encoding.EMPTY )
+	@staticmethod
+	def APP_OCTET_STREAM():
+		return Encoding(_Encoding.APP_OCTET_STREAM)
+	@staticmethod
+	def APP_CUSTOM():
+		return Encoding(_Encoding.APP_CUSTOM)
+	@staticmethod
+	def TEXT_PLAIN():
+		return Encoding(_Encoding.TEXT_PLAIN)
+	@staticmethod
+	def APP_PROPERTIES():
+		return Encoding(_Encoding.APP_PROPERTIES)
+	@staticmethod
+	def APP_JSON():
+		return Encoding(_Encoding.APP_JSON)
+	@staticmethod
+	def APP_SQL():
+		return Encoding(_Encoding.APP_SQL)
+	@staticmethod
+	def APP_INTEGER():
+		return Encoding(_Encoding.APP_INTEGER)
+	@staticmethod
+	def APP_FLOAT():
+		return Encoding(_Encoding.APP_FLOAT)
+	@staticmethod
+	def APP_XML():
+		return Encoding(_Encoding.APP_XML)
+	@staticmethod
+	def APP_XHTML_XML():
+		return Encoding(_Encoding.APP_XHTML_XML)
+	@staticmethod
+	def APP_X_WWW_FORM_URLENCODED():
+		return Encoding(_Encoding.APP_X_WWW_FORM_URLENCODED)
+	@staticmethod
+	def TEXT_JSON():
+		return Encoding(_Encoding.TEXT_JSON)
+	@staticmethod
+	def TEXT_HTML():
+		return Encoding(_Encoding.TEXT_HTML)
+	@staticmethod
+	def TEXT_XML():
+		return Encoding(_Encoding.TEXT_XML)
+	@staticmethod
+	def TEXT_CSS():
+		return Encoding(_Encoding.TEXT_CSS)
+	@staticmethod
+	def TEXT_CSV():
+		return Encoding(_Encoding.TEXT_CSV)
+	@staticmethod
+	def TEXT_JAVASCRIPT():
+		return Encoding(_Encoding.TEXT_JAVASCRIPT)
+	@staticmethod
+	def IMAGE_JPEG():
+		return Encoding(_Encoding.IMAGE_JPEG)
+	@staticmethod
+	def IMAGE_PNG():
+		return Encoding(_Encoding.IMAGE_PNG)
+	@staticmethod
+	def IMAGE_GIF():
+		return Encoding(_Encoding.IMAGE_GIF)
 
-class Priority:
-	REAL_TIME = _Priority.REAL_TIME
-	REAL_TIME = _Priority.REAL_TIME
-	INTERACTIVE_HIGH = _Priority.INTERACTIVE_HIGH
-	INTERACTIVE_LOW = _Priority.INTERACTIVE_LOW
-	DATA_HIGH = _Priority.DATA_HIGH
-	DATA = _Priority.DATA
-	DATA_LOW = _Priority.DATA_LOW
-	BACKGROUND = _Priority.BACKGROUND
-
-class SampleKind:
-	PUT = _SampleKind.PUT
-	DELETE = _SampleKind.DELETE
-
-class CongestionControl:
-	BLOCK = _CongestionControl.BLOCK
-	DROP = _CongestionControl.DROP

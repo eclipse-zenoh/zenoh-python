@@ -1,5 +1,9 @@
-from zenoh import Config, Session, init_logger
+from zenoh import *
 
 init_logger()
-s = Session({"mode": "peer"})
+s: Session = Session({"mode": "peer"})
 print(s)
+
+print(KeyExpr("a/b"))
+print(KeyExpr.autocanonize("a/b"))
+print(KeyExpr.autocanonize("a/**/*"))

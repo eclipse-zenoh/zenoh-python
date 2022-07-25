@@ -19,7 +19,7 @@ use zenoh_core::zerror;
 
 use crate::{ToPyErr, ToPyResult};
 
-#[pyclass]
+#[pyclass(subclass)]
 pub struct _Config(pub(crate) Option<Config>);
 
 #[pymethods]

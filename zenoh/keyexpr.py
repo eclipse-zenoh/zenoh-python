@@ -1,7 +1,7 @@
 from typing import Union
 from .zenoh import _KeyExpr
 
-class KeyExpr:
+class KeyExpr(_KeyExpr):
 	"""
 	Zenoh's address space is designed around keys which serve as the names of ressources.
 
@@ -23,7 +23,7 @@ class KeyExpr:
 
 	A KeyExpr is a string that has been validated to be a valid Key Expression.
 	"""
-	def __init__(self, expr: Union[str, 'KeyExpr']):
+	def __new__(cls, expr: Union[str, 'KeyExpr']):
 		"""
 		The default constructor for KeyExpr will ensure that the passed expression is valid.
 		It won't however try to correct expressions that aren't canon.
@@ -34,9 +34,9 @@ class KeyExpr:
 		Raises a zenoh.ZError exception if `expr` is not a valid key expression.
 		"""
 		if isinstance(expr, KeyExpr):
-			self.inner = expr.inner
+			return expr
 		else:
-			self.inner = _KeyExpr(expr)
+			return super().__new__(cls, expr)
 
 	@staticmethod
 	def autocanonize(expr: str) -> 'KeyExpr':
@@ -46,32 +46,31 @@ class KeyExpr:
 
 		Raises a zenoh.ZError exception if `expr` is not a valid key expression.
 		"""
-		e = KeyExpr.__new__(KeyExpr)
 		if isinstance(expr, KeyExpr):
-			e.inner = expr.inner
+			return expr
 		else:
-			e.inner = _KeyExpr.autocanonize(expr)
-		return e
+			e = _KeyExpr.autocanonize(expr)
+			return KeyExpr(e.as_str())
 	
 	def intersects(self, other: 'KeyExpr') -> bool:
 		"""
 		This method returns `True` if there exists at least one key that belongs to both sets
 		defined by `self` and `other`. 
 		"""
-		return self.inner.intersects(other.inner)
+		return super().intersects(other.inner)
 	
 	def includes(self, other: 'KeyExpr') -> bool:
 		"""
 		This method returns `True` if all of the keys defined by `other` also belong to the set
 		defined by `self`
 		"""
-		return self.inner.includes(other.inner)
+		return super().includes(other.inner)
 	
 	def __eq__(self, other: 'KeyExpr') -> bool:
 		"""
 		Corresponds to set equality
 		"""
-		return self.inner.equals(other.inner)
+		return super().equals(other.inner)
 	
 	def __div__(self, other: [str, 'KeyExpr']) -> 'KeyExpr':
 		"""
@@ -79,7 +78,7 @@ class KeyExpr:
 
 		Raises a zenoh.ZError exception if `other` is not a valid key expression.
 		"""
-		KeyExpr.autocanonize(f"{self}/{other}")
+		return KeyExpr.autocanonize(f"{self}/{other}")
 	
 	def __str__(self):
-		return self.inner.as_str()
+		return super().as_str()

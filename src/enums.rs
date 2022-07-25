@@ -3,11 +3,16 @@ use pyo3::prelude::*;
 use zenoh::prelude::{Encoding, KnownEncoding, Priority, SampleKind};
 use zenoh::publication::CongestionControl;
 
-#[pyclass]
+#[pyclass(subclass)]
+#[repr(transparent)]
 #[derive(Clone, PartialEq, Eq)]
 pub struct _Encoding(pub(crate) Encoding);
 #[pymethods]
 impl _Encoding {
+    #[new]
+    pub fn new(this: Self) -> Self {
+        this
+    }
     #[classattr]
     pub const EMPTY: Self = Self(Encoding::Exact(KnownEncoding::Empty));
     #[classattr]
@@ -67,11 +72,15 @@ impl _Encoding {
     }
 }
 
-#[pyclass]
+#[pyclass(subclass)]
 #[derive(Clone, PartialEq, Eq)]
 pub struct _Priority(pub(crate) Priority);
 #[pymethods]
 impl _Priority {
+    #[new]
+    pub fn new(this: Self) -> Self {
+        this
+    }
     #[classattr]
     pub const REAL_TIME: Self = Self(Priority::RealTime);
     #[classattr]
@@ -88,22 +97,30 @@ impl _Priority {
     pub const BACKGROUND: Self = Self(Priority::Background);
 }
 
-#[pyclass]
+#[pyclass(subclass)]
 #[derive(Clone, PartialEq, Eq)]
 pub struct _SampleKind(pub(crate) SampleKind);
 #[pymethods]
 impl _SampleKind {
+    #[new]
+    pub fn new(this: Self) -> Self {
+        this
+    }
     #[classattr]
     pub const PUT: Self = Self(SampleKind::Put);
     #[classattr]
     pub const DELETE: Self = Self(SampleKind::Delete);
 }
 
-#[pyclass]
+#[pyclass(subclass)]
 #[derive(Clone, PartialEq, Eq)]
 pub struct _CongestionControl(pub(crate) CongestionControl);
 #[pymethods]
 impl _CongestionControl {
+    #[new]
+    pub fn new(this: Self) -> Self {
+        this
+    }
     #[classattr]
     pub const BLOCK: Self = Self(CongestionControl::Block);
     #[classattr]

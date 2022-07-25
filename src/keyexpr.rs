@@ -18,7 +18,7 @@ use zenoh::prelude::KeyExpr;
 
 use crate::ToPyErr;
 
-#[pyclass]
+#[pyclass(subclass)]
 #[derive(Clone)]
 pub struct _KeyExpr(pub(crate) KeyExpr<'static>);
 

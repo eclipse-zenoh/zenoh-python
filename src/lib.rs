@@ -16,6 +16,7 @@ mod config;
 mod enums;
 mod keyexpr;
 mod session;
+mod value;
 
 pyo3::create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
@@ -41,6 +42,7 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<config::_Config>()?;
     m.add_class::<keyexpr::_KeyExpr>()?;
     m.add_class::<session::_Session>()?;
+    m.add_class::<value::_Value>()?;
     m.add_class::<enums::_Encoding>()?;
     m.add_class::<enums::_Priority>()?;
     m.add_class::<enums::_SampleKind>()?;
@@ -63,11 +65,4 @@ fn init_logger() {
     env_logger::init();
 }
 
-pub(crate) trait PyAnyToValue {
-    fn to_value(self) -> PyResult<zenoh::prelude::Value>;
-}
-impl PyAnyToValue for &PyAny {
-    fn to_value(self) -> PyResult<zenoh::prelude::Value> {
-        todo!()
-    }
-}
+pub(crate) use value::PyAnyToValue;

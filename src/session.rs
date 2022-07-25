@@ -21,7 +21,7 @@ use zenoh_core::SyncResolve;
 use crate::enums::{_CongestionControl, _Encoding, _Priority, _SampleKind};
 use crate::{PyAnyToValue, ToPyErr};
 
-#[pyclass]
+#[pyclass(subclass)]
 #[derive(Clone)]
 pub struct _Session(Arc<Session>);
 
