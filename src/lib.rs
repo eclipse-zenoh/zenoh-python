@@ -11,7 +11,8 @@
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyDict, ToBorrowedObject};
+mod closures;
 mod config;
 mod enums;
 mod keyexpr;
@@ -34,6 +35,35 @@ pub(crate) trait ToPyResult<T> {
 impl<T, E: ToPyErr> ToPyResult<T> for Result<T, E> {
     fn to_pyres(self) -> Result<T, PyErr> {
         self.map_err(ToPyErr::to_pyerr)
+    }
+}
+
+enum ExtractError {
+    Unavailable(Option<PyErr>),
+    Other(PyErr),
+}
+impl From<PyErr> for ExtractError {
+    fn from(e: PyErr) -> Self {
+        Self::Other(e)
+    }
+}
+pub(crate) trait PyExtract<K> {
+    fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError>;
+}
+impl<K: ToBorrowedObject> PyExtract<K> for PyAny {
+    fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError> {
+        match self.get_item(key) {
+            Ok(item) => Ok(item.extract::<V>()?),
+            Err(e) => Err(ExtractError::Unavailable(Some(e))),
+        }
+    }
+}
+impl<K: ToBorrowedObject> PyExtract<K> for PyDict {
+    fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError> {
+        match self.get_item(key) {
+            Some(item) => Ok(item.extract::<V>()?),
+            None => Err(ExtractError::Unavailable(None)),
+        }
     }
 }
 

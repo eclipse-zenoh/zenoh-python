@@ -50,6 +50,7 @@ class CongestionControl(_CongestionControl):
 
 class Encoding(_Encoding):
 	def __new__(cls, inner: _Encoding):
+		assert isinstance(inner, _Encoding)
 		return super().__new__(cls, inner)
 	@staticmethod
 	def from_str(s: str) -> 'Encoding':

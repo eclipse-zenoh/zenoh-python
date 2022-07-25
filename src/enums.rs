@@ -2,10 +2,11 @@ use pyo3::prelude::*;
 
 use zenoh::prelude::{Encoding, KnownEncoding, Priority, SampleKind};
 use zenoh::publication::CongestionControl;
+use zenoh::subscriber::Reliability;
 
 #[pyclass(subclass)]
 #[repr(transparent)]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct _Encoding(pub(crate) Encoding);
 #[pymethods]
 impl _Encoding {
@@ -127,6 +128,21 @@ impl _CongestionControl {
     pub const DROP: Self = Self(CongestionControl::Drop);
 }
 
+#[pyclass(subclass)]
+#[derive(Clone, PartialEq, Eq)]
+pub struct _Reliability(pub(crate) Reliability);
+#[pymethods]
+impl _Reliability {
+    #[new]
+    pub fn new(this: Self) -> Self {
+        this
+    }
+    #[classattr]
+    pub const BEST_EFFORT: Self = Self(Reliability::BestEffort);
+    #[classattr]
+    pub const RELIABLE: Self = Self(Reliability::Reliable);
+}
+
 #[test]
 fn variants_exhaustivity() {
     match _Priority::REAL_TIME {
@@ -143,5 +159,8 @@ fn variants_exhaustivity() {
     }
     match _CongestionControl::BLOCK {
         _CongestionControl::BLOCK | _CongestionControl::DROP => {}
+    }
+    match _Reliability::BEST_EFFORT {
+        _Reliability::BEST_EFFORT | _Reliability::RELIABLE => {}
     }
 }

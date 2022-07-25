@@ -1,37 +1,146 @@
-use std::borrow::Cow;
-
 use pyo3::{prelude::*, types::PyBytes};
-use zenoh::prelude::Value;
+use zenoh::prelude::{Encoding, KeyExpr, Sample, Value};
 use zenoh_buffers::{SplitBuffer, ZBuf};
 
-use crate::enums::_Encoding;
+use crate::{
+    enums::{_Encoding, _SampleKind},
+    keyexpr::_KeyExpr,
+};
 
+#[derive(Clone)]
+pub(crate) enum Payload {
+    Zenoh(ZBuf),
+    Python(Py<PyBytes>),
+}
+impl Payload {
+    pub(crate) fn into_zbuf(self) -> ZBuf {
+        match self {
+            Payload::Zenoh(buf) => buf,
+            Payload::Python(buf) => Python::with_gil(|py| ZBuf::from(buf.as_bytes(py).to_owned())),
+        }
+    }
+    pub(crate) fn into_pybytes(self) -> Py<PyBytes> {
+        match self {
+            Payload::Zenoh(buf) => {
+                Python::with_gil(|py| Py::from(PyBytes::new(py, buf.contiguous().as_ref())))
+            }
+            Payload::Python(buf) => buf,
+        }
+    }
+}
+impl From<ZBuf> for Payload {
+    fn from(buf: ZBuf) -> Self {
+        Payload::Zenoh(buf)
+    }
+}
+impl From<Py<PyBytes>> for Payload {
+    fn from(buf: Py<PyBytes>) -> Self {
+        Payload::Python(buf)
+    }
+}
 #[pyclass(subclass)]
 #[derive(Clone)]
 pub struct _Value {
-    inner: Value,
-    payload: Option<Cow<'static, [u8]>>,
+    pub(crate) payload: Payload,
+    pub(crate) encoding: Encoding,
 }
 #[pymethods]
 impl _Value {
-    pub fn payload<'a>(&mut self, py: Python<'a>) -> &'a PyBytes {
-        if self.payload.is_none() {
-            self.payload = Some(unsafe { std::mem::transmute(self.inner.payload.contiguous()) })
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[staticmethod]
+    pub fn new(payload: Py<PyBytes>) -> Self {
+        Self {
+            payload: payload.into(),
+            encoding: Encoding::EMPTY,
         }
-        unsafe { PyBytes::new(py, self.payload.as_ref().unwrap_unchecked()) }
+    }
+    pub fn payload(&mut self) -> Py<PyBytes> {
+        if let Payload::Python(buf) = &self.payload {
+            return buf.clone();
+        }
+        let payload = unsafe { std::ptr::read(&self.payload) };
+        let buf = payload.into_pybytes();
+        unsafe { std::ptr::write(&mut self.payload, Payload::Python(buf.clone())) };
+        buf
+    }
+    pub fn with_payload(&mut self, payload: Py<PyBytes>) {
+        self.payload = Payload::Python(payload)
     }
     pub fn encoding(&self) -> _Encoding {
-        _Encoding(self.inner.encoding.clone())
+        _Encoding(self.encoding.clone())
+    }
+    pub fn with_encoding(&mut self, encoding: _Encoding) {
+        self.encoding = encoding.0;
+    }
+}
+impl From<Value> for _Value {
+    fn from(value: Value) -> Self {
+        _Value {
+            payload: value.payload.into(),
+            encoding: value.encoding,
+        }
+    }
+}
+impl From<_Value> for Value {
+    fn from(value: _Value) -> Self {
+        Value::new(value.payload.into_zbuf()).encoding(value.encoding)
     }
 }
 
 pub(crate) trait PyAnyToValue {
-    fn to_value(self) -> PyResult<zenoh::prelude::Value>;
+    fn to_value(self) -> PyResult<Value>;
 }
 impl PyAnyToValue for &PyAny {
-    fn to_value(self) -> PyResult<zenoh::prelude::Value> {
-        let encoding: _Encoding = self.call_method0("_encoding")?.extract()?;
-        let payload: &PyBytes = self.call_method0("payload")?.extract()?;
+    fn to_value(self) -> PyResult<Value> {
+        let encoding: _Encoding = self.getattr("encoding")?.extract()?;
+        let payload: &PyBytes = self.getattr("payload")?.extract()?;
         Ok(Value::new(ZBuf::from(payload.as_bytes().to_owned())).encoding(encoding.0))
+    }
+}
+
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct _Sample {
+    key_expr: KeyExpr<'static>,
+    value: _Value,
+    kind: _SampleKind,
+}
+impl From<Sample> for _Sample {
+    fn from(sample: Sample) -> Self {
+        let Sample {
+            key_expr,
+            value,
+            kind,
+            ..
+        } = sample;
+        _Sample {
+            key_expr,
+            value: value.into(),
+            kind: _SampleKind(kind),
+        }
+    }
+}
+#[pymethods]
+impl _Sample {
+    pub fn key_expr(&self) -> _KeyExpr {
+        _KeyExpr(self.key_expr.clone())
+    }
+    pub fn payload(&mut self) -> Py<PyBytes> {
+        if let Payload::Python(buf) = &self.value.payload {
+            return buf.clone();
+        }
+        let payload = unsafe { std::ptr::read(&self.value.payload) };
+        let buf = payload.into_pybytes();
+        unsafe { std::ptr::write(&mut self.value.payload, Payload::Python(buf.clone())) };
+        buf
+    }
+    pub fn encoding(&self) -> _Encoding {
+        _Encoding(self.value.encoding.clone())
+    }
+    pub fn kind(&self) -> _SampleKind {
+        self.kind.clone()
     }
 }
