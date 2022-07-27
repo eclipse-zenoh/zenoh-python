@@ -127,6 +127,9 @@ class QueueClosed(Exception):
 	pass
 
 class Queue(IHandler[In, None, 'Queue'], Generic[In]):
+	"""
+	A simple queue implementation.
+	"""
 	def __init__(self, timeout=None):
 		self._vec_ = deque()
 		self._cv_ = Condition()
@@ -172,10 +175,10 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 		else:
 			raise TimeoutError()
 	
-	def await_closing(self, timeout=None):
+	def get_remaining(self, timeout=None) -> List[In]:
 		"""
-		Awaits the closing of the queue.
-		The values inserted into the queue up until this happens will be available through `get`
+		Awaits the closing of the queue, returning the remaining queued values in a list.
+		The values inserted into the queue up until this happens will be available through `get`.
 
 		Raises a `TimeoutError` if the timeout in seconds provided was exceeded before closing.
 		"""
@@ -187,6 +190,7 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 					return
 				elif time.time() >= end:
 					raise TimeoutError()
+		return list(self._vec_)
 
 if __name__ == "__main__":
 	def get(collector):
