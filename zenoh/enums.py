@@ -1,4 +1,4 @@
-from .zenoh import _Encoding, _SampleKind, _CongestionControl, _Priority, _Reliability
+from .zenoh import _Encoding, _SampleKind, _CongestionControl, _Priority, _Reliability, _QueryTarget, _QueryConsolidation
 
 class Priority(_Priority):
 	def __new__(cls, inner: _SampleKind):
@@ -50,8 +50,6 @@ class CongestionControl(_CongestionControl):
 
 class Encoding(_Encoding):
 	def __new__(cls, inner: _Encoding):
-		print(inner)
-		assert isinstance(inner, _Encoding)
 		return super().__new__(cls, inner)
 	@staticmethod
 	def from_str(s: str) -> 'Encoding':
@@ -124,8 +122,6 @@ class Encoding(_Encoding):
 	def IMAGE_GIF() -> 'Encoding':
 		return Encoding(_Encoding.IMAGE_GIF)
 
-
-
 class Reliability(_Reliability):
 	def __new__(cls, inner: _Reliability):
 		return super().__new__(cls, inner)
@@ -135,3 +131,38 @@ class Reliability(_Reliability):
 	@staticmethod
 	def RELIABLE() -> 'CongestionControl':
 		return Reliability(_Reliability.RELIABLE)
+
+class QueryTarget(_QueryTarget):
+	def __new__(cls, inner: _QueryTarget):
+		return super().__new__(cls, inner)
+	@staticmethod
+	def BEST_MATCHING() -> 'QueryTarget':
+		return QueryTarget(_QueryTarget.BEST_MATCHING)
+	@staticmethod
+	def ALL() -> 'QueryTarget':
+		return QueryTarget(_QueryTarget.ALL)
+	@staticmethod
+	def ALL_COMPLETE() -> 'QueryTarget':
+		return QueryTarget(_QueryTarget.ALL_COMPLETE)
+
+class QueryConsolidation(_QueryConsolidation):
+	def __new__(cls, inner: _QueryConsolidation):
+		return super().__new__(cls, inner)
+	@staticmethod
+	def AUTO() -> 'QueryConsolidation':
+		return QueryConsolidation(_QueryConsolidation.AUTO)
+	@staticmethod
+	def NONE() -> 'QueryConsolidation':
+		return QueryConsolidation(_QueryConsolidation.NONE)
+	@staticmethod
+	def LAZY() -> 'QueryConsolidation':
+		return QueryConsolidation(_QueryConsolidation.LAZY)
+	@staticmethod
+	def RECEPTION() -> 'QueryConsolidation':
+		return QueryConsolidation(_QueryConsolidation.RECEPTION)
+	@staticmethod
+	def LAST_ROUTER() -> 'QueryConsolidation':
+		return QueryConsolidation(_QueryConsolidation.LAST_ROUTER)
+	@staticmethod
+	def FULL() -> 'QueryConsolidation':
+		return QueryConsolidation(_QueryConsolidation.FULL)

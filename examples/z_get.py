@@ -38,7 +38,7 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--selector', '-s', dest='selector',
-                    default='/demo/example/**',
+                    default='demo/example/**',
                     type=str,
                     help='The selection of resources to query.')
 parser.add_argument('--target', '-t', dest='target',
@@ -62,10 +62,9 @@ if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 selector = args.selector
 target = {
-    'ALL': QueryTarget.All(),
-    'BEST_MATCHING': QueryTarget.BestMatching(),
-    'ALL_COMPLETE': QueryTarget.AllComplete(),
-    'NONE': QueryTarget.No()}.get(args.target)
+    'ALL': QueryTarget.ALL(),
+    'BEST_MATCHING': QueryTarget.BEST_MATCHING(),
+    'ALL_COMPLETE': QueryTarget.ALL_COMPLETE(),}.get(args.target)
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -76,14 +75,14 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-replies = session.get(selector, target=target)
-for reply in replies:
-    if isinstance(reply.sample, zenoh.Sample):
+replies = session.get(selector, zenoh.ListCollector(), target=target)
+for reply in replies():
+    if reply.ok is not None:
         print(">> Received ('{}': '{}')"
-            .format(reply.sample.key_expr, reply.sample.payload.decode("utf-8")))
+            .format(reply.ok.key_expr, reply.ok.payload.decode("utf-8")))
     else: 
         print(">> Received (ERROR: '{}')"
-            .format(reply.sample.payload.decode("utf-8")))
+            .format(reply.err.payload.decode("utf-8")))
 
 
 session.close()

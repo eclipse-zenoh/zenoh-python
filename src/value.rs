@@ -1,5 +1,11 @@
-use pyo3::{prelude::*, types::PyBytes};
-use zenoh::prelude::{Encoding, KeyExpr, Sample, Value};
+use pyo3::{
+    prelude::*,
+    types::{PyBytes, PyString},
+};
+use zenoh::{
+    prelude::{Encoding, KeyExpr, Sample, Value},
+    query::Reply,
+};
 use zenoh_buffers::{SplitBuffer, ZBuf};
 
 use crate::{
@@ -156,5 +162,41 @@ impl _Sample {
     #[getter]
     pub fn kind(&self) -> _SampleKind {
         self.kind.clone()
+    }
+}
+
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct _Reply {
+    #[pyo3(get)]
+    pub replier_id: Py<PyString>,
+    pub reply: Result<_Sample, _Value>,
+}
+#[pymethods]
+impl _Reply {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[getter]
+    pub fn ok(&self) -> Option<_Sample> {
+        self.reply.as_ref().ok().map(Clone::clone)
+    }
+    #[getter]
+    pub fn err(&self) -> Option<_Sample> {
+        self.reply.as_ref().ok().map(Clone::clone)
+    }
+}
+impl From<Reply> for _Reply {
+    fn from(reply: Reply) -> Self {
+        let replier_id = reply.replier_id.to_string();
+        let replier_id = Python::with_gil(|py| Py::from(PyString::new(py, &replier_id)));
+        _Reply {
+            replier_id,
+            reply: match reply.sample {
+                Ok(o) => Ok(o.into()),
+                Err(e) => Err(e.into()),
+            },
+        }
     }
 }

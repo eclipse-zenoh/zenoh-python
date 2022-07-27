@@ -5,9 +5,9 @@ from .zenoh import _Session, _Config, _Subscriber, _PullSubscriber
 
 from .keyexpr import KeyExpr, IntoKeyExpr
 from .config import Config
-from .closures import IntoHandler, Handler
+from .closures import IntoHandler, Handler, Receiver
 from .enums import *
-from .value import IntoValue, Value, Sample
+from .value import IntoValue, Value, Sample, Reply
 
 def dbg(x):
 	print(x)
@@ -60,8 +60,17 @@ class Session(_Session):
 	def delete(self, keyexpr: IntoKeyExpr):
 		return super().delete(KeyExpr(keyexpr))
 	
-	def get(self, keyexpr: IntoKeyExpr):
-		raise NotImplemented()
+	def get(self, selector: str, handler: IntoHandler, local_routing: bool = None, consolidation: QueryConsolidation = None, target: QueryTarget = None) -> Receiver:
+		handler = Handler(handler, lambda x: Reply(x))
+		kwargs = dict()
+		if local_routing is not None:
+			kwargs["local_routing"] = local_routing
+		if consolidation is not None:
+			kwargs["conconsolidation"] =consolidation
+		if target is not None:
+			kwargs["target"] = target
+		super().get(selector, handler.closure, **kwargs)
+		return handler.receiver
 	
 	def declare_keyexpr(self, keyexpr: IntoKeyExpr) -> KeyExpr:
 		return super().declare_keyexpr(KeyExpr(keyexpr))

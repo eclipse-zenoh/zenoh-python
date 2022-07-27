@@ -22,14 +22,36 @@ use zenoh::Session;
 use zenoh_core::SyncResolve;
 
 use crate::closures::PyClosure;
-use crate::enums::{_CongestionControl, _Priority, _Reliability, _SampleKind};
+use crate::enums::{
+    _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability, _SampleKind,
+};
 use crate::keyexpr::_KeyExpr;
-use crate::value::_Sample;
+use crate::value::{_Reply, _Sample};
 use crate::{PyAnyToValue, PyExtract, ToPyErr};
 
 #[pyclass(subclass)]
 #[derive(Clone)]
 pub struct _Session(Arc<Session>);
+
+trait CallbackUnwrap {
+    type Output;
+    fn cb_unwrap(self) -> Self::Output;
+}
+impl<T> CallbackUnwrap for PyResult<T> {
+    type Output = T;
+    fn cb_unwrap(self) -> Self::Output {
+        match self {
+            Ok(o) => o,
+            Err(e) => Python::with_gil(|py| {
+                if let Some(trace) = e.traceback(py).and_then(|trace| trace.format().ok()) {
+                    panic!("Exception thrown in callback: {}.\n{}", e, trace)
+                } else {
+                    panic!("Exception thrown in callback: {}.", e,)
+                }
+            }),
+        }
+    }
+}
 
 #[pymethods]
 impl _Session {
@@ -112,6 +134,32 @@ impl _Session {
         builder.res_sync().map_err(|e| e.to_pyerr())
     }
 
+    #[args(kwargs = "**")]
+    pub fn get(&self, selector: &str, callback: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
+        let callback: PyClosure<(_Reply,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let mut builder = self.0.get(selector).callback(move |reply| {
+            callback.call((reply.into(),)).cb_unwrap();
+        });
+        if let Some(kwargs) = kwargs {
+            match kwargs.extract_item::<bool>("local_routing") {
+                Ok(value) => builder = builder.local_routing(value),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_QueryConsolidation>("consolidation") {
+                Ok(value) => builder = builder.consolidation(value.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_QueryTarget>("target") {
+                Ok(value) => builder = builder.target(value.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+        }
+        builder.res_sync().map_err(|e| e.to_pyerr())
+    }
+
     pub fn declare_keyexpr(&self, key_expr: &_KeyExpr) -> PyResult<_KeyExpr> {
         match self.0.declare_keyexpr(&key_expr.0).res_sync() {
             Ok(k) => Ok(_KeyExpr(k.into_owned())),
@@ -126,28 +174,12 @@ impl _Session {
         callback: &PyAny,
         kwargs: Option<&PyDict>,
     ) -> PyResult<_Subscriber> {
-        let ke = key_expr.0.as_keyexpr().to_owned();
         let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
         let mut builder = self
             .0
             .declare_subscriber(&key_expr.0)
             .callback(move |sample| {
-                println!("Calling CB for {ke}");
-                if let Err(e) = callback.call((_Sample::from(sample),)) {
-                    Python::with_gil(|py| {
-                        if let Some(trace) = e.traceback(py).and_then(|trace| trace.format().ok()) {
-                            panic!(
-                                "Exception thrown in callback for Subscriber on {}: {}.\n{}",
-                                ke, e, trace
-                            )
-                        } else {
-                            panic!(
-                                "Exception thrown in callback for Subscriber on {}: {}.",
-                                ke, e,
-                            )
-                        }
-                    })
-                }
+                callback.call((_Sample::from(sample),)).cb_unwrap();
             });
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local") {
@@ -172,30 +204,13 @@ impl _Session {
         callback: &PyAny,
         kwargs: Option<&PyDict>,
     ) -> PyResult<_PullSubscriber> {
-        let ke = key_expr.0.as_keyexpr().to_owned();
         let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
         let mut builder =
             self.0
                 .declare_subscriber(&key_expr.0)
                 .pull_mode()
                 .callback(move |sample| {
-                    if let Err(e) = callback.call((_Sample::from(sample),)) {
-                        Python::with_gil(|py| {
-                            if let Some(trace) =
-                                e.traceback(py).and_then(|trace| trace.format().ok())
-                            {
-                                panic!(
-                                    "Exception thrown in callback for Subscriber on {}: {}.\n{}",
-                                    ke, e, trace
-                                )
-                            } else {
-                                panic!(
-                                    "Exception thrown in callback for Subscriber on {}: {}.",
-                                    ke, e,
-                                )
-                            }
-                        })
-                    }
+                    callback.call((_Sample::from(sample),)).cb_unwrap();
                 });
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local") {

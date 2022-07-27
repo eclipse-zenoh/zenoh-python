@@ -19,7 +19,7 @@ import argparse
 import json
 import zenoh
 from threading import Thread
-from zenoh import Reliability, Sample, Queue, QueueClosed
+from zenoh import Reliability, Sample
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -75,15 +75,15 @@ print("Creating Subscriber on '{}'...".format(key))
 # WARNING, you MUST store the return value in order for the subscription to work!!
 # This is because if you don't, the reference counter will reach 0 and the subscription
 # will be immediately undeclared.
-sub = session.declare_subscriber(key, Queue(), reliability=Reliability.RELIABLE())
+sub = session.declare_subscriber(key, zenoh.Queue(), reliability=Reliability.RELIABLE())
 
 def consumer():
-	receiver: Queue = sub.receiver
+	receiver: zenoh.Queue = sub.receiver
 	while True:
 		try:
 			sample: Sample = receiver.get()
 			print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
-		except QueueClosed:
+		except zenoh.QueueClosed:
 			return
 
 t = Thread(target=consumer)

@@ -76,11 +76,14 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<session::_PullSubscriber>()?;
     m.add_class::<value::_Value>()?;
     m.add_class::<value::_Sample>()?;
+    m.add_class::<value::_Reply>()?;
     m.add_class::<enums::_CongestionControl>()?;
     m.add_class::<enums::_Encoding>()?;
     m.add_class::<enums::_Priority>()?;
     m.add_class::<enums::_SampleKind>()?;
     m.add_class::<enums::_Reliability>()?;
+    m.add_class::<enums::_QueryConsolidation>()?;
+    m.add_class::<enums::_QueryTarget>()?;
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
     Ok(())
 }

@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use pyo3::pyclass::CompareOp;
 use zenoh::prelude::{Encoding, KnownEncoding, Priority, SampleKind};
 use zenoh::publication::CongestionControl;
+use zenoh::query::{QueryConsolidation, QueryTarget};
 use zenoh::subscriber::Reliability;
 
 macro_rules! derive_richcmp {
@@ -210,24 +211,53 @@ impl _Reliability {
     }
 }
 
-#[test]
-fn variants_exhaustivity() {
-    match _Priority::REAL_TIME {
-        _Priority::REAL_TIME
-        | _Priority::INTERACTIVE_HIGH
-        | _Priority::INTERACTIVE_LOW
-        | _Priority::DATA_HIGH
-        | _Priority::DATA
-        | _Priority::DATA_LOW
-        | _Priority::BACKGROUND => {}
+#[pyclass(subclass)]
+#[derive(Clone, PartialEq, Eq)]
+pub struct _QueryTarget(pub(crate) QueryTarget);
+#[pymethods]
+impl _QueryTarget {
+    #[new]
+    pub fn new(this: Self) -> Self {
+        this
     }
-    match _SampleKind::PUT {
-        _SampleKind::PUT | _SampleKind::DELETE => {}
+    derive_richcmp!("QueryTarget");
+    #[classattr]
+    pub const BEST_MATCHING: Self = Self(QueryTarget::BestMatching);
+    #[classattr]
+    pub const ALL: Self = Self(QueryTarget::All);
+    #[classattr]
+    pub const ALL_COMPLETE: Self = Self(QueryTarget::AllComplete);
+    pub fn __str__(&self) -> &'static str {
+        match self.0 {
+            QueryTarget::BestMatching => "BEST_MATCHING",
+            QueryTarget::All => "ALL",
+            QueryTarget::AllComplete => "ALL_COMPLETE",
+            #[cfg(feature = "complete_n")]
+            QueryTarget::Complete(_) => "COMPLETE_N",
+        }
     }
-    match _CongestionControl::BLOCK {
-        _CongestionControl::BLOCK | _CongestionControl::DROP => {}
+}
+
+#[pyclass(subclass)]
+#[derive(Clone, PartialEq, Eq)]
+pub struct _QueryConsolidation(pub(crate) QueryConsolidation);
+#[pymethods]
+impl _QueryConsolidation {
+    #[new]
+    pub fn new(this: Self) -> Self {
+        this
     }
-    match _Reliability::BEST_EFFORT {
-        _Reliability::BEST_EFFORT | _Reliability::RELIABLE => {}
-    }
+    derive_richcmp!("QueryConsolidation");
+    #[classattr]
+    pub const AUTO: Self = Self(QueryConsolidation::Auto);
+    #[classattr]
+    pub const NONE: Self = Self(QueryConsolidation::none());
+    #[classattr]
+    pub const LAZY: Self = Self(QueryConsolidation::lazy());
+    #[classattr]
+    pub const RECEPTION: Self = Self(QueryConsolidation::reception());
+    #[classattr]
+    pub const LAST_ROUTER: Self = Self(QueryConsolidation::last_router());
+    #[classattr]
+    pub const FULL: Self = Self(QueryConsolidation::full());
 }

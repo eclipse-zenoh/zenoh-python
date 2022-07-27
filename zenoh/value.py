@@ -3,7 +3,7 @@ from typing import Union
 import json
 
 from .enums import Encoding, SampleKind
-from .zenoh import _Value, _Encoding, _Sample
+from .zenoh import _Value, _Encoding, _Sample, _Reply
 from .keyexpr import KeyExpr
 
 class IValue:
@@ -66,7 +66,6 @@ class Value(_Value, IValue):
 
 class Sample(_Sample):
 	def __new__(cls, inner: _Sample):
-		assert isinstance(inner, _Sample)
 		return super().__new__(cls, inner)
 	@property
 	def key_expr(self) -> KeyExpr:
@@ -80,3 +79,16 @@ class Sample(_Sample):
 	@property
 	def kind(self) -> SampleKind:
 		return SampleKind(super().kind)
+
+class Reply(_Reply):
+	def __new__(cls, inner: _Reply):
+		return super().__new__(cls, inner)
+	@property
+	def replier_id(self) -> str:
+		return super().replier_id
+	@property
+	def ok(self) -> Sample:
+		return Sample(super().ok)
+	@property
+	def err(self) -> Value:
+		return Value(super().err)

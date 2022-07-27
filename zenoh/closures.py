@@ -191,6 +191,13 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 				elif time.time() >= end:
 					raise TimeoutError()
 		return list(self._vec_)
+	
+	def iter(self):
+		while True:
+			try:
+				yield self.get()
+			except QueueClosed:
+				return None
 
 if __name__ == "__main__":
 	def get(collector):
