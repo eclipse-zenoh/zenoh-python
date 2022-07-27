@@ -37,3 +37,4 @@ docs/_*
 .vscode/
 
 **/pycache
+**/__pycache__
