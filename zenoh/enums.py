@@ -1,31 +1,31 @@
-from .zenoh import _Encoding, _SampleKind, _CongestionControl, _Priority
+from .zenoh import _Encoding, _SampleKind, _CongestionControl, _Priority, _Reliability
 
 class Priority(_Priority):
 	def __new__(cls, inner: _SampleKind):
 		return super().__new__(cls, inner)
 	@staticmethod
-	def REAL_TIME():
+	def REAL_TIME() -> 'Priority':
 		return Priority(_Priority.REAL_TIME)
 	@staticmethod
-	def REAL_TIME():
+	def REAL_TIME() -> 'Priority':
 		return Priority(_Priority.REAL_TIME)
 	@staticmethod
-	def INTERACTIVE_HIGH():
+	def INTERACTIVE_HIGH() -> 'Priority':
 		return Priority(_Priority.INTERACTIVE_HIGH)
 	@staticmethod
-	def INTERACTIVE_LOW():
+	def INTERACTIVE_LOW() -> 'Priority':
 		return Priority(_Priority.INTERACTIVE_LOW)
 	@staticmethod
-	def DATA_HIGH():
+	def DATA_HIGH() -> 'Priority':
 		return Priority(_Priority.DATA_HIGH)
 	@staticmethod
-	def DATA():
+	def DATA() -> 'Priority':
 		return Priority(_Priority.DATA)
 	@staticmethod
-	def DATA_LOW():
+	def DATA_LOW() -> 'Priority':
 		return Priority(_Priority.DATA_LOW)
 	@staticmethod
-	def BACKGROUND():
+	def BACKGROUND() -> 'Priority':
 		return Priority(_Priority.BACKGROUND)
 
 class SampleKind(_SampleKind):
@@ -50,6 +50,7 @@ class CongestionControl(_CongestionControl):
 
 class Encoding(_Encoding):
 	def __new__(cls, inner: _Encoding):
+		print(inner)
 		assert isinstance(inner, _Encoding)
 		return super().__new__(cls, inner)
 	@staticmethod
@@ -60,66 +61,77 @@ class Encoding(_Encoding):
 	def __eq__(self, other: 'Encoding'):
 		return super().equals(other)
 	@staticmethod
-	def EMPTY():
+	def EMPTY() -> 'Encoding':
 		return Encoding(_Encoding.EMPTY )
 	@staticmethod
-	def APP_OCTET_STREAM():
+	def APP_OCTET_STREAM() -> 'Encoding':
 		return Encoding(_Encoding.APP_OCTET_STREAM)
 	@staticmethod
-	def APP_CUSTOM():
+	def APP_CUSTOM() -> 'Encoding':
 		return Encoding(_Encoding.APP_CUSTOM)
 	@staticmethod
-	def TEXT_PLAIN():
+	def TEXT_PLAIN() -> 'Encoding':
 		return Encoding(_Encoding.TEXT_PLAIN)
 	@staticmethod
-	def APP_PROPERTIES():
+	def APP_PROPERTIES() -> 'Encoding':
 		return Encoding(_Encoding.APP_PROPERTIES)
 	@staticmethod
-	def APP_JSON():
+	def APP_JSON() -> 'Encoding':
 		return Encoding(_Encoding.APP_JSON)
 	@staticmethod
-	def APP_SQL():
+	def APP_SQL() -> 'Encoding':
 		return Encoding(_Encoding.APP_SQL)
 	@staticmethod
-	def APP_INTEGER():
+	def APP_INTEGER() -> 'Encoding':
 		return Encoding(_Encoding.APP_INTEGER)
 	@staticmethod
-	def APP_FLOAT():
+	def APP_FLOAT() -> 'Encoding':
 		return Encoding(_Encoding.APP_FLOAT)
 	@staticmethod
-	def APP_XML():
+	def APP_XML() -> 'Encoding':
 		return Encoding(_Encoding.APP_XML)
 	@staticmethod
-	def APP_XHTML_XML():
+	def APP_XHTML_XML() -> 'Encoding':
 		return Encoding(_Encoding.APP_XHTML_XML)
 	@staticmethod
-	def APP_X_WWW_FORM_URLENCODED():
+	def APP_X_WWW_FORM_URLENCODED() -> 'Encoding':
 		return Encoding(_Encoding.APP_X_WWW_FORM_URLENCODED)
 	@staticmethod
-	def TEXT_JSON():
+	def TEXT_JSON() -> 'Encoding':
 		return Encoding(_Encoding.TEXT_JSON)
 	@staticmethod
-	def TEXT_HTML():
+	def TEXT_HTML() -> 'Encoding':
 		return Encoding(_Encoding.TEXT_HTML)
 	@staticmethod
-	def TEXT_XML():
+	def TEXT_XML() -> 'Encoding':
 		return Encoding(_Encoding.TEXT_XML)
 	@staticmethod
-	def TEXT_CSS():
+	def TEXT_CSS() -> 'Encoding':
 		return Encoding(_Encoding.TEXT_CSS)
 	@staticmethod
-	def TEXT_CSV():
+	def TEXT_CSV() -> 'Encoding':
 		return Encoding(_Encoding.TEXT_CSV)
 	@staticmethod
-	def TEXT_JAVASCRIPT():
+	def TEXT_JAVASCRIPT() -> 'Encoding':
 		return Encoding(_Encoding.TEXT_JAVASCRIPT)
 	@staticmethod
-	def IMAGE_JPEG():
+	def IMAGE_JPEG() -> 'Encoding':
 		return Encoding(_Encoding.IMAGE_JPEG)
 	@staticmethod
-	def IMAGE_PNG():
+	def IMAGE_PNG() -> 'Encoding':
 		return Encoding(_Encoding.IMAGE_PNG)
 	@staticmethod
-	def IMAGE_GIF():
+	def IMAGE_GIF() -> 'Encoding':
 		return Encoding(_Encoding.IMAGE_GIF)
 
+
+
+class Reliability(_Reliability):
+	def __new__(cls, inner: _Reliability):
+		return super().__new__(cls, inner)
+	@staticmethod
+	def BEST_EFFORT() -> 'CongestionControl':
+		return Reliability(_Reliability.BEST_EFFORT)
+	@staticmethod
+	def RELIABLE() -> 'CongestionControl':
+		return Reliability(_Reliability.RELIABLE)

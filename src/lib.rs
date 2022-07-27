@@ -72,11 +72,15 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<config::_Config>()?;
     m.add_class::<keyexpr::_KeyExpr>()?;
     m.add_class::<session::_Session>()?;
+    m.add_class::<session::_Subscriber>()?;
+    m.add_class::<session::_PullSubscriber>()?;
     m.add_class::<value::_Value>()?;
+    m.add_class::<value::_Sample>()?;
+    m.add_class::<enums::_CongestionControl>()?;
     m.add_class::<enums::_Encoding>()?;
     m.add_class::<enums::_Priority>()?;
     m.add_class::<enums::_SampleKind>()?;
-    m.add_class::<enums::_CongestionControl>()?;
+    m.add_class::<enums::_Reliability>()?;
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
     Ok(())
 }
@@ -92,7 +96,7 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
 ///
 #[pyfunction]
 fn init_logger() {
-    env_logger::init();
+    let _ = env_logger::try_init();
 }
 
 pub(crate) use value::PyAnyToValue;

@@ -57,6 +57,7 @@ impl _Value {
             encoding: Encoding::EMPTY,
         }
     }
+    #[getter]
     pub fn payload(&mut self) -> Py<PyBytes> {
         if let Payload::Python(buf) = &self.payload {
             return buf.clone();
@@ -69,6 +70,7 @@ impl _Value {
     pub fn with_payload(&mut self, payload: Py<PyBytes>) {
         self.payload = Payload::Python(payload)
     }
+    #[getter]
     pub fn encoding(&self) -> _Encoding {
         _Encoding(self.encoding.clone())
     }
@@ -125,9 +127,19 @@ impl From<Sample> for _Sample {
 }
 #[pymethods]
 impl _Sample {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[getter]
+    pub fn value(&self) -> _Value {
+        self.value.clone()
+    }
+    #[getter]
     pub fn key_expr(&self) -> _KeyExpr {
         _KeyExpr(self.key_expr.clone())
     }
+    #[getter]
     pub fn payload(&mut self) -> Py<PyBytes> {
         if let Payload::Python(buf) = &self.value.payload {
             return buf.clone();
@@ -137,9 +149,11 @@ impl _Sample {
         unsafe { std::ptr::write(&mut self.value.payload, Payload::Python(buf.clone())) };
         buf
     }
+    #[getter]
     pub fn encoding(&self) -> _Encoding {
         _Encoding(self.value.encoding.clone())
     }
+    #[getter]
     pub fn kind(&self) -> _SampleKind {
         self.kind.clone()
     }

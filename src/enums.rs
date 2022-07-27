@@ -1,8 +1,33 @@
+use crate::ToPyErr;
 use pyo3::prelude::*;
-
+use pyo3::pyclass::CompareOp;
 use zenoh::prelude::{Encoding, KnownEncoding, Priority, SampleKind};
 use zenoh::publication::CongestionControl;
 use zenoh::subscriber::Reliability;
+
+macro_rules! derive_richcmp {
+    ($tyname: expr) => {
+        fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+            match op {
+                CompareOp::Eq => Ok(self == other),
+                CompareOp::Ne => Ok(self != other),
+                _ => Err(zenoh_core::zerror!("{} does not support comparison", $tyname).to_pyerr()),
+            }
+        }
+    };
+    () => {
+        fn __richcmp__(&self, other: &Self, op: CompareOp) -> bool {
+            match op {
+                CompareOp::Lt => self < other,
+                CompareOp::Le => self <= other,
+                CompareOp::Eq => self == other,
+                CompareOp::Ne => self != other,
+                CompareOp::Gt => self > other,
+                CompareOp::Ge => self >= other,
+            }
+        }
+    };
+}
 
 #[pyclass(subclass)]
 #[repr(transparent)]
@@ -14,6 +39,7 @@ impl _Encoding {
     pub fn new(this: Self) -> Self {
         this
     }
+    derive_richcmp!("Encoding");
     #[classattr]
     pub const EMPTY: Self = Self(Encoding::Exact(KnownEncoding::Empty));
     #[classattr]
@@ -61,6 +87,9 @@ impl _Encoding {
     pub fn from_str(s: String) -> Self {
         Self(s.into())
     }
+    pub fn __str__(&self) -> String {
+        self.0.to_string()
+    }
     pub fn append(&mut self, suffix: String) {
         unsafe {
             let mut tmp = std::ptr::read(&self.0);
@@ -82,6 +111,7 @@ impl _Priority {
     pub fn new(this: Self) -> Self {
         this
     }
+    derive_richcmp!();
     #[classattr]
     pub const REAL_TIME: Self = Self(Priority::RealTime);
     #[classattr]
@@ -96,6 +126,22 @@ impl _Priority {
     pub const DATA_LOW: Self = Self(Priority::DataLow);
     #[classattr]
     pub const BACKGROUND: Self = Self(Priority::Background);
+    pub fn __str__(&self) -> &'static str {
+        match self.0 {
+            Priority::RealTime => "REAL_TIME",
+            Priority::InteractiveHigh => "INTERACTIVE_HIGH",
+            Priority::InteractiveLow => "INTERACTIVE_LOW",
+            Priority::DataHigh => "DATA_HIGH",
+            Priority::Data => "DATA",
+            Priority::DataLow => "DATA_LOW",
+            Priority::Background => "BACKGROUND",
+        }
+    }
+}
+impl std::cmp::PartialOrd for _Priority {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        (self.0 as u8).partial_cmp(&(other.0 as u8))
+    }
 }
 
 #[pyclass(subclass)]
@@ -107,10 +153,17 @@ impl _SampleKind {
     pub fn new(this: Self) -> Self {
         this
     }
+    derive_richcmp!("SampleKind");
     #[classattr]
     pub const PUT: Self = Self(SampleKind::Put);
     #[classattr]
     pub const DELETE: Self = Self(SampleKind::Delete);
+    pub fn __str__(&self) -> &'static str {
+        match self.0 {
+            SampleKind::Put => "PUT",
+            SampleKind::Delete => "DELETE",
+        }
+    }
 }
 
 #[pyclass(subclass)]
@@ -122,10 +175,17 @@ impl _CongestionControl {
     pub fn new(this: Self) -> Self {
         this
     }
+    derive_richcmp!("CongestionControl");
     #[classattr]
     pub const BLOCK: Self = Self(CongestionControl::Block);
     #[classattr]
     pub const DROP: Self = Self(CongestionControl::Drop);
+    pub fn __str__(&self) -> &'static str {
+        match self.0 {
+            CongestionControl::Block => "BLOCK",
+            CongestionControl::Drop => "DROP",
+        }
+    }
 }
 
 #[pyclass(subclass)]
@@ -137,10 +197,17 @@ impl _Reliability {
     pub fn new(this: Self) -> Self {
         this
     }
+    derive_richcmp!("Reliability");
     #[classattr]
     pub const BEST_EFFORT: Self = Self(Reliability::BestEffort);
     #[classattr]
     pub const RELIABLE: Self = Self(Reliability::Reliable);
+    pub fn __str__(&self) -> &'static str {
+        match self.0 {
+            Reliability::BestEffort => "BEST_EFFORT",
+            Reliability::Reliable => "RELIABLE",
+        }
+    }
 }
 
 #[test]

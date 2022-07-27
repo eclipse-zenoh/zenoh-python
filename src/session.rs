@@ -12,14 +12,16 @@
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
 
+use std::convert::TryInto;
 use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
 use zenoh::prelude::SessionDeclarations;
-use zenoh::subscriber::CallbackSubscriber;
+use zenoh::subscriber::{CallbackPullSubscriber, CallbackSubscriber};
 use zenoh::Session;
 use zenoh_core::SyncResolve;
 
+use crate::closures::PyClosure;
 use crate::enums::{_CongestionControl, _Priority, _Reliability, _SampleKind};
 use crate::keyexpr::_KeyExpr;
 use crate::value::_Sample;
@@ -121,23 +123,33 @@ impl _Session {
     pub fn declare_subscriber(
         &self,
         key_expr: &_KeyExpr,
-        callback: Py<PyAny>,
+        callback: &PyAny,
         kwargs: Option<&PyDict>,
     ) -> PyResult<_Subscriber> {
+        let ke = key_expr.0.as_keyexpr().to_owned();
+        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
         let mut builder = self
             .0
             .declare_subscriber(&key_expr.0)
             .callback(move |sample| {
-                Python::with_gil(|py| {
-                    callback.call1(py, (_Sample::from(sample),)).unwrap();
-                })
+                println!("Calling CB for {ke}");
+                if let Err(e) = callback.call((_Sample::from(sample),)) {
+                    Python::with_gil(|py| {
+                        if let Some(trace) = e.traceback(py).and_then(|trace| trace.format().ok()) {
+                            panic!(
+                                "Exception thrown in callback for Subscriber on {}: {}.\n{}",
+                                ke, e, trace
+                            )
+                        } else {
+                            panic!(
+                                "Exception thrown in callback for Subscriber on {}: {}.",
+                                ke, e,
+                            )
+                        }
+                    })
+                }
             });
         if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<bool>("best_effort") {
-                Ok(true) => builder = builder.best_effort(),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
             match kwargs.extract_item::<bool>("local") {
                 Ok(true) => builder = builder.local(),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
@@ -152,7 +164,64 @@ impl _Session {
         let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
         Ok(_Subscriber(subscriber))
     }
+
+    #[args(kwargs = "**")]
+    pub fn declare_pull_subscriber(
+        &self,
+        key_expr: &_KeyExpr,
+        callback: &PyAny,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<_PullSubscriber> {
+        let ke = key_expr.0.as_keyexpr().to_owned();
+        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let mut builder =
+            self.0
+                .declare_subscriber(&key_expr.0)
+                .pull_mode()
+                .callback(move |sample| {
+                    if let Err(e) = callback.call((_Sample::from(sample),)) {
+                        Python::with_gil(|py| {
+                            if let Some(trace) =
+                                e.traceback(py).and_then(|trace| trace.format().ok())
+                            {
+                                panic!(
+                                    "Exception thrown in callback for Subscriber on {}: {}.\n{}",
+                                    ke, e, trace
+                                )
+                            } else {
+                                panic!(
+                                    "Exception thrown in callback for Subscriber on {}: {}.",
+                                    ke, e,
+                                )
+                            }
+                        })
+                    }
+                });
+        if let Some(kwargs) = kwargs {
+            match kwargs.extract_item::<bool>("local") {
+                Ok(true) => builder = builder.local(),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_Reliability>("reliability") {
+                Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+        }
+        let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
+        Ok(_PullSubscriber(subscriber))
+    }
 }
 
-#[pyclass]
+#[pyclass(subclass)]
 pub struct _Subscriber(CallbackSubscriber<'static>);
+
+#[pyclass(subclass)]
+pub struct _PullSubscriber(CallbackPullSubscriber<'static>);
+#[pymethods]
+impl _PullSubscriber {
+    fn pull(&self) -> PyResult<()> {
+        self.0.pull().res_sync().map_err(|e| e.to_pyerr())
+    }
+}
