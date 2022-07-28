@@ -20,7 +20,6 @@ class IValue:
 IntoValue = Union[IValue, bytes, str, int, float, object]
 
 class Value(_Value, IValue):
-
 	def __new__(cls, payload: IntoValue, encoding: Encoding=None):
 		if encoding is None:
 			return Value.autoencode(payload)
@@ -51,10 +50,7 @@ class Value(_Value, IValue):
 	
 	@staticmethod
 	def new(payload: bytes, encoding: Encoding = None) -> 'Value':
-		this = Value._upgrade_(_Value.new(payload))
-		if encoding is not None:
-			this.encoding = encoding
-		return this
+		return Value._upgrade_(_Value.new(payload, encoding))
 
 	@property
 	def payload(self) -> bytes:

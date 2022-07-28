@@ -57,10 +57,10 @@ impl _Value {
         this
     }
     #[staticmethod]
-    pub fn new(payload: Py<PyBytes>) -> Self {
+    pub fn new(payload: Py<PyBytes>, encoding: Option<_Encoding>) -> Self {
         Self {
             payload: payload.into(),
-            encoding: Encoding::EMPTY,
+            encoding: encoding.map(|e| e.0).unwrap_or(Encoding::EMPTY),
         }
     }
     #[getter]
