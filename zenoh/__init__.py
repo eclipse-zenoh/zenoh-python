@@ -5,6 +5,7 @@ from .session import *
 from .enums import *
 from .value import *
 from .closures import *
+from .queryable import *
 
 def open(*args, **kwargs):
 	return Session(*args, **kwargs)

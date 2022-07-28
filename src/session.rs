@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
 use zenoh::prelude::SessionDeclarations;
+use zenoh::publication::Publisher;
 use zenoh::subscriber::{CallbackPullSubscriber, CallbackSubscriber};
 use zenoh::Session;
 use zenoh_core::SyncResolve;
@@ -26,7 +27,8 @@ use crate::enums::{
     _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability, _SampleKind,
 };
 use crate::keyexpr::_KeyExpr;
-use crate::value::{_Reply, _Sample};
+use crate::queryable::{_Query, _Queryable};
+use crate::value::{_Reply, _Sample, _Value};
 use crate::{PyAnyToValue, PyExtract, ToPyErr};
 
 #[pyclass(subclass)]
@@ -168,6 +170,60 @@ impl _Session {
     }
 
     #[args(kwargs = "**")]
+    pub fn declare_queryable(
+        &self,
+        key_expr: _KeyExpr,
+        callback: &PyAny,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<_Queryable> {
+        let callback: PyClosure<(_Query,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let mut builder = self.0.declare_queryable(key_expr.0).callback(move |query| {
+            callback.call((_Query(Arc::new(query)),)).cb_unwrap();
+        });
+        if let Some(kwargs) = kwargs {
+            match kwargs.extract_item::<bool>("complete") {
+                Ok(value) => builder = builder.complete(value),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+        }
+        match builder.res_sync() {
+            Ok(o) => Ok(_Queryable(o)),
+            Err(e) => Err(e.to_pyerr()),
+        }
+    }
+
+    #[args(kwargs = "**")]
+    pub fn declare_publisher(
+        &self,
+        key_expr: _KeyExpr,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<_Publisher> {
+        let mut builder = self.0.declare_publisher(key_expr.0);
+        if let Some(kwargs) = kwargs {
+            match kwargs.extract_item::<bool>("local_routing") {
+                Ok(value) => builder = builder.local_routing(value),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_Priority>("priority") {
+                Ok(value) => builder = builder.priority(value.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_CongestionControl>("congestion_control") {
+                Ok(value) => builder = builder.congestion_control(value.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+        }
+        match builder.res_sync() {
+            Ok(o) => Ok(_Publisher(o)),
+            Err(e) => Err(e.to_pyerr()),
+        }
+    }
+
+    #[args(kwargs = "**")]
     pub fn declare_subscriber(
         &self,
         key_expr: &_KeyExpr,
@@ -226,6 +282,27 @@ impl _Session {
         }
         let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
         Ok(_PullSubscriber(subscriber))
+    }
+}
+
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct _Publisher(Publisher<'static>);
+#[pymethods]
+impl _Publisher {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[getter]
+    pub fn key_expr(&self) -> _KeyExpr {
+        _KeyExpr(self.0.key_expr().clone())
+    }
+    pub fn put(&self, value: _Value) -> PyResult<()> {
+        self.0.put(value).res_sync().map_err(|e| e.to_pyerr())
+    }
+    pub fn delete(&self) -> PyResult<()> {
+        self.0.delete().res_sync().map_err(|e| e.to_pyerr())
     }
 }
 
