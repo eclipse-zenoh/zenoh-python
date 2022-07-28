@@ -3,7 +3,7 @@ from typing import Union
 import json
 
 from .enums import Encoding, SampleKind
-from .zenoh import _Value, _Encoding, _Sample, _Reply
+from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply
 from .keyexpr import KeyExpr
 
 class IValue:
@@ -64,12 +64,17 @@ class Value(_Value, IValue):
 	def encoding(self, encoding: Encoding):
 		super().with_encoding(encoding)
 
-IntoSample = Union[Sample, Tuple[KeyExpr, Value, SampleKind], Tuple[KeyExpr, Value]]
+IntoSample = Union[Sample, Tuple[KeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
 class Sample(_Sample):
 	def new(sample: IntoSample) -> 'Sample':
 		if isinstance(sample, Sample):
 			return sample
-		raise NotImplementedError()
+		if len(sample) == 3:
+			ke, value, kind = sample
+			return Sample(super().new(ke, value, kind))
+		ke, value = sample
+		return Sample(super().new(ke, value, _SampleKind.PUT))
+		
 	def __new__(cls, inner: _Sample):
 		return super().__new__(cls, inner)
 	@property

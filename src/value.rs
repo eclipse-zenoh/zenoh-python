@@ -163,6 +163,14 @@ impl _Sample {
     pub fn kind(&self) -> _SampleKind {
         self.kind.clone()
     }
+    #[staticmethod]
+    pub fn new(key_expr: _KeyExpr, value: _Value, kind: _SampleKind) -> Self {
+        _Sample {
+            key_expr: key_expr.0,
+            value,
+            kind,
+        }
+    }
 }
 
 impl From<_Sample> for Sample {
