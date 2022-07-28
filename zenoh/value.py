@@ -64,7 +64,12 @@ class Value(_Value, IValue):
 	def encoding(self, encoding: Encoding):
 		super().with_encoding(encoding)
 
+IntoSample = Union[Sample, Tuple[KeyExpr, Value, SampleKind], Tuple[KeyExpr, Value]]
 class Sample(_Sample):
+	def new(sample: IntoSample) -> 'Sample':
+		if isinstance(sample, Sample):
+			return sample
+		raise NotImplementedError()
 	def __new__(cls, inner: _Sample):
 		return super().__new__(cls, inner)
 	@property

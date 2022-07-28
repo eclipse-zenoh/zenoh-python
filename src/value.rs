@@ -165,6 +165,14 @@ impl _Sample {
     }
 }
 
+impl From<_Sample> for Sample {
+    fn from(sample: _Sample) -> Self {
+        let mut value = Sample::new(sample.key_expr, sample.value);
+        value.kind = sample.kind.0;
+        value
+    }
+}
+
 #[pyclass(subclass)]
 #[derive(Clone)]
 pub struct _Reply {
