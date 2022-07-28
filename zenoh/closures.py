@@ -40,6 +40,10 @@ class IHandler(Generic[In, Out, Receiver]):
 
 IntoClosure = Union[IHandler, IClosure, Tuple[CallbackCall, CallbackDrop], CallbackCall]
 class Closure(IClosure, Generic[In, Out]):
+	"""
+	A Closure is a pair of a `call` function that will be used as a callback,
+	and a `drop` function that will be called when the closure is destroyed.
+	"""
 	def __init__(self, closure: IntoClosure, type_adaptor: Callable[Any, In] = None):
 		_call_ = None
 		self._drop_ = lambda: None
@@ -98,6 +102,12 @@ class Handler(IHandler, Generic[In, Out, Receiver]):
 
 
 class ListCollector(IHandler[In, None, Callable[[],List[In]]], Generic[In]):
+	"""
+	A simple collector that aggregates values into a list.
+
+	When used as a handler, it provides a callback that appends elements to a list,
+	and provides a function that will await the closing of the callback before returning said list.
+	"""
 	def __init__(self, timeout=None):
 		self._vec_ = []
 		self._cv_ = Condition()
@@ -123,12 +133,12 @@ class ListCollector(IHandler[In, None, Callable[[],List[In]]], Generic[In]):
 				return self._vec_
 		return wait
 
-class QueueClosed(Exception):
-	pass
-
 class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 	"""
-	A simple queue implementation.
+	A simple single-producer, single-consumer queue implementation.
+
+	When used as a handler, it provides itself as the receiver, and will provide a
+	callback that appends elements to the queue.
 	"""
 	def __init__(self, timeout=None):
 		self._vec_ = deque()
@@ -137,25 +147,28 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 	
 	@property
 	def closure(self) -> IClosure[In, None]:
-		def call(x):
-			with self._cv_:
-				self._vec_.append(x)
-				self._cv_.notify()
-		def drop():
-			with self._cv_:
-				self._done_ = True
-				self._cv_.notify()
+		def call(x): self.put(x)
+		def drop(): self.close()
 		return Closure((call, drop))
 	
 	@property
 	def receiver(self) -> 'Queue':
 		return self
+	
+	def put(self, value):
+		"""
+		Puts one element on the queue.
+		"""
+		with self._cv_:
+			self._vec_.append(value)
+			self._cv_.notify()
+
 
 	def get(self, timeout=None):
 		"""
 		Gets one element from the queue.
 
-		Raises a `QueueClosed` exception if the queue was closed before the timeout ran out.
+		Raises a `StopIteration` exception if the queue was closed before the timeout ran out.
 		Raises a `TimeoutError` if the timeout ran out.
 		"""
 		try:
@@ -163,7 +176,7 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 		except IndexError:
 			pass
 		if self._done_:
-			raise QueueClosed()
+			raise StopIteration()
 		with self._cv_:
 			self._cv_.wait(timeout=timeout)
 			try:
@@ -171,9 +184,14 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 			except IndexError:
 				pass
 		if self._done_:
-			raise QueueClosed()
+			raise StopIteration()
 		else:
 			raise TimeoutError()
+	
+	def close(self):
+		with self._cv_:
+			self._done_ = True
+			self._cv_.notify()
 	
 	def get_remaining(self, timeout=None) -> List[In]:
 		"""
@@ -191,13 +209,11 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 				elif time.time() >= end:
 					raise TimeoutError()
 		return list(self._vec_)
-	
-	def iter(self):
-		while True:
-			try:
-				yield self.get()
-			except QueueClosed:
-				return None
+
+	def __iter__(self):
+		return self
+	def __next__(self):
+		return self.get()
 
 if __name__ == "__main__":
 	def get(collector):

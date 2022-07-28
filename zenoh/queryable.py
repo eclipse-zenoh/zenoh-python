@@ -1,6 +1,6 @@
 from .zenoh import _Query, _Queryable
 from .keyexpr import KeyExpr
-from .value import IntoSample, Sample
+from .value import Sample
 
 class Queryable:
 	def __init__(self, inner: _Queryable, receiver):
@@ -22,5 +22,5 @@ class Query(_Query):
 	@property
 	def selector(self) -> str:
 		return super().selector
-	def reply(self, sample: IntoSample):
-		super().reply(Sample.new(sample))
+	def reply(self, sample: Sample):
+		super().reply(sample)

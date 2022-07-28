@@ -11,7 +11,7 @@ class Config(_Config):
 		Reads the configuration from a file.
 		The file's extension must be json, json5 or yaml.
 		"""
-		c = super(Config, Config).from_file(filename)
+		c = super(Config).from_file(filename)
 		return c
 	@staticmethod
 	def from_obj(obj):
@@ -27,7 +27,7 @@ class Config(_Config):
 
 		JSON5 is a superset of JSON, so any JSON string is a valid input for this function.
 		"""
-		c =  super(Config, Config).from_json5(json)
+		c =  super(Config).from_json5(json)
 		return c
 	
 	def get_json(self, path: str) -> str:

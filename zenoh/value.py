@@ -1,10 +1,10 @@
 import abc
-from typing import Union
+from typing import Union, Tuple
 import json
 
 from .enums import Encoding, SampleKind
 from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply
-from .keyexpr import KeyExpr
+from .keyexpr import KeyExpr, IntoKeyExpr
 
 class IValue:
 	@property
@@ -20,17 +20,25 @@ class IValue:
 IntoValue = Union[IValue, bytes, str, int, float, object]
 
 class Value(_Value, IValue):
-	def __new__(cls, inner: _Value):
-		"""This constructor is only here for inheritance purposes, use `Value.new` instead."""
+
+	def __new__(cls, payload: IntoValue, encoding: Encoding=None):
+		if encoding is None:
+			return Value.autoencode(payload)
+		else:
+			if not isinstance(payload, bytes):
+				raise TypeError("`encoding` was passed, but `payload` is not of type `bytes`")
+			return Value.new(payload, encoding)
+
+	@staticmethod
+	def _upgrade_(inner: _Value) -> 'Value':
 		if isinstance(inner, Value):
 			return inner
-		assert isinstance(inner, _Value)
-		return super().__new__(cls, inner)
+		return _Value.__new__(Value, inner)
 	
 	@staticmethod
-	def autoencode(value: IntoValue) -> IValue:
+	def autoencode(value: IntoValue) -> 'Value':
 		if isinstance(value, IValue):
-			return value
+			return Value.new(value.payload, value.encoding)
 		if isinstance(value, bytes):
 			return Value.new(value, Encoding.APP_OCTET_STREAM())
 		if isinstance(value, str):
@@ -43,7 +51,7 @@ class Value(_Value, IValue):
 	
 	@staticmethod
 	def new(payload: bytes, encoding: Encoding = None) -> 'Value':
-		this = Value(_Value.new(payload))
+		this = Value._upgrade_(_Value.new(payload))
 		if encoding is not None:
 			this.encoding = encoding
 		return this
@@ -64,19 +72,16 @@ class Value(_Value, IValue):
 	def encoding(self, encoding: Encoding):
 		super().with_encoding(encoding)
 
-IntoSample = Union[Sample, Tuple[KeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
+IntoSample = Union[_Sample, Tuple[IntoKeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
 class Sample(_Sample):
-	def new(sample: IntoSample) -> 'Sample':
-		if isinstance(sample, Sample):
-			return sample
-		if len(sample) == 3:
-			ke, value, kind = sample
-			return Sample(super().new(ke, value, kind))
-		ke, value = sample
-		return Sample(super().new(ke, value, _SampleKind.PUT))
-		
-	def __new__(cls, inner: _Sample):
-		return super().__new__(cls, inner)
+	def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None):
+		if kind is None:
+			return Sample._upgrade_(super().new(KeyExpr(key), Value(value), _SampleKind.PUT))
+		else:
+			return Sample._upgrade_(super().new(KeyExpr(key), Value(value), kind))
+	@staticmethod
+	def _upgrade_(inner: _Sample) -> 'Sample':
+		return _Sample.__new__(Sample, inner)
 	@property
 	def key_expr(self) -> KeyExpr:
 		return KeyExpr(super().key_expr)

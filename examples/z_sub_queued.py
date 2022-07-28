@@ -78,13 +78,8 @@ print("Creating Subscriber on '{}'...".format(key))
 sub = session.declare_subscriber(key, zenoh.Queue(), reliability=Reliability.RELIABLE())
 
 def consumer():
-	receiver: zenoh.Queue = sub.receiver
-	while True:
-		try:
-			sample: Sample = receiver.get()
-			print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
-		except zenoh.QueueClosed:
-			return
+    for sample in sub.receiver: # zenoh.Queue's receiver (the queue itself) is an iterator
+        print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
 
 t = Thread(target=consumer)
 t.start()

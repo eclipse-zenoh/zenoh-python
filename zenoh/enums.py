@@ -56,8 +56,6 @@ class Encoding(_Encoding):
 		return super(Encoding, Encoding).from_str(s)
 	def append(self, s: str):
 		super().append(s)
-	def __eq__(self, other: 'Encoding'):
-		return super().equals(other)
 	@staticmethod
 	def EMPTY() -> 'Encoding':
 		return Encoding(_Encoding.EMPTY )

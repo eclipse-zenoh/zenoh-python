@@ -41,24 +41,6 @@ class KeyExpr(_KeyExpr):
 			return super().__new__(cls, expr.as_str())
 		else:
 			return super().__new__(cls, expr)
-	# def __init__(self, expr: IntoKeyExpr):
-	# 	"""
-	# 	The default constructor for KeyExpr will ensure that the passed expression is valid.
-	# 	It won't however try to correct expressions that aren't canon.
-
-	# 	You may use `KeyExpr.autocanonize(expr)` instead if you are unsure if the expression
-	# 	you will use for construction will be canon.
-
-	# 	Raises a zenoh.ZError exception if `expr` is not a valid key expression.
-	# 	"""
-	# 	print(type(expr))
-	# 	if isinstance(expr, KeyExpr):
-	# 		self = expr
-	# 	elif isinstance(expr, _KeyExpr):
-	# 		self = expr
-	# 		self.__dict__ = KeyExpr.__dict__
-	# 	else:
-	# 		super().__new__(KeyExpr, expr)
 
 	@staticmethod
 	def autocanonize(expr: str) -> 'KeyExpr':
@@ -103,7 +85,4 @@ class KeyExpr(_KeyExpr):
 		return KeyExpr.autocanonize(f"{self}/{other}")
 	
 	def __str__(self):
-		return super().as_str()
-	
-	def __repr__(self):
 		return super().as_str()

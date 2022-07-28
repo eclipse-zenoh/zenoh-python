@@ -39,7 +39,7 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='/demo/example/zenoh-python-pub',
+                    default='demo/example/zenoh-python-pub',
                     type=str,
                     help='The key expression to publish onto.')
 parser.add_argument('--value', '-v', dest='value',
@@ -72,19 +72,14 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Declaring key expression '{}'...".format(key), end='')
-rid = session.declare_expr(key)
-print(" => RId {}".format(rid))
-
-print("Declaring publication on '{}'...".format(rid))
-session.declare_publication(rid)
+print(f"Declaring publication on '{key}'...")
+pub = session.declare_publisher(key)
 
 for idx in itertools.count() if args.iter is None else range(args.iter):
     time.sleep(1)
     buf = f"[{idx:4d}] {value}"
-    print(f"Putting Data ('{rid}': '{buf}')...")
-    session.put(rid, buf)
+    print(f"Putting Data ('{key}': '{buf}')...")
+    pub.put(buf)
 
-session.undeclare_publication(rid)
-session.undeclare_expr(rid)
+pub.undeclare()
 session.close()

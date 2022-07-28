@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, CongestionControl
+from zenoh import config, CongestionControl, Value
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -64,14 +64,11 @@ zenoh.init_logger()
 data = bytearray()
 for i in range(0, size):
     data.append(i % 10)
-data = bytes(data)
-congestion_control = CongestionControl.Block
+data = Value(bytes(data))
+congestion_control = CongestionControl.BLOCK()
 
 session = zenoh.open(conf)
-
-rid = session.declare_expr('/test/thr')
-
-pub = session.declare_publication(rid)
+pub = session.declare_publisher('test/thr', congestion_control=congestion_control)
 
 while True:
-    session.put(rid, data, congestion_control=congestion_control)
+    pub.put(data)

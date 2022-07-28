@@ -14,8 +14,8 @@ class Publisher:
 	def __init__(self, p: _Publisher):
 		self._inner_ = p
 	
-	def put(self, value: IntoValue):
-		self._inner_.put(Value(value))
+	def put(self, value: IntoValue, encoding: Encoding = None):
+		self._inner_.put(Value(value, encoding))
 
 	def delete(self):
 		self._inner_.delete()
@@ -109,8 +109,8 @@ class Session(_Session):
 			kwargs['local_routing'] = local_routing
 		return Publisher(super().declare_publisher(KeyExpr(keyexpr), **kwargs))
 	
-	def declare_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler, reliability: Reliability=None, local=None) -> Subscriber:
-		handler = Handler(handler, lambda x: Sample(x))
+	def declare_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler, reliability: Reliability = None, local: bool = None) -> Subscriber:
+		handler = Handler(handler, lambda x: Sample._upgrade_(x))
 		kwargs = dict()
 		if reliability is not None:
 			kwargs['reliability'] = reliability
@@ -120,7 +120,7 @@ class Session(_Session):
 		return Subscriber(s, handler.receiver)
 	
 	def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler, reliability: Reliability=None, local=None) -> PullSubscriber:
-		handler = Handler(handler, lambda x: Sample(x))
+		handler = Handler(handler, lambda x: Sample._upgrade_(x))
 		kwargs = dict()
 		if reliability is not None:
 			kwargs['reliability'] = reliability
