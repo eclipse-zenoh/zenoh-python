@@ -1,5 +1,5 @@
 from .zenoh import _Query, _Queryable
-from .keyexpr import KeyExpr
+from .keyexpr import KeyExpr, Selector
 from .value import Sample
 
 class Queryable:
@@ -20,7 +20,7 @@ class Query(_Query):
 	def value_selector(self) -> str:
 		return super().value_selector
 	@property
-	def selector(self) -> str:
-		return super().selector
+	def selector(self) -> Selector:
+		return Selector._upgrade_(super().selector)
 	def reply(self, sample: Sample):
 		super().reply(sample)

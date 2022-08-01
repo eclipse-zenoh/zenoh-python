@@ -4,7 +4,11 @@ use pyo3::prelude::*;
 use zenoh::queryable::{CallbackQueryable, Query};
 use zenoh_core::SyncResolve;
 
-use crate::{keyexpr::_KeyExpr, value::_Sample, ToPyErr};
+use crate::{
+    keyexpr::{_KeyExpr, _Selector},
+    value::_Sample,
+    ToPyErr,
+};
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -24,8 +28,8 @@ impl _Query {
         self.0.value_selector()
     }
     #[getter]
-    pub fn selector(&self) -> String {
-        self.0.selector().to_string()
+    pub fn selector(&self) -> _Selector {
+        _Selector(self.0.selector().clone().into_owned())
     }
     pub fn reply(&self, sample: _Sample) -> PyResult<()> {
         self.0

@@ -1,5 +1,5 @@
 from typing import Union
-from .zenoh import _KeyExpr
+from .zenoh import _KeyExpr, _Selector
 
 IntoKeyExpr = Union['KeyExpr', _KeyExpr, str]
 
@@ -21,7 +21,8 @@ class KeyExpr(_KeyExpr):
 	- `**/**` may not exist, as it could always be replaced by the shorter `**`,
 	- `**/*` may not exist, and must be written as its equivalent `*/**` instead,
 	- `$*` may not exist alone in a chunk, as it must be written `*` instead.
-	`KeyExpr.autocanonize` exists to make respecting these rules easier.
+
+	The `KeyExpr.autocanonize` constructor exists to correct eventual infrigements of the canonization rules.
 
 	A KeyExpr is a string that has been validated to be a valid Key Expression.
 	"""
@@ -38,9 +39,12 @@ class KeyExpr(_KeyExpr):
 		if isinstance(expr, KeyExpr):
 			return expr
 		elif isinstance(expr, _KeyExpr):
-			return super().__new__(cls, expr.as_str())
+			return _KeyExpr.__new__(cls, expr)
 		else:
-			return super().__new__(cls, expr)
+			return _KeyExpr.__new__(cls, _KeyExpr.new(expr))
+	
+	def _upgrade_(this: _KeyExpr) -> 'KeyExpr':
+		return _KeyExpr.__new__(KeyExpr, expr)
 
 	@staticmethod
 	def autocanonize(expr: str) -> 'KeyExpr':
@@ -61,20 +65,26 @@ class KeyExpr(_KeyExpr):
 		This method returns `True` if there exists at least one key that belongs to both sets
 		defined by `self` and `other`. 
 		"""
-		return super().intersects(other.inner)
+		return super().intersects(other)
 	
 	def includes(self, other: 'KeyExpr') -> bool:
 		"""
 		This method returns `True` if all of the keys defined by `other` also belong to the set
-		defined by `self`
+		defined by `self`.
 		"""
-		return super().includes(other.inner)
+		return super().includes(other)
+	
+	def undeclare(self, session: 'Session'):
+		"""
+		Undeclares a key expression previously declared on the session.
+		"""
+		super().undeclare(session)
 	
 	def __eq__(self, other: 'KeyExpr') -> bool:
 		"""
-		Corresponds to set equality
+		Corresponds to set equality.
 		"""
-		return super().equals(other.inner)
+		return super().__eq__(other)
 	
 	def __truediv__(self, other: IntoKeyExpr) -> 'KeyExpr':
 		"""
@@ -85,4 +95,72 @@ class KeyExpr(_KeyExpr):
 		return KeyExpr.autocanonize(f"{self}/{other}")
 	
 	def __str__(self):
-		return super().as_str()
+		return super().__str__()
+	
+	def __hash__(self):
+		return super().__hash__()
+
+IntoSelector = Union['Selector', _Selector, IntoKeyExpr]
+class Selector(_Selector):
+	"""
+	A selector is the combination of a [Key Expression](crate::prelude::KeyExpr), which defines the
+	set of keys that are relevant to an operation, and a `value_selector`, a set of key-value pairs
+	with a few uses:
+	- specifying arguments to a queryable, allowing the passing of Remote Procedure Call parameters
+	- filtering by value,
+	- filtering by metadata, such as the timestamp of a value,
+
+	When in string form, selectors look a lot like a URI, with similar semantics:
+	- the `key_expr` before the first `?` must be a valid key expression.
+	- the `value_selector` after the first `?` should be encoded like the query section of a URL:
+	    - key-value pairs are separated by `&`,
+	    - the key and value are separated by the first `=`,
+	    - in the absence of `=`, the value is considered to be the empty string,
+	    - both key and value should use percent-encoding to escape characters,
+	    - defining a value for the same key twice is considered undefined behavior.
+
+	Zenoh intends to standardize the usage of a set of keys. To avoid conflicting with RPC parameters,
+	the Zenoh team has settled on reserving the set of keys that start with non-alphanumeric characters.
+
+	This document will summarize the standardized keys for which Zenoh provides helpers to facilitate
+	coherent behavior for some operations.
+
+	Queryable implementers are encouraged to prefer these standardized keys when implementing their
+	associated features, and to prefix their own keys to avoid having conflicting keys with other
+	queryables.
+
+	Here are the currently standardized keys for Zenoh:
+	- `_time`: used to express interest in only values dated within a certain time range, values for
+	  this key must be readable by the [Zenoh Time DSL](zenoh_util::time_range::TimeRange) for the value to be considered valid.
+	- `_filter`: *TBD* Zenoh intends to provide helper tools to allow the value associated with
+	  this key to be treated as a predicate that the value should fulfill before being returned.
+	  A DSL will be designed by the Zenoh team to express these predicates.
+	"""
+	def __new__(cls, selector: IntoSelector):
+		if isinstance(selector, Selector):
+			return selector
+		if isinstance(selector, _Selector):
+			return Selector._upgrade_(selector)
+		return Selector._upgrade_(super().new(str(selector)))
+	@staticmethod
+	def _upgrade_(this: _Selector) -> 'Selector':
+		return _Selector.__new__(Selector, this)
+	@property
+	def key_expr(self) -> KeyExpr:
+		"""The key expression part of the selector."""
+		return KeyExpr(super().key_expr)
+	@property
+	def value_selector(self):
+		"""The value selector part of the selector."""
+		return super().value_selector
+	@value_selector.setter
+	def set_value_selector(self, value_selector: str):
+		super().value_selector = value_selector
+	def decode_value_selector(self) -> dict:
+		"""
+		Decodes the value selector part of the selector.
+		Raises a ZError if some keys were duplicated, as this is considered Undefined Behaviour.
+		"""
+		return super().decode_value_selector()
+	def __str__(self):
+		return super().__str__()

@@ -17,7 +17,6 @@ import time
 import argparse
 import json
 import zenoh
-from threading import Condition
 from zenoh import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -64,13 +63,14 @@ n = args.number
 batch_count = 0
 count = 0
 start = None
-
-cv = Condition()
+global_start = None
 
 def listener(sample):
-    global n, count, batch_count, start
+    global n, count, batch_count, start, global_start
     if count == 0:
         start = time.time()
+        if global_start is None:
+            global_start = start
         count += 1
     elif count < n:
         count += 1
@@ -81,10 +81,10 @@ def listener(sample):
         count = 0
 
 def report():
-    global n, m, count, batch_count, start, nm
+    global n, m, count, batch_count,  global_start
     end = time.time()
     total = batch_count * n + count
-    print(f"Received {total} messages in {end - start}: averaged {total / (end - start):.6f} msgs/sec")
+    print(f"Received {total} messages in {end - global_start}: averaged {total / (end - global_start):.6f} msgs/sec")
 
 # initiate logging
 zenoh.init_logger()

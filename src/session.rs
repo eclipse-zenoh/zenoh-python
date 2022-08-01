@@ -16,24 +16,27 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
+use zenoh::config::whatami::{WhatAmI, WhatAmIMatcher};
 use zenoh::prelude::SessionDeclarations;
 use zenoh::publication::Publisher;
+use zenoh::scouting::CallbackScout;
 use zenoh::subscriber::{CallbackPullSubscriber, CallbackSubscriber};
 use zenoh::Session;
 use zenoh_core::SyncResolve;
 
 use crate::closures::PyClosure;
+use crate::config::_Config;
 use crate::enums::{
     _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability, _SampleKind,
 };
-use crate::keyexpr::_KeyExpr;
+use crate::keyexpr::{_KeyExpr, _Selector};
 use crate::queryable::{_Query, _Queryable};
-use crate::value::{_Reply, _Sample, _Value};
+use crate::value::{_Hello, _Reply, _Sample, _Value, _ZenohId};
 use crate::{PyAnyToValue, PyExtract, ToPyErr};
 
 #[pyclass(subclass)]
 #[derive(Clone)]
-pub struct _Session(Arc<Session>);
+pub struct _Session(pub(crate) Arc<Session>);
 
 trait CallbackUnwrap {
     type Output;
@@ -137,9 +140,14 @@ impl _Session {
     }
 
     #[args(kwargs = "**")]
-    pub fn get(&self, selector: &str, callback: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
+    pub fn get(
+        &self,
+        selector: &_Selector,
+        callback: &PyAny,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<()> {
         let callback: PyClosure<(_Reply,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self.0.get(selector).callback(move |reply| {
+        let mut builder = self.0.get(&selector.0).callback(move |reply| {
             callback.call((reply.into(),)).cb_unwrap();
         });
         if let Some(kwargs) = kwargs {
@@ -283,6 +291,21 @@ impl _Session {
         let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
         Ok(_PullSubscriber(subscriber))
     }
+
+    pub fn zid(&self) -> _ZenohId {
+        _ZenohId(self.0.zid())
+    }
+    pub fn routers_zid(&self) -> Vec<_ZenohId> {
+        self.0
+            .info()
+            .routers_zid()
+            .res_sync()
+            .map(_ZenohId)
+            .collect()
+    }
+    pub fn peers_zid(&self) -> Vec<_ZenohId> {
+        self.0.info().peers_zid().res_sync().map(_ZenohId).collect()
+    }
 }
 
 #[pyclass(subclass)]
@@ -315,5 +338,30 @@ pub struct _PullSubscriber(CallbackPullSubscriber<'static>);
 impl _PullSubscriber {
     fn pull(&self) -> PyResult<()> {
         self.0.pull().res_sync().map_err(|e| e.to_pyerr())
+    }
+}
+
+#[pyclass(subclass)]
+pub struct _Scout(CallbackScout);
+
+#[pyfunction]
+pub fn scout(callback: &PyAny, config: Option<&_Config>, what: Option<&str>) -> PyResult<_Scout> {
+    let callback: PyClosure<(_Hello,)> = <_ as TryInto<_>>::try_into(callback)?;
+    let what: WhatAmIMatcher = match what {
+        None => WhatAmI::Client | WhatAmI::Peer | WhatAmI::Router,
+        Some(s) => match s.parse() {
+            Ok(w) => w,
+            Err(_) => return Err(zenoh_core::zerror!("Couldn't parse `{}` into a WhatAmiMatcher: must be a `|`-separated list of `peer`, `client` or `router`", s).to_pyerr())
+        },
+    };
+    let config = config.and_then(|c| c.0.clone()).unwrap_or_default();
+    let scout = zenoh::scout(what, config)
+        .callback(move |h| {
+            callback.call((_Hello(h),)).cb_unwrap();
+        })
+        .res_sync();
+    match scout {
+        Ok(scout) => Ok(_Scout(scout)),
+        Err(e) => Err(e.to_pyerr()),
     }
 }

@@ -1,16 +1,16 @@
-use pyo3::{
-    prelude::*,
-    types::{PyBytes, PyString},
-};
+use pyo3::{prelude::*, types::PyBytes};
+use uhlc::Timestamp;
 use zenoh::{
-    prelude::{Encoding, KeyExpr, Sample, Value},
+    prelude::{Encoding, KeyExpr, Sample, Value, ZenohId},
     query::Reply,
+    scouting::Hello,
 };
 use zenoh_buffers::{SplitBuffer, ZBuf};
 
 use crate::{
     enums::{_Encoding, _SampleKind},
     keyexpr::_KeyExpr,
+    ToPyErr,
 };
 
 #[derive(Clone)]
@@ -115,6 +115,7 @@ pub struct _Sample {
     key_expr: KeyExpr<'static>,
     value: _Value,
     kind: _SampleKind,
+    timestamp: Option<_Timestamp>,
 }
 impl From<Sample> for _Sample {
     fn from(sample: Sample) -> Self {
@@ -122,15 +123,56 @@ impl From<Sample> for _Sample {
             key_expr,
             value,
             kind,
+            timestamp,
             ..
         } = sample;
         _Sample {
             key_expr,
             value: value.into(),
             kind: _SampleKind(kind),
+            timestamp: timestamp.map(_Timestamp),
         }
     }
 }
+
+#[pyclass(subclass)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct _ZenohId(pub(crate) ZenohId);
+#[pymethods]
+impl _ZenohId {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    pub fn __str__(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+#[pyclass(subclass)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct _Timestamp(Timestamp);
+#[pymethods]
+impl _Timestamp {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    crate::derive_richcmp!();
+    #[getter]
+    pub fn seconds_since_unix_epoch(&self) -> PyResult<f64> {
+        match self
+            .0
+            .get_time()
+            .to_system_time()
+            .duration_since(std::time::UNIX_EPOCH)
+        {
+            Ok(o) => Ok(o.as_secs_f64()),
+            Err(e) => Err(e.to_pyerr()),
+        }
+    }
+}
+
 #[pymethods]
 impl _Sample {
     #[new]
@@ -163,21 +205,38 @@ impl _Sample {
     pub fn kind(&self) -> _SampleKind {
         self.kind.clone()
     }
+    #[getter]
+    pub fn timestamp(&self) -> Option<_Timestamp> {
+        self.timestamp
+    }
     #[staticmethod]
-    pub fn new(key_expr: _KeyExpr, value: _Value, kind: _SampleKind) -> Self {
+    pub fn new(
+        key_expr: _KeyExpr,
+        value: _Value,
+        kind: _SampleKind,
+        timestamp: Option<_Timestamp>,
+    ) -> Self {
         _Sample {
             key_expr: key_expr.0,
             value,
             kind,
+            timestamp,
         }
     }
 }
 
 impl From<_Sample> for Sample {
     fn from(sample: _Sample) -> Self {
-        let mut value = Sample::new(sample.key_expr, sample.value);
-        value.kind = sample.kind.0;
-        value
+        let _Sample {
+            key_expr,
+            value,
+            kind,
+            timestamp,
+        } = sample;
+        let mut sample = Sample::new(key_expr, value);
+        sample.kind = kind.0;
+        sample.timestamp = timestamp.map(|t| t.0);
+        sample
     }
 }
 
@@ -185,7 +244,7 @@ impl From<_Sample> for Sample {
 #[derive(Clone)]
 pub struct _Reply {
     #[pyo3(get)]
-    pub replier_id: Py<PyString>,
+    pub replier_id: _ZenohId,
     pub reply: Result<_Sample, _Value>,
 }
 #[pymethods]
@@ -195,24 +254,62 @@ impl _Reply {
         this
     }
     #[getter]
-    pub fn ok(&self) -> Option<_Sample> {
-        self.reply.as_ref().ok().map(Clone::clone)
+    pub fn ok(&self) -> PyResult<_Sample> {
+        match &self.reply {
+            Ok(o) => Ok(o.clone()),
+            Err(_) => Err(zenoh_core::zerror!("Called `Reply.ok` on a non-ok reply.").to_pyerr()),
+        }
     }
     #[getter]
-    pub fn err(&self) -> Option<_Sample> {
-        self.reply.as_ref().ok().map(Clone::clone)
+    pub fn err(&self) -> PyResult<_Value> {
+        match &self.reply {
+            Err(o) => Ok(o.clone()),
+            Ok(_) => Err(zenoh_core::zerror!("Called `Reply.err` on a non-err reply.").to_pyerr()),
+        }
     }
 }
 impl From<Reply> for _Reply {
     fn from(reply: Reply) -> Self {
-        let replier_id = reply.replier_id.to_string();
-        let replier_id = Python::with_gil(|py| Py::from(PyString::new(py, &replier_id)));
         _Reply {
-            replier_id,
+            replier_id: _ZenohId(reply.replier_id),
             reply: match reply.sample {
                 Ok(o) => Ok(o.into()),
                 Err(e) => Err(e.into()),
             },
         }
+    }
+}
+
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct _Hello(pub(crate) Hello);
+#[pymethods]
+impl _Hello {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[getter]
+    pub fn zid(&self) -> Option<_ZenohId> {
+        self.0.zid.map(_ZenohId)
+    }
+    #[getter]
+    pub fn whatami(&self) -> Option<&'static str> {
+        match self.0.whatami {
+            Some(zenoh::config::whatami::WhatAmI::Client) => Some("client"),
+            Some(zenoh::config::whatami::WhatAmI::Peer) => Some("peer"),
+            Some(zenoh::config::whatami::WhatAmI::Router) => Some("router"),
+            None => None,
+        }
+    }
+    #[getter]
+    pub fn locators(&self) -> Vec<String> {
+        match &self.0.locators {
+            Some(locators) => locators.iter().map(|l| l.to_string()).collect(),
+            None => Vec::new(),
+        }
+    }
+    pub fn __str__(&self) -> String {
+        self.0.to_string()
     }
 }

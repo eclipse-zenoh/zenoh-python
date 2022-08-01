@@ -1,9 +1,9 @@
 import abc
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional, List
 import json
 
 from .enums import Encoding, SampleKind
-from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply
+from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello
 from .keyexpr import KeyExpr, IntoKeyExpr
 
 class IValue:
@@ -22,6 +22,8 @@ IntoValue = Union[IValue, bytes, str, int, float, object]
 class Value(_Value, IValue):
 	def __new__(cls, payload: IntoValue, encoding: Encoding=None):
 		if encoding is None:
+			if isinstance(payload, Value):
+				return payload
 			return Value.autoencode(payload)
 		else:
 			if not isinstance(payload, bytes):
@@ -68,15 +70,44 @@ class Value(_Value, IValue):
 	def encoding(self, encoding: Encoding):
 		super().with_encoding(encoding)
 
+class ZenohId(_ZenohId):
+	"""A Zenoh UUID"""
+	@staticmethod
+	def _upgrade_(this: _ZenohId) -> 'ZenohId':
+		return _ZenohId.__new__(ZenohId, this)
+	def __str__(self) -> str:
+		return super().__str__()
+	def __repr__(self) -> str:
+		return str(self)
+
+class Timestamp(_Timestamp):
+	"""
+	A timestamp taken from the Zenoh HLC (Hybrid Logical Clock).
+
+	These timestamps are guaranteed to be unique, as each machine annotates its perceived time with a UUID, which is used as the least significant part of the comparison operation.
+	"""
+	@staticmethod
+	def _upgrade_(this: _Timestamp) -> 'Timestamp':
+		return _Timestamp.__new__(Timestamp, this)
+	@property
+	def seconds_since_unix_epoch(self) -> float:
+		"""
+		Returns the number of seconds since the Unix Epoch.
+
+		You shouldn't use this for comparison though, and rely on comparison operators between members of this class.
+		"""
+		return super().seconds_since_unix_epoch
+
+
 IntoSample = Union[_Sample, Tuple[IntoKeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
 class Sample(_Sample):
-	def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None):
-		if kind is None:
-			return Sample._upgrade_(super().new(KeyExpr(key), Value(value), _SampleKind.PUT))
-		else:
-			return Sample._upgrade_(super().new(KeyExpr(key), Value(value), kind))
+	def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None, timestamp: Timestamp = None):
+		kind = _SampleKind.PUT if kind is None else kind
+		return Sample._upgrade_(super().new(KeyExpr(key), Value(value), kind, timestamp))
 	@staticmethod
 	def _upgrade_(inner: _Sample) -> 'Sample':
+		if isinstance(inner, Sample):
+			return inner
 		return _Sample.__new__(Sample, inner)
 	@property
 	def key_expr(self) -> KeyExpr:
@@ -90,16 +121,52 @@ class Sample(_Sample):
 	@property
 	def kind(self) -> SampleKind:
 		return SampleKind(super().kind)
+	@property
+	def timestamp(self) -> Optional[Timestamp]:
+		ts = super().timestamp
+		return None if ts is None else Timestamp._upgrade_(ts)
 
 class Reply(_Reply):
 	def __new__(cls, inner: _Reply):
 		return super().__new__(cls, inner)
 	@property
-	def replier_id(self) -> str:
-		return super().replier_id
+	def replier_id(self) -> ZenohId:
+		"The reply's sender's id."
+		return ZenohId._upgrade_(super().replier_id)
 	@property
 	def ok(self) -> Sample:
+		"""
+		The reply's inner data sample.
+		Raises a ZError if the `self` is actually an `err` reply.
+		"""
 		return Sample(super().ok)
 	@property
 	def err(self) -> Value:
+		"""
+		The reply's error value.
+		Raises a ZError if the `self` is actually an `ok` reply.
+		"""
 		return Value(super().err)
+
+class Hello(_Hello):
+	"""Represents a single Zenoh node discovered through scouting."""
+	@property
+	def zid(self) -> ZenohId:
+		"The node's Zenoh UUID."
+		zid = super().zid
+		return None if zid is None else ZenohId._upgrade_(sid)
+	@property
+	def whatami(self) -> str:
+		"The node's type, returning either None, 'peer', 'router', or 'client'."
+		return super().whatami
+	@property
+	def locators(self) -> List[str]:
+		"The locators through which this node may be adressed."
+		return super().locators
+	@staticmethod
+	def _upgrade_(inner: _Hello) -> 'Sample':
+		if isinstance(inner, Hello):
+			return inner
+		return _Hello.__new__(Hello, inner)
+	def __str__(self):
+		return super().__str__()

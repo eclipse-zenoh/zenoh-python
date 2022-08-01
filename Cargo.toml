@@ -51,3 +51,4 @@ pyo3-asyncio = { version = "0.16", features = [
     "attributes",
     "async-std-runtime",
 ] }
+form_urlencoded = "1.0.1"

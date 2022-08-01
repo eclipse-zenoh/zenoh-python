@@ -38,13 +38,13 @@ class IHandler(Generic[In, Out, Receiver]):
 	def receiver(self) -> Receiver:
 		...
 
-IntoClosure = Union[IHandler, IClosure, Tuple[CallbackCall, CallbackDrop], CallbackCall]
+IntoClosure = Union[IHandler[In, Out, Any], IClosure[In, Out], Tuple[CallbackCall, CallbackDrop], CallbackCall]
 class Closure(IClosure, Generic[In, Out]):
 	"""
 	A Closure is a pair of a `call` function that will be used as a callback,
 	and a `drop` function that will be called when the closure is destroyed.
 	"""
-	def __init__(self, closure: IntoClosure, type_adaptor: Callable[Any, In] = None):
+	def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[Any, In] = None):
 		_call_ = None
 		self._drop_ = lambda: None
 		if isinstance(closure, IHandler):
@@ -73,7 +73,7 @@ class Closure(IClosure, Generic[In, Out]):
 
 IntoHandler = Union[IHandler, IClosure,  Tuple[IClosure, Receiver], Tuple[CallbackCall,CallbackDrop, Receiver], Tuple[CallbackCall,CallbackDrop], CallbackCall]
 class Handler(IHandler, Generic[In, Out, Receiver]):
-	def __init__(self, input: IntoHandler, type_adaptor: Callable[Any, In] = None):
+	def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[Any, In] = None):
 		self._receiver_ = None
 		if isinstance(input, IHandler):
 			self._receiver_ = input.receiver

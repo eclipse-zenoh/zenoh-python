@@ -1,30 +1,30 @@
 use crate::ToPyErr;
 use pyo3::prelude::*;
-use pyo3::pyclass::CompareOp;
 use zenoh::prelude::{Encoding, KnownEncoding, Priority, SampleKind};
 use zenoh::publication::CongestionControl;
 use zenoh::query::{QueryConsolidation, QueryTarget};
 use zenoh::subscriber::Reliability;
 
+#[macro_export]
 macro_rules! derive_richcmp {
     ($tyname: expr) => {
-        fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+        fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> PyResult<bool> {
             match op {
-                CompareOp::Eq => Ok(self == other),
-                CompareOp::Ne => Ok(self != other),
+                pyo3::pyclass::CompareOp::Eq => Ok(self == other),
+                pyo3::pyclass::CompareOp::Ne => Ok(self != other),
                 _ => Err(zenoh_core::zerror!("{} does not support comparison", $tyname).to_pyerr()),
             }
         }
     };
     () => {
-        fn __richcmp__(&self, other: &Self, op: CompareOp) -> bool {
+        fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> bool {
             match op {
-                CompareOp::Lt => self < other,
-                CompareOp::Le => self <= other,
-                CompareOp::Eq => self == other,
-                CompareOp::Ne => self != other,
-                CompareOp::Gt => self > other,
-                CompareOp::Ge => self >= other,
+                pyo3::pyclass::CompareOp::Lt => self < other,
+                pyo3::pyclass::CompareOp::Le => self <= other,
+                pyo3::pyclass::CompareOp::Eq => self == other,
+                pyo3::pyclass::CompareOp::Ne => self != other,
+                pyo3::pyclass::CompareOp::Gt => self > other,
+                pyo3::pyclass::CompareOp::Ge => self >= other,
             }
         }
     };

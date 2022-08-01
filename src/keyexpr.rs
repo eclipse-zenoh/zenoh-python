@@ -13,10 +13,14 @@
 //
 
 use pyo3::prelude::*;
-use std::convert::TryInto;
-use zenoh::prelude::KeyExpr;
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    convert::{TryFrom, TryInto},
+};
+use zenoh::{prelude::KeyExpr, selector::Selector, Undeclarable};
+use zenoh_core::SyncResolve;
 
-use crate::ToPyErr;
+use crate::{session::_Session, ToPyErr};
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -25,6 +29,10 @@ pub struct _KeyExpr(pub(crate) KeyExpr<'static>);
 #[pymethods]
 impl _KeyExpr {
     #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[staticmethod]
     pub fn new(expr: String) -> PyResult<Self> {
         match expr.try_into() {
             Ok(k) => Ok(Self(k)),
@@ -51,7 +59,62 @@ impl _KeyExpr {
         self.0 == other.0
     }
 
-    pub fn as_str(&self) -> &str {
+    pub fn undeclare(&self, session: &_Session) -> PyResult<()> {
+        self.0
+            .borrowing_clone()
+            .undeclare(&session.0)
+            .res_sync()
+            .map_err(|e| e.to_pyerr())
+    }
+
+    pub fn __str__(&self) -> &str {
         self.0.as_str()
+    }
+
+    pub fn __hash__(&self) -> isize {
+        use std::hash::*;
+        let mut hasher: DefaultHasher = BuildHasherDefault::default().build_hasher();
+        self.0.hash(&mut hasher);
+        hasher.finish() as isize
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct _Selector(pub(crate) Selector<'static>);
+#[pymethods]
+impl _Selector {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[staticmethod]
+    pub fn new(expr: String) -> PyResult<Self> {
+        match Selector::try_from(expr) {
+            Ok(o) => Ok(_Selector(o)),
+            Err(e) => Err(e.to_pyerr()),
+        }
+    }
+    #[getter]
+    pub fn key_expr(&self) -> _KeyExpr {
+        _KeyExpr(self.0.key_expr.clone())
+    }
+    #[getter]
+    pub fn get_value_selector(&self) -> &str {
+        self.0.value_selector()
+    }
+    #[setter]
+    pub fn set_value_selector(&mut self, value_selector: String) {
+        self.0.set_value_selector(value_selector)
+    }
+    pub fn decode_value_selector(&self) -> PyResult<HashMap<String, String>> {
+        self.0.value_selector_map().map_err(|e| e.to_pyerr())
+    }
+    pub fn __str__(&self) -> String {
+        self.0.to_string()
     }
 }

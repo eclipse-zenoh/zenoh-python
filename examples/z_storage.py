@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import Reliability, SampleKind, SubMode, Sample, KeyExpr
+from zenoh import Reliability, SampleKind, Query, Sample, KeyExpr
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -38,7 +38,7 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='/demo/example/**',
+                    default='demo/example/**',
                     type=str,
                     help='The key expression matching resources to store.')
 parser.add_argument('--config', '-c', dest='config',
@@ -62,21 +62,20 @@ key = args.key
 store = {}
 
 
-def listener(sample):
+def listener(sample: Sample):
     print(">> [Subscriber] Received {} ('{}': '{}')"
           .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8")))
     if sample.kind == SampleKind.DELETE:
-        store.pop(str(sample.key_expr), None)
+        store.pop(sample.key_expr, None)
     else:
-        store[str(sample.key_expr)] = (sample.value, sample.source_info)
+        store[sample.key_expr] = sample
 
 
-def query_handler(query):
+def query_handler(query: Query):
     print(">> [Queryable ] Received Query '{}'".format(query.selector))
     replies = []
-    for stored_name, (data, source_info) in store.items():
-        if KeyExpr.intersect(query.key_selector, stored_name):
-            sample = Sample(stored_name, data, source_info=source_info)
+    for stored_name, sample in store.items():
+        if query.key_expr.intersects(stored_name):
             query.reply(sample)
 
 
@@ -87,11 +86,10 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Creating Subscriber on '{}'...".format(key))
-sub = session.subscribe(
-    key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
+sub = session.declare_subscriber(key, listener, reliability=Reliability.RELIABLE())
 
 print("Creating Queryable on '{}'...".format(key))
-queryable = session.queryable(key, query_handler)
+queryable = session.declare_queryable(key, query_handler)
 
 print("Enter 'q' to quit......")
 c = '\0'
@@ -100,6 +98,6 @@ while c != 'q':
     if c == '':
         time.sleep(1)
 
-sub.close()
-queryable.close()
+sub.undeclare()
+queryable.undeclare()
 session.close()

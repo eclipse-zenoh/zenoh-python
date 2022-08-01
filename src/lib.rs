@@ -72,15 +72,20 @@ impl<K: ToBorrowedObject> PyExtract<K> for PyDict {
 fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<config::_Config>()?;
     m.add_class::<keyexpr::_KeyExpr>()?;
+    m.add_class::<keyexpr::_Selector>()?;
     m.add_class::<session::_Session>()?;
     m.add_class::<session::_Publisher>()?;
     m.add_class::<session::_Subscriber>()?;
     m.add_class::<session::_PullSubscriber>()?;
+    m.add_class::<session::_Scout>()?;
     m.add_class::<queryable::_Query>()?;
     m.add_class::<queryable::_Queryable>()?;
     m.add_class::<value::_Value>()?;
     m.add_class::<value::_Sample>()?;
     m.add_class::<value::_Reply>()?;
+    m.add_class::<value::_Timestamp>()?;
+    m.add_class::<value::_Hello>()?;
+    m.add_class::<value::_ZenohId>()?;
     m.add_class::<enums::_CongestionControl>()?;
     m.add_class::<enums::_Encoding>()?;
     m.add_class::<enums::_Priority>()?;
@@ -89,6 +94,7 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<enums::_QueryConsolidation>()?;
     m.add_class::<enums::_QueryTarget>()?;
     m.add_wrapped(wrap_pyfunction!(init_logger))?;
+    m.add_wrapped(wrap_pyfunction!(session::scout))?;
     Ok(())
 }
 
