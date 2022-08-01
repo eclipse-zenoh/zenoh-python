@@ -1,11 +1,11 @@
 from .zenoh import init_logger, scout as _scout
-from .keyexpr import *
-from .config import *
-from .session import *
-from .enums import *
-from .value import *
-from .closures import *
-from .queryable import *
+from .keyexpr import IntoKeyExpr, IntoSelector, KeyExpr, Selector
+from .config import Config
+from .session import Session, Publisher, Subscriber, PullSubscriber, Info
+from .enums import CongestionControl, Encoding, Priority, QueryConsolidation, QueryTarget, Reliability, SampleKind
+from .value import Hello, Value, IntoValue, IValue, Sample, IntoSample, ZenohId, Timestamp, Reply
+from .closures import Closure, IClosure, IntoClosure, Handler, IHandler, IntoHandler, ListCollector, Queue
+from .queryable import Queryable, Query
 
 def open(*args, **kwargs):
 	return Session(*args, **kwargs)
@@ -18,8 +18,8 @@ class Scout:
 	def stop(self):
 		self._inner_ = None
 
-from threading import Timer
 def scout(handler: IntoHandler[Hello, Any, Any] = None, what: str = None, config: Config = None, timeout=None):
+	from threading import Timer
 	if handler is None:
 		handler = ListCollector()
 	handler = Handler(handler, lambda x: Hello._upgrade_)

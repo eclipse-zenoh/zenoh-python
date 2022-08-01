@@ -1,5 +1,4 @@
 from typing import Union, Any, List
-import sys
 
 from .zenoh import _Session, _Config, _Publisher, _Subscriber, _PullSubscriber
 
