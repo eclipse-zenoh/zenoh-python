@@ -11,13 +11,23 @@ CallbackCall = Callable[In, Out]
 CallbackDrop = Callable[[], None]
 
 class IClosure(Generic[In, Out]):
+	"""
+	A Closure is a pair of a `call` function that will be used as a callback,
+	and a `drop` function that will be called when the closure is destroyed.
+	"""
 	@property
 	@abc.abstractmethod
 	def call(self) -> Callable[[In], Out]:
+		"""
+		Returns the closure's call function as a lambda.
+		"""
 		...
 	@property
 	@abc.abstractmethod
 	def drop(self) -> Callable[[], None]:
+		"""
+		Returns the closure's destructor as a lambda.
+		"""
 		...
 	def __enter__(self):
 		drop = self.drop
@@ -29,13 +39,20 @@ class IClosure(Generic[In, Out]):
 			drop()
 
 class IHandler(Generic[In, Out, Receiver]):
+	"""
+	A Handler is a value that may be converted into a callback closure for zenoh to use on one side, while possibly providing a receiver for the data that zenoh would provide through that callback.
+	"""
 	@property
 	@abc.abstractmethod
 	def closure(self) -> IClosure[In, Out]:
+		"""
+		The part of the handler that should be passed as a callback to a zenoh function.
+		"""
 		...
 	@property
 	@abc.abstractmethod
 	def receiver(self) -> Receiver:
+		"The part of the handler that should be used as the receiver when the handler is channel-like."
 		...
 
 IntoClosure = Union[IHandler[In, Out, Any], IClosure[In, Out], Tuple[CallbackCall, CallbackDrop], CallbackCall]
@@ -71,8 +88,11 @@ class Closure(IClosure, Generic[In, Out]):
 	def drop(self) -> Callable[[], None]:
 		return self._drop_
 
-IntoHandler = Union[IHandler, IClosure,  Tuple[IClosure, Receiver], Tuple[CallbackCall,CallbackDrop, Receiver], Tuple[CallbackCall,CallbackDrop], CallbackCall]
+IntoHandler = Union[IHandler[In, Out, Receiver], IClosure[In, Out],  Tuple[IClosure, Receiver], Tuple[CallbackCall,CallbackDrop, Receiver], Tuple[CallbackCall,CallbackDrop], CallbackCall]
 class Handler(IHandler, Generic[In, Out, Receiver]):
+	"""
+	A Handler is a value that may be converted into a callback closure for zenoh to use on one side, while possibly providing a receiver for the data that zenoh would provide through that callback.
+	"""
 	def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[Any, In] = None):
 		self._receiver_ = None
 		if isinstance(input, IHandler):

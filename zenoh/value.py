@@ -7,6 +7,7 @@ from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _T
 from .keyexpr import KeyExpr, IntoKeyExpr
 
 class IValue:
+	"The IValue interface exposes how to recover a value's payload in a binary-serialized format, as well as that format's encoding."
 	@property
 	@abc.abstractmethod
 	def payload(self) -> bytes:
@@ -20,6 +21,11 @@ class IValue:
 IntoValue = Union[IValue, bytes, str, int, float, object]
 
 class Value(_Value, IValue):
+	"""
+	A Value is a pair of a binary payload, and a mime-type-like encoding string.
+	
+	When constructed with `encoding==None`, the encoding will be selected depending on the payload's type.
+	"""
 	def __new__(cls, payload: IntoValue, encoding: Encoding=None):
 		if encoding is None:
 			if isinstance(payload, Value):
@@ -29,12 +35,6 @@ class Value(_Value, IValue):
 			if not isinstance(payload, bytes):
 				raise TypeError("`encoding` was passed, but `payload` is not of type `bytes`")
 			return Value.new(payload, encoding)
-
-	@staticmethod
-	def _upgrade_(inner: _Value) -> 'Value':
-		if isinstance(inner, Value):
-			return inner
-		return _Value.__new__(Value, inner)
 	
 	@staticmethod
 	def autoencode(value: IntoValue) -> 'Value':
@@ -70,6 +70,12 @@ class Value(_Value, IValue):
 	def encoding(self, encoding: Encoding):
 		super().with_encoding(encoding)
 
+	@staticmethod
+	def _upgrade_(inner: _Value) -> 'Value':
+		if isinstance(inner, Value):
+			return inner
+		return _Value.__new__(Value, inner)
+
 class ZenohId(_ZenohId):
 	"""A Zenoh UUID"""
 	@staticmethod
@@ -101,30 +107,42 @@ class Timestamp(_Timestamp):
 
 IntoSample = Union[_Sample, Tuple[IntoKeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
 class Sample(_Sample):
+	"""
+	A KeyExpr-Value pair, annotated with the kind (PUT or DELETE) of publication used to emit it and a timestamp.
+	"""
 	def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None, timestamp: Timestamp = None):
 		kind = _SampleKind.PUT if kind is None else kind
 		return Sample._upgrade_(super().new(KeyExpr(key), Value(value), kind, timestamp))
+	@property
+	def key_expr(self) -> KeyExpr:
+		"The sample's key expression"
+		return KeyExpr(super().key_expr)
+	@property
+	def value(self) -> Value:
+		"The sample's value"
+		return Value(super().value)
+	@property
+	def payload(self) -> bytes:
+		"A shortcut to `self.value.payload`"
+		return super().payload
+	@property
+	def encoding(self) -> Encoding:
+		"A shortcut to `self.value.encoding`"
+		return Encoding(super().encoding)
+	@property
+	def kind(self) -> SampleKind:
+		"The sample's kind"
+		return SampleKind(super().kind)
+	@property
+	def timestamp(self) -> Optional[Timestamp]:
+		"The sample's  timestamp. May be None."
+		ts = super().timestamp
+		return None if ts is None else Timestamp._upgrade_(ts)
 	@staticmethod
 	def _upgrade_(inner: _Sample) -> 'Sample':
 		if isinstance(inner, Sample):
 			return inner
 		return _Sample.__new__(Sample, inner)
-	@property
-	def key_expr(self) -> KeyExpr:
-		return KeyExpr(super().key_expr)
-	@property
-	def value(self) -> Value:
-		return Value(super().value)
-	@property
-	def payload(self) -> bytes:
-		return super().payload
-	@property
-	def kind(self) -> SampleKind:
-		return SampleKind(super().kind)
-	@property
-	def timestamp(self) -> Optional[Timestamp]:
-		ts = super().timestamp
-		return None if ts is None else Timestamp._upgrade_(ts)
 
 class Reply(_Reply):
 	def __new__(cls, inner: _Reply):

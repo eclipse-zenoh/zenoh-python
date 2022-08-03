@@ -159,7 +159,10 @@ class Selector(_Selector):
 	def decode_value_selector(self) -> dict:
 		"""
 		Decodes the value selector part of the selector.
-		Raises a ZError if some keys were duplicated, as this is considered Undefined Behaviour.
+
+		Raises a ZError if some keys were duplicated: duplicated keys are considered undefined behaviour,
+		but we encourage you to refuse to process incoming messages with duplicated keys, as they might be
+		attempting to use HTTP Parameter Pollution like exploits.
 		"""
 		return super().decode_value_selector()
 	def __str__(self):
