@@ -38,7 +38,7 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='/demo/example/zenoh-python-queryable',
+                    default='demo/example/zenoh-python-queryable',
                     type=str,
                     help='The key expression matching queries to reply to.')
 parser.add_argument('--value', '-v', dest='value',
@@ -67,7 +67,7 @@ value = args.value
 
 def queryable_callback(query):
     print(">> [Queryable ] Received Query '{}'".format(query.selector))
-    query.reply(Sample(key_expr=key, value=value.encode()))
+    query.reply(Sample(key, value))
 
 
 # initiate logging
@@ -77,7 +77,7 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Creating Queryable on '{}'...".format(key))
-queryable = session.queryable(key, queryable_callback)
+queryable = session.declare_queryable(key, queryable_callback)
 
 print("Enter 'q' to quit......")
 c = '\0'
@@ -86,5 +86,5 @@ while c != 'q':
     if c == '':
         time.sleep(1)
 
-queryable.close()
+queryable.undeclare()
 session.close()

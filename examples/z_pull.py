@@ -39,7 +39,7 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='/demo/example/**',
+                    default='demo/example/**',
                     type=str,
                     help='The key expression matching resources to pull.')
 parser.add_argument('--config', '-c', dest='config',
@@ -76,8 +76,7 @@ session = zenoh.open(conf)
 
 print("Creating Subscriber on '{}'...".format(key))
 
-sub = session.subscribe(
-    key, listen, reliability=Reliability.Reliable, mode=SubMode.Pull)
+sub = session.declare_pull_subscriber(key, listen, reliability=Reliability.Reliable, mode=SubMode.Pull)
 
 print("Press <enter> to pull data...")
 c = '\0'

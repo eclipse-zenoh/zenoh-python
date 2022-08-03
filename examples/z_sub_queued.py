@@ -14,15 +14,17 @@
 
 import sys
 import time
+from datetime import datetime
 import argparse
 import json
 import zenoh
-from zenoh import Reliability, SampleKind, Query, Sample, KeyExpr
+from threading import Thread
+from zenoh import Reliability, Sample
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_storage',
-    description='zenoh storage example')
+    prog='z_sub',
+    description='zenoh sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -40,7 +42,7 @@ parser.add_argument('--listen', '-l', dest='listen',
 parser.add_argument('--key', '-k', dest='key',
                     default='demo/example/**',
                     type=str,
-                    help='The key expression matching resources to store.')
+                    help='The key expression to subscribe to.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -59,24 +61,6 @@ key = args.key
 
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
-store = {}
-
-
-def listener(sample: Sample):
-    print(">> [Subscriber] Received {} ('{}': '{}')"
-          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8")))
-    if sample.kind == SampleKind.DELETE:
-        store.pop(sample.key_expr, None)
-    else:
-        store[sample.key_expr] = sample
-
-
-def query_handler(query: Query):
-    print(">> [Queryable ] Received Query '{}'".format(query.selector))
-    replies = []
-    for stored_name, sample in store.items():
-        if query.key_expr.intersects(stored_name):
-            query.reply(sample)
 
 
 # initiate logging
@@ -86,18 +70,28 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Creating Subscriber on '{}'...".format(key))
-sub = session.declare_subscriber(key, listener, reliability=Reliability.RELIABLE())
 
-print("Creating Queryable on '{}'...".format(key))
-queryable = session.declare_queryable(key, query_handler)
 
-print("Enter 'q' to quit......")
+# WARNING, you MUST store the return value in order for the subscription to work!!
+# This is because if you don't, the reference counter will reach 0 and the subscription
+# will be immediately undeclared.
+sub = session.declare_subscriber(key, zenoh.Queue(), reliability=Reliability.RELIABLE())
+
+def consumer():
+    for sample in sub.receiver: # zenoh.Queue's receiver (the queue itself) is an iterator
+        print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
+
+t = Thread(target=consumer)
+t.start()
+print("Enter 'q' to quit...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
     if c == '':
         time.sleep(1)
 
+# Cleanup: note that even if you forget it, cleanup will happen automatically when 
+# the reference counter reaches 0
 sub.undeclare()
-queryable.undeclare()
+t.join()
 session.close()

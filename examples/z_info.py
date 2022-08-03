@@ -60,7 +60,7 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 info = session.info()
-for key in info:
-    print("{} : {}".format(key, info[key]))
-
+print(f"zid: {info.zid()}")
+print(f"routers: {info.routers_zid()}")
+print(f"peers: {info.peers_zid()}")
 session.close()

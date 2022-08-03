@@ -1,5 +1,3 @@
-use crate::ConfigNotifier;
-
 //
 // Copyright (c) 2017, 2022 ZettaScale Technology Inc.
 //
@@ -13,552 +11,357 @@ use crate::ConfigNotifier;
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
-use super::encoding::Encoding;
-use super::sample_kind::SampleKind;
-use super::types::{
-    zkey_expr_of_pyany, zvalue_of_pyany, CongestionControl, KeyExpr, Period, Priority, Query,
-    QueryConsolidation, QueryTarget, Queryable, Reliability, Reply, Sample, SubMode, Subscriber,
-};
-use super::{to_pyerr, ZError};
-use log::warn;
-use pyo3::exceptions;
-use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyList, PyTuple};
-use std::collections::HashMap;
-use std::sync::Arc;
-use zenoh::prelude::sync::SyncResolve;
-use zenoh::prelude::{KeyExpr as ZKeyExpr, *};
-use zenoh::subscriber::CallbackSubscriber;
 
-/// A zenoh session.
-#[pyclass]
-pub struct Session {
-    s: Option<Arc<zenoh::Session>>,
+use std::convert::TryInto;
+use std::sync::Arc;
+
+use pyo3::{prelude::*, types::PyDict};
+use zenoh::config::whatami::{WhatAmI, WhatAmIMatcher};
+use zenoh::prelude::SessionDeclarations;
+use zenoh::publication::Publisher;
+use zenoh::scouting::CallbackScout;
+use zenoh::subscriber::{CallbackPullSubscriber, CallbackSubscriber};
+use zenoh::Session;
+use zenoh_core::SyncResolve;
+
+use crate::closures::PyClosure;
+use crate::config::_Config;
+use crate::enums::{
+    _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability, _SampleKind,
+};
+use crate::keyexpr::{_KeyExpr, _Selector};
+use crate::queryable::{_Query, _Queryable};
+use crate::value::{_Hello, _Reply, _Sample, _Value, _ZenohId};
+use crate::{PyAnyToValue, PyExtract, ToPyErr};
+
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct _Session(pub(crate) Arc<Session>);
+
+trait CallbackUnwrap {
+    type Output;
+    fn cb_unwrap(self) -> Self::Output;
+}
+impl<T> CallbackUnwrap for PyResult<T> {
+    type Output = T;
+    fn cb_unwrap(self) -> Self::Output {
+        match self {
+            Ok(o) => o,
+            Err(e) => Python::with_gil(|py| {
+                if let Some(trace) = e.traceback(py).and_then(|trace| trace.format().ok()) {
+                    panic!("Exception thrown in callback: {}.\n{}", e, trace)
+                } else {
+                    panic!("Exception thrown in callback: {}.", e,)
+                }
+            }),
+        }
+    }
 }
 
 #[pymethods]
-impl Session {
-    /// Returns the identifier for this session.
-    ///
-    /// :type: **str**
-    #[getter]
-    fn id(&self) -> PyResult<String> {
-        let s = self.try_ref()?;
-        Ok(s.id())
+impl _Session {
+    #[new]
+    pub fn new(config: Option<&mut crate::config::_Config>) -> PyResult<Self> {
+        let config = config.and_then(|c| c.0.take()).unwrap_or_default();
+        let session = zenoh::open(config).res_sync().map_err(|e| e.to_pyerr())?;
+        Ok(_Session(Arc::new(session)))
     }
-
-    /// Close the zenoh Session.
-    pub fn close(&mut self) -> PyResult<()> {
-        let s = self.try_take()?;
-        match Arc::try_unwrap(s) {
-            Ok(s) => s.close().res().map_err(to_pyerr),
-            Err(_) => Err(PyErr::new::<exceptions::PyValueError, _>(
-                "Failed to close Session: not owner of the last reference",
-            )),
-        }
-    }
-
-    /// Get informations about the zenoh Session.
-    ///
-    /// :rtype: **dict[str, str]**
-    ///
-    /// :Example:
-    ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open()
-    /// >>> info = s.info()
-    /// >>> for key in info:
-    /// >>>    print("{} : {}".format(key, info[key]))
-    pub fn info(&self, py: Python) -> PyResult<PyObject> {
-        use zenoh_cfg_properties::KeyTranscoder;
-        let s = self.try_ref()?;
-        let props = s.info().res();
-        let pydict: HashMap<String, String> = props
-            .0
-            .into_iter()
-            .filter_map(|(k, v)| zenoh::info::InfoTranscoder::decode(k).map(|k| (k, v)))
-            .collect();
-        Ok(pydict.into_py_dict(py).to_object(py))
-    }
-
-    /// Get informations about the zenoh Session.
-    ///
-    /// :rtype:  **dict[str, str]**
-    ///
-    /// :Example:
-    ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open()
-    /// >>> info = s.info()
-    /// >>> for key in info:
-    /// >>>    print("{} : {}".format(key, info[key]))
-    ///
-    ///
-    /// Get the current configuration of the zenoh Session.
-    ///
-    /// The returned ConfigNotifier can be used to read the current
-    /// zenoh configuration through the json function or
-    /// modify the zenoh configuration through the insert_json5 funtion.
-    ///
-    /// :rtype: dict {str: str}
-    ///
-    /// :Example:
-    ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open()
-    /// >>> config = s.config()
-    /// >>> config.insert_json5("connect/endpoints", "[\"tcp/10.10.10.10:7448\"]")
-    ///
-    pub fn config(&self) -> PyResult<ConfigNotifier> {
-        Ok(ConfigNotifier {
-            inner: self.try_ref()?.config().clone(),
-        })
-    }
-
-    /// Put data.
-    ///
-    /// :param key_expr: The key expression matching resources to write
-    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
-    ///                 (see its constructor's accepted parameters)
-    /// :param value: The value to write
-    /// :type value: any type convertible to a :class:`Value`
-    /// :param \**kwargs:
-    ///    See below
-    ///
-    /// :Keyword Arguments:
-    ///    * **encoding** (:class:`Encoding`) --
-    ///      Set the encoding of the written data
-    ///    * **kind** ( **int** ) --
-    ///      Set the kind of the written data
-    ///    * **congestion_control** (:class:`CongestionControl`) --
-    ///      Set the congestion control to apply when routing the data
-    ///    * **priority** (:class:`Priority`) --
-    ///      Set the priority of the written data
-    ///    * **local_routing** ( **bool** ) --
-    ///      Enable or disable local routing
-    ///
-    /// :raise: :class:`ZError`
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open()
-    /// >>> s.put('/key/expression', 'value')
-    #[pyo3(text_signature = "(self, key_expr, value, **kwargs)")]
     #[args(kwargs = "**")]
-    pub fn put(&self, key_expr: &PyAny, value: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
-        let s = self.try_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        let v = zvalue_of_pyany(value)?;
+    pub fn put(
+        &self,
+        key_expr: &crate::keyexpr::_KeyExpr,
+        value: &PyAny,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<()> {
+        let s = &self.0;
+        let k = &key_expr.0;
+        let v = value.to_value()?;
         let mut builder = s.put(k, v);
         if let Some(kwargs) = kwargs {
-            if let Some(arg) = kwargs.get_item("encoding") {
-                builder = builder.encoding(arg.extract::<Encoding>()?.e);
+            match kwargs.extract_item::<_SampleKind>("kind") {
+                Ok(kind) => builder = builder.kind(kind.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("kind") {
-                builder = builder.kind(arg.extract::<SampleKind>()?.kind);
+            match kwargs.extract_item::<_CongestionControl>("congestion_control") {
+                Ok(congestion_control) => {
+                    builder = builder.congestion_control(congestion_control.0)
+                }
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("congestion_control") {
-                builder = builder.congestion_control(arg.extract::<CongestionControl>()?.cc);
+            match kwargs.extract_item::<_Priority>("priority") {
+                Ok(priority) => builder = builder.priority(priority.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("priority") {
-                builder = builder.priority(arg.extract::<Priority>()?.p);
-            }
-            if let Some(arg) = kwargs.get_item("local_routing") {
-                builder = builder.local_routing(arg.extract::<bool>()?);
+            match kwargs.extract_item::<bool>("local_routing") {
+                Ok(local_routing) => builder = builder.local_routing(local_routing),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
         }
-        builder.res().map_err(to_pyerr)
+        builder.res_sync().map_err(|e| e.to_pyerr())
     }
-
-    /// Delete data.
-    ///
-    /// :param key_expr: The key expression matching resources to delete
-    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
-    ///                 (see its constructor's accepted parameters)
-    /// :param \**kwargs:
-    ///    See below
-    ///
-    /// :Keyword Arguments:
-    ///    * **congestion_control** (:class:`CongestionControl`) --
-    ///      Set the congestion control to apply when routing the data
-    ///    * **priority** (:class:`Priority`) --
-    ///      Set the priority of the written data
-    ///    * **local_routing** ( **bool** ) --
-    ///      Enable or disable local routing
-    ///
-    /// :raise: :class:`ZError`
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open()
-    /// >>> s.delete('/key/expression')
-    #[pyo3(text_signature = "(self, key_expr, **kwargs)")]
     #[args(kwargs = "**")]
-    pub fn delete(&self, key_expr: &PyAny, kwargs: Option<&PyDict>) -> PyResult<()> {
-        let s = self.try_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
+    pub fn delete(
+        &self,
+        key_expr: &crate::keyexpr::_KeyExpr,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<()> {
+        let s = &self.0;
+        let k = &key_expr.0;
         let mut builder = s.delete(k);
         if let Some(kwargs) = kwargs {
-            if let Some(arg) = kwargs.get_item("congestion_control") {
-                builder = builder.congestion_control(arg.extract::<CongestionControl>()?.cc);
+            match kwargs.extract_item::<_SampleKind>("kind") {
+                Ok(kind) => builder = builder.kind(kind.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("priority") {
-                builder = builder.priority(arg.extract::<Priority>()?.p);
+            match kwargs.extract_item::<_CongestionControl>("congestion_control") {
+                Ok(congestion_control) => {
+                    builder = builder.congestion_control(congestion_control.0)
+                }
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("local_routing") {
-                builder = builder.local_routing(arg.extract::<bool>()?);
+            match kwargs.extract_item::<_Priority>("priority") {
+                Ok(priority) => builder = builder.priority(priority.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<bool>("local_routing") {
+                Ok(local_routing) => builder = builder.local_routing(local_routing),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
         }
-        builder.res().map_err(to_pyerr)
+        builder.res_sync().map_err(|e| e.to_pyerr())
     }
 
-    /// Associate a numerical Id with the given key expression.
-    ///
-    /// This numerical Id will be used on the network to save bandwidth and
-    /// ease the retrieval of the concerned resource in the routing tables.
-    ///
-    /// :param key_expr: The key expression to map to a numerical Id
-    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
-    ///                 (see its constructor's accepted parameters)
-    /// :rtype: **int**
-    /// :raise: :class:`ZError`
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open()
-    /// >>> rid = s.declare_expr('/key/expression')
-    #[pyo3(text_signature = "(self, key_expr)")]
-    pub fn declare_expr(&self, key_expr: &PyAny) -> PyResult<ExprId> {
-        let s = self.try_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        s.declare_expr(&k).res().map_err(to_pyerr)
-    }
-
-    /// Undeclare the *numerical Id/key expression* association previously declared
-    /// with :meth:`declare_expr`.
-    ///
-    /// :param rid: The numerical Id to unmap
-    /// :type rid: :class:`ExprId`
-    /// :raise: :class:`ZError`
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open()
-    /// >>> rid = s.declare_expr('/key/expression')
-    /// >>> s.undeclare_expr(rid)
-    #[pyo3(text_signature = "(self, rid)")]
-    pub fn undeclare_expr(&self, rid: ExprId) -> PyResult<()> {
-        let s = self.try_ref()?;
-        s.undeclare_expr(rid).res().map_err(to_pyerr)
-    }
-
-    /// Declare a publication for the given key expression.
-    ///
-    /// Written expressions that match the given key expression will only be sent on the network
-    /// if matching subscribers exist in the system.
-    ///
-    /// :param key_expr: The key expression to publish
-    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
-    ///                 (see its constructor's accepted parameters)
-    /// :raise: :class:`ZError`
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh
-    /// >>> s = zenoh.open()
-    /// >>> rid = s.declare_publication('/key/expression')
-    /// >>> s.put('/key/expression', bytes('value', encoding='utf8'))
-    #[pyo3(text_signature = "(self, key_expr)")]
-    fn declare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
-        let s = self.try_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        s.declare_publication(&k).res().map_err(to_pyerr)?;
-        Ok(())
-    }
-
-    /// Undeclare the publication previously declared with :meth:`declare_publication`.
-    ///
-    /// :param key_expr: The same key expression that was used to declare the publication
-    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
-    ///                 (see its constructor's accepted parameters)
-    /// :raise: :class:`ZError`
-    #[pyo3(text_signature = "(self, key_expr)")]
-    fn undeclare_publication(&self, key_expr: &PyAny) -> PyResult<()> {
-        let s = self.try_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        s.undeclare_publication(&k).res().map_err(to_pyerr)?;
-        Ok(())
-    }
-
-    /// Create a Subscriber for the given key expression.
-    ///
-    /// :param key_expr: The key expression to subscribe
-    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
-    ///                 (see its constructor's accepted parameters)
-    /// :param callback: the subscription callback
-    /// :type callback: function(:class:`Sample`)
-    /// :param \**kwargs:
-    ///    See below
-    ///
-    /// :Keyword Arguments:
-    ///    * **reliability** (:class:`Reliability`) --
-    ///      Set the subscription reliability (BestEffort by default)
-    ///    * **mode** (:class:`SubMode`) --
-    ///      Set the subscription mode (Push by default)
-    ///    * **period** (:class:`Period`) --
-    ///      Set the subscription period
-    ///    * **local** ( **bool** ) --
-    ///      If true make the subscription local only (false by default)
-    ///
-    /// :rtype: :class:`Subscriber`
-    /// :raise: :class:`ZError`
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh, time
-    /// >>> from zenoh import Reliability, SubMode
-    /// >>>
-    /// >>> s = zenoh.open()
-    /// >>> sub = s.subscribe('/key/expression',
-    /// ...     lambda sample: print("Received : {}".format(sample)),
-    /// ...     reliability=Reliability.Reliable,
-    /// ...     mode=SubMode.Push)
-    /// >>> time.sleep(60)
-    #[pyo3(text_signature = "(self, key_expr, callback, **kwargs)")]
     #[args(kwargs = "**")]
-    fn subscribe(
+    pub fn get(
         &self,
-        key_expr: &PyAny,
+        selector: &_Selector,
         callback: &PyAny,
         kwargs: Option<&PyDict>,
-    ) -> PyResult<Subscriber> {
-        let s = self.try_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        let mut builder = s.subscribe(&k);
+    ) -> PyResult<()> {
+        let callback: PyClosure<(_Reply,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let mut builder = self.0.get(&selector.0).callback(move |reply| {
+            callback.call((reply.into(),)).cb_unwrap();
+        });
         if let Some(kwargs) = kwargs {
-            if let Some(arg) = kwargs.get_item("reliability") {
-                builder = builder.reliability(arg.extract::<Reliability>()?.r);
+            match kwargs.extract_item::<bool>("local_routing") {
+                Ok(value) => builder = builder.local_routing(value),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("mode") {
-                builder = builder.mode(arg.extract::<SubMode>()?.m);
+            match kwargs.extract_item::<_QueryConsolidation>("consolidation") {
+                Ok(value) => builder = builder.consolidation(value.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("period") {
-                builder = builder.period(Some(arg.extract::<Period>()?.p));
-            }
-            if let Some(arg) = kwargs.get_item("local") {
-                if arg.extract::<bool>()? {
-                    builder = builder.local();
-                }
+            match kwargs.extract_item::<_QueryTarget>("target") {
+                Ok(value) => builder = builder.target(value.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
         }
-
-        // Note: callback cannot be passed as such in task below because it's not Send
-        let cb_obj: Py<PyAny> = callback.into();
-        let z_sub: CallbackSubscriber<'static> = builder
-            .callback(move |s| {
-                // Acquire Python GIL to call the callback
-                let gil = Python::acquire_gil();
-                let py = gil.python();
-                let cb_args = PyTuple::new(py, &[Sample { s }]);
-                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                    warn!("Error calling subscriber callback:");
-                    e.print(py);
-                }
-            })
-            .res()
-            .map_err(to_pyerr)?;
-        Ok(Subscriber { inner: Some(z_sub) })
+        builder.res_sync().map_err(|e| e.to_pyerr())
     }
 
-    /// Create a Queryable for the given key expression.
-    ///
-    /// :param key_expr: The key expression the Queryable will reply to
-    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
-    ///                 (see its constructor's accepted parameters)
-    /// :param callback: the queryable callback
-    /// :type callback: function(:class:`Query`)
-    /// :param \**kwargs:
-    ///    See below
-    ///
-    /// :Keyword Arguments:
-    ///    * **complete** ( **bool** ) --
-    ///      Set the queryable completeness (true by default)
-    ///
-    /// :rtype: :class:`Queryable`
-    /// :raise: :class:`ZError`
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh, time
-    /// >>> from zenoh import Sample, queryable
-    /// >>> def callback(query):
-    /// ...     print("Received : {}".format(query))
-    /// ...     query.reply(Sample('/key/expression', bytes('value', encoding='utf8')))
-    /// >>>
-    /// >>> s = zenoh.open()
-    /// >>> q = s.queryable('/key/expression', callback)
-    /// >>> time.sleep(60)
-    #[pyo3(text_signature = "(self, key_expr, callback, **kwargs)")]
+    pub fn declare_keyexpr(&self, key_expr: &_KeyExpr) -> PyResult<_KeyExpr> {
+        match self.0.declare_keyexpr(&key_expr.0).res_sync() {
+            Ok(k) => Ok(_KeyExpr(k.into_owned())),
+            Err(e) => Err(e.to_pyerr()),
+        }
+    }
+
     #[args(kwargs = "**")]
-    fn queryable(
+    pub fn declare_queryable(
         &self,
-        key_expr: &PyAny,
+        key_expr: _KeyExpr,
         callback: &PyAny,
         kwargs: Option<&PyDict>,
-    ) -> PyResult<Queryable> {
-        let s = self.try_ref()?;
-        let k = zkey_expr_of_pyany(key_expr)?;
-        let mut builder = s.queryable(k);
+    ) -> PyResult<_Queryable> {
+        let callback: PyClosure<(_Query,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let mut builder = self.0.declare_queryable(key_expr.0).callback(move |query| {
+            callback.call((_Query(Arc::new(query)),)).cb_unwrap();
+        });
         if let Some(kwargs) = kwargs {
-            if let Some(arg) = kwargs.get_item("complete") {
-                builder = builder.complete(arg.extract::<bool>()?);
+            match kwargs.extract_item::<bool>("complete") {
+                Ok(value) => builder = builder.complete(value),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
         }
-
-        // Note: callback cannot be passed as such in task below because it's not Send
-        let cb_obj: Py<PyAny> = callback.into();
-        let z_quer = builder
-            .callback(move |q| {
-                // Acquire Python GIL to call the callback
-                let gil = Python::acquire_gil();
-                let py = gil.python();
-                let cb_args = PyTuple::new(
-                    py,
-                    &[Query {
-                        q: async_std::sync::Arc::new(q),
-                    }],
-                );
-                if let Err(e) = cb_obj.as_ref(py).call1(cb_args) {
-                    warn!("Error calling queryable callback:");
-                    e.print(py);
-                }
-            })
-            .res()
-            .map_err(to_pyerr)?;
-        Ok(Queryable {
-            inner: Some(z_quer),
-        })
+        match builder.res_sync() {
+            Ok(o) => Ok(_Queryable(o)),
+            Err(e) => Err(e.to_pyerr()),
+        }
     }
 
-    /// Query data from the matching queryables in the system.
-    ///
-    /// Replies are collected in a list.
-    ///
-    /// The *selector* parameter also accepts the following types that can be converted to a :class:`Selector`:
-    ///
-    /// * **KeyExpr** for a key expression with no value selector
-    /// * **int** for a key expression id with no value selector
-    /// * **str** for a litteral selector
-    ///
-    /// :param selector: The selection of resources to query
-    /// :type selector: :class:`Selector`
-    /// :param \**kwargs:
-    ///    See below
-    ///
-    /// :Keyword Arguments:
-    ///    * **target** (:class:`QueryTarget`) --
-    ///      Set the kind of queryables that should be target of this query
-    ///    * **consolidation** (:class:`QueryConsolidation`) --
-    ///      Set the consolidation mode of the query
-    ///    * **local_routing** ( **bool** ) --
-    ///      Enable or disable local routing
-    ///
-    /// :rtype: [:class:`Reply`]
-    /// :raise: :class:`ZError`
-    ///
-    /// :Examples:
-    ///
-    /// >>> import zenoh, time
-    /// >>>
-    /// >>> s = zenoh.open()
-    /// >>> replies = s.get('/key/selector?value_selector')
-    /// >>> for reply in replies:
-    /// ...    print("Received : {}".format(reply.sample))
-    #[pyo3(text_signature = "(self, selector, **kwargs)")]
     #[args(kwargs = "**")]
-    fn get(&self, selector: &PyAny, kwargs: Option<&PyDict>) -> PyResult<Py<PyList>> {
-        let s = self.try_ref()?;
-        let selector: Selector = match selector.get_type().name()? {
-            "KeyExpr" => {
-                let key_expr: PyRef<KeyExpr> = selector.extract()?;
-                key_expr.inner.clone().into()
-            }
-            "int" => {
-                let id: u64 = selector.extract()?;
-                ZKeyExpr::from(id).into()
-            }
-            "str" => {
-                let name: &str = selector.extract()?;
-                Selector::from(name)
-            }
-            x => {
-                return Err(PyErr::new::<exceptions::PyValueError, _>(format!(
-                    "Cannot convert type '{}' to a zenoh Selector",
-                    x
-                )))
-            }
-        };
-        let mut builder = s.get(selector);
+    pub fn declare_publisher(
+        &self,
+        key_expr: _KeyExpr,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<_Publisher> {
+        let mut builder = self.0.declare_publisher(key_expr.0);
         if let Some(kwargs) = kwargs {
-            if let Some(arg) = kwargs.get_item("target") {
-                builder = builder.target(arg.extract::<QueryTarget>()?.t);
+            match kwargs.extract_item::<bool>("local_routing") {
+                Ok(value) => builder = builder.local_routing(value),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("consolidation") {
-                builder = builder.consolidation(arg.extract::<QueryConsolidation>()?.c);
+            match kwargs.extract_item::<_Priority>("priority") {
+                Ok(value) => builder = builder.priority(value.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
-            if let Some(arg) = kwargs.get_item("local_routing") {
-                builder = builder.local_routing(arg.extract::<bool>()?);
+            match kwargs.extract_item::<_CongestionControl>("congestion_control") {
+                Ok(value) => builder = builder.congestion_control(value.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
             }
         }
-        let receiver = builder.res().map_err(to_pyerr)?;
-        let gil = Python::acquire_gil();
-        let py = gil.python();
-        let result = PyList::empty(py);
-        while let Ok(reply) = receiver.recv() {
-            result.append(Reply { r: reply })?;
+        match builder.res_sync() {
+            Ok(o) => Ok(_Publisher(o)),
+            Err(e) => Err(e.to_pyerr()),
         }
-        Ok(result.into())
     }
 
-    /// Convert a :class:`KeyExpr` into the corresponding stringified key expression
-    /// (i.e. the scope is converted its corresponding key expression and the suffix is concatenated).
-    ///
-    /// :param key_expr: The selection of resources to query
-    /// :type key_expr: a :class:`KeyExpr` or any type convertible to a :class:`KeyExpr`
-    ///                 (see its constructor's accepted parameters)
-    ///
-    /// :rtype: **str**
-    /// :raise: :class:`ZError`
-    #[pyo3(text_signature = "(self, key_expr)")]
-    fn key_expr_to_expr(&self, key_expr: &KeyExpr) -> PyResult<String> {
-        self.try_ref()?
-            .key_expr_to_expr(&key_expr.inner)
-            .map_err(to_pyerr)
+    #[args(kwargs = "**")]
+    pub fn declare_subscriber(
+        &self,
+        key_expr: &_KeyExpr,
+        callback: &PyAny,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<_Subscriber> {
+        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let mut builder = self
+            .0
+            .declare_subscriber(&key_expr.0)
+            .callback(move |sample| {
+                callback.call((_Sample::from(sample),)).cb_unwrap();
+            });
+        if let Some(kwargs) = kwargs {
+            match kwargs.extract_item::<bool>("local") {
+                Ok(true) => builder = builder.local(),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_Reliability>("reliability") {
+                Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+        }
+        let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
+        Ok(_Subscriber(subscriber))
+    }
+
+    #[args(kwargs = "**")]
+    pub fn declare_pull_subscriber(
+        &self,
+        key_expr: &_KeyExpr,
+        callback: &PyAny,
+        kwargs: Option<&PyDict>,
+    ) -> PyResult<_PullSubscriber> {
+        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let mut builder =
+            self.0
+                .declare_subscriber(&key_expr.0)
+                .pull_mode()
+                .callback(move |sample| {
+                    callback.call((_Sample::from(sample),)).cb_unwrap();
+                });
+        if let Some(kwargs) = kwargs {
+            match kwargs.extract_item::<bool>("local") {
+                Ok(true) => builder = builder.local(),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_Reliability>("reliability") {
+                Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+        }
+        let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
+        Ok(_PullSubscriber(subscriber))
+    }
+
+    pub fn zid(&self) -> _ZenohId {
+        _ZenohId(self.0.zid())
+    }
+    pub fn routers_zid(&self) -> Vec<_ZenohId> {
+        self.0
+            .info()
+            .routers_zid()
+            .res_sync()
+            .map(_ZenohId)
+            .collect()
+    }
+    pub fn peers_zid(&self) -> Vec<_ZenohId> {
+        self.0.info().peers_zid().res_sync().map(_ZenohId).collect()
     }
 }
 
-impl Session {
-    pub(crate) fn new(s: zenoh::Session) -> Self {
-        Session {
-            s: Some(s.into_arc()),
-        }
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct _Publisher(Publisher<'static>);
+#[pymethods]
+impl _Publisher {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
     }
-
-    #[inline]
-    fn try_ref(&self) -> PyResult<&Arc<zenoh::Session>> {
-        self.s
-            .as_ref()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
+    #[getter]
+    pub fn key_expr(&self) -> _KeyExpr {
+        _KeyExpr(self.0.key_expr().clone())
     }
+    pub fn put(&self, value: _Value) -> PyResult<()> {
+        self.0.put(value).res_sync().map_err(|e| e.to_pyerr())
+    }
+    pub fn delete(&self) -> PyResult<()> {
+        self.0.delete().res_sync().map_err(|e| e.to_pyerr())
+    }
+}
 
-    #[inline]
-    fn try_take(&mut self) -> PyResult<Arc<zenoh::Session>> {
-        self.s
-            .take()
-            .ok_or_else(|| PyErr::new::<ZError, _>("zenoh session was closed"))
+#[pyclass(subclass)]
+pub struct _Subscriber(CallbackSubscriber<'static>);
+
+#[pyclass(subclass)]
+pub struct _PullSubscriber(CallbackPullSubscriber<'static>);
+#[pymethods]
+impl _PullSubscriber {
+    fn pull(&self) -> PyResult<()> {
+        self.0.pull().res_sync().map_err(|e| e.to_pyerr())
+    }
+}
+
+#[pyclass(subclass)]
+pub struct _Scout(CallbackScout);
+
+#[pyfunction]
+pub fn scout(callback: &PyAny, config: Option<&_Config>, what: Option<&str>) -> PyResult<_Scout> {
+    let callback: PyClosure<(_Hello,)> = <_ as TryInto<_>>::try_into(callback)?;
+    let what: WhatAmIMatcher = match what {
+        None => WhatAmI::Client | WhatAmI::Peer | WhatAmI::Router,
+        Some(s) => match s.parse() {
+            Ok(w) => w,
+            Err(_) => return Err(zenoh_core::zerror!("Couldn't parse `{}` into a WhatAmiMatcher: must be a `|`-separated list of `peer`, `client` or `router`", s).to_pyerr())
+        },
+    };
+    let config = config.and_then(|c| c.0.clone()).unwrap_or_default();
+    let scout = zenoh::scout(what, config)
+        .callback(move |h| {
+            callback.call((_Hello(h),)).cb_unwrap();
+        })
+        .res_sync();
+    match scout {
+        Ok(scout) => Ok(_Scout(scout)),
+        Err(e) => Err(e.to_pyerr()),
     }
 }

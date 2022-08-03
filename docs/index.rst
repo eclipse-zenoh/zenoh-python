@@ -19,23 +19,7 @@ Zenoh API Reference
 module zenoh
 ============
 .. automodule:: zenoh
-    :members: init_logger, config_from_file, open, async_open, scout, async_scout
-
-
-AsyncQueryable
---------------
-.. autoclass:: zenoh.AsyncQueryable
-    :members:
-
-AsyncSession
-------------
-.. autoclass:: zenoh.AsyncSession
-    :members:
-
-AsyncSubscriber
----------------
-.. autoclass:: zenoh.AsyncSubscriber
-    :members:
+    :members: init_logger, open, scout
 
 Config
 ------
@@ -48,11 +32,11 @@ CongestionControl
     :members:
     :undoc-members:
 
-ConsolidationMode
------------------
-.. autoclass:: zenoh.ConsolidationMode
-    :members:
-    :undoc-members:
+.. ConsolidationMode
+.. -----------------
+.. .. autoclass:: zenoh.ConsolidationMode
+..     :members:
+..     :undoc-members:
 
 Encoding
 --------
@@ -70,22 +54,10 @@ KeyExpr
 .. autoclass:: zenoh.KeyExpr
     :members:
 
-KnownEncoding
--------------
-.. autoclass:: zenoh.KnownEncoding
+ZenohId
+-------
+.. autoclass:: zenoh.ZenohId
     :members:
-    :undoc-members:
-
-PeerId
-------
-.. autoclass:: zenoh.PeerId
-    :members:
-
-Period
-------
-.. autoclass:: zenoh.Period
-    :members:
-    :special-members: __init__
 
 Priority
 --------
@@ -145,20 +117,19 @@ Session
 .. autoclass:: zenoh.Session
     :members:
 
-SourceInfo
-----------
-.. autoclass:: zenoh.SourceInfo
-    :members:
-
-SubMode
--------
-.. autoclass:: zenoh.SubMode
-    :members:
-    :undoc-members:
-
 Subscriber
 ----------
 .. autoclass:: zenoh.Subscriber
+    :members:
+
+PullSubscriber
+----------
+.. autoclass:: zenoh.PullSubscriber
+    :members:
+
+Publisher
+----------
+.. autoclass:: zenoh.Publisher
     :members:
 
 Timestamp
@@ -171,35 +142,7 @@ Value
 .. autoclass:: zenoh.Value
     :members:
 
-ValueSelector
--------------
-.. autoclass:: zenoh.ValueSelector
+Info
+-----
+.. autoclass:: zenoh.Info
     :members:
-
-WhatAmI
--------
-.. autoclass:: zenoh.WhatAmI
-    :members:
-    :undoc-members:
-
-ZError
-------
-.. autoexception:: zenoh.ZError
-    :members:
-
-
-***********
-submodules
-***********
-
-module zenoh.config
-===================
-.. autoclass:: zenoh.config
-    :members:
-    :undoc-members:
-
-module zenoh.info
-=================
-.. autoclass:: zenoh.info
-    :members:
-    :undoc-members:

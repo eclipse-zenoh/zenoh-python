@@ -14,11 +14,10 @@
 
 import sys
 import time
-import datetime
 import argparse
 import json
 import zenoh
-from zenoh import Reliability, SubMode
+from zenoh import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -38,12 +37,6 @@ parser.add_argument('--listen', '-l', dest='listen',
                     action='append',
                     type=str,
                     help='Endpoints to listen on.')
-parser.add_argument('--samples', '-s', dest='samples',
-                    default=10,
-                    metavar='NUMBER',
-                    action='append',
-                    type=int,
-                    help='Number of throughput measurements.')
 parser.add_argument('--number', '-n', dest='number',
                     default=50000,
                     metavar='NUMBER',
@@ -56,56 +49,56 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(
-    args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
 if args.connect is not None:
     conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
 if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
-m = args.samples
 n = args.number
 
-# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-def print_stats(start):
-    stop = datetime.datetime.now()
-    print("{:.6f} msgs/sec".format(n / (stop - start).total_seconds()))
-
-
+batch_count = 0
 count = 0
 start = None
-nm = 0
-
+global_start = None
 
 def listener(sample):
-    global n, m, count, start, nm
+    global n, count, batch_count, start, global_start
     if count == 0:
-        start = datetime.datetime.now()
+        start = time.time()
+        if global_start is None:
+            global_start = start
         count += 1
     elif count < n:
         count += 1
     else:
-        print_stats(start)
-        nm += 1
+        stop = time.time()
+        print(f"{n / (stop - start):.6f} msgs/sec")
+        batch_count += 1
         count = 0
-        if nm >= m:
-            sys.exit(0)
 
+def report():
+    global n, m, count, batch_count,  global_start
+    end = time.time()
+    total = batch_count * n + count
+    print(f"Received {total} messages in {end - global_start}: averaged {total / (end - global_start):.6f} msgs/sec")
 
 # initiate logging
 zenoh.init_logger()
 
 session = zenoh.open(conf)
 
-rid = session.declare_expr('/test/thr')
+sub = session.declare_subscriber("test/thr", (listener, report), reliability=Reliability.RELIABLE())
 
-sub = session.subscribe(
-    rid, listener, reliablity=Reliability.Reliable, mode=SubMode.Push)
+print("Enter 'q' to quit...")
+c = '\0'
+while c != 'q':
+    c = sys.stdin.read(1)
+    if c == '':
+        time.sleep(1)
 
-time.sleep(600)
-
-session.undeclare_expr(rid)
+sub.undeclare()
 session.close()
