@@ -123,7 +123,7 @@ Subscriber
     :members:
 
 PullSubscriber
-----------
+--------------
 .. autoclass:: zenoh.PullSubscriber
     :members:
 
