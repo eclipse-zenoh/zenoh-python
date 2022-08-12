@@ -17,8 +17,7 @@ use std::{
     collections::{hash_map::DefaultHasher, HashMap},
     convert::{TryFrom, TryInto},
 };
-use zenoh::{prelude::KeyExpr, selector::Selector, Undeclarable};
-use zenoh_core::SyncResolve;
+use zenoh::prelude::{sync::SyncResolve, KeyExpr, Selector};
 
 use crate::{session::_Session, ToPyErr};
 
@@ -60,9 +59,9 @@ impl _KeyExpr {
     }
 
     pub fn undeclare(&self, session: &_Session) -> PyResult<()> {
-        self.0
-            .borrowing_clone()
-            .undeclare(&session.0)
+        session
+            .0
+            .undeclare(self.0.clone())
             .res_sync()
             .map_err(|e| e.to_pyerr())
     }

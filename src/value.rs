@@ -313,3 +313,8 @@ impl _Hello {
         self.0.to_string()
     }
 }
+impl From<Hello> for _Hello {
+    fn from(h: Hello) -> Self {
+        _Hello(h)
+    }
+}

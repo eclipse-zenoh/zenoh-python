@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use pyo3::prelude::*;
 use zenoh::{
-    queryable::{CallbackQueryable, Query},
+    queryable::{Query, Queryable},
     selector::ValueSelector,
 };
 use zenoh_core::SyncResolve;
@@ -61,6 +61,11 @@ impl _Query {
             .map_err(|e| e.to_pyerr())
     }
 }
+impl From<Query> for _Query {
+    fn from(q: Query) -> Self {
+        Self(Arc::new(q))
+    }
+}
 
 #[pyclass(subclass)]
-pub struct _Queryable(pub(crate) CallbackQueryable<'static>);
+pub struct _Queryable(pub(crate) Queryable<'static, ()>);

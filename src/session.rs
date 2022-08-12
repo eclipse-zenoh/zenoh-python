@@ -19,8 +19,8 @@ use pyo3::{prelude::*, types::PyDict};
 use zenoh::config::whatami::{WhatAmI, WhatAmIMatcher};
 use zenoh::prelude::SessionDeclarations;
 use zenoh::publication::Publisher;
-use zenoh::scouting::CallbackScout;
-use zenoh::subscriber::{CallbackPullSubscriber, CallbackSubscriber};
+use zenoh::scouting::Scout;
+use zenoh::subscriber::{PullSubscriber, Subscriber};
 use zenoh::Session;
 use zenoh_core::SyncResolve;
 
@@ -37,26 +37,6 @@ use crate::{PyAnyToValue, PyExtract, ToPyErr};
 #[pyclass(subclass)]
 #[derive(Clone)]
 pub struct _Session(pub(crate) Arc<Session>);
-
-trait CallbackUnwrap {
-    type Output;
-    fn cb_unwrap(self) -> Self::Output;
-}
-impl<T> CallbackUnwrap for PyResult<T> {
-    type Output = T;
-    fn cb_unwrap(self) -> Self::Output {
-        match self {
-            Ok(o) => o,
-            Err(e) => Python::with_gil(|py| {
-                if let Some(trace) = e.traceback(py).and_then(|trace| trace.format().ok()) {
-                    panic!("Exception thrown in callback: {}.\n{}", e, trace)
-                } else {
-                    panic!("Exception thrown in callback: {}.", e,)
-                }
-            }),
-        }
-    }
-}
 
 #[pymethods]
 impl _Session {
@@ -147,9 +127,7 @@ impl _Session {
         kwargs: Option<&PyDict>,
     ) -> PyResult<()> {
         let callback: PyClosure<(_Reply,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self.0.get(&selector.0).callback(move |reply| {
-            callback.call((reply.into(),)).cb_unwrap();
-        });
+        let mut builder = self.0.get(&selector.0).with(callback);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local_routing") {
                 Ok(value) => builder = builder.local_routing(value),
@@ -185,9 +163,7 @@ impl _Session {
         kwargs: Option<&PyDict>,
     ) -> PyResult<_Queryable> {
         let callback: PyClosure<(_Query,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self.0.declare_queryable(key_expr.0).callback(move |query| {
-            callback.call((_Query(Arc::new(query)),)).cb_unwrap();
-        });
+        let mut builder = self.0.declare_queryable(key_expr.0).with(callback);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("complete") {
                 Ok(value) => builder = builder.complete(value),
@@ -239,12 +215,7 @@ impl _Session {
         kwargs: Option<&PyDict>,
     ) -> PyResult<_Subscriber> {
         let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self
-            .0
-            .declare_subscriber(&key_expr.0)
-            .callback(move |sample| {
-                callback.call((_Sample::from(sample),)).cb_unwrap();
-            });
+        let mut builder = self.0.declare_subscriber(&key_expr.0).with(callback);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local") {
                 Ok(true) => builder = builder.local(),
@@ -269,13 +240,11 @@ impl _Session {
         kwargs: Option<&PyDict>,
     ) -> PyResult<_PullSubscriber> {
         let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder =
-            self.0
-                .declare_subscriber(&key_expr.0)
-                .pull_mode()
-                .callback(move |sample| {
-                    callback.call((_Sample::from(sample),)).cb_unwrap();
-                });
+        let mut builder = self
+            .0
+            .declare_subscriber(&key_expr.0)
+            .pull_mode()
+            .with(callback);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local") {
                 Ok(true) => builder = builder.local(),
@@ -330,10 +299,10 @@ impl _Publisher {
 }
 
 #[pyclass(subclass)]
-pub struct _Subscriber(CallbackSubscriber<'static>);
+pub struct _Subscriber(Subscriber<'static, ()>);
 
 #[pyclass(subclass)]
-pub struct _PullSubscriber(CallbackPullSubscriber<'static>);
+pub struct _PullSubscriber(PullSubscriber<'static, ()>);
 #[pymethods]
 impl _PullSubscriber {
     fn pull(&self) -> PyResult<()> {
@@ -342,7 +311,7 @@ impl _PullSubscriber {
 }
 
 #[pyclass(subclass)]
-pub struct _Scout(CallbackScout);
+pub struct _Scout(Scout<()>);
 
 #[pyfunction]
 pub fn scout(callback: &PyAny, config: Option<&_Config>, what: Option<&str>) -> PyResult<_Scout> {
@@ -355,11 +324,7 @@ pub fn scout(callback: &PyAny, config: Option<&_Config>, what: Option<&str>) -> 
         },
     };
     let config = config.and_then(|c| c.0.clone()).unwrap_or_default();
-    let scout = zenoh::scout(what, config)
-        .callback(move |h| {
-            callback.call((_Hello(h),)).cb_unwrap();
-        })
-        .res_sync();
+    let scout = zenoh::scout(what, config).with(callback).res_sync();
     match scout {
         Ok(scout) => Ok(_Scout(scout)),
         Err(e) => Err(e.to_pyerr()),

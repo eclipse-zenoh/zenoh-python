@@ -1,6 +1,27 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, sync::Arc};
 
 use pyo3::{prelude::*, types::PyTuple};
+use zenoh::prelude::IntoCallbackReceiverPair;
+
+trait CallbackUnwrap {
+    type Output;
+    fn cb_unwrap(self) -> Self::Output;
+}
+impl<T> CallbackUnwrap for PyResult<T> {
+    type Output = T;
+    fn cb_unwrap(self) -> Self::Output {
+        match self {
+            Ok(o) => o,
+            Err(e) => Python::with_gil(|py| {
+                if let Some(trace) = e.traceback(py).and_then(|trace| trace.format().ok()) {
+                    panic!("Exception thrown in callback: {}.\n{}", e, trace)
+                } else {
+                    panic!("Exception thrown in callback: {}.", e,)
+                }
+            }),
+        }
+    }
+}
 
 pub(crate) struct PyClosure<I> {
     pub(crate) pycall: Py<PyAny>,
@@ -43,5 +64,22 @@ impl<I> Drop for PyClosure<I> {
         if let Some(drop) = self.drop.take() {
             Python::with_gil(|py| drop.call0(py)).unwrap();
         }
+    }
+}
+impl<T, I> IntoCallbackReceiverPair<'static, T> for PyClosure<(I,)>
+where
+    T: Into<I>,
+    I: Send + Sync + 'static,
+    (I,): IntoPy<Py<PyTuple>>,
+{
+    type Receiver = ();
+
+    fn into_cb_receiver_pair(self) -> (zenoh::handlers::Callback<'static, T>, Self::Receiver) {
+        (
+            Arc::new(move |reply| {
+                self.call((reply.into(),)).cb_unwrap();
+            }),
+            (),
+        )
     }
 }
