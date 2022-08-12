@@ -12,6 +12,8 @@
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
 
+#![allow(clippy::borrow_deref_ref)] // false positives with pyo3 macros
+
 use std::convert::TryInto;
 use std::sync::Arc;
 

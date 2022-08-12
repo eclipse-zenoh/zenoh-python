@@ -12,6 +12,8 @@
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
 
+#![allow(clippy::borrow_deref_ref)] // false positives with pyo3 macros
+
 use pyo3::prelude::*;
 use validated_struct::ValidatedMap;
 use zenoh::config::Config;
