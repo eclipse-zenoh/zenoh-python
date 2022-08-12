@@ -6,6 +6,7 @@ from .enums import CongestionControl, Encoding, Priority, QueryConsolidation, Qu
 from .value import Hello, Value, IntoValue, IValue, Sample, IntoSample, ZenohId, Timestamp, Reply
 from .closures import Closure, IClosure, IntoClosure, Handler, IHandler, IntoHandler, ListCollector, Queue
 from .queryable import Queryable, Query
+from typing import Any
 
 def open(*args, **kwargs):
     return Session(*args, **kwargs)

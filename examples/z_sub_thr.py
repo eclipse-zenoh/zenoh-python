@@ -102,3 +102,5 @@ while c != 'q':
 
 sub.undeclare()
 session.close()
+# while `sub.undeclare()` only returns once the unsubscription is done (no more callbacks will be queued from that instant), already queued callbacks may still be running in threads that Python can't see.
+time.sleep(0.1)
