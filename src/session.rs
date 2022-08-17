@@ -137,7 +137,7 @@ impl _Session {
                 _ => {}
             }
             match kwargs.extract_item::<_QueryConsolidation>("consolidation") {
-                Ok(value) => builder = builder.consolidation(value.0),
+                Ok(_QueryConsolidation(Some(value))) => builder = builder.consolidation(value),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }

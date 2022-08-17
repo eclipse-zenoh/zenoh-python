@@ -207,17 +207,11 @@ class QueryConsolidation(_QueryConsolidation):
     def NONE() -> 'QueryConsolidation':
         return QueryConsolidation(_QueryConsolidation.NONE)
     @staticmethod
-    def LAZY() -> 'QueryConsolidation':
-        return QueryConsolidation(_QueryConsolidation.LAZY)
+    def MONOTONIC() -> 'QueryConsolidation':
+        return QueryConsolidation(_QueryConsolidation.MONOTONIC)
     @staticmethod
-    def RECEPTION() -> 'QueryConsolidation':
-        return QueryConsolidation(_QueryConsolidation.RECEPTION)
-    @staticmethod
-    def LAST_ROUTER() -> 'QueryConsolidation':
-        return QueryConsolidation(_QueryConsolidation.LAST_ROUTER)
-    @staticmethod
-    def FULL() -> 'QueryConsolidation':
-        return QueryConsolidation(_QueryConsolidation.FULL)
+    def LATEST() -> 'QueryConsolidation':
+        return QueryConsolidation(_QueryConsolidation.LATEST)
     def __eq__(self, other) -> bool:
         return super().__eq__(other)
     def __ne__(self, other) -> bool:

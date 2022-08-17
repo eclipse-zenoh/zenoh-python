@@ -2,7 +2,7 @@ use crate::ToPyErr;
 use pyo3::prelude::*;
 use zenoh::prelude::{Encoding, KnownEncoding, Priority, SampleKind};
 use zenoh::publication::CongestionControl;
-use zenoh::query::{QueryConsolidation, QueryTarget};
+use zenoh::query::{ConsolidationMode, QueryTarget};
 use zenoh::subscriber::Reliability;
 
 #[macro_export]
@@ -240,7 +240,7 @@ impl _QueryTarget {
 
 #[pyclass(subclass)]
 #[derive(Clone, PartialEq, Eq)]
-pub struct _QueryConsolidation(pub(crate) QueryConsolidation);
+pub struct _QueryConsolidation(pub(crate) Option<ConsolidationMode>);
 #[pymethods]
 impl _QueryConsolidation {
     #[new]
@@ -249,15 +249,11 @@ impl _QueryConsolidation {
     }
     derive_richcmp!("QueryConsolidation");
     #[classattr]
-    pub const AUTO: Self = Self(QueryConsolidation::Auto);
+    pub const AUTO: Self = Self(None);
     #[classattr]
-    pub const NONE: Self = Self(QueryConsolidation::none());
+    pub const NONE: Self = Self(Some(ConsolidationMode::None));
     #[classattr]
-    pub const LAZY: Self = Self(QueryConsolidation::lazy());
+    pub const MONOTONIC: Self = Self(Some(ConsolidationMode::Monotonic));
     #[classattr]
-    pub const RECEPTION: Self = Self(QueryConsolidation::reception());
-    #[classattr]
-    pub const LAST_ROUTER: Self = Self(QueryConsolidation::last_router());
-    #[classattr]
-    pub const FULL: Self = Self(QueryConsolidation::full());
+    pub const LATEST: Self = Self(Some(ConsolidationMode::Latest));
 }
