@@ -48,6 +48,7 @@ It relies on the [zenoh](https://github.com/eclipse-zenoh/zenoh/tree/master/zeno
 Requirements:
  * Python >= 3.7
  * pip >= 19.3.1
+ * A Python virtual environment (for instance [virtualenv](docs.python.org/3.10/tutorial/venv.html) or [miniconda](https://docs.conda.io/en/latest/miniconda.html))
  * [Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html).
 
 Steps:
@@ -56,19 +57,18 @@ Steps:
    pip install -r requirements-dev.txt
    ```
 
- * Ensure your system can find the building tool maturin.
- For example, it is placed at _$HOME/.local/bin/maturin_ by default on Ubuntu 20.04.
-
+ * Ensure your system can find the building tool `maturin` (installed by previous step).
+   For example, it is placed at _$HOME/.local/bin/maturin_ by default on Ubuntu 20.04.
     ```bash
     export PATH="$HOME/.local/bin:$PATH"
     ```
 
  * Build zenoh-python
    ```bash
-   maturin build --release
+   maturin develop --release
    ```
 
-This will automatically build the zenoh Rust API, as well as the zenoh-python API and install it in your Python environement.
+This will automatically build the zenoh Rust API, as well as the zenoh-python API and install it in your Python virtual environement.
 
 -------------------------------
 ## Running the Examples
