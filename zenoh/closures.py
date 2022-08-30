@@ -20,7 +20,7 @@ import time
 In = TypeVar("In")
 Out = TypeVar("Out")
 Receiver = TypeVar("Receiver")
-CallbackCall = Callable[In, Out]
+CallbackCall = Callable[[In], Out]
 CallbackDrop = Callable[[], None]
 
 class IClosure(Generic[In, Out]):
@@ -74,7 +74,7 @@ class Closure(IClosure, Generic[In, Out]):
     A Closure is a pair of a `call` function that will be used as a callback,
     and a `drop` function that will be called when the closure is destroyed.
     """
-    def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[Any, In] = None):
+    def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None):
         _call_ = None
         self._drop_ = lambda: None
         if isinstance(closure, IHandler):
@@ -94,7 +94,7 @@ class Closure(IClosure, Generic[In, Out]):
         else:
             self._call_ = _call_
     @property
-    def call(self) -> Callable[In, Out]:
+    def call(self) -> Callable[[In], Out]:
         return self._call_
 
     @property
@@ -106,7 +106,7 @@ class Handler(IHandler, Generic[In, Out, Receiver]):
     """
     A Handler is a value that may be converted into a callback closure for zenoh to use on one side, while possibly providing a receiver for the data that zenoh would provide through that callback.
     """
-    def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[Any, In] = None):
+    def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[[Any], In] = None):
         self._receiver_ = None
         if isinstance(input, IHandler):
             self._receiver_ = input.receiver
