@@ -77,10 +77,10 @@ session = zenoh.open(conf)
 print("Sending Query '{}'...".format(selector))
 replies = session.get(selector, zenoh.ListCollector(), target=target)
 for reply in replies():
-    if reply.ok is not None:
+    try:
         print(">> Received ('{}': '{}')"
             .format(reply.ok.key_expr, reply.ok.payload.decode("utf-8")))
-    else: 
+    except:
         print(">> Received (ERROR: '{}')"
             .format(reply.err.payload.decode("utf-8")))
 

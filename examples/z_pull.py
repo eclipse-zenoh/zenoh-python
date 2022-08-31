@@ -18,7 +18,7 @@ from datetime import datetime
 import argparse
 import json
 import zenoh
-from zenoh import Reliability, SubMode
+from zenoh import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -62,10 +62,7 @@ key = args.key
 
 
 def listen(sample):
-    time = '(not specified)' if sample.source_info is None or sample.timestamp is None else datetime.fromtimestamp(
-        sample.timestamp.time)
-    print(">> [Subscriber] Received {} ('{}': '{}')"
-          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8"), time))
+    print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
 
 
 # initiate logging
@@ -76,7 +73,7 @@ session = zenoh.open(conf)
 
 print("Creating Subscriber on '{}'...".format(key))
 
-sub = session.declare_pull_subscriber(key, listen, reliability=Reliability.Reliable, mode=SubMode.Pull)
+sub = session.declare_pull_subscriber(key, listen, reliability=Reliability.RELIABLE())
 
 print("Press <enter> to pull data...")
 c = '\0'
@@ -87,5 +84,5 @@ while c != 'q':
     else:
         sub.pull()
 
-sub.close()
+sub.undeclare()
 session.close()
