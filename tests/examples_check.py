@@ -32,9 +32,9 @@ class Pyrun:
 		self._stderrs = []
 	def dbg(self):
 		self.wait()
-		print("stdout:")
+		print(f"{self.name} stdout:")
 		print(f"{tab}{tab.join(self.stdout)}")
-		print("stderr:")
+		print(f"{self.name} stderr:")
 		print(f"{tab}{tab.join(self.stderr)}")
 	def status(self, expecting=0, do_print=True):
 		status = self.wait()
@@ -43,7 +43,11 @@ class Pyrun:
 			print(formatted)
 		return formatted if status != expecting else None
 	def wait(self):
-		code = self.process.wait()
+		try:
+			code = self.process.wait(timeout=10)
+		except:
+			self.process.kill()
+			code = self.process.wait(timeout=10)
 		if self.end is None:
 			self.end = time.time()
 		return code
