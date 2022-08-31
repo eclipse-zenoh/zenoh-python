@@ -133,7 +133,7 @@ class Sample(_Sample):
     @property
     def value(self) -> Value:
         "The sample's value"
-        return Value(super().value)
+        return Value._upgrade_(super().value)
     @property
     def payload(self) -> bytes:
         "A shortcut to `self.value.payload`"
@@ -171,7 +171,7 @@ class Reply(_Reply):
 
         Raises a ZError if the `self` is actually an `err` reply.
         """
-        return Sample(super().ok)
+        return Sample._upgrade_(super().ok)
     @property
     def err(self) -> Value:
         """
@@ -179,7 +179,7 @@ class Reply(_Reply):
 
         Raises a ZError if the `self` is actually an `ok` reply.
         """
-        return Value(super().err)
+        return Value._upgrade_(super().err)
 
 class Hello(_Hello):
     "Represents a single Zenoh node discovered through scouting."
@@ -187,7 +187,7 @@ class Hello(_Hello):
     def zid(self) -> ZenohId:
         "The node's Zenoh UUID."
         zid = super().zid
-        return None if zid is None else ZenohId._upgrade_(sid)
+        return None if zid is None else ZenohId._upgrade_(zid)
     @property
     def whatami(self) -> str:
         "The node's type, returning either None, 'peer', 'router', or 'client'."
