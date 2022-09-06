@@ -42,20 +42,20 @@ class Query(_Query):
         "The query's targeted key expression"
         return KeyExpr(super().key_expr)
     @property
-    def value_selector(self) -> str:
+    def parameters(self) -> str:
         """
         The query's value selector.
-        If you'd rather not bother with parsing it yourself, use `self.decode_value_selector()` instead.
+        If you'd rather not bother with parsing it yourself, use `self.decode_parameters()` instead.
         """
-        return super().value_selector
+        return super().parameters
         
-    def decode_value_selector(self) -> Dict[str, str]:
+    def decode_parameters(self) -> Dict[str, str]:
         """
         Decodes the value selector into a dictionary.
 
         Raises a ZError if duplicate keys are found, as they might otherwise be used for HTTP Parameter Pollution like attacks.
         """
-        return super().decode_value_selector
+        return super().decode_parameters
     @property
     def selector(self) -> Selector:
         """

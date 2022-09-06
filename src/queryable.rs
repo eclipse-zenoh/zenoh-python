@@ -16,7 +16,7 @@ use std::{collections::HashMap, sync::Arc};
 use pyo3::prelude::*;
 use zenoh::{
     queryable::{Query, Queryable},
-    selector::ValueSelector,
+    selector::Parameters,
 };
 use zenoh_core::SyncResolve;
 
@@ -40,19 +40,19 @@ impl _Query {
         _KeyExpr(self.0.key_expr().clone())
     }
     #[getter]
-    pub fn value_selector(&self) -> &str {
-        self.0.value_selector()
+    pub fn parameters(&self) -> &str {
+        self.0.parameters()
     }
-    pub fn decode_value_selector(&self) -> PyResult<HashMap<String, String>> {
+    pub fn decode_parameters(&self) -> PyResult<HashMap<String, String>> {
         let mut res = HashMap::new();
-        for (k, v) in self.0.value_selector().decode() {
+        for (k, v) in self.0.parameters().decode() {
             let k = k.into_owned();
             match res.entry(k) {
                 std::collections::hash_map::Entry::Occupied(e) => {
                     return Err(zenoh_core::zerror!(
                         "Detected duplicate key {} in value selector {}",
                         e.key(),
-                        self.0.value_selector()
+                        self.0.parameters()
                     )
                     .to_pyerr())
                 }

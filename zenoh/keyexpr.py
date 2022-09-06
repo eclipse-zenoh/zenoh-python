@@ -117,7 +117,7 @@ IntoSelector = Union['Selector', _Selector, IntoKeyExpr]
 class Selector(_Selector):
     """
     A selector is the combination of a [Key Expression](crate::prelude::KeyExpr), which defines the
-    set of keys that are relevant to an operation, and a `value_selector`, a set of key-value pairs
+    set of keys that are relevant to an operation, and a `parameters`, a set of key-value pairs
     with a few uses:
     * specifying arguments to a queryable, allowing the passing of Remote Procedure Call parameters
     * filtering by value,
@@ -125,7 +125,7 @@ class Selector(_Selector):
 
     When in string form, selectors look a lot like a URI, with similar semantics:
     * the `key_expr` before the first `?` must be a valid key expression.
-    * the `value_selector` after the first `?` should be encoded like the query section of a URL:
+    * the `parameters` after the first `?` should be encoded like the query section of a URL:
       * key-value pairs are separated by `&`,
       * the key and value are separated by the first `=`,
       * in the absence of `=`, the value is considered to be the empty string,
@@ -163,13 +163,13 @@ class Selector(_Selector):
         "The key expression part of the selector."
         return KeyExpr(super().key_expr)
     @property
-    def value_selector(self):
+    def parameters(self):
         "The value selector part of the selector."
-        return super().value_selector
-    @value_selector.setter
-    def set_value_selector(self, value_selector: str):
-        super().value_selector = value_selector
-    def decode_value_selector(self) -> Dict[str, str]:
+        return super().parameters
+    @parameters.setter
+    def set_parameters(self, parameters: str):
+        super().parameters = parameters
+    def decode_parameters(self) -> Dict[str, str]:
         """
         Decodes the value selector part of the selector.
 
@@ -177,6 +177,6 @@ class Selector(_Selector):
         but we encourage you to refuse to process incoming messages with duplicated keys, as they might be
         attempting to use HTTP Parameter Pollution like exploits.
         """
-        return super().decode_value_selector()
+        return super().decode_parameters()
     def __str__(self):
         return super().__str__()

@@ -103,15 +103,15 @@ impl _Selector {
         _KeyExpr(self.0.key_expr.clone())
     }
     #[getter]
-    pub fn get_value_selector(&self) -> &str {
-        self.0.value_selector()
+    pub fn get_parameters(&self) -> &str {
+        self.0.parameters()
     }
     #[setter]
-    pub fn set_value_selector(&mut self, value_selector: String) {
-        self.0.set_value_selector(value_selector)
+    pub fn set_parameters(&mut self, parameters: String) {
+        self.0.set_parameters(parameters)
     }
-    pub fn decode_value_selector(&self) -> PyResult<HashMap<String, String>> {
-        self.0.value_selector_map().map_err(|e| e.to_pyerr())
+    pub fn decode_parameters(&self) -> PyResult<HashMap<String, String>> {
+        self.0.parameters_map().map_err(|e| e.to_pyerr())
     }
     pub fn __str__(&self) -> String {
         self.0.to_string()
