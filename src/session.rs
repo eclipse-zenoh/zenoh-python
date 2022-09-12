@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
 use zenoh::config::whatami::{WhatAmI, WhatAmIMatcher};
-use zenoh::prelude::SessionDeclarations;
+use zenoh::prelude::{SessionDeclarations, Locality};
 use zenoh::publication::Publisher;
 use zenoh::scouting::Scout;
 use zenoh::subscriber::{PullSubscriber, Subscriber};
@@ -78,7 +78,7 @@ impl _Session {
                 _ => {}
             }
             match kwargs.extract_item::<bool>("local_routing") {
-                Ok(local_routing) => builder = builder.local_routing(local_routing),
+                Ok(local_routing) => builder = builder.allowed_destination(if local_routing { Locality::Any } else { Locality::Remote }),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -113,7 +113,7 @@ impl _Session {
                 _ => {}
             }
             match kwargs.extract_item::<bool>("local_routing") {
-                Ok(local_routing) => builder = builder.local_routing(local_routing),
+                Ok(local_routing) => builder = builder.allowed_destination(if local_routing { Locality::Any } else { Locality::Remote }),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -132,7 +132,7 @@ impl _Session {
         let mut builder = self.0.get(&selector.0).with(callback);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local_routing") {
-                Ok(value) => builder = builder.local_routing(value),
+                Ok(local_routing) => builder = builder.allowed_destination(if local_routing { Locality::Any } else { Locality::Remote }),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -188,7 +188,7 @@ impl _Session {
         let mut builder = self.0.declare_publisher(key_expr.0);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local_routing") {
-                Ok(value) => builder = builder.local_routing(value),
+                Ok(local_routing) => builder = builder.allowed_destination(if local_routing { Locality::Any } else { Locality::Remote }),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -220,7 +220,7 @@ impl _Session {
         let mut builder = self.0.declare_subscriber(&key_expr.0).with(callback);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local") {
-                Ok(true) => builder = builder.local(),
+                Ok(true) => builder = builder.allowed_origin(Locality::SessionLocal),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -249,7 +249,7 @@ impl _Session {
             .with(callback);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<bool>("local") {
-                Ok(true) => builder = builder.local(),
+                Ok(true) => builder = builder.allowed_origin(Locality::SessionLocal),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
