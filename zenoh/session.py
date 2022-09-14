@@ -22,11 +22,13 @@ from .enums import *
 from .value import IntoValue, Value, Sample, Reply, ZenohId
 from .queryable import Queryable, Query
 
+
 class Publisher:
     "Use `Publisher`s (constructed with `Session.declare_publisher`) when you want to send values often for the same key expression, as declaring them informs Zenoh that this is you intent, and optimizations will be set up to do so."
+
     def __init__(self, p: _Publisher):
         self._inner_ = p
-    
+
     def put(self, value: IntoValue, encoding: Encoding = None):
         "An optimised version of `session.put(self.key_expr, value, encoding=encoding)"
         self._inner_.put(Value(value, encoding))
@@ -34,37 +36,40 @@ class Publisher:
     def delete(self):
         "An optimised version of `session.delete(self.key_expr)"
         self._inner_.delete()
-    
+
     @property
     def key_expr(self) -> KeyExpr:
         "This `Publisher`'s key expression"
         return KeyExpr(self._inner_.key_expr)
-    
+
     def undeclare(self):
         "Stops the publisher."
         self._inner_ = None
 
+
 class Subscriber:
     """
     A handle to a subscription.
-    
+
     Its main purpose is to keep the subscription active as long as it exists.
 
     When constructed through `Session.declare_subscriber(session, keyexpr, handler)`, it exposes `handler`'s receiver
     through `self.receiver`.
     """
-    def __init__(self, s:_Subscriber, receiver = None):
+
+    def __init__(self, s: _Subscriber, receiver=None):
         self._subscriber_ = s
         self.receiver = receiver
-    
+
     def undeclare(self):
         "Undeclares the subscription"
         self._subscriber_ = None
 
+
 class PullSubscriber:
     """
     A handle to a pull subscription.
-    
+
     Its main purpose is to keep the subscription active as long as it exists.
 
     When constructed through `Session.declare_pull_subscriber(session, keyexpr, handler)`, it exposes `handler`'s receiver
@@ -72,20 +77,22 @@ class PullSubscriber:
 
     Calling `self.pull()` will prompt the Zenoh network to send a new sample when available.
     """
-    def __init__(self, s:_PullSubscriber, receiver = None):
+
+    def __init__(self, s: _PullSubscriber, receiver=None):
         self._subscriber_ = s
         self.receiver = receiver
-    
+
     def pull(self):
         """
         Prompts the Zenoh network to send a new sample if available.
         Note that this sample will not be returned by this function, but provided to the handler's callback.
         """
         self._subscriber_.pull()
-    
+
     def undeclare(self):
         "Undeclares the subscription"
         self._subscriber_ = None
+
 
 class Session(_Session):
     """
@@ -98,10 +105,10 @@ class Session(_Session):
             return super().__new__(cls, config)
         else:
             return super().__new__(cls, Config.from_obj(config))
-    
+
     def put(self, keyexpr: IntoKeyExpr, value: IntoValue, encoding=None,
             priority: Priority = None, congestion_control: CongestionControl = None,
-            local_routing: bool = None, sample_kind: SampleKind = None):
+            sample_kind: SampleKind = None):
         """
         Sends a value over Zenoh.
         """
@@ -112,15 +119,13 @@ class Session(_Session):
             kwargs['priority'] = priority
         if congestion_control is not None:
             kwargs['congestion_control'] = congestion_control
-        if local_routing is not None:
-            kwargs['local_routing'] = local_routing
         if sample_kind is not None:
             kwargs['sample_kind'] = sample_kind
         return super().put(keyexpr, value, **kwargs)
-    
+
     def delete(self, keyexpr: IntoKeyExpr,
-            priority: Priority = None, congestion_control: CongestionControl = None,
-            local_routing: bool = None, sample_kind: SampleKind = None):
+               priority: Priority = None, congestion_control: CongestionControl = None,
+               sample_kind: SampleKind = None):
         """
         Deletes a value.
         """
@@ -130,27 +135,23 @@ class Session(_Session):
             kwargs['priority'] = priority
         if congestion_control is not None:
             kwargs['congestion_control'] = congestion_control
-        if local_routing is not None:
-            kwargs['local_routing'] = local_routing
         if sample_kind is not None:
             kwargs['sample_kind'] = sample_kind
         return super().delete(keyexpr, **kwargs)
-    
-    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], local_routing: bool = None, consolidation: QueryConsolidation = None, target: QueryTarget = None) -> Receiver:
+
+    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None) -> Receiver:
         """
         Emits a query.
         """
         handler = Handler(handler, lambda x: Reply(x))
         kwargs = dict()
-        if local_routing is not None:
-            kwargs["local_routing"] = local_routing
         if consolidation is not None:
-            kwargs["conconsolidation"] =consolidation
+            kwargs["conconsolidation"] = consolidation
         if target is not None:
             kwargs["target"] = target
         super().get(Selector(selector), handler.closure, **kwargs)
         return handler.receiver
-    
+
     def declare_keyexpr(self, keyexpr: IntoKeyExpr) -> KeyExpr:
         """
         Informs Zenoh that you intend to use the provided Key Expression repeatedly.
@@ -158,7 +159,7 @@ class Session(_Session):
         This function returns an optimized representation of the passed `keyexpr`.
         """
         return KeyExpr(super().declare_keyexpr(KeyExpr(keyexpr)))
-    
+
     def declare_queryable(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Query, Any, Any], complete: bool = None):
         """
         Declares a queryable, which will receive queries intersecting with `keyexpr`.
@@ -176,10 +177,8 @@ class Session(_Session):
             kwargs['complete'] = complete
         inner = super().declare_queryable(KeyExpr(keyexpr), handler.closure, **kwargs)
         return Queryable(inner, handler.receiver)
-    
-    def declare_publisher(self, keyexpr: IntoKeyExpr, 
-            priority: Priority = None, congestion_control: CongestionControl = None,
-            local_routing: bool = None):
+
+    def declare_publisher(self, keyexpr: IntoKeyExpr, priority: Priority = None, congestion_control: CongestionControl = None):
         """
         Declares a publisher, which you may use to send values repeatedly onto a same key expression.
         """
@@ -188,10 +187,8 @@ class Session(_Session):
             kwargs['priority'] = priority
         if congestion_control is not None:
             kwargs['congestion_control'] = congestion_control
-        if local_routing is not None:
-            kwargs['local_routing'] = local_routing
         return Publisher(super().declare_publisher(KeyExpr(keyexpr), **kwargs))
-    
+
     def declare_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None, local: bool = None) -> Subscriber:
         """
         Declares a subscriber, which will receive any published sample with a key expression intersecting `keyexpr`.
@@ -211,8 +208,8 @@ class Session(_Session):
             kwargs['local'] = local
         s = super().declare_subscriber(KeyExpr(keyexpr), handler.closure, **kwargs)
         return Subscriber(s, handler.receiver)
-    
-    def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability=None, local=None) -> PullSubscriber:
+
+    def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None, local=None) -> PullSubscriber:
         """
         Declares a pull-mode subscriber, which will receive a single published sample with a key expression intersecting `keyexpr` any time its `pull` method is called.
 
@@ -228,7 +225,7 @@ class Session(_Session):
             kwargs['local'] = local
         s = super().declare_pull_subscriber(KeyExpr(keyexpr), handler.closure, **kwargs)
         return PullSubscriber(s, handler.receiver)
-    
+
     def close(self):
         "Closes the Session"
         pass
@@ -237,15 +234,19 @@ class Session(_Session):
         "Returns an accessor for informations about this Session"
         return Info(self)
 
+
 class Info:
     def __init__(self, session: _Session):
         self.session = session
+
     def zid(self) -> ZenohId:
         "Returns this Zenoh Session's identifier"
         return ZenohId._upgrade_(self.session.zid())
+
     def routers_zid(self) -> List[ZenohId]:
         "Returns the neighbooring routers' identifiers"
         return [ZenohId._upgrade_(id) for id in self.session.routers_zid()]
+
     def peers_zid(self) -> List[ZenohId]:
         "Returns the neighbooring peers' identifiers"
         return [ZenohId._upgrade_(id) for id in self.session.peers_zid()]
