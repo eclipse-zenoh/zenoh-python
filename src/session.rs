@@ -77,11 +77,6 @@ impl _Session {
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
-            match kwargs.extract_item::<bool>("local_routing") {
-                Ok(local_routing) => builder = builder.allowed_destination(if local_routing { Locality::Any } else { Locality::Remote }),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
         }
         builder.res_sync().map_err(|e| e.to_pyerr())
     }
@@ -112,11 +107,6 @@ impl _Session {
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
-            match kwargs.extract_item::<bool>("local_routing") {
-                Ok(local_routing) => builder = builder.allowed_destination(if local_routing { Locality::Any } else { Locality::Remote }),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
         }
         builder.res_sync().map_err(|e| e.to_pyerr())
     }
@@ -131,11 +121,6 @@ impl _Session {
         let callback: PyClosure<(_Reply,)> = <_ as TryInto<_>>::try_into(callback)?;
         let mut builder = self.0.get(&selector.0).with(callback);
         if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<bool>("local_routing") {
-                Ok(local_routing) => builder = builder.allowed_destination(if local_routing { Locality::Any } else { Locality::Remote }),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
             match kwargs.extract_item::<_QueryConsolidation>("consolidation") {
                 Ok(_QueryConsolidation(Some(value))) => builder = builder.consolidation(value),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
@@ -187,11 +172,6 @@ impl _Session {
     ) -> PyResult<_Publisher> {
         let mut builder = self.0.declare_publisher(key_expr.0);
         if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<bool>("local_routing") {
-                Ok(local_routing) => builder = builder.allowed_destination(if local_routing { Locality::Any } else { Locality::Remote }),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
             match kwargs.extract_item::<_Priority>("priority") {
                 Ok(value) => builder = builder.priority(value.0),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
