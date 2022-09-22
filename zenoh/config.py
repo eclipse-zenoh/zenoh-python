@@ -55,3 +55,7 @@ class Config(_Config):
         Inserts the provided value (read from JSON) at the given path in the configuration.
         """
         return super().insert_json5(path, value)
+
+MODE_KEY = "mode"
+CONNECT_KEY = "connect/endpoints"
+LISTEN_KEY = "listen/endpoints"
