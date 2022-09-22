@@ -124,8 +124,7 @@ class Session(_Session):
         return super().put(keyexpr, value, **kwargs)
 
     def delete(self, keyexpr: IntoKeyExpr,
-               priority: Priority = None, congestion_control: CongestionControl = None,
-               sample_kind: SampleKind = None):
+               priority: Priority = None, congestion_control: CongestionControl = None):
         """
         Deletes a value.
         """
@@ -135,8 +134,6 @@ class Session(_Session):
             kwargs['priority'] = priority
         if congestion_control is not None:
             kwargs['congestion_control'] = congestion_control
-        if sample_kind is not None:
-            kwargs['sample_kind'] = sample_kind
         return super().delete(keyexpr, **kwargs)
 
     def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None) -> Receiver:
