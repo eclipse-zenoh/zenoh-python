@@ -12,17 +12,16 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import sys
-import time
-import argparse
 import zenoh
-from zenoh import WhatAmI
 
 # initiate logging
 zenoh.init_logger()
 
 print("Scouting...")
-hellos = zenoh.scout(WhatAmI.Peer | WhatAmI.Router, 1.0)
+scout = zenoh.scout(what = "peer|router", timeout=1.0)
 
-for hello in hellos:
+def dbg(x):
+    print(x)
+    return x
+for hello in dbg(scout.receiver()):
     print(hello)

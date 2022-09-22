@@ -18,12 +18,11 @@ import argparse
 import json
 import zenoh
 from zenoh import config, Sample
-from zenoh.queryable import EVAL
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_eval',
-    description='zenoh eval example')
+    prog='z_queryable',
+    description='zenoh queryable example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -39,11 +38,11 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='/demo/example/zenoh-python-eval',
+                    default='demo/example/zenoh-python-queryable',
                     type=str,
-                    help='The key expression matching queries to evaluate.')
+                    help='The key expression matching queries to reply to.')
 parser.add_argument('--value', '-v', dest='value',
-                    default='Eval from Python!',
+                    default='Queryable from Python!',
                     type=str,
                     help='The value to reply to queries.')
 parser.add_argument('--config', '-c', dest='config',
@@ -66,9 +65,9 @@ value = args.value
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-def eval_callback(query):
+def queryable_callback(query):
     print(">> [Queryable ] Received Query '{}'".format(query.selector))
-    query.reply(Sample(key_expr=key, payload=value.encode()))
+    query.reply(Sample(key, value))
 
 
 # initiate logging
@@ -78,7 +77,7 @@ print("Openning session...")
 session = zenoh.open(conf)
 
 print("Creating Queryable on '{}'...".format(key))
-queryable = session.queryable(key, eval_callback, kind=EVAL)
+queryable = session.declare_queryable(key, queryable_callback)
 
 print("Enter 'q' to quit......")
 c = '\0'
@@ -87,5 +86,5 @@ while c != 'q':
     if c == '':
         time.sleep(1)
 
-queryable.close()
+queryable.undeclare()
 session.close()

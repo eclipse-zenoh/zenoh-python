@@ -38,7 +38,7 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='/demo/example/zenoh-python-put',
+                    default='demo/example/zenoh-python-put',
                     type=str,
                     help='The key expression matching resources to delete.')
 parser.add_argument('--config', '-c', dest='config',
@@ -47,8 +47,7 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(
-    args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
 if args.connect is not None:

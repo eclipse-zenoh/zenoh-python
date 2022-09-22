@@ -1,3 +1,15 @@
+# Copyright (c) 2017, 2022 ZettaScale Technology Inc.
+
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+
+# SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+
+# Contributors:
+#   ZettaScale Zenoh team, <zenoh@zettascale.tech>
+# 
 from os import path
 from subprocess import Popen, PIPE
 import time
@@ -20,9 +32,9 @@ class Pyrun:
 		self._stderrs = []
 	def dbg(self):
 		self.wait()
-		print("stdout:")
+		print(f"{self.name} stdout:")
 		print(f"{tab}{tab.join(self.stdout)}")
-		print("stderr:")
+		print(f"{self.name} stderr:")
 		print(f"{tab}{tab.join(self.stderr)}")
 	def status(self, expecting=0, do_print=True):
 		status = self.wait()
@@ -31,7 +43,11 @@ class Pyrun:
 			print(formatted)
 		return formatted if status != expecting else None
 	def wait(self):
-		code = self.process.wait()
+		try:
+			code = self.process.wait(timeout=10)
+		except:
+			self.process.kill()
+			code = self.process.wait(timeout=10)
 		if self.end is None:
 			self.end = time.time()
 		return code
@@ -68,7 +84,7 @@ if put.status():
 	errors.append(put.status())
 time.sleep(1)
 pub = Pyrun("z_pub.py", ["--iter=2"])
-time.sleep(3)
+time.sleep(4)
 try:
 	pull.process.stdin.write(b"\n")
 	pull.process.stdin.flush()
@@ -86,49 +102,46 @@ if pull.status():
 	pull.dbg()
 	errors.append(pull.status())
 subout = "".join(pull.stdout)
-if not ("Received PUT ('/demo/example/zenoh-python-put': 'Put from Python!')" in subout):
+if not ("Received PUT ('demo/example/zenoh-python-put': 'Put from Python!')" in subout):
 	errors.append("z_pull didn't catch put")
-if not ("Received PUT ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
+if not ("Received PUT ('demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
 	errors.append("z_pull didn't catch second z_pub")
 if any(("z_pull" in error) for error in errors):
 	pull.dbg()
 
-eval = Pyrun("z_eval.py", ["-k=/demo/example/zenoh-python-eval"])
+queryable = Pyrun("z_queryable.py", ["-k=demo/example/zenoh-python-queryable"])
 time.sleep(1)
-get = Pyrun("z_get.py", ["-s=/demo/example/zenoh-python-eval"])
+get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-queryable"])
 if get.status():
 	get.dbg()
 	errors.append(get.status())
-if not ("Received ('/demo/example/zenoh-python-eval': 'Eval from Python!')" in "".join(get.stdout)):
+if not ("Received ('demo/example/zenoh-python-queryable': 'Queryable from Python!')" in "".join(get.stdout)):
 	get.dbg()
-	eval.dbg()
-	errors.append("z_get didn't get a response from z_eval")
+	queryable.dbg()
+	errors.append("z_get didn't get a response from z_queryable")
 
 try:
-	eval.process.stdin.write(b"q\n")
-	eval.process.stdin.flush()
-	eval.process.stdin.close()
+	queryable.process.stdin.write(b"q\n")
+	queryable.process.stdin.flush()
+	queryable.process.stdin.close()
 except Exception as e:
-	errors.append(f"eval stdin sequence failed: {e}")
-if eval.status():
-	eval.dbg()
-	errors.append(eval.status())
-evalout = "".join(eval.stdout)
-if not ("Received Query '/demo/example/zenoh-python-eval'" in evalout):
-	errors.append("z_eval didn't catch query")
-if any(("z_eval" in error) for error in errors):
-	eval.dbg()
+	errors.append(f"queryable stdin sequence failed: {e}")
+if queryable.status():
+	queryable.dbg()
+	errors.append(queryable.status())
+queryableout = "".join(queryable.stdout)
+if not ("Received Query 'demo/example/zenoh-python-queryable'" in queryableout):
+	errors.append("z_queryable didn't catch query")
+if any(("z_queryable" in error) for error in errors):
+	queryable.dbg()
 
 time.sleep(1)
-get = Pyrun("z_get.py", ["-s=/demo/example/zenoh-python-put"])
+get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-put"])
 if get.status():
 	get.dbg()
 	errors.append(get.status())
-if not ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in "".join(get.stdout)):
-	storage.dbg()
-	errors.append("z_get didn't get a response from z_storage about put")
-if not ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in "".join(get.stdout)):
-	storage.dbg()
+if not ("Received ('demo/example/zenoh-python-put': 'Put from Python!')" in "".join(get.stdout)):
+	get.dbg()
 	errors.append("z_get didn't get a response from z_storage about put")
 if any(("z_get" in error) for error in errors):
 	get.dbg()
@@ -140,12 +153,12 @@ if delete.status():
 	errors.append(delete.status())
 
 time.sleep(1)
-get = Pyrun("z_get.py", ["-s=/demo/example/zenoh-python-put"])
+get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-put"])
 if get.status():
 	get.dbg()
 	errors.append(get.status())
-if ("Received ('/demo/example/zenoh-python-put': 'Put from Python!')" in "".join(get.stdout)):
-	storage.dbg()
+if ("Received ('demo/example/zenoh-python-put': 'Put from Python!')" in "".join(get.stdout)):
+	# storage.dbg()
 	errors.append("z_get did get a response from z_storage about put after delete")
 if any(("z_get" in error) for error in errors):
 	get.dbg()
@@ -160,11 +173,11 @@ if sub.status():
 	sub.dbg()
 	errors.append(sub.status())
 subout = "".join(sub.stdout)
-if not ("Received PUT ('/demo/example/zenoh-python-put': 'Put from Python!')" in subout):
+if not ("Received PUT ('demo/example/zenoh-python-put': 'Put from Python!')" in subout):
 	errors.append("z_sub didn't catch put")
-if not ("Received PUT ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
+if not ("Received PUT ('demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
 	errors.append("z_sub didn't catch second z_pub")
-if not ("Received DELETE ('/demo/example/zenoh-python-put': '')" in subout):
+if not ("Received DELETE ('demo/example/zenoh-python-put': '')" in subout):
 	errors.append("z_sub didn't catch delete")
 if any(("z_sub" in error) for error in errors):
 	sub.dbg()
@@ -179,13 +192,13 @@ if storage.status():
 	storage.dbg()
 	errors.append(storage.status())
 storageout = "".join(storage.stdout)
-if not ("Received PUT ('/demo/example/zenoh-python-put': 'Put from Python!')" in storageout):
+if not ("Received PUT ('demo/example/zenoh-python-put': 'Put from Python!')" in storageout):
 	errors.append("z_storage didn't catch put")
-if not ("Received PUT ('/demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in storageout):
+if not ("Received PUT ('demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in storageout):
 	errors.append("z_storage didn't catch second z_pub")
-if not ("Received DELETE ('/demo/example/zenoh-python-put': '')" in storageout):
+if not ("Received DELETE ('demo/example/zenoh-python-put': '')" in storageout):
 	errors.append("z_storage didn't catch delete")
-if not ("Received Query '/demo/example/zenoh-python-put'" in storageout):
+if not ("Received Query 'demo/example/zenoh-python-put'" in storageout):
 	errors.append("z_storage didn't catch query")
 if any(("z_storage" in error) for error in errors):
 	storage.dbg()

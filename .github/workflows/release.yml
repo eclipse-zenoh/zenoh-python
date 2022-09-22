@@ -144,3 +144,21 @@ jobs:
         with:
           name: wheels
           path: dist
+
+  deploy-wheels:
+    needs: [macos, windows, linux, linux-cross, linux-armv6]
+    name: deploy wheels to pypi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: wheels
+          path: dist
+      - name: Check dist
+        run: ls -al ./dist/*
+      - name: publish
+        if: github.event_name == 'release' && github.event.action == 'released'
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

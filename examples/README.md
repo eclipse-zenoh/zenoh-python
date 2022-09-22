@@ -97,7 +97,7 @@
 ### z_get
 
    Sends a query message for a selector.
-   The queryables with a matching path or selector (for instance [z_eval](#z_eval) and [z_storage](#z_storage))
+   The queryables with a matching path or selector (for instance [z_queryable](#z_queryable) and [z_storage](#z_storage))
    will receive this query and reply with paths/values that will be received by the query callback.
 
    Typical usage:
@@ -109,7 +109,7 @@
       python3 z_get.py -s '/demo/**'
    ```
 
-### z_eval
+### z_queryable
 
    Creates a queryable function with a key expression.
    This queryable function will be triggered by each call to a get operation on zenoh
@@ -117,11 +117,11 @@
 
    Typical usage:
    ```bash
-      python3 z_eval.py
+      python3 z_queryable.py
    ```
    or
    ```bash
-      python3 z_eval.py -k /demo/example/eval -v 'This is the result'
+      python3 z_queryable.py -k /demo/example/queryable -v 'This is the result'
    ```
 
 ### z_storage
@@ -161,4 +161,4 @@
 
 In `asyncio` directory there are similar examples than thse described above, but leveraging Python's [asyncio](https://docs.python.org/fr/3/library/asyncio.html).
 
-Especially, the `asyncio/z_get_parallel.py` and `asyncio/z_eval.py` examples show how a zenoh application can issue concurent queries and how another zenoh application can concurrently compute replies to those queries.
+Especially, the `asyncio/z_get_parallel.py` and `asyncio/z_queryable.py` examples show how a zenoh application can issue concurent queries and how another zenoh application can concurrently compute replies to those queries.

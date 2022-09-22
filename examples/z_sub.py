@@ -18,7 +18,7 @@ from datetime import datetime
 import argparse
 import json
 import zenoh
-from zenoh import Reliability, SubMode
+from zenoh import Reliability, Sample
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -39,7 +39,7 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='/demo/example/**',
+                    default='demo/example/**',
                     type=str,
                     help='The key expression to subscribe to.')
 parser.add_argument('--config', '-c', dest='config',
@@ -61,10 +61,6 @@ key = args.key
 # zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
 
 
-def listener(sample):
-    print(">> [Subscriber] Received {} ('{}': '{}')"
-          .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8")))
-
 
 # initiate logging
 zenoh.init_logger()
@@ -74,8 +70,15 @@ session = zenoh.open(conf)
 
 print("Creating Subscriber on '{}'...".format(key))
 
-sub = session.subscribe(
-    key, listener, reliability=Reliability.Reliable, mode=SubMode.Push)
+
+def listener(sample: Sample):
+    print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
+    
+
+# WARNING, you MUST store the return value in order for the subscription to work!!
+# This is because if you don't, the reference counter will reach 0 and the subscription
+# will be immediately undeclared.
+sub = session.declare_subscriber(key, listener, reliability=Reliability.RELIABLE())
 
 print("Enter 'q' to quit...")
 c = '\0'
@@ -84,5 +87,7 @@ while c != 'q':
     if c == '':
         time.sleep(1)
 
-sub.close()
+# Cleanup: note that even if you forget it, cleanup will happen automatically when 
+# the reference counter reaches 0
+sub.undeclare()
 session.close()

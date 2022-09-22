@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, CongestionControl
+from zenoh import config, CongestionControl, Value
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -46,8 +46,7 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(
-    args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
 if args.connect is not None:
@@ -64,14 +63,11 @@ zenoh.init_logger()
 data = bytearray()
 for i in range(0, size):
     data.append(i % 10)
-data = bytes(data)
-congestion_control = CongestionControl.Block
+data = Value(bytes(data))
+congestion_control = CongestionControl.BLOCK()
 
 session = zenoh.open(conf)
-
-rid = session.declare_expr('/test/thr')
-
-pub = session.declare_publication(rid)
+pub = session.declare_publisher('test/thr', congestion_control=congestion_control)
 
 while True:
-    session.put(rid, data, congestion_control=congestion_control)
+    pub.put(data)
