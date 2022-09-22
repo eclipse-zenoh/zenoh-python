@@ -11,7 +11,7 @@
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
-use pyo3::{prelude::*, types::PyDict, ToBorrowedObject};
+use pyo3::{prelude::*, types::PyDict, ToPyObject};
 mod closures;
 mod config;
 mod enums;
@@ -51,7 +51,7 @@ impl From<PyErr> for ExtractError {
 pub(crate) trait PyExtract<K> {
     fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError>;
 }
-impl<K: ToBorrowedObject> PyExtract<K> for PyAny {
+impl<K: ToPyObject> PyExtract<K> for PyAny {
     fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError> {
         match self.get_item(key) {
             Ok(item) => Ok(item.extract::<V>()?),
@@ -59,7 +59,7 @@ impl<K: ToBorrowedObject> PyExtract<K> for PyAny {
         }
     }
 }
-impl<K: ToBorrowedObject> PyExtract<K> for PyDict {
+impl<K: ToPyObject> PyExtract<K> for PyDict {
     fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError> {
         match self.get_item(key) {
             Some(item) => Ok(item.extract::<V>()?),

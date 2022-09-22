@@ -40,15 +40,11 @@ zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-cha
 zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
 validated_struct = "2.1.0"
 json5 = "0.4.1"
-serde_json = "1.0"
+serde_json = "1.0.85"
 async-std = "=1.12.0"
-uhlc = "0.5.0"
-futures = "0.3.12"
-log = "0.4"
-env_logger = "0.9.0"
-pyo3 = { version = "0.16", features = ["extension-module", "abi3-py37"] }
-pyo3-asyncio = { version = "0.16", features = [
-    "attributes",
-    "async-std-runtime",
-] }
-form_urlencoded = "1.0.1"
+uhlc = "0.5.1"
+futures = "0.3.24"
+log = "0.4.17"
+env_logger = "0.9.1"
+pyo3 = { version = "0.17.1", features = ["extension-module", "abi3-py37"] }
+form_urlencoded = "1.1.0"
