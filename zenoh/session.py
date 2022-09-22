@@ -189,7 +189,7 @@ class Session(_Session):
             kwargs['congestion_control'] = congestion_control
         return Publisher(super().declare_publisher(KeyExpr(keyexpr), **kwargs))
 
-    def declare_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None, local: bool = None) -> Subscriber:
+    def declare_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None) -> Subscriber:
         """
         Declares a subscriber, which will receive any published sample with a key expression intersecting `keyexpr`.
 
@@ -204,12 +204,10 @@ class Session(_Session):
         kwargs = dict()
         if reliability is not None:
             kwargs['reliability'] = reliability
-        if local is not None:
-            kwargs['local'] = local
         s = super().declare_subscriber(KeyExpr(keyexpr), handler.closure, **kwargs)
         return Subscriber(s, handler.receiver)
 
-    def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None, local=None) -> PullSubscriber:
+    def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None) -> PullSubscriber:
         """
         Declares a pull-mode subscriber, which will receive a single published sample with a key expression intersecting `keyexpr` any time its `pull` method is called.
 
@@ -221,8 +219,6 @@ class Session(_Session):
         kwargs = dict()
         if reliability is not None:
             kwargs['reliability'] = reliability
-        if local is not None:
-            kwargs['local'] = local
         s = super().declare_pull_subscriber(KeyExpr(keyexpr), handler.closure, **kwargs)
         return PullSubscriber(s, handler.receiver)
 

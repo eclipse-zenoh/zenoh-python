@@ -64,8 +64,6 @@ if args.listen is not None:
 key = args.key
 value = args.value
 
-# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
-
 # initiate logging
 zenoh.init_logger()
 

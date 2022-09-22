@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
 use zenoh::config::whatami::{WhatAmI, WhatAmIMatcher};
-use zenoh::prelude::{SessionDeclarations, Locality};
+use zenoh::prelude::SessionDeclarations;
 use zenoh::publication::Publisher;
 use zenoh::scouting::Scout;
 use zenoh::subscriber::{PullSubscriber, Subscriber};
@@ -199,11 +199,6 @@ impl _Session {
         let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
         let mut builder = self.0.declare_subscriber(&key_expr.0).with(callback);
         if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<bool>("local") {
-                Ok(true) => builder = builder.allowed_origin(Locality::SessionLocal),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
             match kwargs.extract_item::<_Reliability>("reliability") {
                 Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
@@ -228,11 +223,6 @@ impl _Session {
             .pull_mode()
             .with(callback);
         if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<bool>("local") {
-                Ok(true) => builder = builder.allowed_origin(Locality::SessionLocal),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
             match kwargs.extract_item::<_Reliability>("reliability") {
                 Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
