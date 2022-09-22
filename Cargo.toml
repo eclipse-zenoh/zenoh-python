@@ -34,17 +34,17 @@ crate-type = ["cdylib"]
 complete_n = ["zenoh/complete_n"]
 
 [dependencies]
-zenoh = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
-zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
-zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
-zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "api-changes" }
-validated_struct = "2.1.0"
-json5 = "0.4.1"
-serde_json = "1.0.85"
 async-std = "=1.12.0"
-uhlc = "0.5.1"
-futures = "0.3.24"
-log = "0.4.17"
 env_logger = "0.9.1"
-pyo3 = { version = "0.17.1", features = ["extension-module", "abi3-py37"] }
 form_urlencoded = "1.1.0"
+futures = "0.3.24"
+json5 = "0.4.1"
+log = "0.4.17"
+pyo3 = { version = "0.17.1", features = ["extension-module", "abi3-py37"] }
+serde_json = "1.0.85"
+uhlc = "0.5.1"
+validated_struct = "2.1.0"
+zenoh = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "master" }
+zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "master" }
+zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "master" }
+zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "master" }
