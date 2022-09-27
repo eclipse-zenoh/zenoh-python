@@ -65,7 +65,7 @@ store = {}
 def listener(sample: Sample):
     print(">> [Subscriber] Received {} ('{}': '{}')"
           .format(sample.kind, sample.key_expr, sample.payload.decode("utf-8")))
-    if sample.kind == SampleKind.DELETE:
+    if sample.kind == SampleKind.DELETE():
         store.pop(sample.key_expr, None)
     else:
         store[sample.key_expr] = sample

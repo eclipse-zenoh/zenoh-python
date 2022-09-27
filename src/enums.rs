@@ -18,31 +18,6 @@ use zenoh::publication::CongestionControl;
 use zenoh::query::{ConsolidationMode, QueryTarget};
 use zenoh::subscriber::Reliability;
 
-#[macro_export]
-macro_rules! derive_richcmp {
-    ($tyname: expr) => {
-        fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> PyResult<bool> {
-            match op {
-                pyo3::pyclass::CompareOp::Eq => Ok(self == other),
-                pyo3::pyclass::CompareOp::Ne => Ok(self != other),
-                _ => Err(zenoh_core::zerror!("{} does not support comparison", $tyname).to_pyerr()),
-            }
-        }
-    };
-    () => {
-        fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> bool {
-            match op {
-                pyo3::pyclass::CompareOp::Lt => self < other,
-                pyo3::pyclass::CompareOp::Le => self <= other,
-                pyo3::pyclass::CompareOp::Eq => self == other,
-                pyo3::pyclass::CompareOp::Ne => self != other,
-                pyo3::pyclass::CompareOp::Gt => self > other,
-                pyo3::pyclass::CompareOp::Ge => self >= other,
-            }
-        }
-    };
-}
-
 #[pyclass(subclass)]
 #[repr(transparent)]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -53,7 +28,13 @@ impl _Encoding {
     pub fn new(this: Self) -> Self {
         this
     }
-    derive_richcmp!("Encoding");
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyo3::pyclass::CompareOp::Eq => Ok(self == other),
+            pyo3::pyclass::CompareOp::Ne => Ok(self != other),
+            _ => Err(zenoh_core::zerror!("Encoding does not support comparison").to_pyerr()),
+        }
+    }
     #[classattr]
     pub const EMPTY: Self = Self(Encoding::Exact(KnownEncoding::Empty));
     #[classattr]
@@ -125,7 +106,16 @@ impl _Priority {
     pub fn new(this: Self) -> Self {
         this
     }
-    derive_richcmp!();
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> bool {
+        match op {
+            pyo3::pyclass::CompareOp::Lt => self < other,
+            pyo3::pyclass::CompareOp::Le => self <= other,
+            pyo3::pyclass::CompareOp::Eq => self == other,
+            pyo3::pyclass::CompareOp::Ne => self != other,
+            pyo3::pyclass::CompareOp::Gt => self > other,
+            pyo3::pyclass::CompareOp::Ge => self >= other,
+        }
+    }
     #[classattr]
     pub const REAL_TIME: Self = Self(Priority::RealTime);
     #[classattr]
@@ -167,7 +157,6 @@ impl _SampleKind {
     pub fn new(this: Self) -> Self {
         this
     }
-    derive_richcmp!("SampleKind");
     #[classattr]
     pub const PUT: Self = Self(SampleKind::Put);
     #[classattr]
@@ -176,6 +165,13 @@ impl _SampleKind {
         match self.0 {
             SampleKind::Put => "PUT",
             SampleKind::Delete => "DELETE",
+        }
+    }
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyo3::pyclass::CompareOp::Eq => Ok(self == other),
+            pyo3::pyclass::CompareOp::Ne => Ok(self != other),
+            _ => Err(zenoh_core::zerror!("SampleKind does not support comparison").to_pyerr()),
         }
     }
 }
@@ -189,7 +185,15 @@ impl _CongestionControl {
     pub fn new(this: Self) -> Self {
         this
     }
-    derive_richcmp!("CongestionControl");
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyo3::pyclass::CompareOp::Eq => Ok(self == other),
+            pyo3::pyclass::CompareOp::Ne => Ok(self != other),
+            _ => {
+                Err(zenoh_core::zerror!("CongestionControl does not support comparison").to_pyerr())
+            }
+        }
+    }
     #[classattr]
     pub const BLOCK: Self = Self(CongestionControl::Block);
     #[classattr]
@@ -211,7 +215,13 @@ impl _Reliability {
     pub fn new(this: Self) -> Self {
         this
     }
-    derive_richcmp!("Reliability");
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyo3::pyclass::CompareOp::Eq => Ok(self == other),
+            pyo3::pyclass::CompareOp::Ne => Ok(self != other),
+            _ => Err(zenoh_core::zerror!("Reliability does not support comparison").to_pyerr()),
+        }
+    }
     #[classattr]
     pub const BEST_EFFORT: Self = Self(Reliability::BestEffort);
     #[classattr]
@@ -233,7 +243,13 @@ impl _QueryTarget {
     pub fn new(this: Self) -> Self {
         this
     }
-    derive_richcmp!("QueryTarget");
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyo3::pyclass::CompareOp::Eq => Ok(self == other),
+            pyo3::pyclass::CompareOp::Ne => Ok(self != other),
+            _ => Err(zenoh_core::zerror!("QueryTarget does not support comparison").to_pyerr()),
+        }
+    }
     #[classattr]
     pub const BEST_MATCHING: Self = Self(QueryTarget::BestMatching);
     #[classattr]
@@ -260,7 +276,15 @@ impl _QueryConsolidation {
     pub fn new(this: Self) -> Self {
         this
     }
-    derive_richcmp!("QueryConsolidation");
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyo3::pyclass::CompareOp::Eq => Ok(self == other),
+            pyo3::pyclass::CompareOp::Ne => Ok(self != other),
+            _ => Err(
+                zenoh_core::zerror!("QueryConsolidation does not support comparison").to_pyerr(),
+            ),
+        }
+    }
     #[classattr]
     pub const AUTO: Self = Self(None);
     #[classattr]

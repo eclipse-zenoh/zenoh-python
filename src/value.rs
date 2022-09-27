@@ -170,7 +170,16 @@ impl _Timestamp {
     pub fn pynew(this: Self) -> Self {
         this
     }
-    crate::derive_richcmp!();
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> bool {
+        match op {
+            pyo3::pyclass::CompareOp::Lt => self < other,
+            pyo3::pyclass::CompareOp::Le => self <= other,
+            pyo3::pyclass::CompareOp::Eq => self == other,
+            pyo3::pyclass::CompareOp::Ne => self != other,
+            pyo3::pyclass::CompareOp::Gt => self > other,
+            pyo3::pyclass::CompareOp::Ge => self >= other,
+        }
+    }
     #[getter]
     pub fn seconds_since_unix_epoch(&self) -> PyResult<f64> {
         match self
