@@ -71,7 +71,7 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print("Creating Subscriber on '{}'...".format(key))
+print("Declaring Subscriber on '{}'...".format(key))
 
 sub = session.declare_pull_subscriber(key, listen, reliability=Reliability.RELIABLE())
 

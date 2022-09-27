@@ -70,7 +70,7 @@ zenoh.init_logger()
 print("Openning session...")
 session = zenoh.open(conf)
 
-print(f"Declaring publication on '{key}'...")
+print(f"Declaring Publisher on '{key}'...")
 pub = session.declare_publisher(key)
 
 for idx in itertools.count() if args.iter is None else range(args.iter):
