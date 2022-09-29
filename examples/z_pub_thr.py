@@ -55,7 +55,7 @@ if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 size = args.payload_size
 
-# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
+# Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
 # initiate logging
 zenoh.init_logger()

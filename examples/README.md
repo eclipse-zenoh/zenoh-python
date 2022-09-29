@@ -1,4 +1,4 @@
-# Zenoh-net Python examples
+# Zenoh Python examples
 
 ## Start instructions
 
@@ -25,7 +25,7 @@
 
 ### z_info
 
-   Gets information about the zenoh-net session.
+   Gets information about the Zenoh session.
 
    Typical usage:
    ```bash

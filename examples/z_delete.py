@@ -56,12 +56,12 @@ if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 key = args.key
 
-# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
+# Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
 # initiate logging
 zenoh.init_logger()
 
-print("Openning session...")
+print("Opening session...")
 session = zenoh.open(conf)
 
 print("Deleting resources matching '{}'...".format(key))

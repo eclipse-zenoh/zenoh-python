@@ -67,7 +67,7 @@ value = args.value
 # initiate logging
 zenoh.init_logger()
 
-print("Openning session...")
+print("Opening session...")
 session = zenoh.open(conf)
 
 print(f"Declaring publication on '{key}'...")

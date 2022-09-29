@@ -51,7 +51,7 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.config_from_file(
+conf = zenoh.Config.from_file(
     args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
@@ -62,7 +62,7 @@ if args.listen is not None:
 key = args.key
 value = args.value
 
-# zenoh-net code  --- --- --- --- --- --- --- --- --- --- ---
+# Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
 
 def queryable_callback(query):
@@ -73,7 +73,7 @@ def queryable_callback(query):
 # initiate logging
 zenoh.init_logger()
 
-print("Openning session...")
+print("Opening session...")
 session = zenoh.open(conf)
 
 print("Creating Queryable on '{}'...".format(key))
