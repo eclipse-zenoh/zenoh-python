@@ -15,7 +15,7 @@
 #
 [package]
 name = "eclipse-zenoh"
-version = "0.6.0-dev"
+version = "0.6.0-beta.1"
 authors = [
     "kydos <angelo@icorsaro.net>",
     "Julien Enoch <julien@enoch.fr>",
@@ -44,7 +44,7 @@ pyo3 = { version = "0.17.1", features = ["extension-module", "abi3-py37"] }
 serde_json = "1.0.85"
 uhlc = "0.5.1"
 validated_struct = "2.1.0"
-zenoh = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "master" }
-zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "master" }
-zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "master" }
-zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh", branch = "master" }
+zenoh = { version = "0.6.0-beta.1" }
+zenoh-buffers = { version = "0.6.0-beta.1" }
+zenoh-cfg-properties = { version = "0.6.0-beta.1" }
+zenoh-core = { version = "0.6.0-beta.1" }

@@ -35,7 +35,7 @@ copyright = '2020, ZettaScale Zenoh team, <zenoh@zettascale.tech>'
 author = 'ZettaScale Zenoh team, <zenoh@zettascale.tech>'
 
 # The full version, including alpha/beta/rc tags
-release = '0.6.0-dev'
+release = '0.6.0-beta.1'
 
 
 # -- General configuration ---------------------------------------------------
