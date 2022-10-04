@@ -157,7 +157,7 @@ jobs:
       - name: Check dist
         run: ls -al ./dist/*
       - name: publish
-        if: github.event_name == 'release' && github.event.action == 'released'
+        if: github.event_name == 'release' && github.event.action == 'published'
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
