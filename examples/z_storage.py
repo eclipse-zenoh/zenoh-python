@@ -85,13 +85,13 @@ zenoh.init_logger()
 print("Opening session...")
 session = zenoh.open(conf)
 
-print("Creating Subscriber on '{}'...".format(key))
+print("Declaring Subscriber on '{}'...".format(key))
 sub = session.declare_subscriber(key, listener, reliability=Reliability.RELIABLE())
 
-print("Creating Queryable on '{}'...".format(key))
+print("Declaring Queryable on '{}'...".format(key))
 queryable = session.declare_queryable(key, query_handler)
 
-print("Enter 'q' to quit......")
+print("Enter 'q' to quit...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)

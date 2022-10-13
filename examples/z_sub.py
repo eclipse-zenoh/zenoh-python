@@ -68,7 +68,7 @@ zenoh.init_logger()
 print("Opening session...")
 session = zenoh.open(conf)
 
-print("Creating Subscriber on '{}'...".format(key))
+print("Declaring Subscriber on '{}'...".format(key))
 
 
 def listener(sample: Sample):
