@@ -27,7 +27,7 @@ use zenoh::Session;
 use zenoh_core::SyncResolve;
 
 use crate::closures::PyClosure;
-use crate::config::_Config;
+use crate::config::{PyConfig, _Config};
 use crate::enums::{
     _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability, _SampleKind,
 };
@@ -43,10 +43,19 @@ pub struct _Session(pub(crate) Arc<Session>);
 #[pymethods]
 impl _Session {
     #[new]
-    pub fn new(config: Option<&mut crate::config::_Config>) -> PyResult<Self> {
-        let config = config.and_then(|c| c.0.take()).unwrap_or_default();
-        let session = zenoh::open(config).res_sync().map_err(|e| e.to_pyerr())?;
+    pub fn new(mut config: Option<&mut crate::config::_Config>) -> PyResult<Self> {
+        let c = match &mut config {
+            Some(c) => c.0.take().unwrap_or_default(),
+            None => Default::default(),
+        };
+        let session = zenoh::open(c).res_sync().map_err(|e| e.to_pyerr())?;
+        if let Some(config) = config {
+            *config = _Config(PyConfig::Notifier(session.config().clone()))
+        }
         Ok(_Session(Arc::new(session)))
+    }
+    pub fn config(&self) -> _Config {
+        _Config(PyConfig::Notifier(self.0.config().clone()))
     }
     #[args(kwargs = "**")]
     pub fn put(
@@ -295,7 +304,7 @@ pub fn scout(callback: &PyAny, config: Option<&_Config>, what: Option<&str>) -> 
             Err(_) => return Err(zenoh_core::zerror!("Couldn't parse `{}` into a WhatAmiMatcher: must be a `|`-separated list of `peer`, `client` or `router`", s).to_pyerr())
         },
     };
-    let config = config.and_then(|c| c.0.clone()).unwrap_or_default();
+    let config = config.and_then(|c| c.0.clone().take()).unwrap_or_default();
     let scout = zenoh::scout(what, config).with(callback).res_sync();
     match scout {
         Ok(scout) => Ok(_Scout(scout)),

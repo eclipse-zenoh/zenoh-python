@@ -16,32 +16,53 @@
 
 use pyo3::prelude::*;
 use validated_struct::ValidatedMap;
-use zenoh::config::Config;
+use zenoh::config::{Config, Notifier};
 use zenoh_core::zerror;
 
 use crate::{ToPyErr, ToPyResult};
-
+#[derive(Clone)]
+pub(crate) enum PyConfig {
+    None,
+    Config(Box<Config>),
+    Notifier(Notifier<Config>),
+}
+impl Default for PyConfig {
+    fn default() -> Self {
+        Self::Config(Default::default())
+    }
+}
+impl PyConfig {
+    pub fn take(&mut self) -> Option<Config> {
+        if let Self::Config(c) = self {
+            let c = unsafe { std::ptr::read(c) };
+            unsafe { std::ptr::write(self, PyConfig::None) }
+            Some(*c)
+        } else {
+            None
+        }
+    }
+}
 #[pyclass(subclass)]
-pub struct _Config(pub(crate) Option<Config>);
+pub struct _Config(pub(crate) PyConfig);
 
 #[pymethods]
 impl _Config {
     #[allow(clippy::new_without_default)]
     #[new]
     pub fn new() -> Self {
-        _Config(Some(Default::default()))
+        _Config(Default::default())
     }
     #[staticmethod]
     pub fn from_file(expr: &str) -> PyResult<Self> {
         match Config::from_file(expr) {
-            Ok(k) => Ok(Self(Some(k))),
+            Ok(k) => Ok(Self(PyConfig::Config(Box::new(k)))),
             Err(e) => Err(e.to_pyerr()),
         }
     }
     #[staticmethod]
     pub fn from_json5(expr: &str) -> PyResult<Self> {
         match Config::from_deserializer(&mut json5::Deserializer::from_str(expr).to_pyres()?) {
-            Ok(k) => Ok(Self(Some(k))),
+            Ok(k) => Ok(Self(PyConfig::Config(Box::new(k)))),
             Err(Ok(_)) => Err(zenoh_core::zerror!(
                 "{} did parse into a config, but invalid values were found",
                 expr,
@@ -52,18 +73,18 @@ impl _Config {
     }
 
     pub fn get_json(&self, path: &str) -> PyResult<String> {
-        self.0
-            .as_ref()
-            .ok_or_else(|| zerror!("Attempted to use a moved configuration").to_pyerr())?
-            .get_json(path)
-            .to_pyres()
+        match &self.0 {
+            PyConfig::None => Err(zerror!("Attempted to use a destroyed configuration").to_pyerr()),
+            PyConfig::Config(c) => c.get_json(path).to_pyres(),
+            PyConfig::Notifier(c) => c.get_json(path).map_err(|e| e.to_pyerr()),
+        }
     }
 
     pub fn insert_json5(&mut self, path: &str, value: &str) -> PyResult<()> {
-        self.0
-            .as_mut()
-            .ok_or_else(|| zerror!("Attempted to use a moved configuration").to_pyerr())?
-            .insert_json5(path, value)
-            .to_pyres()
+        match &mut self.0 {
+            PyConfig::None => Err(zerror!("Attempted to use a destroyed configuration").to_pyerr()),
+            PyConfig::Config(c) => c.insert_json5(path, value).to_pyres(),
+            PyConfig::Notifier(c) => c.insert_json5(path, value).map_err(|e| e.to_pyerr()),
+        }
     }
 }

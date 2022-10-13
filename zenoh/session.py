@@ -123,6 +123,15 @@ class Session(_Session):
             kwargs['sample_kind'] = sample_kind
         return super().put(keyexpr, value, **kwargs)
 
+    def config(self) -> Config:
+        """
+        Returns a configuration object that can be used to alter the session's configuration at runtime.
+
+        Note that in Python specifically, the config you passed to the session becomes the result of this
+        function if you passed one, letting you keep using it.
+        """
+        return super().config()
+
     def delete(self, keyexpr: IntoKeyExpr,
                priority: Priority = None, congestion_control: CongestionControl = None):
         """
