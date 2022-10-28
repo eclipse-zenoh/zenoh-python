@@ -46,6 +46,9 @@ parser.add_argument('--target', '-t', dest='target',
                     default='ALL',
                     type=str,
                     help='The target queryables of the query.')
+parser.add_argument('--value', '-v', dest='value',
+                    type=str,
+                    help='An optional value to send in the query.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -65,6 +68,7 @@ target = {
     'ALL': QueryTarget.ALL(),
     'BEST_MATCHING': QueryTarget.BEST_MATCHING(),
     'ALL_COMPLETE': QueryTarget.ALL_COMPLETE(),}.get(args.target)
+value = args.value
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -75,7 +79,7 @@ print("Opening session...")
 session = zenoh.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-replies = session.get(selector, zenoh.ListCollector(), target=target)
+replies = session.get(selector, zenoh.ListCollector(), target=target, value=value)
 for reply in replies():
     try:
         print(">> Received ('{}': '{}')"

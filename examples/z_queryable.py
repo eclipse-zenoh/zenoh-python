@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, Sample
+from zenoh import config, Sample, Value
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -66,7 +66,10 @@ value = args.value
 
 
 def queryable_callback(query):
-    print(">> [Queryable ] Received Query '{}'".format(query.selector))
+    if query.value is None:
+        print(">> [Queryable ] Received Query '{}'".format(query.selector))
+    else:
+        print(">> [Queryable ] Received Query '{}' with value '{}'".format(query.selector, query.value.payload.decode('utf-8')))
     query.reply(Sample(key, value))
 
 

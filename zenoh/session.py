@@ -145,7 +145,7 @@ class Session(_Session):
             kwargs['congestion_control'] = congestion_control
         return super().delete(keyexpr, **kwargs)
 
-    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None) -> Receiver:
+    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, value: IntoValue = None) -> Receiver:
         """
         Emits a query.
         """
@@ -155,6 +155,8 @@ class Session(_Session):
             kwargs["conconsolidation"] = consolidation
         if target is not None:
             kwargs["target"] = target
+        if value is not None:
+            kwargs["value"] = Value(value)
         super().get(Selector(selector), handler.closure, **kwargs)
         return handler.receiver
 
