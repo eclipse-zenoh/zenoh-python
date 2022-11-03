@@ -36,7 +36,7 @@ def scout(handler: IntoHandler[Hello, Any, Any] = None, what: str = None, config
     from threading import Timer
     if handler is None:
         handler = ListCollector()
-    handler = Handler(handler, lambda x: Hello._upgrade_)
+    handler = Handler(handler, lambda x: Hello._upgrade_(x))
     scout = _scout(handler.closure, config, what)
     scout = Scout(scout, handler.receiver)
     if timeout:
