@@ -55,7 +55,7 @@ class Query(_Query):
 
         Raises a ZError if duplicate keys are found, as they might otherwise be used for HTTP Parameter Pollution like attacks.
         """
-        return super().decode_parameters
+        return super().decode_parameters()
     @property
     def selector(self) -> Selector:
         """
