@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: "0 1 * * 1-5"
   workflow_dispatch:
+    inputs:
+      publish_to_pypi:
+        description: 'Publish to PyPI'
+        default: true
+        type: boolean
 
 env:
   PYTHON_VERSION: "3.7"
@@ -146,6 +151,7 @@ jobs:
           path: dist
 
   deploy-wheels:
+    if:  ${{ inputs.publish_to_pypi }}
     needs: [macos, windows, linux, linux-cross, linux-armv6]
     name: deploy wheels to pypi
     runs-on: ubuntu-latest
