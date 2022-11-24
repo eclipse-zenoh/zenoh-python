@@ -37,7 +37,8 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        target: [x64, x86]
+        target: [x64]
+        # target: [x64, x86]   NOTE: x86 deactivated because of strange error: failed to run custom build command for `pyo3-ffi v0.17.1`
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
