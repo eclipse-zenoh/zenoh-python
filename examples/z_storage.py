@@ -41,6 +41,10 @@ parser.add_argument('--key', '-k', dest='key',
                     default='demo/example/**',
                     type=str,
                     help='The key expression matching resources to store.')
+parser.add_argument('--complete', dest='complete',
+                    default=False,
+                    action='store_true',
+                    help='Declare the storage as complete w.r.t. the key expression.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -56,6 +60,7 @@ if args.connect is not None:
 if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 key = args.key
+complete = args.complete
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
@@ -86,10 +91,11 @@ print("Opening session...")
 session = zenoh.open(conf)
 
 print("Declaring Subscriber on '{}'...".format(key))
-sub = session.declare_subscriber(key, listener, reliability=Reliability.RELIABLE())
+sub = session.declare_subscriber(
+    key, listener, reliability=Reliability.RELIABLE())
 
 print("Declaring Queryable on '{}'...".format(key))
-queryable = session.declare_queryable(key, query_handler)
+queryable = session.declare_queryable(key, query_handler, complete)
 
 print("Enter 'q' to quit...")
 c = '\0'
