@@ -140,6 +140,11 @@ impl _Session {
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
+            match kwargs.extract_item::<_Value>("value") {
+                Ok(value) => builder = builder.with_value(value),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
         }
         builder.res_sync().map_err(|e| e.to_pyerr())
     }

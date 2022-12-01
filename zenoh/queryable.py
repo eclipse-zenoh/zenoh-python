@@ -15,7 +15,7 @@ from typing import Dict
 
 from .zenoh import _Query, _Queryable
 from .keyexpr import KeyExpr, Selector
-from .value import Sample
+from .value import Sample, Value
 
 class Queryable:
     """
@@ -62,6 +62,14 @@ class Query(_Query):
         The query's selector as a whole.
         """
         return Selector._upgrade_(super().selector)
+    @property
+    def value(self) -> Value:
+        """
+        The query's value.
+
+        This API is currently marked as `unstable`: the Zenoh team may change it in future releases.
+        """
+        return Value._upgrade_(super().value)
     def reply(self, sample: Sample):
         """
         Allows you to reply to a query.

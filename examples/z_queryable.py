@@ -66,7 +66,7 @@ value = args.value
 
 
 def queryable_callback(query):
-    print(">> [Queryable ] Received Query '{}'".format(query.selector))
+    print(f">> [Queryable ] Received Query '{query.selector}'" + (f" with value: {query.value.payload}" if query.value is not None else ""))
     query.reply(Sample(key, value))
 
 

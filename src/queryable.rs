@@ -22,7 +22,7 @@ use zenoh_core::SyncResolve;
 
 use crate::{
     keyexpr::{_KeyExpr, _Selector},
-    value::_Sample,
+    value::{_Sample, _Value},
     ToPyErr,
 };
 
@@ -72,6 +72,10 @@ impl _Query {
             .reply(Ok(sample.into()))
             .res_sync()
             .map_err(|e| e.to_pyerr())
+    }
+    #[getter]
+    pub fn value(&self) -> Option<_Value> {
+        self.0.value().map(|v| v.clone().into())
     }
 }
 impl From<Query> for _Query {
