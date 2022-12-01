@@ -46,11 +46,13 @@ parser.add_argument('--target', '-t', dest='target',
                     default='ALL',
                     type=str,
                     help='The target queryables of the query.')
+parser.add_argument('--value', '-v', dest='value',
+                    type=str,
+                    help='An optional value to send in the query.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
                     help='A configuration file.')
-parser.add_argument('--value', '-v', dest="value", type=str, help='The value of the query.')
 
 args = parser.parse_args()
 conf = zenoh.Config.from_file(

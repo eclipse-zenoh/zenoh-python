@@ -11,7 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from typing import Dict
+from typing import Dict, Optional
 
 from .zenoh import _Query, _Queryable
 from .keyexpr import KeyExpr, Selector
@@ -63,7 +63,7 @@ class Query(_Query):
         """
         return Selector._upgrade_(super().selector)
     @property
-    def value(self) -> Value:
+    def value(self) -> Optional[Value]:
         """
         The query's value.
 

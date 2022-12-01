@@ -67,15 +67,15 @@ impl _Query {
     pub fn selector(&self) -> _Selector {
         _Selector(self.0.selector().clone().into_owned())
     }
+    #[getter]
+    pub fn value(&self) -> Option<_Value> {
+        self.0.value().map(|v| v.clone().into())
+    }
     pub fn reply(&self, sample: _Sample) -> PyResult<()> {
         self.0
             .reply(Ok(sample.into()))
             .res_sync()
             .map_err(|e| e.to_pyerr())
-    }
-    #[getter]
-    pub fn value(&self) -> Option<_Value> {
-        self.0.value().map(|v| v.clone().into())
     }
 }
 impl From<Query> for _Query {

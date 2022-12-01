@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, Sample
+from zenoh import config, Sample, Value
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
