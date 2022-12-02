@@ -15,7 +15,7 @@
 #
 [package]
 name = "eclipse-zenoh"
-version = "0.6.0-beta.1"
+version = "0.7.0-rc"
 authors = [
     "kydos <angelo@icorsaro.net>",
     "Julien Enoch <julien@enoch.fr>",
