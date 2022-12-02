@@ -43,7 +43,7 @@ parser.add_argument('--selector', '-s', dest='selector',
                     help='The selection of resources to query.')
 parser.add_argument('--target', '-t', dest='target',
                     choices=['ALL', 'BEST_MATCHING', 'ALL_COMPLETE', 'NONE'],
-                    default='ALL',
+                    default='BEST_MATCHING',
                     type=str,
                     help='The target queryables of the query.')
 parser.add_argument('--value', '-v', dest='value',
@@ -55,8 +55,7 @@ parser.add_argument('--config', '-c', dest='config',
                     help='A configuration file.')
 
 args = parser.parse_args()
-conf = zenoh.Config.from_file(
-    args.config) if args.config is not None else zenoh.Config()
+conf = zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 if args.mode is not None:
     conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
 if args.connect is not None:
@@ -67,7 +66,8 @@ selector = args.selector
 target = {
     'ALL': QueryTarget.ALL(),
     'BEST_MATCHING': QueryTarget.BEST_MATCHING(),
-    'ALL_COMPLETE': QueryTarget.ALL_COMPLETE(),}.get(args.target)
+    'ALL_COMPLETE': QueryTarget.ALL_COMPLETE(),
+    }.get(args.target)
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
