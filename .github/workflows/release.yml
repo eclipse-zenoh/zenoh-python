@@ -119,7 +119,6 @@ jobs:
         run: ls -al ./dist/*
       - name: publish
         if: github.event_name == 'release' && github.event.action == 'published'
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@v1.6.4
         with:
-          user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
