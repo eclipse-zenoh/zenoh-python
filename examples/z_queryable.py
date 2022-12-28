@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, Sample
+from zenoh import config, Sample, Value
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -45,6 +45,10 @@ parser.add_argument('--value', '-v', dest='value',
                     default='Queryable from Python!',
                     type=str,
                     help='The value to reply to queries.')
+parser.add_argument('--complete', dest='complete',
+                    default=False,
+                    action='store_true',
+                    help='Declare the queryable as complete w.r.t. the key expression.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -61,12 +65,13 @@ if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 key = args.key
 value = args.value
+complete = args.complete
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
 
 def queryable_callback(query):
-    print(">> [Queryable ] Received Query '{}'".format(query.selector))
+    print(f">> [Queryable ] Received Query '{query.selector}'" + (f" with value: {query.value.payload}" if query.value is not None else ""))
     query.reply(Sample(key, value))
 
 
@@ -77,7 +82,7 @@ print("Opening session...")
 session = zenoh.open(conf)
 
 print("Declaring Queryable on '{}'...".format(key))
-queryable = session.declare_queryable(key, queryable_callback)
+queryable = session.declare_queryable(key, queryable_callback, complete)
 
 print("Enter 'q' to quit...")
 c = '\0'

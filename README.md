@@ -7,12 +7,18 @@
 [![License](https://img.shields.io/badge/License-EPL%202.0-blue)](https://choosealicense.com/licenses/epl-2.0/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# Eclipse zenoh Python API
+# Eclipse Zenoh
 
-[Eclipse zenoh](http://zenoh.io) is an extremely efficient and fault-tolerant [Named Data Networking](http://named-data.net) (NDN) protocol
-that is able to scale down to extremely constrainded devices and networks.
+The Eclipse Zenoh: Zero Overhead Pub/sub, Store/Query and Compute.
+
+Zenoh (pronounce _/zeno/_) unifies data in motion, data at rest and computations. It carefully blends traditional pub/sub with geo-distributed storages, queries and computations, while retaining a level of time and space efficiency that is well beyond any of the mainstream stacks.
 
 Check the website [zenoh.io](http://zenoh.io) and the [roadmap](https://github.com/eclipse-zenoh/roadmap) for more detailed information.
+
+-------------------------------
+# Python API
+
+This repository provides a Python binding based on the main [Zenoh implementation written in Rust](https://github.com/eclipse-zenoh/zenoh).
 
 -------------------------------
 ## How to install it
@@ -29,21 +35,23 @@ pip install eclipse-zenoh-nightly
 ```
 
 :warning:WARNING:warning: zenoh-python is developped in Rust.
-On Pypi.org we provide binary wheels for the most common platforms (MacOS, Linux x86). But also a source distribution package for other platforms.
-However, for `pip` to be able to build this source distribution, there some prerequisites:
+On Pypi.org we provide binary wheels for the most common platforms (Linux x86_64, i686, ARMs, MacOS universal2 and Windows amd64). But also a source distribution package for other platforms.
+However, for `pip` to be able to build this source distribution, there are some prerequisites:
  - `pip` version 19.3.1 minimum (for full support of PEP 517).
    (if necessary upgrade it with command: `'sudo pip install --upgrade pip'` )
  - Have a Rust toolchain installed (instructions at https://rustup.rs/)
 
 ### Supported Python versions and platforms
 
-zenoh-python has been tested with Python 3.6, 3.7, 3.8 and 3.9.
+zenoh-python has been tested with Python 3.7, 3.8, 3.9 and 3.10.
 
 It relies on the [zenoh](https://github.com/eclipse-zenoh/zenoh/tree/master/zenoh) Rust API which require the full `std` library. See the list Rust supported platforms here: https://doc.rust-lang.org/nightly/rustc/platform-support.html .
 
 
 -------------------------------
 ## How to build it
+
+> :warning: **WARNING** :warning: : Zenoh and its ecosystem are under active development. When you build from git, make sure you also build from git any other Zenoh repository you plan to use (e.g. binding, plugin, backend, etc.). It may happen that some changes in git are not compatible with the most recent packaged Zenoh release (e.g. deb, docker, pip). We put particular effort in mantaining compatibility between the various git repositories in the Zenoh project. 
 
 Requirements:
  * Python >= 3.7

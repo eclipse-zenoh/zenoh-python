@@ -85,6 +85,8 @@ class Value(_Value, IValue):
 
     @staticmethod
     def _upgrade_(inner: _Value) -> 'Value':
+        if inner is None:
+            return None
         if isinstance(inner, Value):
             return inner
         return _Value.__new__(Value, inner)

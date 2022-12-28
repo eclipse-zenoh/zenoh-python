@@ -7,18 +7,11 @@ on:
     - cron: "0 1 * * 1-5"
   workflow_dispatch:
 
-env:
-  PYTHON_VERSION: "3.7"
-
 jobs:
   macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          architecture: x64
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -29,11 +22,11 @@ jobs:
         uses: messense/maturin-action@v1
         with:
           target: x86_64
-          args: --release --out dist
+          args: --release --out dist --sdist # Note: this step builds also the sources distrib
       - name: Build wheels - universal2
         uses: messense/maturin-action@v1
         with:
-          args: --release --universal2 --out dist --no-sdist
+          args: --release --universal2 --out dist
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -44,13 +37,10 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        target: [x64, x86]
+        target: [x64]
+        # target: [x64, x86]   NOTE: x86 deactivated because of strange error: failed to run custom build command for `pyo3-ffi v0.17.1`
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          architecture: ${{ matrix.target }}
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -61,7 +51,7 @@ jobs:
         uses: messense/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --no-sdist
+          args: --release --out dist
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -72,41 +62,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64, i686]
+        target: [x86_64, i686, aarch64, armv7]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          architecture: x64
       - name: Build wheels
         uses: messense/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           manylinux: auto
-          args: --release --out dist --no-sdist
-      - name: Upload wheels
-        uses: actions/upload-artifact@v2
-        with:
-          name: wheels
-          path: dist
-
-  linux-cross:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [aarch64, armv7]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Build wheels
-        uses: messense/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          manylinux: auto
-          args: --release --out dist --no-sdist
+          args: --release --out dist
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -117,9 +81,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -146,7 +107,7 @@ jobs:
           path: dist
 
   deploy-wheels:
-    needs: [macos, windows, linux, linux-cross, linux-armv6]
+    needs: [macos, windows, linux, linux-armv6]
     name: deploy wheels to pypi
     runs-on: ubuntu-latest
     steps:
@@ -158,7 +119,6 @@ jobs:
         run: ls -al ./dist/*
       - name: publish
         if: github.event_name == 'release' && github.event.action == 'published'
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@v1.6.4
         with:
-          user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
