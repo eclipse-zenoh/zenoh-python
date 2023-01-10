@@ -317,18 +317,14 @@ impl _Hello {
     #[getter]
     pub fn whatami(&self) -> Option<&'static str> {
         match self.0.whatami {
-            Some(zenoh::config::whatami::WhatAmI::Client) => Some("client"),
-            Some(zenoh::config::whatami::WhatAmI::Peer) => Some("peer"),
-            Some(zenoh::config::whatami::WhatAmI::Router) => Some("router"),
-            None => None,
+            zenoh::config::whatami::WhatAmI::Client => Some("client"),
+            zenoh::config::whatami::WhatAmI::Peer => Some("peer"),
+            zenoh::config::whatami::WhatAmI::Router => Some("router"),
         }
     }
     #[getter]
     pub fn locators(&self) -> Vec<String> {
-        match &self.0.locators {
-            Some(locators) => locators.iter().map(|l| l.to_string()).collect(),
-            None => Vec::new(),
-        }
+        self.0.locators.iter().map(|l| l.to_string()).collect()
     }
     pub fn __str__(&self) -> String {
         self.0.to_string()
