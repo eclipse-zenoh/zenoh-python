@@ -40,7 +40,20 @@ impl Payload {
     pub(crate) fn into_pybytes(self) -> Py<PyBytes> {
         match self {
             Payload::Zenoh(buf) => {
-                Python::with_gil(|py| Py::from(PyBytes::new(py, buf.contiguous().as_ref())))
+                let len = buf.len();
+                Python::with_gil(|py| {
+                    Py::from(
+                        PyBytes::new_with(py, len, |mut bytes| {
+                            for slice in buf.slices() {
+                                let len = slice.len();
+                                bytes[..len].copy_from_slice(slice);
+                                bytes = &mut bytes[len..];
+                            }
+                            Ok(())
+                        })
+                        .unwrap(),
+                    )
+                })
             }
             Payload::Python(buf) => buf,
         }
