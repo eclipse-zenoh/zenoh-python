@@ -74,7 +74,7 @@ class Closure(IClosure, Generic[In, Out]):
     A Closure is a pair of a `call` function that will be used as a callback,
     and a `drop` function that will be called when the closure is destroyed.
     """
-    def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None):
+    def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None, spawn_thread_on_call=False):
         _call_ = None
         self._drop_ = lambda: None
         if isinstance(closure, IHandler):
@@ -93,6 +93,9 @@ class Closure(IClosure, Generic[In, Out]):
             self._call_ = lambda *args: _call_(type_adaptor(*args))
         else:
             self._call_ = _call_
+        if spawn_thread_on_call:
+            self._call_ = lambda *args: Thread(target=_call_, args=args).start()
+
     @property
     def call(self) -> Callable[[In], Out]:
         return self._call_
@@ -123,7 +126,7 @@ class Handler(IHandler, Generic[In, Out, Receiver]):
                 self._closure_ = input
         else:
             self._closure_ = input
-        self._closure_ = Closure(self._closure_, type_adaptor)
+        self._closure_ = Closure(self._closure_, type_adaptor, not isinstance(self._closure_, Closure))
 
     @property
     def closure(self) -> IClosure[In, Out]:
