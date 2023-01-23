@@ -182,9 +182,11 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 
     When used as a handler, it provides itself as the receiver, and will provide a
     callback that appends elements to the queue.
+
+    Can be bounded by passing a maximum size as `bound`.
     """
-    def __init__(self):
-        self._inner_ = _Queue()
+    def __init__(self, bound: int = None):
+        self._inner_ = _Queue(bound)
     
     @property
     def closure(self) -> IClosure[In, None]:

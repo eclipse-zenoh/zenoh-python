@@ -108,8 +108,11 @@ pub struct _Queue {
 #[pymethods]
 impl _Queue {
     #[new]
-    pub fn pynew() -> Self {
-        let (send, recv) = flume::unbounded();
+    pub fn pynew(bound: Option<usize>) -> Self {
+        let (send, recv) = match bound {
+            None => flume::unbounded(),
+            Some(bound) => flume::bounded(bound),
+        };
         Self {
             send: Some(send),
             recv,
