@@ -11,7 +11,10 @@
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 //
-use std::{convert::TryFrom, sync::Arc};
+use std::{
+    convert::TryFrom,
+    sync::{Arc, Mutex},
+};
 
 use pyo3::{
     prelude::*,
@@ -102,7 +105,7 @@ where
 
 #[pyclass(subclass)]
 pub struct _Queue {
-    send: Option<flume::Sender<PyObject>>,
+    send: Mutex<Option<flume::Sender<PyObject>>>,
     recv: flume::Receiver<PyObject>,
 }
 #[pymethods]
@@ -114,81 +117,73 @@ impl _Queue {
             Some(bound) => flume::bounded(bound),
         };
         Self {
-            send: Some(send),
+            send: Mutex::new(Some(send)),
             recv,
         }
     }
-    pub fn close(&mut self) {
-        self.send = None;
+    pub fn close(&self) {
+        *self.send.lock().unwrap() = None;
     }
-    pub fn put(&self, value: PyObject) -> PyResult<()> {
-        match &self.send {
+    pub fn put(&self, value: PyObject, py: Python<'_>) -> PyResult<()> {
+        match self.send.lock().unwrap().as_ref() {
             None => Err(pyo3::exceptions::PyBrokenPipeError::new_err(
                 "Attempted to put on closed Queue",
             )),
-            Some(send) => Python::with_gil(|py| {
-                Python::allow_threads(py, || {
-                    // println!("SEND");
-                    send.send(value).unwrap();
-                    Ok(())
-                })
+            Some(send) => Python::allow_threads(py, || {
+                send.send(value).unwrap();
+                Ok(())
             }),
         }
     }
-    pub fn get(&self, timeout: Option<f32>) -> PyResult<PyObject> {
-        Python::with_gil(|py| {
-            Python::allow_threads(py, || {
-                let v = match timeout {
-                    None => match self.recv.recv() {
-                        Ok(value) => Ok(value),
-                        Err(_) => Err(pyo3::exceptions::PyStopIteration::new_err(())),
-                    },
-                    Some(secs) => match self
-                        .recv
-                        .recv_timeout(std::time::Duration::from_secs_f32(secs))
-                    {
-                        Ok(value) => Ok(value),
-                        Err(flume::RecvTimeoutError::Timeout) => {
-                            Err(pyo3::exceptions::PyTimeoutError::new_err(()))
-                        }
-                        Err(flume::RecvTimeoutError::Disconnected) => {
-                            Err(pyo3::exceptions::PyStopIteration::new_err(()))
-                        }
-                    },
-                };
-                v
-            })
+    pub fn get(&self, timeout: Option<f32>, py: Python<'_>) -> PyResult<PyObject> {
+        Python::allow_threads(py, || {
+            let v = match timeout {
+                None => match self.recv.recv() {
+                    Ok(value) => Ok(value),
+                    Err(_) => Err(pyo3::exceptions::PyStopIteration::new_err(())),
+                },
+                Some(secs) => match self
+                    .recv
+                    .recv_timeout(std::time::Duration::from_secs_f32(secs))
+                {
+                    Ok(value) => Ok(value),
+                    Err(flume::RecvTimeoutError::Timeout) => {
+                        Err(pyo3::exceptions::PyTimeoutError::new_err(()))
+                    }
+                    Err(flume::RecvTimeoutError::Disconnected) => {
+                        Err(pyo3::exceptions::PyStopIteration::new_err(()))
+                    }
+                },
+            };
+            v
         })
     }
-    pub fn get_remaining(&self, timeout: Option<f32>) -> PyResult<Py<PyList>> {
-        Python::with_gil(|py| {
-            // println!("GET");
-            Python::allow_threads(py, || {
-                let vec = match timeout {
-                    None => self.recv.iter().collect::<Vec<_>>(),
-                    Some(secs) => {
-                        let deadline =
-                            std::time::Instant::now() + std::time::Duration::from_secs_f32(secs);
-                        let mut vec = Vec::new();
-                        loop {
-                            match self.recv.recv_deadline(deadline) {
-                                Ok(v) => vec.push(v),
-                                Err(flume::RecvTimeoutError::Disconnected) => break,
-                                Err(flume::RecvTimeoutError::Timeout) => {
-                                    let list: Py<PyList> =
-                                        Python::with_gil(|py| PyList::new(py, vec).into_py(py));
-                                    return Err(pyo3::exceptions::PyTimeoutError::new_err((list,)));
-                                }
+    pub fn get_remaining(&self, timeout: Option<f32>, py: Python<'_>) -> PyResult<Py<PyList>> {
+        Python::allow_threads(py, || {
+            let vec = match timeout {
+                None => self.recv.iter().collect::<Vec<_>>(),
+                Some(secs) => {
+                    let deadline =
+                        std::time::Instant::now() + std::time::Duration::from_secs_f32(secs);
+                    let mut vec = Vec::new();
+                    loop {
+                        match self.recv.recv_deadline(deadline) {
+                            Ok(v) => vec.push(v),
+                            Err(flume::RecvTimeoutError::Disconnected) => break,
+                            Err(flume::RecvTimeoutError::Timeout) => {
+                                let list: Py<PyList> =
+                                    Python::with_gil(|py| PyList::new(py, vec).into_py(py));
+                                return Err(pyo3::exceptions::PyTimeoutError::new_err((list,)));
                             }
                         }
-                        vec
                     }
-                };
-                Ok(Python::with_gil(|py| PyList::new(py, vec).into_py(py)))
-            })
+                    vec
+                }
+            };
+            Ok(Python::with_gil(|py| PyList::new(py, vec).into_py(py)))
         })
     }
     pub fn is_closed(&self) -> bool {
-        self.send.is_none()
+        self.send.lock().unwrap().is_none()
     }
 }

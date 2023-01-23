@@ -78,15 +78,15 @@ class Closure(IClosure, Generic[In, Out]):
     """
     def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None, prevent_direct_calls=False):
         _call_ = None
-        self._drop_ = lambda: None
+        _drop_ = lambda: None
         if isinstance(closure, IHandler):
             closure = closure.closure
             # dev-note: do not elif here, the  next if will catch the obtained closure.
         if isinstance(closure, IClosure):
             _call_ = closure.call
-            self._drop_ = closure.drop
+            _drop_ = closure.drop
         elif isinstance(closure, tuple):
-            _call_, self._drop_ = closure
+            _call_, _drop_ = closure
         elif callable(closure):
             _call_ = closure
         else:
@@ -100,10 +100,18 @@ class Closure(IClosure, Generic[In, Out]):
             def readqueue():
                 for x in queue:
                     adapted(*x)
-            Thread(target=readqueue).start()
+                    x = None
+            t = Thread(target=readqueue)
+            t.start()
             self._call_ = lambda *args: queue.put(args)
+            def drop():
+                queue.close()
+                t.join()
+                _drop_()
+            self._drop_ = drop
         else:
             self._call_ = _call_
+            self._drop_ = _drop_
 
     @property
     def call(self) -> Callable[[In], Out]:
