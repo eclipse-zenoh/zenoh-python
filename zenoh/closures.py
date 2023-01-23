@@ -17,6 +17,8 @@ from threading import Condition, Thread
 from collections import deque
 import time
 
+from .zenoh import _Queue
+
 In = TypeVar("In")
 Out = TypeVar("Out")
 Receiver = TypeVar("Receiver")
