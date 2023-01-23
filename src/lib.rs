@@ -71,6 +71,7 @@ impl<K: ToPyObject> PyExtract<K> for PyDict {
 #[pymodule]
 fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<config::_Config>()?;
+    m.add_class::<closures::_Queue>()?;
     m.add_class::<keyexpr::_KeyExpr>()?;
     m.add_class::<keyexpr::_Selector>()?;
     m.add_class::<session::_Session>()?;

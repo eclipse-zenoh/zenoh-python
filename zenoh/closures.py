@@ -74,7 +74,7 @@ class Closure(IClosure, Generic[In, Out]):
     A Closure is a pair of a `call` function that will be used as a callback,
     and a `drop` function that will be called when the closure is destroyed.
     """
-    def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None, spawn_thread_on_call=False):
+    def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None, prevent_direct_calls=False):
         _call_ = None
         self._drop_ = lambda: None
         if isinstance(closure, IHandler):
@@ -90,11 +90,18 @@ class Closure(IClosure, Generic[In, Out]):
         else:
             raise TypeError("Unexpected type as input for zenoh.Closure")
         if type_adaptor is not None:
-            self._call_ = lambda *args: _call_(type_adaptor(*args))
+            adapted = lambda *args: _call_(type_adaptor(*args))
+        else:
+            adapted = _call_
+        if prevent_direct_calls:
+            queue = Queue()
+            def readqueue():
+                for x in queue:
+                    adapted(*x)
+            Thread(target=readqueue).start()
+            self._call_ = lambda *args: queue.put(args)
         else:
             self._call_ = _call_
-        if spawn_thread_on_call:
-            self._call_ = lambda *args: Thread(target=_call_, args=args).start()
 
     @property
     def call(self) -> Callable[[In], Out]:
@@ -126,7 +133,7 @@ class Handler(IHandler, Generic[In, Out, Receiver]):
                 self._closure_ = input
         else:
             self._closure_ = input
-        self._closure_ = Closure(self._closure_, type_adaptor, not isinstance(self._closure_, Closure))
+        self._closure_ = Closure(self._closure_, type_adaptor, False and not isinstance(self._closure_, Closure))
 
     @property
     def closure(self) -> IClosure[In, Out]:
@@ -176,10 +183,8 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
     When used as a handler, it provides itself as the receiver, and will provide a
     callback that appends elements to the queue.
     """
-    def __init__(self, timeout=None):
-        self._vec_ = deque()
-        self._cv_ = Condition()
-        self._done_ = False
+    def __init__(self):
+        self._inner_ = _Queue()
     
     @property
     def closure(self) -> IClosure[In, None]:
@@ -195,56 +200,30 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
         """
         Puts one element on the queue.
         """
-        with self._cv_:
-            self._vec_.append(value)
-            self._cv_.notify()
+        self._inner_.put(value)
 
 
-    def get(self, timeout=None):
+    def get(self, timeout: float = None):
         """
         Gets one element from the queue.
 
         Raises a `StopIteration` exception if the queue was closed before the timeout ran out.
         Raises a `TimeoutError` if the timeout ran out.
         """
-        try:
-            return self._vec_.pop()
-        except IndexError:
-            pass
-        if self._done_:
-            raise StopIteration()
-        with self._cv_:
-            self._cv_.wait(timeout=timeout)
-            try:
-                return self._vec_.pop()
-            except IndexError:
-                pass
-        if self._done_:
-            raise StopIteration()
-        else:
-            raise TimeoutError()
+        self._inner_.get(timeout)
     
     def close(self):
-        with self._cv_:
-            self._done_ = True
-            self._cv_.notify()
+        self._inner_.close()
     
-    def get_remaining(self, timeout=None) -> List[In]:
+    def get_remaining(self, timeout: float = None) -> List[In]:
         """
         Awaits the closing of the queue, returning the remaining queued values in a list.
         The values inserted into the queue up until this happens will be available through `get`.
 
-        Raises a `TimeoutError` if the timeout in seconds provided was exceeded before closing.
+        Raises a `TimeoutError` if the timeout in seconds provided was exceeded before closing,
+        whose `args[0]` will contain the elements that were collected before timing out.
         """
-        end = (time.time() + timeout) if timeout is not None else None
-        while not self._done_:
-            with self._cv_:
-                self._cv_.wait(timeout=(timeout - time.time()) if timeout else None)
-                if self._done_:
-                    return
-                elif time.time() >= end:
-                    raise TimeoutError()
-        return list(self._vec_)
+        self._inner_.get_remaining()
 
     def __iter__(self):
         return self

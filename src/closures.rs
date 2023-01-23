@@ -13,7 +13,10 @@
 //
 use std::{convert::TryFrom, sync::Arc};
 
-use pyo3::{prelude::*, types::PyTuple};
+use pyo3::{
+    prelude::*,
+    types::{PyList, PyTuple},
+};
 use zenoh::prelude::IntoCallbackReceiverPair;
 
 trait CallbackUnwrap {
@@ -94,5 +97,81 @@ where
             }),
             (),
         )
+    }
+}
+
+#[pyclass(subclass)]
+pub struct _Queue {
+    send: Option<flume::Sender<PyObject>>,
+    recv: flume::Receiver<PyObject>,
+}
+#[pymethods]
+impl _Queue {
+    #[new]
+    pub fn pynew() -> Self {
+        let (send, recv) = flume::unbounded();
+        Self {
+            send: Some(send),
+            recv,
+        }
+    }
+    pub fn close(&mut self) {
+        self.send = None;
+    }
+    pub fn put(&self, value: PyObject) -> PyResult<()> {
+        match &self.send {
+            None => Err(pyo3::exceptions::PyBrokenPipeError::new_err(
+                "Attempted to put on closed Queue",
+            )),
+            Some(send) => {
+                send.send(value).unwrap();
+                Ok(())
+            }
+        }
+    }
+    pub fn get(&self, timeout: Option<f32>) -> PyResult<PyObject> {
+        match timeout {
+            None => match self.recv.recv() {
+                Ok(value) => Ok(value),
+                Err(_) => Err(pyo3::exceptions::PyStopIteration::new_err(())),
+            },
+            Some(secs) => match self
+                .recv
+                .recv_timeout(std::time::Duration::from_secs_f32(secs))
+            {
+                Ok(value) => Ok(value),
+                Err(flume::RecvTimeoutError::Timeout) => {
+                    Err(pyo3::exceptions::PyTimeoutError::new_err(()))
+                }
+                Err(flume::RecvTimeoutError::Disconnected) => {
+                    Err(pyo3::exceptions::PyStopIteration::new_err(()))
+                }
+            },
+        }
+    }
+    pub fn get_remaining(&self, timeout: Option<f32>) -> PyResult<Py<PyList>> {
+        let vec = match timeout {
+            None => self.recv.iter().collect::<Vec<_>>(),
+            Some(secs) => {
+                let deadline = std::time::Instant::now() + std::time::Duration::from_secs_f32(secs);
+                let mut vec = Vec::new();
+                loop {
+                    match self.recv.recv_deadline(deadline) {
+                        Ok(v) => vec.push(v),
+                        Err(flume::RecvTimeoutError::Disconnected) => break,
+                        Err(flume::RecvTimeoutError::Timeout) => {
+                            let list: Py<PyList> =
+                                Python::with_gil(|py| PyList::new(py, vec).into_py(py));
+                            return Err(pyo3::exceptions::PyTimeoutError::new_err((list,)));
+                        }
+                    }
+                }
+                vec
+            }
+        };
+        Ok(Python::with_gil(|py| PyList::new(py, vec).into_py(py)))
+    }
+    pub fn is_closed(&self) -> bool {
+        self.send.is_none()
     }
 }

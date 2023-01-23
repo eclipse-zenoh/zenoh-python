@@ -456,6 +456,7 @@ version = "0.7.0-rc"
 dependencies = [
  "async-std",
  "env_logger",
+ "flume",
  "form_urlencoded",
  "futures",
  "json5",
