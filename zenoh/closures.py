@@ -201,6 +201,8 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
     def put(self, value):
         """
         Puts one element on the queue.
+
+        Raises a `PyBrokenPipeError` if the Queue has been closed.
         """
         self._inner_.put(value)
 
@@ -209,7 +211,8 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
         """
         Gets one element from the queue.
 
-        Raises a `StopIteration` exception if the queue was closed before the timeout ran out.
+        Raises a `StopIteration` exception if the queue was closed before the timeout ran out,
+        this allows using the Queue as an iterator in for-loops.
         Raises a `TimeoutError` if the timeout ran out.
         """
         self._inner_.get(timeout)
