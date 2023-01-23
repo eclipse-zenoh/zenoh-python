@@ -96,7 +96,7 @@ class Closure(IClosure, Generic[In, Out]):
         else:
             adapted = _call_
         if prevent_direct_calls:
-            queue = Queue()
+            queue = Queue(128)
             def readqueue():
                 for x in queue:
                     adapted(*x)
@@ -135,7 +135,7 @@ class Handler(IHandler, Generic[In, Out, Receiver]):
                 self._closure_ = input
         else:
             self._closure_ = input
-        self._closure_ = Closure(self._closure_, type_adaptor, False and not isinstance(self._closure_, Closure))
+        self._closure_ = Closure(self._closure_, type_adaptor, not isinstance(self._closure_, Closure))
 
     @property
     def closure(self) -> IClosure[In, Out]:
@@ -206,7 +206,7 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
 
         Raises a `PyBrokenPipeError` if the Queue has been closed.
         """
-        self._inner_.put(value)
+        return self._inner_.put(value)
 
 
     def get(self, timeout: float = None):
@@ -217,10 +217,10 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
         this allows using the Queue as an iterator in for-loops.
         Raises a `TimeoutError` if the timeout ran out.
         """
-        self._inner_.get(timeout)
+        return self._inner_.get(timeout)
     
     def close(self):
-        self._inner_.close()
+        return self._inner_.close()
     
     def get_remaining(self, timeout: float = None) -> List[In]:
         """
@@ -230,7 +230,7 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
         Raises a `TimeoutError` if the timeout in seconds provided was exceeded before closing,
         whose `args[0]` will contain the elements that were collected before timing out.
         """
-        self._inner_.get_remaining()
+        return self._inner_.get_remaining()
 
     def __iter__(self):
         return self
