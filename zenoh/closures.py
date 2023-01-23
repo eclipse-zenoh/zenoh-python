@@ -125,8 +125,12 @@ IntoHandler = Union[IHandler[In, Out, Receiver], IClosure[In, Out],  Tuple[IClos
 class Handler(IHandler, Generic[In, Out, Receiver]):
     """
     A Handler is a value that may be converted into a callback closure for zenoh to use on one side, while possibly providing a receiver for the data that zenoh would provide through that callback.
+
+    Note that the values will be piped onto a `Queue` before being sent to your handler by another Thread unless either:
+        a) `input` is already an instance of `Closure` or `Handler` where `input.closure` is an instance of `Closure`
+        b) `prevent_direct_calls` is set to `False`
     """
-    def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[[Any], In] = None):
+    def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[[Any], In] = None, prevent_direct_calls = True):
         self._receiver_ = None
         if isinstance(input, IHandler):
             self._receiver_ = input.receiver
@@ -143,7 +147,7 @@ class Handler(IHandler, Generic[In, Out, Receiver]):
                 self._closure_ = input
         else:
             self._closure_ = input
-        self._closure_ = Closure(self._closure_, type_adaptor, not isinstance(self._closure_, Closure))
+        self._closure_ = Closure(self._closure_, type_adaptor, prevent_direct_calls and not isinstance(self._closure_, Closure))
 
     @property
     def closure(self) -> IClosure[In, Out]:
