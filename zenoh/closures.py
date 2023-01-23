@@ -178,7 +178,7 @@ class ListCollector(IHandler[In, None, Callable[[],List[In]]], Generic[In]):
 
 class Queue(IHandler[In, None, 'Queue'], Generic[In]):
     """
-    A simple single-producer, single-consumer queue implementation.
+    A binding for a Rust multi-producer, single-consumer queue implementation.
 
     When used as a handler, it provides itself as the receiver, and will provide a
     callback that appends elements to the queue.
