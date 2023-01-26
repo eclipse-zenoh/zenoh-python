@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
 use zenoh::config::whatami::{WhatAmI, WhatAmIMatcher};
+use zenoh::liveliness::LivelinessToken;
 use zenoh::prelude::SessionDeclarations;
 use zenoh::publication::Publisher;
 use zenoh::scouting::Scout;
@@ -247,6 +248,15 @@ impl _Session {
         Ok(_PullSubscriber(subscriber))
     }
 
+    pub fn declare_liveliness(
+        &self,
+        key_expr: &_KeyExpr,
+    ) -> PyResult<_LivelinessToken> {
+        let builder = self.0.declare_liveliness(&key_expr.0);
+        let liveliness = builder.res().map_err(|e| e.to_pyerr())?;
+        Ok(_LivelinessToken(liveliness))
+    }
+
     pub fn zid(&self) -> _ZenohId {
         _ZenohId(self.0.zid())
     }
@@ -283,6 +293,9 @@ impl _Publisher {
         self.0.delete().res_sync().map_err(|e| e.to_pyerr())
     }
 }
+
+#[pyclass(subclass)]
+pub struct _LivelinessToken(LivelinessToken<'static>);
 
 #[pyclass(subclass)]
 pub struct _Subscriber(Subscriber<'static, ()>);

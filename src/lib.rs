@@ -77,6 +77,7 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<session::_Publisher>()?;
     m.add_class::<session::_Subscriber>()?;
     m.add_class::<session::_PullSubscriber>()?;
+    m.add_class::<session::_LivelinessToken>()?;
     m.add_class::<session::_Scout>()?;
     m.add_class::<queryable::_Query>()?;
     m.add_class::<queryable::_Queryable>()?;

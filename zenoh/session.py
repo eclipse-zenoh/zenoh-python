@@ -13,7 +13,7 @@
 #
 from typing import Union, Any, List
 
-from .zenoh import _Session, _Config, _Publisher, _Subscriber, _PullSubscriber
+from .zenoh import _Session, _Config, _Publisher, _Subscriber, _PullSubscriber, _LivelinessToken
 
 from .keyexpr import KeyExpr, IntoKeyExpr, Selector, IntoSelector
 from .config import Config
@@ -22,6 +22,28 @@ from .enums import *
 from .value import IntoValue, Value, Sample, Reply, ZenohId
 from .queryable import Queryable, Query
 
+class LivelinessToken:
+    """
+    A token which liveliness is tied to the Zenoh Session
+    and can be monitored by remote applications.
+
+    A LivelinessToken with key `key/expression` can be queried or subscribed
+    to on key `@/liveliness/key/expression`.
+
+    A declared liveliness token will be seen as alive by any other Zenoh
+    application in the system that monitors it while the liveliness token
+    is not undeclared or dropped, while the Zenoh application that declared
+    it is alive (didn't stop or crashed) and while the Zenoh application
+    that declared the token has Zenoh connectivity with the Zenoh application
+    that monitors it.
+    """
+
+    def __init__(self, l: _LivelinessToken, receiver=None):
+        self._liveliness_ = l
+
+    def undeclare(self):
+        "Undeclares the liveliness token"
+        self._liveliness_ = None
 
 class Publisher:
     "Use `Publisher`s (constructed with `Session.declare_publisher`) when you want to send values often for the same key expression, as declaring them informs Zenoh that this is you intent, and optimizations will be set up to do so."
@@ -229,6 +251,13 @@ class Session(_Session):
             kwargs['reliability'] = reliability
         s = super().declare_pull_subscriber(KeyExpr(keyexpr), handler.closure, **kwargs)
         return PullSubscriber(s, handler.receiver)
+
+    def declare_liveliness(self, keyexpr: IntoKeyExpr):
+        """
+        Declares a token, which liveliness is tied to the Zenoh Session
+        and can be monitored by remote applications.
+        """
+        return LivelinessToken(super().declare_liveliness(KeyExpr(keyexpr)))
 
     def close(self):
         "Closes the Session"
