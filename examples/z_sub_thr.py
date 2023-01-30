@@ -92,9 +92,7 @@ zenoh.init_logger()
 session = zenoh.open(conf)
 
 # By explicitly constructing the `Closure`, the `Queue` that's normally inserted between the callback and zenoh is removed.
-# Only do this if:
-#   a) your callback runs faster than the minimum expected delay between two samples
-#   b) you want your callback to apply backpressure on the publishers
+# Only do this if your callback runs faster than the minimum expected delay between two samples.
 sub = session.declare_subscriber("test/thr", zenoh.Closure((listener, report)), reliability=Reliability.RELIABLE())
 
 print("Enter 'q' to quit...")

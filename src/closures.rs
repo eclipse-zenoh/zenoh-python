@@ -136,26 +136,23 @@ impl _Queue {
         }
     }
     pub fn get(&self, timeout: Option<f32>, py: Python<'_>) -> PyResult<PyObject> {
-        Python::allow_threads(py, || {
-            let v = match timeout {
-                None => match self.recv.recv() {
-                    Ok(value) => Ok(value),
-                    Err(_) => Err(pyo3::exceptions::PyStopIteration::new_err(())),
-                },
-                Some(secs) => match self
-                    .recv
-                    .recv_timeout(std::time::Duration::from_secs_f32(secs))
-                {
-                    Ok(value) => Ok(value),
-                    Err(flume::RecvTimeoutError::Timeout) => {
-                        Err(pyo3::exceptions::PyTimeoutError::new_err(()))
-                    }
-                    Err(flume::RecvTimeoutError::Disconnected) => {
-                        Err(pyo3::exceptions::PyStopIteration::new_err(()))
-                    }
-                },
-            };
-            v
+        Python::allow_threads(py, || match timeout {
+            None => match self.recv.recv() {
+                Ok(value) => Ok(value),
+                Err(_) => Err(pyo3::exceptions::PyStopIteration::new_err(())),
+            },
+            Some(secs) => match self
+                .recv
+                .recv_timeout(std::time::Duration::from_secs_f32(secs))
+            {
+                Ok(value) => Ok(value),
+                Err(flume::RecvTimeoutError::Timeout) => {
+                    Err(pyo3::exceptions::PyTimeoutError::new_err(()))
+                }
+                Err(flume::RecvTimeoutError::Disconnected) => {
+                    Err(pyo3::exceptions::PyStopIteration::new_err(()))
+                }
+            },
         })
     }
     pub fn get_remaining(&self, timeout: Option<f32>, py: Python<'_>) -> PyResult<Py<PyList>> {

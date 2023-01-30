@@ -91,5 +91,4 @@ while c != 'q':
         time.sleep(1)
 
 queryable.undeclare()
-print("UNDECLARED")
 session.close()
