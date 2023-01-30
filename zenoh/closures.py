@@ -17,6 +17,8 @@ from threading import Condition, Thread
 from collections import deque
 import time
 
+from .zenoh import _Queue
+
 In = TypeVar("In")
 Out = TypeVar("Out")
 Receiver = TypeVar("Receiver")
@@ -74,25 +76,43 @@ class Closure(IClosure, Generic[In, Out]):
     A Closure is a pair of a `call` function that will be used as a callback,
     and a `drop` function that will be called when the closure is destroyed.
     """
-    def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None):
+    def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None, prevent_direct_calls=False):
         _call_ = None
-        self._drop_ = lambda: None
+        _drop_ = lambda: None
         if isinstance(closure, IHandler):
             closure = closure.closure
             # dev-note: do not elif here, the  next if will catch the obtained closure.
         if isinstance(closure, IClosure):
             _call_ = closure.call
-            self._drop_ = closure.drop
+            _drop_ = closure.drop
         elif isinstance(closure, tuple):
-            _call_, self._drop_ = closure
+            _call_, _drop_ = closure
         elif callable(closure):
             _call_ = closure
         else:
             raise TypeError("Unexpected type as input for zenoh.Closure")
         if type_adaptor is not None:
-            self._call_ = lambda *args: _call_(type_adaptor(*args))
+            adapted = lambda *args: _call_(type_adaptor(*args))
+        else:
+            adapted = _call_
+        if prevent_direct_calls:
+            queue = Queue(128)
+            def readqueue():
+                for x in queue:
+                    adapted(*x)
+                    x = None
+            t = Thread(target=readqueue)
+            t.start()
+            self._call_ = lambda *args: queue.put(args)
+            def drop():
+                queue.close()
+                t.join()
+                _drop_()
+            self._drop_ = drop
         else:
             self._call_ = _call_
+            self._drop_ = _drop_
+
     @property
     def call(self) -> Callable[[In], Out]:
         return self._call_
@@ -105,8 +125,12 @@ IntoHandler = Union[IHandler[In, Out, Receiver], IClosure[In, Out],  Tuple[IClos
 class Handler(IHandler, Generic[In, Out, Receiver]):
     """
     A Handler is a value that may be converted into a callback closure for zenoh to use on one side, while possibly providing a receiver for the data that zenoh would provide through that callback.
+
+    Note that the values will be piped onto a `Queue` before being sent to your handler by another Thread unless either:
+        a) `input` is already an instance of `Closure` or `Handler` where `input.closure` is an instance of `Closure`
+        b) `prevent_direct_calls` is set to `False`
     """
-    def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[[Any], In] = None):
+    def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[[Any], In] = None, prevent_direct_calls = True):
         self._receiver_ = None
         if isinstance(input, IHandler):
             self._receiver_ = input.receiver
@@ -123,7 +147,7 @@ class Handler(IHandler, Generic[In, Out, Receiver]):
                 self._closure_ = input
         else:
             self._closure_ = input
-        self._closure_ = Closure(self._closure_, type_adaptor)
+        self._closure_ = Closure(self._closure_, type_adaptor, prevent_direct_calls and not isinstance(self._closure_, Closure))
 
     @property
     def closure(self) -> IClosure[In, Out]:
@@ -168,15 +192,15 @@ class ListCollector(IHandler[In, None, Callable[[],List[In]]], Generic[In]):
 
 class Queue(IHandler[In, None, 'Queue'], Generic[In]):
     """
-    A simple single-producer, single-consumer queue implementation.
+    A binding for a Rust multi-producer, single-consumer queue implementation.
 
     When used as a handler, it provides itself as the receiver, and will provide a
     callback that appends elements to the queue.
+
+    Can be bounded by passing a maximum size as `bound`.
     """
-    def __init__(self, timeout=None):
-        self._vec_ = deque()
-        self._cv_ = Condition()
-        self._done_ = False
+    def __init__(self, bound: int = None):
+        self._inner_ = _Queue(bound)
     
     @property
     def closure(self) -> IClosure[In, None]:
@@ -191,57 +215,34 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
     def put(self, value):
         """
         Puts one element on the queue.
+
+        Raises a `PyBrokenPipeError` if the Queue has been closed.
         """
-        with self._cv_:
-            self._vec_.append(value)
-            self._cv_.notify()
+        return self._inner_.put(value)
 
 
-    def get(self, timeout=None):
+    def get(self, timeout: float = None):
         """
         Gets one element from the queue.
 
-        Raises a `StopIteration` exception if the queue was closed before the timeout ran out.
+        Raises a `StopIteration` exception if the queue was closed before the timeout ran out,
+        this allows using the Queue as an iterator in for-loops.
         Raises a `TimeoutError` if the timeout ran out.
         """
-        try:
-            return self._vec_.pop()
-        except IndexError:
-            pass
-        if self._done_:
-            raise StopIteration()
-        with self._cv_:
-            self._cv_.wait(timeout=timeout)
-            try:
-                return self._vec_.pop()
-            except IndexError:
-                pass
-        if self._done_:
-            raise StopIteration()
-        else:
-            raise TimeoutError()
+        return self._inner_.get(timeout)
     
     def close(self):
-        with self._cv_:
-            self._done_ = True
-            self._cv_.notify()
+        return self._inner_.close()
     
-    def get_remaining(self, timeout=None) -> List[In]:
+    def get_remaining(self, timeout: float = None) -> List[In]:
         """
         Awaits the closing of the queue, returning the remaining queued values in a list.
         The values inserted into the queue up until this happens will be available through `get`.
 
-        Raises a `TimeoutError` if the timeout in seconds provided was exceeded before closing.
+        Raises a `TimeoutError` if the timeout in seconds provided was exceeded before closing,
+        whose `args[0]` will contain the elements that were collected before timing out.
         """
-        end = (time.time() + timeout) if timeout is not None else None
-        while not self._done_:
-            with self._cv_:
-                self._cv_.wait(timeout=(timeout - time.time()) if timeout else None)
-                if self._done_:
-                    return
-                elif time.time() >= end:
-                    raise TimeoutError()
-        return list(self._vec_)
+        return self._inner_.get_remaining()
 
     def __iter__(self):
         return self
