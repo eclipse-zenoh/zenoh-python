@@ -89,4 +89,4 @@ Steps:
 
 The simplest way to run some of the example is to get a Docker image of the **zenoh** network router (see https://github.com/eclipse-zenoh/zenoh#how-to-test-it) and then to run the examples on your machine.
 
-Then, run the zenoh-python examples following the instructions in [examples/zenoh/README.md](https://github.com/eclipse-zenoh/zenoh-python/blob/master/examples/zenoh/README.md)
+Then, run the zenoh-python examples following the instructions in [examples/README.md](https://github.com/eclipse-zenoh/zenoh-python/tree/master/examples#readme)
