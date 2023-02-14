@@ -14,16 +14,15 @@
 
 import sys
 import time
-from datetime import datetime
 import argparse
 import json
 import zenoh
-from zenoh import Reliability, Sample
+from zenoh import config, QueryTarget
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_liveliness',
-    description='zenoh liveliness example')
+    prog='z_get_liveliness',
+    description='zenoh liveliness get example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -39,9 +38,9 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='group1/zenoh-python',
+                    default='group1/**',
                     type=str,
-                    help='The key expression of the liveliness token.')
+                    help='The selection of liveliness tokens to query.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -60,28 +59,21 @@ key = args.key
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 
-
-
 # initiate logging
 zenoh.init_logger()
 
 print("Opening session...")
 session = zenoh.open(conf)
 
-print("Declaring LivelinessToken on '{}'...".format(key))
+print("Sending Liveliness Query '{}'...".format(key))
+replies = session.get_liveliness(key, zenoh.Queue())
+for reply in replies.receiver:
+    try:
+        print(">> Received ('{}')"
+              .format(reply.ok.key_expr))
+    except:
+        print(">> Received (ERROR: '{}')"
+              .format(reply.err.payload.decode("utf-8")))
 
-# WARNING, you MUST store the return value for the token to stay alive!!
-# This is because if you don't, the reference counter will reach 0 and the token
-# will be immediately undeclared.
-liveliness = session.declare_liveliness(key)
-
-print("Enter 'd' to undeclare LivelinessToken, 'q' to quit...")
-c = '\0'
-while c != 'q':
-    c = sys.stdin.read(1)
-    if c == 'd':
-        liveliness.undeclare()
-    if c == '':
-        time.sleep(1)
 
 session.close()

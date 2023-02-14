@@ -22,8 +22,8 @@ from zenoh import Reliability, Sample
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_liveliness',
-    description='zenoh liveliness example')
+    prog='z_sub',
+    description='zenoh liveliness sub example')
 parser.add_argument('--mode', '-m', dest='mode',
                     choices=['peer', 'client'],
                     type=str,
@@ -39,9 +39,9 @@ parser.add_argument('--listen', '-l', dest='listen',
                     type=str,
                     help='Endpoints to listen on.')
 parser.add_argument('--key', '-k', dest='key',
-                    default='group1/zenoh-python',
+                    default='group1/**',
                     type=str,
-                    help='The key expression of the liveliness token.')
+                    help='The key expression mathing liveliness changes to subscribe to.')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -68,20 +68,26 @@ zenoh.init_logger()
 print("Opening session...")
 session = zenoh.open(conf)
 
-print("Declaring LivelinessToken on '{}'...".format(key))
+print("Declaring Liveliness Subscriber on '{}'...".format(key))
 
-# WARNING, you MUST store the return value for the token to stay alive!!
-# This is because if you don't, the reference counter will reach 0 and the token
+
+def listener(sample: Sample):
+    print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}')")
+    
+
+# WARNING, you MUST store the return value in order for the subscription to work!!
+# This is because if you don't, the reference counter will reach 0 and the subscription
 # will be immediately undeclared.
-liveliness = session.declare_liveliness(key)
+sub = session.declare_liveliness_subscriber(key, listener)
 
-print("Enter 'd' to undeclare LivelinessToken, 'q' to quit...")
+print("Enter 'q' to quit...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
-    if c == 'd':
-        liveliness.undeclare()
     if c == '':
         time.sleep(1)
 
+# Cleanup: note that even if you forget it, cleanup will happen automatically when 
+# the reference counter reaches 0
+sub.undeclare()
 session.close()

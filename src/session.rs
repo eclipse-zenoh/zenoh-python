@@ -248,13 +248,30 @@ impl _Session {
         Ok(_PullSubscriber(subscriber))
     }
 
-    pub fn declare_liveliness(
-        &self,
-        key_expr: &_KeyExpr,
-    ) -> PyResult<_LivelinessToken> {
+    pub fn declare_liveliness(&self, key_expr: &_KeyExpr) -> PyResult<_LivelinessToken> {
         let builder = self.0.declare_liveliness(&key_expr.0);
         let liveliness = builder.res().map_err(|e| e.to_pyerr())?;
         Ok(_LivelinessToken(liveliness))
+    }
+
+    pub fn declare_liveliness_subscriber(
+        &self,
+        key_expr: &_KeyExpr,
+        callback: &PyAny,
+    ) -> PyResult<_Subscriber> {
+        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let builder = self
+            .0
+            .declare_liveliness_subscriber(&key_expr.0)
+            .with(callback);
+        let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
+        Ok(_Subscriber(subscriber))
+    }
+
+    pub fn get_liveliness(&self, key_expr: &_KeyExpr, callback: &PyAny) -> PyResult<()> {
+        let callback: PyClosure<(_Reply,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let builder = self.0.get_liveliness(&key_expr.0).with(callback);
+        builder.res_sync().map_err(|e| e.to_pyerr())
     }
 
     pub fn zid(&self) -> _ZenohId {

@@ -259,6 +259,29 @@ class Session(_Session):
         """
         return LivelinessToken(super().declare_liveliness(KeyExpr(keyexpr)))
 
+    def declare_liveliness_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any]) -> Subscriber:
+        """
+        Declres a subscriber, which will receive any liveliness changes with a key expression intersecting `keyexpr`.
+
+        The changes are passed to the `handler`'s closure as instances of the `Sample` class.
+
+        The `handler`'s receiver is returned as the `receiver` field of the return value.
+
+        IMPORTANT: due to how RAII and Python work, you MUST bind this function's return value to a variable in order for it to function as expected.
+        This is because as soon as a value is no longer referenced in Python, that value's destructor will run, which will undeclare your subscriber, deactivating the subscription immediately.
+        """
+        handler = Handler(handler, lambda x: Sample._upgrade_(x))
+        s = super().declare_liveliness_subscriber(KeyExpr(keyexpr), handler.closure)
+        return Subscriber(s, handler.receiver)
+
+    def get_liveliness(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Reply, Any, Receiver]) -> Receiver:
+        """
+        Emits a query for liveliness tokens.
+        """
+        handler = Handler(handler, lambda x: Reply(x))
+        super().get_liveliness(KeyExpr(keyexpr), handler.closure)
+        return handler.receiver
+
     def close(self):
         "Closes the Session"
         pass
