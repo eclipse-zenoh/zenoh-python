@@ -156,9 +156,3 @@
    ```bash
       python3 z_pub_thr.py 1024
    ```
-
-### asyncio
-
-In `asyncio` directory there are similar examples than thse described above, but leveraging Python's [asyncio](https://docs.python.org/fr/3/library/asyncio.html).
-
-Especially, the `asyncio/z_get_parallel.py` and `asyncio/z_queryable.py` examples show how a zenoh application can issue concurent queries and how another zenoh application can concurrently compute replies to those queries.
