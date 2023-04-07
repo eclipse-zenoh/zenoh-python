@@ -77,6 +77,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '**/*.rs']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
+autodoc_typehints = "description"
 autodoc_mock_imports = ['zenoh']
 
 # -- Options for HTML output -------------------------------------------------
