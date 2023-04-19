@@ -57,7 +57,8 @@ impl _Session {
     pub fn config(&self) -> _Config {
         _Config(PyConfig::Notifier(self.0.config().clone()))
     }
-    #[args(kwargs = "**")]
+
+    #[pyo3(signature = (key_expr, value, **kwargs))]
     pub fn put(
         &self,
         key_expr: &crate::keyexpr::_KeyExpr,
@@ -89,7 +90,8 @@ impl _Session {
         }
         builder.res_sync().map_err(|e| e.to_pyerr())
     }
-    #[args(kwargs = "**")]
+
+    #[pyo3(signature = (key_expr, **kwargs))]
     pub fn delete(
         &self,
         key_expr: &crate::keyexpr::_KeyExpr,
@@ -120,7 +122,7 @@ impl _Session {
         builder.res_sync().map_err(|e| e.to_pyerr())
     }
 
-    #[args(kwargs = "**")]
+    #[pyo3(signature = (selector, callback, **kwargs))]
     pub fn get(
         &self,
         selector: &_Selector,
@@ -156,7 +158,7 @@ impl _Session {
         }
     }
 
-    #[args(kwargs = "**")]
+    #[pyo3(signature = (key_expr, callback, **kwargs))]
     pub fn declare_queryable(
         &self,
         key_expr: _KeyExpr,
@@ -178,7 +180,7 @@ impl _Session {
         }
     }
 
-    #[args(kwargs = "**")]
+    #[pyo3(signature = (key_expr, **kwargs))]
     pub fn declare_publisher(
         &self,
         key_expr: _KeyExpr,
@@ -203,7 +205,7 @@ impl _Session {
         }
     }
 
-    #[args(kwargs = "**")]
+    #[pyo3(signature = (key_expr, callback, **kwargs))]
     pub fn declare_subscriber(
         &self,
         key_expr: &_KeyExpr,
@@ -223,7 +225,7 @@ impl _Session {
         Ok(_Subscriber(subscriber))
     }
 
-    #[args(kwargs = "**")]
+    #[pyo3(signature = (key_expr, callback, **kwargs))]
     pub fn declare_pull_subscriber(
         &self,
         key_expr: &_KeyExpr,
