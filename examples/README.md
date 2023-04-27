@@ -45,7 +45,7 @@
    ```
    or
    ```bash
-      python3 z_put.py -k /demo/example/test -v 'Hello World'
+      python3 z_put.py -k demo/example/test -v 'Hello World'
    ```
 
 ### z_pub
@@ -60,7 +60,7 @@
    ```
    or
    ```bash
-      python3 z_pub.py -k /demo/example/test -v 'Hello World'
+      python3 z_pub.py -k demo/example/test -v 'Hello World'
    ```
 
 ### z_sub
@@ -75,7 +75,7 @@
    ```
    or
    ```bash
-      python3 z_sub.py -k '/demo/**'
+      python3 z_sub.py -k 'demo/**'
    ```
 
 ### z_pull
@@ -91,7 +91,7 @@
    ```
    or
    ```bash
-      python3 z_pull.py -k '/demo/**'
+      python3 z_pull.py -k 'demo/**'
    ```
 
 ### z_get
@@ -106,7 +106,7 @@
    ```
    or
    ```bash
-      python3 z_get.py -s '/demo/**'
+      python3 z_get.py -s 'demo/**'
    ```
 
 ### z_queryable
@@ -121,7 +121,7 @@
    ```
    or
    ```bash
-      python3 z_queryable.py -k /demo/example/queryable -v 'This is the result'
+      python3 z_queryable.py -k demo/example/queryable -v 'This is the result'
    ```
 
 ### z_storage
@@ -138,7 +138,7 @@
    ```
    or
    ```bash
-      python3 z_storage.py -k '/demo/**'
+      python3 z_storage.py -k 'demo/**'
    ```
 
 ### z_pub_thr & z_sub_thr
