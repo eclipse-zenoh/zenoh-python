@@ -152,7 +152,7 @@ class Session(_Session):
         handler = Handler(handler, lambda x: Reply(x))
         kwargs = dict()
         if consolidation is not None:
-            kwargs["conconsolidation"] = consolidation
+            kwargs["consolidation"] = consolidation
         if target is not None:
             kwargs["target"] = target
         if value is not None:
