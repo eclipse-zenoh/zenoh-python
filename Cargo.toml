@@ -51,9 +51,7 @@ pyo3 = { version = "0.18.1", features = ["extension-module", "abi3-py37"] }
 serde_json = "1.0.94"
 uhlc = "0.5.2"
 validated_struct = "2.1.0"
-zenoh = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master", features = [
-    "unstable",
-] }
-zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master" }
-zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master" }
-zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master" }
+zenoh = "0.7.1-rc"
+zenoh-buffers = "0.7.1-rc"
+zenoh-cfg-properties = "0.7.1-rc"
+zenoh-core = "0.7.1-rc"
