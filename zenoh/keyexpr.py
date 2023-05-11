@@ -73,19 +73,19 @@ class KeyExpr(_KeyExpr):
             e = _KeyExpr.autocanonize(expr)
             return KeyExpr(e.as_str())
     
-    def intersects(self, other: 'KeyExpr') -> bool:
+    def intersects(self, other: IntoKeyExpr) -> bool:
         """
         This method returns `True` if there exists at least one key that belongs to both sets
         defined by `self` and `other`. 
         """
-        return super().intersects(other)
+        return super().intersects(KeyExpr(other))
     
-    def includes(self, other: 'KeyExpr') -> bool:
+    def includes(self, other: IntoKeyExpr) -> bool:
         """
         This method returns `True` if all of the keys defined by `other` also belong to the set
         defined by `self`.
         """
-        return super().includes(other)
+        return super().includes(KeyExpr(other))
     
     def undeclare(self, session: 'Session'):
         """
@@ -93,11 +93,11 @@ class KeyExpr(_KeyExpr):
         """
         super().undeclare(session)
     
-    def __eq__(self, other: 'KeyExpr') -> bool:
+    def __eq__(self, other: IntoKeyExpr) -> bool:
         """
         Corresponds to set equality.
         """
-        return super().__eq__(other)
+        return super().__eq__(KeyExpr(other))
     
     def __truediv__(self, other: IntoKeyExpr) -> 'KeyExpr':
         """
