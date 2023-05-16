@@ -20,8 +20,5 @@ zenoh.init_logger()
 print("Scouting...")
 scout = zenoh.scout(what = "peer|router", timeout=1.0)
 
-def dbg(x):
-    print(x)
-    return x
-for hello in dbg(scout.receiver()):
+for hello in scout.receiver():
     print(hello)
