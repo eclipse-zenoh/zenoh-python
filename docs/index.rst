@@ -16,6 +16,38 @@
 Zenoh API Reference
 *******************
 
+Examples:
+=========
+
+Publish
+-------
+
+>>> import zenoh
+>>> s = zenoh.open({})
+>>> s.put('key/expression', 'value')
+
+Subscribe
+---------
+
+>>> import zenoh
+>>> def listener(sample):
+...     print(f"Received '{sample.key_expr}': '{sample.payload.decode('utf-8')}'")
+... 
+>>> s = zenoh.open({})
+>>> sub = s.declare_subscriber('key/expression', listener)
+
+Query
+-----
+
+>>> import zenoh
+>>> s = zenoh.open({})
+>>> for reply in s.get('key/expression', zenoh.Queue()):
+...     try:
+...         print(f"Received '{reply.ok.key_expr}': '{reply.ok.payload.decode('utf-8')}'")
+...     except:
+...         print(f"Received ERROR: '{reply.err.payload.decode('utf-8')}'")
+... 
+
 module zenoh
 ============
 .. automodule:: zenoh
