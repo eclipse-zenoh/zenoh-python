@@ -24,16 +24,18 @@ class KeyExpr(_KeyExpr):
     
     Zenoh's operations are executed on key expressions, a small language that allows the definition
     of sets of keys via the use of wildcards:
-    - `*` is the single-chunk wildcard, and will match any chunk: "a/*/c" will match "a/b/c", "a/hello/c", etc...
-    - `**` is the 0 or more chunks wildcard: "a/**/c" matches "a/c", "a/b/c", "a/b/hello/c"...
-    - `$*` is the subchunk wildcard, it will match any amount of non-/ characters: "a/b$*" matches "a/b", "a/because", "a/blue"... but not "a/c" nor "a/blue/c"
+
+     - `*` is the single-chunk wildcard, and will match any chunk: `a/*/c` will match `a/b/c`, `a/hello/c`, etc...
+     - `**` is the 0 or more chunks wildcard: `a/**/c` matches `a/c`, `a/b/c`, `a/b/hello/c`, etc...
+     - `$*` is the subchunk wildcard, it will match any amount of non-/ characters: `a/b$*` matches `a/b`, `a/because`, `a/blue`... but not `a/c` nor `a/blue/c`
     
     To allow for better performance and gain the property that two key expressions define the same
     set if and only if they are the same string, the rules of canon form are mandatory for a key
     expression to be propagated by a Zenoh network:
-    - `**/**` may not exist, as it could always be replaced by the shorter `**`,
-    - `**/*` may not exist, and must be written as its equivalent `*/**` instead,
-    - `$*` may not exist alone in a chunk, as it must be written `*` instead.
+
+     - `**/**` may not exist, as it could always be replaced by the shorter `**`,
+     - `**/*` may not exist, and must be written as its equivalent `*/**` instead,
+     - `$*` may not exist alone in a chunk, as it must be written `*` instead.
 
     The `KeyExpr.autocanonize` constructor exists to correct eventual infrigements of the canonization rules.
 
@@ -119,18 +121,21 @@ class Selector(_Selector):
     A selector is the combination of a [Key Expression](crate::prelude::KeyExpr), which defines the
     set of keys that are relevant to an operation, and a `parameters`, a set of key-value pairs
     with a few uses:
-    * specifying arguments to a queryable, allowing the passing of Remote Procedure Call parameters
-    * filtering by value,
-    * filtering by metadata, such as the timestamp of a value,
+
+     * specifying arguments to a queryable, allowing the passing of Remote Procedure Call parameters
+     * filtering by value,
+     * filtering by metadata, such as the timestamp of a value,
 
     When in string form, selectors look a lot like a URI, with similar semantics:
-    * the `key_expr` before the first `?` must be a valid key expression.
-    * the `parameters` after the first `?` should be encoded like the query section of a URL:
-      * key-value pairs are separated by `&`,
-      * the key and value are separated by the first `=`,
-      * in the absence of `=`, the value is considered to be the empty string,
-      * both key and value should use percent-encoding to escape characters,
-      * defining a value for the same key twice is considered undefined behavior.
+
+     * the `key_expr` before the first `?` must be a valid key expression.
+     * the `parameters` after the first `?` should be encoded like the query section of a URL:
+
+        * key-value pairs are separated by `&`,
+        * the key and value are separated by the first `=`,
+        * in the absence of `=`, the value is considered to be the empty string,
+        * both key and value should use percent-encoding to escape characters,
+        * defining a value for the same key twice is considered undefined behavior.
 
     Zenoh intends to standardize the usage of a set of keys. To avoid conflicting with RPC parameters,
     the Zenoh team has settled on reserving the set of keys that start with non-alphanumeric characters.
@@ -143,11 +148,12 @@ class Selector(_Selector):
     queryables.
 
     Here are the currently standardized keys for Zenoh:
-    * `_time`: used to express interest in only values dated within a certain time range, values for
-      this key must be readable by the [Zenoh Time DSL](zenoh_util::time_range::TimeRange) for the value to be considered valid.
-    * `_filter`: *TBD* Zenoh intends to provide helper tools to allow the value associated with
-      this key to be treated as a predicate that the value should fulfill before being returned.
-      A DSL will be designed by the Zenoh team to express these predicates.
+
+     * `_time`: used to express interest in only values dated within a certain time range, values for
+       this key must be readable by the [Zenoh Time DSL](zenoh_util::time_range::TimeRange) for the value to be considered valid.
+     * `_filter`: *TBD* Zenoh intends to provide helper tools to allow the value associated with
+       this key to be treated as a predicate that the value should fulfill before being returned.
+       A DSL will be designed by the Zenoh team to express these predicates.
     """
     def __new__(cls, selector: IntoSelector):
         if isinstance(selector, Selector):

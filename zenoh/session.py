@@ -30,11 +30,11 @@ class Publisher:
         self._inner_ = p
 
     def put(self, value: IntoValue, encoding: Encoding = None):
-        "An optimised version of `session.put(self.key_expr, value, encoding=encoding)"
+        "An optimised version of `session.put(self.key_expr, value, encoding=encoding)`"
         self._inner_.put(Value(value, encoding))
 
     def delete(self):
-        "An optimised version of `session.delete(self.key_expr)"
+        "An optimised version of `session.delete(self.key_expr)`"
         self._inner_.delete()
 
     @property
@@ -172,7 +172,7 @@ class Session(_Session):
         """
         Declares a queryable, which will receive queries intersecting with `keyexpr`.
 
-        These queries are passed to the `handler` as instances of the `Query`class, which lets you respond when applicatble.
+        These queries are passed to the `handler` as instances of the `Query` class, which lets you respond when applicatble.
 
         The `handler`'s receiver is returned as the `receiver` field of the return value.
 
