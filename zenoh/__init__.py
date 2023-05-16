@@ -22,6 +22,18 @@ from .queryable import Queryable, Query
 from typing import Any
 
 def open(*args, **kwargs):
+    """
+    Open a zenoh-net Session.
+
+    :param config: The configuration of the zenoh-net session
+    :type config: Config
+    :rtype: Session
+
+    :Example:
+
+    >>> import zenoh
+    >>> s = zenoh.open(zenoh.Config())
+    """
     return Session(*args, **kwargs)
 
 class Scout:
@@ -33,6 +45,24 @@ class Scout:
         self._inner_ = None
 
 def scout(handler: IntoHandler[Hello, Any, Any] = None, what: str = None, config: Config = None, timeout=None):
+    """
+    Scout for routers and/or peers.
+
+    This spawns a task that periodically sends scout messages for a specified duration and returns
+    a list of received :class:`Hello` messages.
+
+    :param what: The kind of zenoh process to scout for
+    :param config: The configuration to use for scouting
+    :param timeout: the duration of scout (in seconds)
+    :param handler:
+    :rtype: list of :class:`Hello`
+
+    :Example:
+
+    >>> import zenoh
+    >>> for hello in zenoh.scout(what = "peer|router", timeout=1.0).receiver():
+    ...     print(hello)
+    """
     from threading import Timer
     if handler is None:
         handler = ListCollector()
