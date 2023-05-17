@@ -158,15 +158,15 @@ class Session(_Session):
         * If your handler is a lambda, your lambda will be called once for each reply. It may be called concurrently. 
         * You may also use some handlers provided by Zenoh:
 
-          * ``zenoh.ListCollector`` will collect all replies in a traditional Python list: with ``receiver = session.get("temperatures/*", ListCollector())``, ``receiver`` will be a function which returns a list of the received responses once the query has completed.
+          * ``zenoh.ListCollector`` will collect all replies in a traditional Python list: with ``receiver = session.get("temperatures/*", ListCollector())``, ``receiver`` will be a function which returns a list of the received replies once the query has completed.
           * ``zenoh.Queue`` is generally a good way to iterate over replies without waiting for the last one to arrive.
         
         >>> import zenoh
         >>> session = zenoh.open()
         >>> receiver = session.get("temperatures/*", zenoh.Queue())
-        >>> for response in receiver:
-        >>>     response = response.ok # will throw an exception if one of the queryables responded with an error
-        >>>     print(f"{response.key_expr}: {response.payload.decode('utf-8')}")
+        >>> for reply in receiver:
+        >>>     reply = reply.ok # will throw an exception if one of the queryables responded with an error
+        >>>     print(f"{reply.key_expr}: {reply.payload.decode('utf-8')}")
         
         """
         handler = Handler(handler, lambda x: Reply(x))
