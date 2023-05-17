@@ -16,40 +16,57 @@
 Zenoh API Reference
 *******************
 
-Examples:
-=========
 
-Publish
--------
+
+[Zenoh](https://zenoh.io) /zeno/ is a stack that unifies data in motion, data at
+rest and computations. It elegantly blends traditional pub/sub with geo distributed
+storage, queries and computations, while retaining a level of time and space efficiency
+that is well beyond any of the mainstream stacks.
+
+Before delving into the examples, we need to introduce few **Zenoh** concepts.
+First off, in Zenoh you will deal with **Resources**, where a resource is made up of a
+key and a value.  The other concept you'll have to familiarize yourself with are
+**key expressions**, such as ``robot/sensor/temp``, ``robot/sensor/*``, ``robot/**``, etc.
+As you can gather, the above key expression denotes set of keys, while the ``*`` and ``**``
+are wildcards representing respectively (1) a single chunk (non-empty sequence of characters that doesn't contain ``/``), and (2) any amount of chunks (including 0).
+
+Below are some examples that highlight these key concepts and show how easy it is to get
+started with.
+
+Quick start examples:
+^^^^^^^^^^^^^^^^^^^^^
+
+Publish a key/value pair onto Zenoh
+"""""""""""""""""""""""""""""""""""
 
 >>> import zenoh
->>> s = zenoh.open({})
->>> s.put('key/expression', 'value')
+>>> z = zenoh.open()
+>>> z.put('/demo/example/hello', 'Hello World!')
 
-Subscribe
----------
+Subscribe to a set of keys with Zenoh
+"""""""""""""""""""""""""""""""""""""
 
->>> import zenoh
+>>> import zenoh, time
 >>> def listener(sample):
-...     print(f"Received '{sample.key_expr}': '{sample.payload.decode('utf-8')}'")
-... 
->>> s = zenoh.open({})
->>> sub = s.declare_subscriber('key/expression', listener)
+>>>     print(f"{sample.key_expr} => {sample.payload.decode('utf-8')}")
+>>>
+>>> z = zenoh.open()
+>>> subscriber = z.subscribe('/demo/example/**', listener)
+>>> time.sleep(60)
+>>> subscriber.undeclare()
 
-Query
------
+Get keys/values from zenoh
+""""""""""""""""""""""""""
 
 >>> import zenoh
->>> s = zenoh.open({})
->>> for reply in s.get('key/expression', zenoh.Queue()):
-...     try:
-...         print(f"Received '{reply.ok.key_expr}': '{reply.ok.payload.decode('utf-8')}'")
-...     except:
-...         print(f"Received ERROR: '{reply.err.payload.decode('utf-8')}'")
-... 
+>>> z = zenoh.open()
+>>> for response in z.get('/demo/example/**', zenoh.Queue()):
+>>>     response = response.ok
+>>>     print(f"{response.key_expr} => {response.payload.decode('utf-8')}")
 
 module zenoh
 ============
+
 .. automodule:: zenoh
     :members: init_logger, open, scout
 
@@ -78,16 +95,6 @@ KeyExpr
 .. autoclass:: zenoh.KeyExpr
     :members:
 
-Subscriber
-----------
-.. autoclass:: zenoh.Subscriber
-    :members:
-
-PullSubscriber
---------------
-.. autoclass:: zenoh.PullSubscriber
-    :members:
-
 Sample
 ------
 .. autoclass:: zenoh.Sample
@@ -110,12 +117,6 @@ Encoding
     :members:
     :undoc-members:
 
-Reliability
------------
-.. autoclass:: zenoh.Reliability
-    :members:
-    :undoc-members:
-
 Publisher
 ----------
 .. autoclass:: zenoh.Publisher
@@ -130,6 +131,22 @@ CongestionControl
 Priority
 --------
 .. autoclass:: zenoh.Priority
+    :members:
+    :undoc-members:
+
+Subscriber
+----------
+.. autoclass:: zenoh.Subscriber
+    :members:
+
+PullSubscriber
+--------------
+.. autoclass:: zenoh.PullSubscriber
+    :members:
+
+Reliability
+-----------
+.. autoclass:: zenoh.Reliability
     :members:
     :undoc-members:
 
@@ -178,3 +195,6 @@ Timestamp
 ---------
 .. autoclass:: zenoh.Timestamp
     :members:
+
+.. automodule:: zenoh
+    :members: Queue, ListCollector, Closure, Handler, IClosure, IHandler, IValue

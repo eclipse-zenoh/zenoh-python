@@ -23,8 +23,8 @@ class Queryable:
     
     Its main purpose is to keep the queryable active as long as it exists.
 
-    When constructed through `Session.declare_queryable(session, keyexpr, handler)`, it exposes `handler`'s receiver
-    through `self.receiver`.
+    When constructed through ``Session.declare_queryable(session, keyexpr, handler)``, it exposes ``handler``'s receiver
+    through ``self.receiver``.
     """
     def __init__(self, inner: _Queryable, receiver):
         self._inner_ = inner
@@ -45,7 +45,7 @@ class Query(_Query):
     def parameters(self) -> str:
         """
         The query's value selector.
-        If you'd rather not bother with parsing it yourself, use `self.decode_parameters()` instead.
+        If you'd rather not bother with parsing it yourself, use ``self.decode_parameters()`` instead.
         """
         return super().parameters
         
@@ -66,8 +66,6 @@ class Query(_Query):
     def value(self) -> Optional[Value]:
         """
         The query's value.
-
-        This API is currently marked as `unstable`: the Zenoh team may change it in future releases.
         """
         return Value._upgrade_(super().value)
     def reply(self, sample: Sample):

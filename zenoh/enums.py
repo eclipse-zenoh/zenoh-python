@@ -18,7 +18,7 @@ class Priority(_Priority):
     The priority of a sending operation.
 
     They are ordered à la Linux priority:
-    `Priority.REAL_TIME() < Priority.INTERACTIVE_HIGH() < Priority.INTERACTIVE_LOW() < Priority.DATA() < Priority.BACKGROUND()`
+    ``Priority.REAL_TIME() < Priority.INTERACTIVE_HIGH() < Priority.INTERACTIVE_LOW() < Priority.DATA() < Priority.BACKGROUND()``
     """
     def __new__(cls, inner: _SampleKind):
         return super().__new__(cls, inner)
@@ -184,7 +184,7 @@ class Reliability(_Reliability):
         """
         Informs the network that this subscriber wishes for all publications to reliably reach it.
 
-        Note that if a publisher puts a sample with the `CongestionControl.DROP()` option, this reliability
+        Note that if a publisher puts a sample with the ``CongestionControl.DROP()`` option, this reliability
         requirement may be infringed to prevent slow readers from blocking the network.
         """
         return Reliability(_Reliability.RELIABLE)

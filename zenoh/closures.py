@@ -27,8 +27,8 @@ CallbackDrop = Callable[[], None]
 
 class IClosure(Generic[In, Out]):
     """
-    A Closure is a pair of a `call` function that will be used as a callback,
-    and a `drop` function that will be called when the closure is destroyed.
+    A Closure is a pair of a ``call`` function that will be used as a callback,
+    and a ``drop`` function that will be called when the closure is destroyed.
     """
     @property
     @abc.abstractmethod
@@ -73,8 +73,8 @@ class IHandler(Generic[In, Out, Receiver]):
 IntoClosure = Union[IHandler[In, Out, Any], IClosure[In, Out], Tuple[CallbackCall, CallbackDrop], CallbackCall]
 class Closure(IClosure, Generic[In, Out]):
     """
-    A Closure is a pair of a `call` function that will be used as a callback,
-    and a `drop` function that will be called when the closure is destroyed.
+    A Closure is a pair of a ``call`` function that will be used as a callback,
+    and a ``drop`` function that will be called when the closure is destroyed.
     """
     def __init__(self, closure: IntoClosure[In, Out], type_adaptor: Callable[[Any], In] = None, prevent_direct_calls=False):
         _call_ = None
@@ -126,9 +126,9 @@ class Handler(IHandler, Generic[In, Out, Receiver]):
     """
     A Handler is a value that may be converted into a callback closure for zenoh to use on one side, while possibly providing a receiver for the data that zenoh would provide through that callback.
 
-    Note that the values will be piped onto a `Queue` before being sent to your handler by another Thread unless either:
-        a) `input` is already an instance of `Closure` or `Handler` where `input.closure` is an instance of `Closure`
-        b) `prevent_direct_calls` is set to `False`
+    Note that the values will be piped onto a ``Queue`` before being sent to your handler by another Thread unless either:
+        a) ``input`` is already an instance of ``Closure`` or ``Handler`` where ``input.closure`` is an instance of ``Closure``
+        b) ``prevent_direct_calls`` is set to ``False``
     """
     def __init__(self, input: IntoHandler[In, Out, Receiver], type_adaptor: Callable[[Any], In] = None, prevent_direct_calls = True):
         self._receiver_ = None
@@ -197,7 +197,7 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
     When used as a handler, it provides itself as the receiver, and will provide a
     callback that appends elements to the queue.
 
-    Can be bounded by passing a maximum size as `bound`.
+    Can be bounded by passing a maximum size as ``bound``.
     """
     def __init__(self, bound: int = None):
         self._inner_ = _Queue(bound)
@@ -216,7 +216,7 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
         """
         Puts one element on the queue.
 
-        Raises a `PyBrokenPipeError` if the Queue has been closed.
+        Raises a ``PyBrokenPipeError`` if the Queue has been closed.
         """
         return self._inner_.put(value)
 
@@ -225,9 +225,9 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
         """
         Gets one element from the queue.
 
-        Raises a `StopIteration` exception if the queue was closed before the timeout ran out,
+        Raises a ``StopIteration`` exception if the queue was closed before the timeout ran out,
         this allows using the Queue as an iterator in for-loops.
-        Raises a `TimeoutError` if the timeout ran out.
+        Raises a ``TimeoutError`` if the timeout ran out.
         """
         return self._inner_.get(timeout)
     
@@ -237,10 +237,10 @@ class Queue(IHandler[In, None, 'Queue'], Generic[In]):
     def get_remaining(self, timeout: float = None) -> List[In]:
         """
         Awaits the closing of the queue, returning the remaining queued values in a list.
-        The values inserted into the queue up until this happens will be available through `get`.
+        The values inserted into the queue up until this happens will be available through ``get``.
 
-        Raises a `TimeoutError` if the timeout in seconds provided was exceeded before closing,
-        whose `args[0]` will contain the elements that were collected before timing out.
+        Raises a ``TimeoutError`` if the timeout in seconds provided was exceeded before closing,
+        whose ``args[0]`` will contain the elements that were collected before timing out.
         """
         return self._inner_.get_remaining()
 
