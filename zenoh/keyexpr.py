@@ -20,24 +20,24 @@ class KeyExpr(_KeyExpr):
     """
     Zenoh's address space is designed around keys which serve as the names of ressources.
 
-    Keys are slash-separated lists of non-empty UTF8 strings. They may not contain the following characters: `$*#?`.
+    Keys are slash-separated lists of non-empty UTF8 strings. They may not contain the following characters: ``$*#?``.
     
     Zenoh's operations are executed on key expressions, a small language that allows the definition
     of sets of keys via the use of wildcards:
 
-     - `*` is the single-chunk wildcard, and will match any chunk: `a/*/c` will match `a/b/c`, `a/hello/c`, etc...
-     - `**` is the 0 or more chunks wildcard: `a/**/c` matches `a/c`, `a/b/c`, `a/b/hello/c`, etc...
-     - `$*` is the subchunk wildcard, it will match any amount of non-/ characters: `a/b$*` matches `a/b`, `a/because`, `a/blue`... but not `a/c` nor `a/blue/c`
+     - ``*`` is the single-chunk wildcard, and will match any chunk: ``a/*/c`` will match ``a/b/c``, ``a/hello/c``, etc...
+     - ``**`` is the 0 or more chunks wildcard: ``a/**/c`` matches ``a/c``, ``a/b/c``, ``a/b/hello/c``, etc...
+     - ``$*`` is the subchunk wildcard, it will match any amount of non-/ characters: ``a/b$*`` matches ``a/b``, ``a/because``, ``a/blue``... but not ``a/c`` nor ``a/blue/c``
     
     To allow for better performance and gain the property that two key expressions define the same
     set if and only if they are the same string, the rules of canon form are mandatory for a key
     expression to be propagated by a Zenoh network:
 
-     - `**/**` may not exist, as it could always be replaced by the shorter `**`,
-     - `**/*` may not exist, and must be written as its equivalent `*/**` instead,
-     - `$*` may not exist alone in a chunk, as it must be written `*` instead.
+     - ``**/**`` may not exist, as it could always be replaced by the shorter ``**``,
+     - ``**/*`` may not exist, and must be written as its equivalent ``*/**`` instead,
+     - ``$*`` may not exist alone in a chunk, as it must be written ``*`` instead.
 
-    The `KeyExpr.autocanonize` constructor exists to correct eventual infrigements of the canonization rules.
+    The ``KeyExpr.autocanonize`` constructor exists to correct eventual infrigements of the canonization rules.
 
     A KeyExpr is a string that has been validated to be a valid Key Expression.
     """
@@ -46,10 +46,10 @@ class KeyExpr(_KeyExpr):
         The default constructor for KeyExpr will ensure that the passed expression is valid.
         It won't however try to correct expressions that aren't canon.
 
-        You may use `KeyExpr.autocanonize(expr)` instead if you are unsure if the expression
+        You may use ``KeyExpr.autocanonize(expr)`` instead if you are unsure if the expression
         you will use for construction will be canon.
 
-        Raises a zenoh.ZError exception if `expr` is not a valid key expression.
+        Raises a zenoh.ZError exception if ``expr`` is not a valid key expression.
         """
         if isinstance(expr, KeyExpr):
             return expr
@@ -67,7 +67,7 @@ class KeyExpr(_KeyExpr):
         This alternative constructor for key expressions will attempt to canonize the passed
         expression before checking if it is valid.
 
-        Raises a zenoh.ZError exception if `expr` is not a valid key expression.
+        Raises a zenoh.ZError exception if ``expr`` is not a valid key expression.
         """
         if isinstance(expr, KeyExpr):
             return expr
@@ -77,15 +77,15 @@ class KeyExpr(_KeyExpr):
     
     def intersects(self, other: IntoKeyExpr) -> bool:
         """
-        This method returns `True` if there exists at least one key that belongs to both sets
-        defined by `self` and `other`. 
+        This method returns ``True`` if there exists at least one key that belongs to both sets
+        defined by ``self`` and ``other``. 
         """
         return super().intersects(KeyExpr(other))
     
     def includes(self, other: IntoKeyExpr) -> bool:
         """
-        This method returns `True` if all of the keys defined by `other` also belong to the set
-        defined by `self`.
+        This method returns ``True`` if all of the keys defined by ``other`` also belong to the set
+        defined by ``self``.
         """
         return super().includes(KeyExpr(other))
     
@@ -103,9 +103,9 @@ class KeyExpr(_KeyExpr):
     
     def __truediv__(self, other: IntoKeyExpr) -> 'KeyExpr':
         """
-        Joins two key expressions with a `/`.
+        Joins two key expressions with a ``/``.
 
-        Raises a zenoh.ZError exception if `other` is not a valid key expression.
+        Raises a zenoh.ZError exception if ``other`` is not a valid key expression.
         """
         return KeyExpr.autocanonize(f"{self}/{other}")
     
@@ -119,7 +119,7 @@ IntoSelector = Union['Selector', _Selector, IntoKeyExpr]
 class Selector(_Selector):
     """
     A selector is the combination of a [Key Expression](crate::prelude::KeyExpr), which defines the
-    set of keys that are relevant to an operation, and a `parameters`, a set of key-value pairs
+    set of keys that are relevant to an operation, and a ``parameters``, a set of key-value pairs
     with a few uses:
 
      * specifying arguments to a queryable, allowing the passing of Remote Procedure Call parameters
@@ -128,12 +128,12 @@ class Selector(_Selector):
 
     When in string form, selectors look a lot like a URI, with similar semantics:
 
-     * the `key_expr` before the first `?` must be a valid key expression.
-     * the `parameters` after the first `?` should be encoded like the query section of a URL:
+     * the ``key_expr`` before the first ``?`` must be a valid key expression.
+     * the ``parameters`` after the first ``?`` should be encoded like the query section of a URL:
 
-        * key-value pairs are separated by `&`,
-        * the key and value are separated by the first `=`,
-        * in the absence of `=`, the value is considered to be the empty string,
+        * key-value pairs are separated by ``&``,
+        * the key and value are separated by the first ``=``,
+        * in the absence of ``=``, the value is considered to be the empty string,
         * both key and value should use percent-encoding to escape characters,
         * defining a value for the same key twice is considered undefined behavior.
 
@@ -149,9 +149,9 @@ class Selector(_Selector):
 
     Here are the currently standardized keys for Zenoh:
 
-     * `_time`: used to express interest in only values dated within a certain time range, values for
+     * ``_time``: used to express interest in only values dated within a certain time range, values for
        this key must be readable by the [Zenoh Time DSL](zenoh_util::time_range::TimeRange) for the value to be considered valid.
-     * `_filter`: *TBD* Zenoh intends to provide helper tools to allow the value associated with
+     * ``_filter``: *TBD* Zenoh intends to provide helper tools to allow the value associated with
        this key to be treated as a predicate that the value should fulfill before being returned.
        A DSL will be designed by the Zenoh team to express these predicates.
     """
