@@ -24,11 +24,13 @@ class IValue:
     @property
     @abc.abstractmethod
     def payload(self) -> bytes:
+        "The value itself, as an array of bytes"
         ...
     
     @property
     @abc.abstractmethod
     def encoding(self) -> Encoding:
+        "The value's encoding"
         ...
 
 IntoValue = Union[IValue, bytes, str, int, float, object]
@@ -37,7 +39,7 @@ class Value(_Value, IValue):
     """
     A Value is a pair of a binary payload, and a mime-type-like encoding string.
     
-    When constructed with `encoding==None`, the encoding will be selected depending on the payload's type.
+    When constructed with ``encoding==None``, the encoding will be selected depending on the payload's type.
     """
     def __new__(cls, payload: IntoValue, encoding: Encoding=None):
         if encoding is None:
@@ -51,6 +53,7 @@ class Value(_Value, IValue):
     
     @staticmethod
     def autoencode(value: IntoValue) -> 'Value':
+        "Automatically encodes the value based on its type"
         if isinstance(value, IValue):
             return Value.new(value.payload, value.encoding)
         if isinstance(value, bytes):
@@ -138,11 +141,11 @@ class Sample(_Sample):
         return Value._upgrade_(super().value)
     @property
     def payload(self) -> bytes:
-        "A shortcut to `self.value.payload`"
+        "A shortcut to ``self.value.payload``"
         return super().payload
     @property
     def encoding(self) -> Encoding:
-        "A shortcut to `self.value.encoding`"
+        "A shortcut to ``self.value.encoding``"
         return Encoding(super().encoding)
     @property
     def kind(self) -> SampleKind:
@@ -160,6 +163,11 @@ class Sample(_Sample):
         return _Sample.__new__(Sample, inner)
 
 class Reply(_Reply):
+    """
+    A reply to a query (``Session.get``).
+    
+    A single query can result in multiple replies from multiple queryables.
+    """
     def __new__(cls, inner: _Reply):
         return super().__new__(cls, inner)
     @property
@@ -171,7 +179,7 @@ class Reply(_Reply):
         """
         The reply's inner data sample.
 
-        Raises a ZError if the `self` is actually an `err` reply.
+        Raises a ``ZError`` if the ``self`` is actually an ``err`` reply.
         """
         return Sample._upgrade_(super().ok)
     @property
@@ -179,7 +187,7 @@ class Reply(_Reply):
         """
         The reply's error value.
 
-        Raises a ZError if the `self` is actually an `ok` reply.
+        Raises a ``ZError`` if the ``self`` is actually an ``ok`` reply.
         """
         return Value._upgrade_(super().err)
 

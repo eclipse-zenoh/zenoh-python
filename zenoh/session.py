@@ -24,22 +24,22 @@ from .queryable import Queryable, Query
 
 
 class Publisher:
-    "Use `Publisher`s (constructed with `Session.declare_publisher`) when you want to send values often for the same key expression, as declaring them informs Zenoh that this is you intent, and optimizations will be set up to do so."
+    "Use ``Publisher`` (constructed with ``Session.declare_publisher``) when you want to send values often for the same key expression, as declaring them informs Zenoh that this is you intent, and optimizations will be set up to do so."
 
     def __init__(self, p: _Publisher):
         self._inner_ = p
 
     def put(self, value: IntoValue, encoding: Encoding = None):
-        "An optimised version of `session.put(self.key_expr, value, encoding=encoding)`"
+        "An optimised version of ``session.put(self.key_expr, value, encoding=encoding)``"
         self._inner_.put(Value(value, encoding))
 
     def delete(self):
-        "An optimised version of `session.delete(self.key_expr)`"
+        "An optimised version of ``session.delete(self.key_expr)``"
         self._inner_.delete()
 
     @property
     def key_expr(self) -> KeyExpr:
-        "This `Publisher`'s key expression"
+        "This ``Publisher``'s key expression"
         return KeyExpr(self._inner_.key_expr)
 
     def undeclare(self):
@@ -53,8 +53,8 @@ class Subscriber:
 
     Its main purpose is to keep the subscription active as long as it exists.
 
-    When constructed through `Session.declare_subscriber(session, keyexpr, handler)`, it exposes `handler`'s receiver
-    through `self.receiver`.
+    When constructed through ``Session.declare_subscriber(session, keyexpr, handler)``, it exposes ``handler``'s receiver
+    through ``self.receiver``.
     """
 
     def __init__(self, s: _Subscriber, receiver=None):
@@ -72,10 +72,10 @@ class PullSubscriber:
 
     Its main purpose is to keep the subscription active as long as it exists.
 
-    When constructed through `Session.declare_pull_subscriber(session, keyexpr, handler)`, it exposes `handler`'s receiver
-    through `self.receiver`.
+    When constructed through ``Session.declare_pull_subscriber(session, keyexpr, handler)``, it exposes ``handler``'s receiver
+    through ``self.receiver``.
 
-    Calling `self.pull()` will prompt the Zenoh network to send a new sample when available.
+    Calling ``self.pull()`` will prompt the Zenoh network to send a new sample when available.
     """
 
     def __init__(self, s: _PullSubscriber, receiver=None):
@@ -97,6 +97,8 @@ class PullSubscriber:
 class Session(_Session):
     """
     A Zenoh Session, the core interraction point with a Zenoh network.
+
+    Note that most applications will only need a single instance of ``Session``. You should _never_ construct one session per publisher/subscriber, as this will significantly increase the size of your Zenoh network, while preventing potential locality-based optimizations.
     """
     def __new__(cls, config: Union[Config, Any] = None):
         if config is None:
@@ -110,7 +112,10 @@ class Session(_Session):
             priority: Priority = None, congestion_control: CongestionControl = None,
             sample_kind: SampleKind = None):
         """
-        Sends a value over Zenoh.
+        Associates ``value`` with every key included in ``keyexpr``.
+
+        Subscribers on an expression that intersect with ``keyexpr`` will receive the sample.
+        Storages will store the value if ``keyexpr`` is non-wild, or update the values for all known keys that are included in ``keyexpr`` if it is wild.
         """
         value = Value(value, encoding)
         keyexpr = KeyExpr(keyexpr)
@@ -124,8 +129,7 @@ class Session(_Session):
         return super().put(keyexpr, value, **kwargs)
 
     def config(self) -> Config:
-        """
-        Returns a configuration object that can be used to alter the session's configuration at runtime.
+        """Returns a configuration object that can be used to alter the session's configuration at runtime.
 
         Note that in Python specifically, the config you passed to the session becomes the result of this
         function if you passed one, letting you keep using it.
@@ -134,8 +138,9 @@ class Session(_Session):
 
     def delete(self, keyexpr: IntoKeyExpr,
                priority: Priority = None, congestion_control: CongestionControl = None):
-        """
-        Deletes a value.
+        """Deletes the values associated with the keys included in ``keyexpr``.
+        
+        This uses the same mechanisms as ``session.put``, and will be received by subscribers. This operation is especially useful with storages.
         """
         keyexpr = KeyExpr(keyexpr)
         kwargs = dict()
@@ -146,8 +151,23 @@ class Session(_Session):
         return super().delete(keyexpr, **kwargs)
 
     def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, value: IntoValue = None) -> Receiver:
-        """
-        Emits a query.
+        """Emits a query, which queryables with intersecting selectors will be able to reply to.
+
+        The replies will trigger your handler's callback:
+
+        * If your handler is a lambda, your lambda will be called once for each reply. It may be called concurrently. 
+        * You may also use some handlers provided by Zenoh:
+
+          * ``zenoh.ListCollector`` will collect all replies in a traditional Python list: with ``receiver = session.get("temperatures/*", ListCollector())``, ``receiver`` will be a function which returns a list of the received replies once the query has completed.
+          * ``zenoh.Queue`` is generally a good way to iterate over replies without waiting for the last one to arrive.
+        
+        >>> import zenoh
+        >>> session = zenoh.open()
+        >>> receiver = session.get("temperatures/*", zenoh.Queue())
+        >>> for reply in receiver:
+        >>>     reply = reply.ok # will throw an exception if one of the queryables responded with an error
+        >>>     print(f"{reply.key_expr}: {reply.payload.decode('utf-8')}")
+        
         """
         handler = Handler(handler, lambda x: Reply(x))
         kwargs = dict()
@@ -161,20 +181,22 @@ class Session(_Session):
         return handler.receiver
 
     def declare_keyexpr(self, keyexpr: IntoKeyExpr) -> KeyExpr:
-        """
-        Informs Zenoh that you intend to use the provided Key Expression repeatedly.
+        """Informs Zenoh that you intend to use the provided Key Expression repeatedly.
 
-        This function returns an optimized representation of the passed `keyexpr`.
+        This function returns an optimized representation of the passed ``keyexpr``.
+
+        It is generally not needed to declare key expressions, as declaring a subscriber, 
+        a queryable, or a publisher will also inform Zenoh of your intent to use their
+        key expressions repeatedly.
         """
         return KeyExpr(super().declare_keyexpr(KeyExpr(keyexpr)))
 
     def declare_queryable(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Query, Any, Any], complete: bool = None):
-        """
-        Declares a queryable, which will receive queries intersecting with `keyexpr`.
+        """Declares a queryable, which will receive queries intersecting with ``keyexpr``.
 
-        These queries are passed to the `handler` as instances of the `Query` class, which lets you respond when applicatble.
+        These queries are passed to the ``handler`` as instances of the ``Query`` class, which lets you respond when applicable.
 
-        The `handler`'s receiver is returned as the `receiver` field of the return value.
+        The ``handler``'s receiver is returned as the ``receiver`` field of the return value.
 
         IMPORTANT: due to how RAII and Python work, you MUST bind this function's return value to a variable in order for it to function as expected.
         This is because as soon as a value is no longer referenced in Python, that value's destructor will run, which will undeclare your queryable, stopping it immediately.
@@ -188,7 +210,12 @@ class Session(_Session):
 
     def declare_publisher(self, keyexpr: IntoKeyExpr, priority: Priority = None, congestion_control: CongestionControl = None):
         """
-        Declares a publisher, which you may use to send values repeatedly onto a same key expression.
+        Declares a publisher, which you may use to send values repeatedly onto a same key expression in a more optimized fashion.
+
+        >>> import zenoh
+        >>> session = zenoh.open()
+        >>> publisher = zenoh.declare_publisher("temperature/bali")
+        >>> publisher.put(28)
         """
         kwargs = dict()
         if priority is not None:
@@ -199,14 +226,28 @@ class Session(_Session):
 
     def declare_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None) -> Subscriber:
         """
-        Declares a subscriber, which will receive any published sample with a key expression intersecting `keyexpr`.
+        Declares a subscriber, which will receive any published sample with a key expression intersecting ``keyexpr``.
 
-        These samples are passed to the `handler`'s closure as instances of the `Sample` class.
+        These samples are passed to the ``handler``'s closure as instances of the ``Sample`` class.
 
-        The `handler`'s receiver is returned as the `receiver` field of the return value.
+        The ``handler``'s receiver is returned as the ``receiver`` field of the return value.
 
         IMPORTANT: due to how RAII and Python work, you MUST bind this function's return value to a variable in order for it to function as expected.
         This is because as soon as a value is no longer referenced in Python, that value's destructor will run, which will undeclare your subscriber, deactivating the subscription immediately.
+
+        >>> import zenoh
+        >>> session = zenoh.open()
+        >>> subscriber = zenoh.declare_subsciber("temperature/bali", lambda sample: print(f"{sample.key_expr}: {sample.payload.decode('utf-8')}"))
+        >>> # subscriber must be kept around until you want to close it
+        >>> subscriber.undeclare()
+        
+        or alternatively
+        
+        >>> import zenoh
+        >>> session = zenoh.open()
+        >>> subscriber = zenoh.declare_subsciber("temperature/bali", zenoh.Queue())
+        >>> for sample in subscriber.receiver:
+        >>>     print(f"{sample.key_expr}: {sample.payload.decode('utf-8')}")
         """
         handler = Handler(handler, lambda x: Sample._upgrade_(x))
         kwargs = dict()
@@ -217,11 +258,11 @@ class Session(_Session):
 
     def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None) -> PullSubscriber:
         """
-        Declares a pull-mode subscriber, which will receive a single published sample with a key expression intersecting `keyexpr` any time its `pull` method is called.
+        Declares a pull-mode subscriber, which will receive a single published sample with a key expression intersecting ``keyexpr`` any time its ``pull`` method is called.
 
-        These samples are passed to the `handler`'s closure as instances of the `Sample` class.
+        These samples are passed to the ``handler``'s closure as instances of the ``Sample`` class.
 
-        The `handler`'s receiver is returned as the `receiver` field of the return value.
+        The ``handler``'s receiver is returned as the ``receiver`` field of the return value.
         """
         handler = Handler(handler, lambda x: Sample._upgrade_(x))
         kwargs = dict()
@@ -231,7 +272,10 @@ class Session(_Session):
         return PullSubscriber(s, handler.receiver)
 
     def close(self):
-        "Closes the Session"
+        """Attempts to close the Session.
+        
+        The session will only be closed if all publishers, subscribers and queryables based on it have been undeclared, and there are no more python references to it.
+        """
         pass
 
     def info(self):

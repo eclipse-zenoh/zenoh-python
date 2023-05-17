@@ -29,7 +29,7 @@ class Config(_Config):
     @staticmethod
     def from_obj(obj):
         """
-        Reads the configuration from `obj` as if it was a JSON file.
+        Reads the configuration from ``obj`` as if it was a JSON file.
         """
         c = Config.from_json5(json.dumps(obj))
         return c
@@ -45,7 +45,7 @@ class Config(_Config):
     
     def get_json(self, path: str) -> str:
         """
-        Returns the part of the configuration at `path`,
+        Returns the part of the configuration at ``path``,
         in a JSON-serialized form.
         """
         return super().get_json(path)
