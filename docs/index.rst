@@ -53,32 +53,24 @@ module zenoh
 .. automodule:: zenoh
     :members: init_logger, open, scout
 
+Hello
+-----
+.. autoclass:: zenoh.Hello
+    :members:
+
 Config
 ------
 .. autoclass:: zenoh.Config
     :members:
 
-CongestionControl
------------------
-.. autoclass:: zenoh.CongestionControl
+Session
+-------
+.. autoclass:: zenoh.Session
     :members:
-    :undoc-members:
 
-.. ConsolidationMode
-.. -----------------
-.. .. autoclass:: zenoh.ConsolidationMode
-..     :members:
-..     :undoc-members:
-
-Encoding
---------
-.. autoclass:: zenoh.Encoding
-    :members:
-    :undoc-members:
-
-Hello
+Info
 -----
-.. autoclass:: zenoh.Hello
+.. autoclass:: zenoh.Info
     :members:
 
 KeyExpr
@@ -86,46 +78,14 @@ KeyExpr
 .. autoclass:: zenoh.KeyExpr
     :members:
 
-ZenohId
--------
-.. autoclass:: zenoh.ZenohId
+Subscriber
+----------
+.. autoclass:: zenoh.Subscriber
     :members:
 
-Priority
---------
-.. autoclass:: zenoh.Priority
-    :members:
-    :undoc-members:
-
-Query
------
-.. autoclass:: zenoh.Query
-    :members:
-
-Queryable
----------
-.. autoclass:: zenoh.Queryable
-    :members:
-
-QueryConsolidation
-------------------
-.. autoclass:: zenoh.QueryConsolidation
-    :members:
-
-QueryTarget
------------
-.. autoclass:: zenoh.QueryTarget
-    :members:
-
-Reliability
------------
-.. autoclass:: zenoh.Reliability
-    :members:
-    :undoc-members:
-
-Reply
------
-.. autoclass:: zenoh.Reply
+PullSubscriber
+--------------
+.. autoclass:: zenoh.PullSubscriber
     :members:
 
 Sample
@@ -139,42 +99,82 @@ SampleKind
     :members:
     :undoc-members:
 
-Selector
+Value
+-----
+.. autoclass:: zenoh.Value
+    :members:
+
+Encoding
 --------
-.. autoclass:: zenoh.Selector
+.. autoclass:: zenoh.Encoding
     :members:
+    :undoc-members:
 
-Session
--------
-.. autoclass:: zenoh.Session
+Reliability
+-----------
+.. autoclass:: zenoh.Reliability
     :members:
-
-Subscriber
-----------
-.. autoclass:: zenoh.Subscriber
-    :members:
-
-PullSubscriber
---------------
-.. autoclass:: zenoh.PullSubscriber
-    :members:
+    :undoc-members:
 
 Publisher
 ----------
 .. autoclass:: zenoh.Publisher
     :members:
 
+CongestionControl
+-----------------
+.. autoclass:: zenoh.CongestionControl
+    :members:
+    :undoc-members:
+
+Priority
+--------
+.. autoclass:: zenoh.Priority
+    :members:
+    :undoc-members:
+
+Query
+-----
+.. autoclass:: zenoh.Query
+    :members:
+
+Selector
+--------
+.. autoclass:: zenoh.Selector
+    :members:
+
+QueryTarget
+-----------
+.. autoclass:: zenoh.QueryTarget
+    :members:
+
+QueryConsolidation
+------------------
+.. autoclass:: zenoh.QueryConsolidation
+    :members:
+
+.. ConsolidationMode
+.. -----------------
+.. .. autoclass:: zenoh.ConsolidationMode
+..     :members:
+..     :undoc-members:
+
+Reply
+-----
+.. autoclass:: zenoh.Reply
+    :members:
+
+Queryable
+---------
+.. autoclass:: zenoh.Queryable
+    :members:
+
+ZenohId
+-------
+.. autoclass:: zenoh.ZenohId
+    :members:
+
 Timestamp
 ---------
 .. autoclass:: zenoh.Timestamp
-    :members:
-
-Value
------
-.. autoclass:: zenoh.Value
-    :members:
-
-Info
------
-.. autoclass:: zenoh.Info
     :members:

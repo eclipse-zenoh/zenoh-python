@@ -111,6 +111,18 @@ class Session(_Session):
             sample_kind: SampleKind = None):
         """
         Sends a value over Zenoh.
+
+        :param keyexpr: The key expression to publish
+        :param value: The value to send
+        :param priority: The priority to use when routing the published data
+        :param congestion_control: The congestion control to use when routing the published data
+        :param sample_kind: The kind of sample to send
+
+        :Examples:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> s.put('key/expression', 'value')
         """
         value = Value(value, encoding)
         keyexpr = KeyExpr(keyexpr)
@@ -136,6 +148,16 @@ class Session(_Session):
                priority: Priority = None, congestion_control: CongestionControl = None):
         """
         Deletes a value.
+
+        :param keyexpr: The key expression to publish
+        :param priority: The priority to use when routing the delete
+        :param congestion_control: The congestion control to use when routing the delete
+
+        :Examples:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> s.delete('key/expression')
         """
         keyexpr = KeyExpr(keyexpr)
         kwargs = dict()
@@ -148,6 +170,45 @@ class Session(_Session):
     def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, value: IntoValue = None) -> Receiver:
         """
         Emits a query.
+
+        The replies are provided to the given `handler` as instances of the `Reply` class.
+        The `handler` can typically be a queue, a single callback or a pair of callbacks.
+        The `handler`'s receiver is returned by the `get` function.
+
+        :param selector: The selection of keys to query
+        :param handler:
+        :param consolidation: The consolidation to apply to replies
+        :param target: The queryables that should be target to this query
+        :param value: An optional value to attach to this query
+        :return: The receiver of the handler
+        :rtype: Receiver
+
+        :Examples:
+
+        Using a queue:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> for reply in s.get('key/expression', zenoh.Queue()):
+        ...     try:
+        ...         print(f"Received '{reply.ok.key_expr}': '{reply.ok.payload.decode('utf-8')}'")
+        ...     except:
+        ...         print(f"Received ERROR: '{reply.err.payload.decode('utf-8')}'")
+
+        Using a single callback:
+
+        >>> s.get('key/expression', lambda reply:
+        ...     print(f"Received '{reply.ok.key_expr}': '{reply.ok.payload.decode('utf-8')}'")
+        ...     if reply.ok is not None else print(f"Received ERROR: '{reply.err.payload.decode('utf-8')}'"))
+
+        Using a reply callback and a termination callback:
+
+        >>> s.get('key/expression', (
+        ...     lambda reply:
+        ...         print(f"Received '{reply.ok.key_expr}': '{reply.ok.payload.decode('utf-8')}'")
+        ...         if reply.ok is not None else print(f"Received ERROR: '{reply.err.payload.decode('utf-8')}'"),
+        ...     lambda:
+        ...         print("No more replies")))
         """
         handler = Handler(handler, lambda x: Reply(x))
         kwargs = dict()
@@ -172,9 +233,29 @@ class Session(_Session):
         """
         Declares a queryable, which will receive queries intersecting with `keyexpr`.
 
-        These queries are passed to the `handler` as instances of the `Query` class, which lets you respond when applicatble.
+        These queries are passed to the `handler` as instances of the `Query` class.
+        The `handler` can typically be a queue or a callback.
+        The `handler`'s receiver is returned as the `receiver` field of the returned `Queryable`.
+        The replies can be sent back by calling the `reply`function of the `Query`.
 
-        The `handler`'s receiver is returned as the `receiver` field of the return value.
+        :Examples:
+
+        Using a callback:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> qabl = s.declare_queryable('key/expression', lambda query:
+        ...     query.reply(zenoh.Sample('key/expression', 'value')))
+
+        Using a queue:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> qabl = s.declare_queryable('key/expression', zenoh.Queue())
+        >>> while True:
+        ...     query = qabl.receiver.get()
+        ...     query.reply(zenoh.Sample('key/expression', 'value'))
+        ...     del query
 
         IMPORTANT: due to how RAII and Python work, you MUST bind this function's return value to a variable in order for it to function as expected.
         This is because as soon as a value is no longer referenced in Python, that value's destructor will run, which will undeclare your queryable, stopping it immediately.
@@ -188,7 +269,22 @@ class Session(_Session):
 
     def declare_publisher(self, keyexpr: IntoKeyExpr, priority: Priority = None, congestion_control: CongestionControl = None):
         """
-        Declares a publisher, which you may use to send values repeatedly onto a same key expression.
+        Declares a publisher, which may be used to send values repeatedly onto a same key expression.
+
+        Written resources that match the given key will only be sent on the network
+        if matching subscribers exist in the system.
+
+        :param keyexpr: The key expression to publish to
+        :param priority: The priority to use when routing the published data
+        :param congestion_control: The congestion control to use when routing the published data
+        :rtype: Publisher
+
+        :Examples:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> pub = s.declare_publisher('key/expression')
+        >>> pub.put('value')
         """
         kwargs = dict()
         if priority is not None:
@@ -201,9 +297,32 @@ class Session(_Session):
         """
         Declares a subscriber, which will receive any published sample with a key expression intersecting `keyexpr`.
 
-        These samples are passed to the `handler`'s closure as instances of the `Sample` class.
+        These samples are provided to the `handler` as instances of the `Sample` class.
+        The `handler` can typically be a queue or a callback.
+        The `handler`'s receiver is returned as the `receiver` field of the returned `Subscriber`.
 
-        The `handler`'s receiver is returned as the `receiver` field of the return value.
+        :param keyexpr: The key expression to subscribe to
+        :param handler:
+        :param reliability: the reliability to use when routing the subscribed samples
+        :rtype: Subscriber
+
+        :Examples:
+
+        Using a callback:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> sub = s.declare_subscriber('key/expression', lambda sample:
+        ...     print(f"Received '{sample.key_expr}': '{sample.payload.decode('utf-8')}'")
+
+        Using a queue:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> sub = s.declare_subscriber('key/expression', zenoh.Queue())
+        >>> while True:
+        ...     sample = sub.receiver.get()
+        ...     print(f"Received '{sample.key_expr}': '{sample.payload.decode('utf-8')}'")
 
         IMPORTANT: due to how RAII and Python work, you MUST bind this function's return value to a variable in order for it to function as expected.
         This is because as soon as a value is no longer referenced in Python, that value's destructor will run, which will undeclare your subscriber, deactivating the subscription immediately.
@@ -220,8 +339,22 @@ class Session(_Session):
         Declares a pull-mode subscriber, which will receive a single published sample with a key expression intersecting `keyexpr` any time its `pull` method is called.
 
         These samples are passed to the `handler`'s closure as instances of the `Sample` class.
+        The `handler` can typically be a queue or a callback.
+        The `handler`'s receiver is returned as the `receiver` field of the returned `PullSubscriber`.
 
-        The `handler`'s receiver is returned as the `receiver` field of the return value.
+        :param keyexpr: The key expression to subscribe to
+        :param handler:
+        :param reliability: the reliability to use when routing the subscribed samples
+        :rtype: PullSubscriber
+
+        :Examples:
+
+        >>> import zenoh
+        >>> s = zenoh.open({})
+        >>> sub = s.declare_pull_subscriber('key/expression', lambda sample:
+        ...     print(f"Received '{sample.key_expr}': '{sample.payload.decode('utf-8')}'"))
+        ...
+        >>> sub.pull()
         """
         handler = Handler(handler, lambda x: Sample._upgrade_(x))
         kwargs = dict()
