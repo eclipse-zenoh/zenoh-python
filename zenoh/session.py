@@ -129,8 +129,7 @@ class Session(_Session):
         return super().put(keyexpr, value, **kwargs)
 
     def config(self) -> Config:
-        """
-        Returns a configuration object that can be used to alter the session's configuration at runtime.
+        """Returns a configuration object that can be used to alter the session's configuration at runtime.
 
         Note that in Python specifically, the config you passed to the session becomes the result of this
         function if you passed one, letting you keep using it.
@@ -139,8 +138,7 @@ class Session(_Session):
 
     def delete(self, keyexpr: IntoKeyExpr,
                priority: Priority = None, congestion_control: CongestionControl = None):
-        """
-        Deletes the values associated with the keys included in `keyexpr`.
+        """Deletes the values associated with the keys included in `keyexpr`.
         
         This uses the same mechanisms as `session.put`, and will be received by subscribers. This operation is especially useful with storages.
         """
@@ -153,22 +151,23 @@ class Session(_Session):
         return super().delete(keyexpr, **kwargs)
 
     def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, value: IntoValue = None) -> Receiver:
-        """
-        Emits a query, which queryables with intersecting selectors will be able to reply to.
+        """Emits a query, which queryables with intersecting selectors will be able to reply to.
 
         The replies will trigger your handler's callback:
-        - If your handler is a lambda, your lambda will be called once for each reply. It may be called concurrently. 
-        - You may also use some handlers provided by Zenoh:
-            - `zenoh.ListCollector` will collect all replies in a traditional Python list:
-            with `receiver = session.get("temperatures/*", ListCollector())`, `receiver` will be a function which returns a list of the received responses once the query has completed.
-            - `zenoh.Queue` is generally a good way to iterate over replies without waiting for the last one to arrive.
-        ```python
-        session = zenoh.open()
-        receiver = session.get("temperatures/*", zenoh.Queue())
-        for response in receiver:
-            response = response.ok # will throw an exception if one of the queryables responded with an error
-            print(f"{response.key_expr}: {response.payload}")
-        ```
+
+        * If your handler is a lambda, your lambda will be called once for each reply. It may be called concurrently. 
+        * You may also use some handlers provided by Zenoh:
+        
+          * `zenoh.ListCollector` will collect all replies in a traditional Python list: with `receiver = session.get("temperatures/*", ListCollector())`, `receiver` will be a function which returns a list of the received responses once the query has completed.
+          * `zenoh.Queue` is generally a good way to iterate over replies without waiting for the last one to arrive.
+        
+        >>> import zenoh
+        >>> session = zenoh.open()
+        >>> receiver = session.get("temperatures/*", zenoh.Queue())
+        >>> for response in receiver:
+        >>>     response = response.ok # will throw an exception if one of the queryables responded with an error
+        >>>     print(f"{response.key_expr}: {response.payload.decode('utf-8')}")
+        
         """
         handler = Handler(handler, lambda x: Reply(x))
         kwargs = dict()
@@ -182,8 +181,7 @@ class Session(_Session):
         return handler.receiver
 
     def declare_keyexpr(self, keyexpr: IntoKeyExpr) -> KeyExpr:
-        """
-        Informs Zenoh that you intend to use the provided Key Expression repeatedly.
+        """Informs Zenoh that you intend to use the provided Key Expression repeatedly.
 
         This function returns an optimized representation of the passed `keyexpr`.
 
@@ -194,8 +192,7 @@ class Session(_Session):
         return KeyExpr(super().declare_keyexpr(KeyExpr(keyexpr)))
 
     def declare_queryable(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Query, Any, Any], complete: bool = None):
-        """
-        Declares a queryable, which will receive queries intersecting with `keyexpr`.
+        """Declares a queryable, which will receive queries intersecting with `keyexpr`.
 
         These queries are passed to the `handler` as instances of the `Query` class, which lets you respond when applicable.
 
@@ -215,11 +212,10 @@ class Session(_Session):
         """
         Declares a publisher, which you may use to send values repeatedly onto a same key expression in a more optimized fashion.
 
-        ```python
-        session = zenoh.open()
-        publisher = zenoh.declare_publisher("temperature/bali")
-        publisher.put(28)
-        ```
+        >>> import zenoh
+        >>> session = zenoh.open()
+        >>> publisher = zenoh.declare_publisher("temperature/bali")
+        >>> publisher.put(28)
         """
         kwargs = dict()
         if priority is not None:
@@ -239,19 +235,19 @@ class Session(_Session):
         IMPORTANT: due to how RAII and Python work, you MUST bind this function's return value to a variable in order for it to function as expected.
         This is because as soon as a value is no longer referenced in Python, that value's destructor will run, which will undeclare your subscriber, deactivating the subscription immediately.
 
-        ```python
-        session = zenoh.open()
-        subscriber = zenoh.declare_subsciber("temperature/bali", lambda sample: print(f"{sample.key_expr}: {sample.payload}"))
-        # subscriber must be kept around until you want to close it
-        subscriber.undeclare()
-        ```
+        >>> import zenoh
+        >>> session = zenoh.open()
+        >>> subscriber = zenoh.declare_subsciber("temperature/bali", lambda sample: print(f"{sample.key_expr}: {sample.payload.decode('utf-8')}"))
+        >>> # subscriber must be kept around until you want to close it
+        >>> subscriber.undeclare()
+        
         or alternatively
-        ```python
-        session = zenoh.open()
-        subscriber = zenoh.declare_subsciber("temperature/bali", zenoh.Queue())
-        for sample in subscriber.receiver:
-            print(f"{sample.key_expr}: {sample.payload}")
-        ```
+        
+        >>> import zenoh
+        >>> session = zenoh.open()
+        >>> subscriber = zenoh.declare_subsciber("temperature/bali", zenoh.Queue())
+        >>> for sample in subscriber.receiver:
+        >>>     print(f"{sample.key_expr}: {sample.payload.decode('utf-8')}")
         """
         handler = Handler(handler, lambda x: Sample._upgrade_(x))
         kwargs = dict()
