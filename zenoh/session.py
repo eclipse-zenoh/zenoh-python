@@ -167,7 +167,7 @@ class Session(_Session):
         receiver = session.get("temperatures/*", zenoh.Queue())
         for response in receiver:
             response = response.ok # will throw an exception if one of the queryables responded with an error
-            print(f"{response.key_expr}: {response.value.payload}")
+            print(f"{response.key_expr}: {response.payload}")
         ```
         """
         handler = Handler(handler, lambda x: Reply(x))
