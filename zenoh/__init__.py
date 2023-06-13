@@ -23,9 +23,9 @@ from typing import Any
 
 def open(*args, **kwargs):
     """
-    Open a zenoh-net Session.
+    Open a Zenoh session.
 
-    :param config: The configuration of the zenoh-net session
+    :param config: The configuration of the Zenoh session
     :type config: Config
     :rtype: Session
 
