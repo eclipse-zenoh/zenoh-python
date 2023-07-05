@@ -125,15 +125,15 @@ impl _Queue {
         *self.send.lock().unwrap() = None;
     }
     pub fn put(&self, value: PyObject, py: Python<'_>) -> PyResult<()> {
-        match self.send.lock().unwrap().as_ref() {
+        Python::allow_threads(py, || match self.send.lock().unwrap().as_ref() {
             None => Err(pyo3::exceptions::PyBrokenPipeError::new_err(
                 "Attempted to put on closed Queue",
             )),
-            Some(send) => Python::allow_threads(py, || {
+            Some(send) => {
                 send.send(value).unwrap();
                 Ok(())
-            }),
-        }
+            }
+        })
     }
     pub fn get(&self, timeout: Option<f32>, py: Python<'_>) -> PyResult<PyObject> {
         Python::allow_threads(py, || match timeout {
