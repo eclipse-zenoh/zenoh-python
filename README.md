@@ -57,7 +57,11 @@ Requirements:
  * Python >= 3.7
  * pip >= 19.3.1
  * (Optional) A Python virtual environment (for instance [virtualenv](docs.python.org/3.10/tutorial/venv.html) or [miniconda](https://docs.conda.io/en/latest/miniconda.html))
- * [Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html).
+ * [Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html). If you already have the Rust toolchain installed, make sure it is up-to-date with:
+
+   ```bash
+   $ rustup update
+   ```
 
 Steps:
  * Install developments requirements:
