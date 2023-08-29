@@ -330,9 +330,9 @@ impl _Hello {
     #[getter]
     pub fn whatami(&self) -> Option<&'static str> {
         match self.0.whatami {
-            zenoh_protocol::core::whatami::WhatAmI::Client => Some("client"),
-            zenoh_protocol::core::whatami::WhatAmI::Peer => Some("peer"),
-            zenoh_protocol::core::whatami::WhatAmI::Router => Some("router"),
+            zenoh::config::WhatAmI::Client => Some("client"),
+            zenoh::config::WhatAmI::Peer => Some("peer"),
+            zenoh::config::WhatAmI::Router => Some("router"),
         }
     }
     #[getter]

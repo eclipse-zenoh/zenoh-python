@@ -18,7 +18,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
-use zenoh_protocol::core::whatami::{WhatAmI, WhatAmIMatcher};
+use zenoh::config::{WhatAmI, WhatAmIMatcher};
 use zenoh::prelude::SessionDeclarations;
 use zenoh::publication::Publisher;
 use zenoh::scouting::Scout;

@@ -56,4 +56,3 @@ zenoh = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "new-prot
 ] }
 zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "new-protocol" }
 zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "new-protocol" }
-zenoh-protocol = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "new-protocol" }
