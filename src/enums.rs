@@ -85,11 +85,17 @@ impl _Encoding {
     pub fn __str__(&self) -> String {
         self.0.to_string()
     }
-    pub fn append(&mut self, suffix: String) {
+    pub fn append(&mut self, suffix: String) -> PyResult<()>{
         unsafe {
-            let mut tmp = std::ptr::read(&self.0);
-            tmp = tmp.with_suffix(suffix);
-            std::ptr::write(&mut self.0, tmp);
+            let tmp = std::ptr::read(&self.0);
+            match tmp.with_suffix(suffix) {
+                Ok(tmp) => {
+                    std::ptr::write(&mut self.0, tmp);
+                    Ok(())
+                }
+                Err(e) => Err(e.to_pyerr())
+            }
+            
         }
     }
     pub fn equals(&self, other: &Self) -> bool {

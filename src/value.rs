@@ -325,14 +325,14 @@ impl _Hello {
     }
     #[getter]
     pub fn zid(&self) -> Option<_ZenohId> {
-        self.0.zid.map(_ZenohId)
+        Some(_ZenohId(self.0.zid))
     }
     #[getter]
     pub fn whatami(&self) -> Option<&'static str> {
         match self.0.whatami {
-            zenoh::config::whatami::WhatAmI::Client => Some("client"),
-            zenoh::config::whatami::WhatAmI::Peer => Some("peer"),
-            zenoh::config::whatami::WhatAmI::Router => Some("router"),
+            zenoh_protocol::core::whatami::WhatAmI::Client => Some("client"),
+            zenoh_protocol::core::whatami::WhatAmI::Peer => Some("peer"),
+            zenoh_protocol::core::whatami::WhatAmI::Router => Some("router"),
         }
     }
     #[getter]
