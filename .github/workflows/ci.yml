@@ -18,7 +18,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
 
     steps:
       - uses: actions/checkout@v2
@@ -49,9 +53,15 @@ jobs:
         with:
           command: fmt
           args: -- --check
-      
+
       - name: Install zenoh-python
         run: pip3 install ./target/wheels/*.whl
-      
+
       - name: Run examples check
         run: python3 tests/examples_check.py
+
+      - name: Install pytest
+        run: pip3 install pytest pytest-xdist
+
+      - name: Run pytest
+        run: pytest -n auto --import-mode=append
