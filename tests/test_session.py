@@ -40,6 +40,7 @@ def run_session_qryrep(peer01: Session, peer02: Session):
     for size in MSG_SIZE:
         num_requests = 0
         num_replies = 0
+        num_errors = 0
 
         def queryable_callback(query: Query):
             nonlocal num_requests
@@ -67,11 +68,14 @@ def run_session_qryrep(peer01: Session, peer02: Session):
                 if unwraped_reply:
                     assert len(unwraped_reply.payload) == size
                     num_replies += 1
+                else:
+                    num_errors += 1
 
         time.sleep(SLEEP)
         print(f"[QR][02c] Got on peer02 session. {num_replies}/{MSG_COUNT} msgs.");
         assert num_replies == MSG_COUNT
         assert num_requests == MSG_COUNT
+        assert num_errors == 0
 
         print("[QR][03c] Unqueryable on peer01 session");
         queryable.undeclare()
