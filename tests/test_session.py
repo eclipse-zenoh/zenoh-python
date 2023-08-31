@@ -1,6 +1,6 @@
 import zenoh
 import json
-from zenoh import QueryTarget, Session, Query, Sample
+from zenoh import Session, Query, Sample
 from typing import List, Tuple
 import time
 
