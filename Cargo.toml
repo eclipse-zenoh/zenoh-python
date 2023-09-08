@@ -55,5 +55,4 @@ zenoh = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master",
     "unstable",
 ] }
 zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master" }
-zenoh-cfg-properties = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master" }
 zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master" }
