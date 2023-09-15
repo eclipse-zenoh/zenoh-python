@@ -118,7 +118,8 @@ class Timestamp(_Timestamp):
         """
         Returns the number of seconds since the Unix Epoch.
 
-        You shouldn't use this for comparison though, and rely on comparison operators between members of this class.
+        Considering the large number of seconds since the Unix Epoch, the precision of the resulting f64 is in the order of microseconds.
+        Therefore, it should not be used for comparison. Directly comparing Timestamp objects is preferable.
         """
         return super().seconds_since_unix_epoch
 
