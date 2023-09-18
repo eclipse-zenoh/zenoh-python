@@ -2251,11 +2251,10 @@ checksum = "9e79c4d996edb816c91e4308506774452e55e95c3c9de07b6729e17e15a5ef81"
 
 [[package]]
 name = "uhlc"
-version = "0.6.0"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af1438496174a601a35fb41bf9bc408e47384b1df52ddc1252e75ef0ab811322"
+checksum = "d1eadef1fa26cbbae1276c46781e8f4d888bdda434779c18ae6c2a0e69991885"
 dependencies = [
- "hex",
  "humantime",
  "lazy_static",
  "log",

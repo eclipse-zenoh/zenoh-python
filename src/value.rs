@@ -194,16 +194,12 @@ impl _Timestamp {
         }
     }
     #[getter]
-    pub fn seconds_since_unix_epoch(&self) -> PyResult<f64> {
-        match self
-            .0
-            .get_time()
-            .to_system_time()
-            .duration_since(std::time::UNIX_EPOCH)
-        {
-            Ok(o) => Ok(o.as_secs_f64()),
-            Err(e) => Err(e.to_pyerr()),
-        }
+    pub fn get_time(&self) -> u64 {
+        self.0.get_time().0
+    }
+    #[getter]
+    pub fn seconds_since_unix_epoch(&self) -> f64 {
+        self.0.get_time().as_secs_f64()
     }
 }
 
