@@ -74,3 +74,9 @@ class Query(_Query):
         You may send any amount of replies to a single query, including 0.
         """
         super().reply(sample)
+    def err(self, value: Value):
+        """
+        Allows you to reply an error to a query.
+        You may send any amount of replies to a single query, including 0.
+        """
+        super().err(value)

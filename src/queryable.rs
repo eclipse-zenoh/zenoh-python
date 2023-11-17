@@ -77,6 +77,12 @@ impl _Query {
             .res_sync()
             .map_err(|e| e.to_pyerr())
     }
+    pub fn err(&self, value: _Value) -> PyResult<()> {
+        self.0
+            .reply(Err(value.into()))
+            .res_sync()
+            .map_err(|e| e.to_pyerr())
+    }
 }
 impl From<Query> for _Query {
     fn from(q: Query) -> Self {
