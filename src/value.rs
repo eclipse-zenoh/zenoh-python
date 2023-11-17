@@ -297,6 +297,10 @@ impl _Reply {
             Ok(_) => Err(zenoh_core::zerror!("Called `Reply.err` on a non-err reply.").to_pyerr()),
         }
     }
+    #[getter]
+    pub fn is_ok(&self) -> bool {
+        self.reply.is_ok()
+    }
 }
 impl From<Reply> for _Reply {
     fn from(reply: Reply) -> Self {
