@@ -79,7 +79,7 @@ print("Opening session...")
 session = zenoh.open(conf)
 
 print("Sending Query '{}'...".format(selector))
-replies = session.get(selector, zenoh.Queue(), target=target, value=args.value)
+replies = session.get(selector, zenoh.Queue(), target=target, value=args.value, consolidation=zenoh.QueryConsolidation.NONE())
 for reply in replies.receiver:
     try:
         print(">> Received ('{}': '{}')"
