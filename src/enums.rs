@@ -180,6 +180,11 @@ impl _SampleKind {
         }
     }
 }
+impl core::fmt::Debug for _SampleKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        core::fmt::Debug::fmt(&self.0, f)
+    }
+}
 
 #[pyclass(subclass)]
 #[derive(Clone, PartialEq, Eq)]

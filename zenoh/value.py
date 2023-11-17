@@ -181,6 +181,16 @@ class Reply(_Reply):
     def replier_id(self) -> ZenohId:
         "The reply's sender's id."
         return ZenohId._upgrade_(super().replier_id)
+    
+    @property
+    def is_ok(self) -> bool:
+        """
+        Checks if the reply is `ok`.
+
+        Returns `True` if the reply is `ok`, `False` otherwise
+        """
+        return super.is_ok()
+
     @property
     def ok(self) -> Sample:
         """

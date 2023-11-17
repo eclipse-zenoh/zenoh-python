@@ -69,8 +69,27 @@ impl From<Py<PyBytes>> for Payload {
         Payload::Python(buf)
     }
 }
+impl core::fmt::Debug for Payload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Zenoh(arg0) => {
+                for slice in arg0.slices() {
+                    for byte in slice {
+                        write!(f, "{byte:02x}")?
+                    }
+                }
+            }
+            Self::Python(arg0) => {
+                for byte in arg0.as_bytes(unsafe { Python::assume_gil_acquired() }) {
+                    write!(f, "{byte:02x}")?
+                }
+            }
+        };
+        Ok(())
+    }
+}
 #[pyclass(subclass)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct _Value {
     pub(crate) payload: Payload,
     pub(crate) encoding: Encoding,
@@ -108,6 +127,9 @@ impl _Value {
     pub fn with_encoding(&mut self, encoding: _Encoding) {
         self.encoding = encoding.0;
     }
+    pub fn __str__(&self) -> String {
+        format!("{self:?}")
+    }
 }
 impl From<Value> for _Value {
     fn from(value: Value) -> Self {
@@ -135,7 +157,7 @@ impl PyAnyToValue for &PyAny {
 }
 
 #[pyclass(subclass)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct _Sample {
     key_expr: KeyExpr<'static>,
     value: _Value,
@@ -163,6 +185,11 @@ impl From<Sample> for _Sample {
 #[pyclass(subclass)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct _ZenohId(pub(crate) ZenohId);
+impl core::fmt::Debug for _ZenohId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        core::fmt::Debug::fmt(&self.0, f)
+    }
+}
 #[pymethods]
 impl _ZenohId {
     #[new]
@@ -200,6 +227,11 @@ impl _Timestamp {
     #[getter]
     pub fn seconds_since_unix_epoch(&self) -> f64 {
         self.0.get_time().as_secs_f64()
+    }
+}
+impl core::fmt::Debug for _Timestamp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        core::fmt::Debug::fmt(&self.0, f)
     }
 }
 
@@ -253,6 +285,9 @@ impl _Sample {
             timestamp,
         }
     }
+    fn __str__(&self) -> String {
+        format!("{self:?}")
+    }
 }
 
 impl From<_Sample> for Sample {
@@ -271,7 +306,7 @@ impl From<_Sample> for Sample {
 }
 
 #[pyclass(subclass)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct _Reply {
     #[pyo3(get)]
     pub replier_id: _ZenohId,
@@ -296,6 +331,13 @@ impl _Reply {
             Err(o) => Ok(o.clone()),
             Ok(_) => Err(zenoh_core::zerror!("Called `Reply.err` on a non-err reply.").to_pyerr()),
         }
+    }
+    #[getter]
+    pub fn is_ok(&self) -> bool {
+        self.reply.is_ok()
+    }
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
 impl From<Reply> for _Reply {

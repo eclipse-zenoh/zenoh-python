@@ -87,7 +87,9 @@ print("Enter 'q' to quit...")
 c = '\0'
 while c != 'q':
     c = sys.stdin.read(1)
-    if c == '':
+    if c != 'q':
+        print("getting")
+        session.get(key, print, consolidation=zenoh.QueryConsolidation.NONE())
         time.sleep(1)
 
 queryable.undeclare()

@@ -15,7 +15,7 @@ from typing import Dict, Optional
 
 from .zenoh import _Query, _Queryable
 from .keyexpr import KeyExpr, Selector
-from .value import Sample, Value
+from .value import Sample, Value, IntoValue, IntoSample
 
 class Queryable:
     """
@@ -74,3 +74,10 @@ class Query(_Query):
         You may send any amount of replies to a single query, including 0.
         """
         super().reply(sample)
+    def reply_err(self, value: IntoValue):
+        """
+        Allows you to reply to a query with an error.
+        You may send any amount of replies to a single query, including 0.
+        Sending error responses does not exclude sending other responses.
+        """
+        super().reply_err(Value(value))
