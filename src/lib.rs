@@ -114,3 +114,10 @@ fn init_logger() {
 }
 
 pub(crate) use value::PyAnyToValue;
+
+// Test should be runned with `cargo test --no-default-features`
+#[test]
+#[cfg(not(feature = "default"))]
+fn test_no_default_features() {
+    assert_eq!(::zenoh::FEATURES, concat!(" zenoh/unstable"));
+}
