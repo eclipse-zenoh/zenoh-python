@@ -15,10 +15,10 @@ use std::{collections::HashMap, sync::Arc};
 
 use pyo3::prelude::*;
 use zenoh::{
+    prelude::sync::SyncResolve,
     queryable::{Query, Queryable},
     selector::Parameters,
 };
-use zenoh_core::SyncResolve;
 
 use crate::{
     keyexpr::{_KeyExpr, _Selector},

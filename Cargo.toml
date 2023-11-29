@@ -35,6 +35,7 @@ crate-type = ["cdylib"]
 
 [features]
 complete_n = ["zenoh/complete_n"]
+default = ["zenoh/default"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -42,7 +43,7 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 async-std = "=1.12.0"
 env_logger = "0.10.0"
-flume = "0.10.14"
+flume = "0.11.0"
 form_urlencoded = "1.1.0"
 futures = "0.3.26"
 json5 = "0.4.1"
@@ -53,6 +54,6 @@ uhlc = "0.6.0"
 validated_struct = "2.1.0"
 zenoh = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master", features = [
     "unstable",
-] }
+], default-features = false }
 zenoh-buffers = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master" }
 zenoh-core = { git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "master" }

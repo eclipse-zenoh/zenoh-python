@@ -54,6 +54,12 @@ jobs:
           command: fmt
           args: -- --check
 
+      - name: Check for feature leaks
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features
+
       - name: Install zenoh-python
         run: pip3 install ./target/wheels/*.whl
 

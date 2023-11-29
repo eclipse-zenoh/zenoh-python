@@ -18,13 +18,14 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
-use zenoh::config::{WhatAmI, WhatAmIMatcher};
-use zenoh::prelude::SessionDeclarations;
-use zenoh::publication::Publisher;
-use zenoh::scouting::Scout;
-use zenoh::subscriber::{PullSubscriber, Subscriber};
-use zenoh::Session;
-use zenoh_core::SyncResolve;
+use zenoh::{
+    config::{WhatAmI, WhatAmIMatcher},
+    prelude::{sync::SyncResolve, SessionDeclarations},
+    publication::Publisher,
+    scouting::Scout,
+    subscriber::{PullSubscriber, Subscriber},
+    Session,
+};
 
 use crate::closures::PyClosure;
 use crate::config::{PyConfig, _Config};
