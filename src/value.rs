@@ -17,7 +17,10 @@ use zenoh::{
     query::Reply,
     scouting::Hello,
 };
-use zenoh_buffers::{SplitBuffer, ZBuf};
+use zenoh_buffers::{
+    buffer::{Buffer, SplitBuffer},
+    ZBuf,
+};
 
 use crate::{
     enums::{_Encoding, _SampleKind},
