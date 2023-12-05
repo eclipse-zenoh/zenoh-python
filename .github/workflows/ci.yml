@@ -35,10 +35,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          override: true
-          components: rustfmt, clippy
+        run: rustup component add rustfmt clippy
 
       - name: Build zenoh-python
         uses: messense/maturin-action@v1
