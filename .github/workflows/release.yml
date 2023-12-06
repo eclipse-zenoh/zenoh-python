@@ -74,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
-        run: rustup show
+        run: rustup target add arm-unknown-linux-gnueabihf
       - name: install cross toolchain
         run: |
           brew tap messense/macos-cross-toolchains
