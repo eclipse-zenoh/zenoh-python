@@ -13,7 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
-        run: rustup show
+        run: |
+          rustup set profile minimal
+          rustup show
       - name: Build wheels - x86_64
         uses: messense/maturin-action@v1
         with:
@@ -38,7 +40,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
-        run: rustup show
+        run: |
+          rustup set profile minimal
+          rustup show
       - name: Build wheels
         uses: messense/maturin-action@v1
         with:
@@ -74,7 +78,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
-        run: rustup target add arm-unknown-linux-gnueabihf
+        run: |
+          rustup set profile minimal
+          rustup target add arm-unknown-linux-gnueabihf
       - name: install cross toolchain
         run: |
           brew tap messense/macos-cross-toolchains
