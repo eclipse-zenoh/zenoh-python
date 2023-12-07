@@ -11,7 +11,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
@@ -26,7 +26,7 @@ jobs:
         with:
           args: --release --universal2 --out dist
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
@@ -38,7 +38,7 @@ jobs:
         target: [x64]
         # target: [x64, x86]   NOTE: x86 deactivated because of strange error: failed to run custom build command for `pyo3-ffi v0.17.1`
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
@@ -49,7 +49,7 @@ jobs:
           target: ${{ matrix.target }}
           args: --release --out dist
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
@@ -60,7 +60,7 @@ jobs:
       matrix:
         target: [x86_64, i686, aarch64, armv7]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build wheels
         uses: messense/maturin-action@v1
         with:
@@ -68,7 +68,7 @@ jobs:
           manylinux: auto
           args: --release --out dist
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
@@ -76,7 +76,7 @@ jobs:
   linux-armv6:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
@@ -94,7 +94,7 @@ jobs:
           pip3 install maturin
           maturin build --release --target arm-unknown-linux-gnueabihf --out dist
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
