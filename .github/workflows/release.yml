@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64, i686, aarch64, armv7]
+        target: [x86_64, i686, armv7]
     steps:
       - uses: actions/checkout@v4
       - name: Build wheels
@@ -66,6 +66,28 @@ jobs:
         with:
           target: ${{ matrix.target }}
           manylinux: auto
+          args: --release --out dist
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  linux-aarch64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build wheels
+        uses: messense/maturin-action@v1
+        with:
+          target: aarch64
+          # NOTE(fuzzypixelz): We manually specify a more recent manylinux platform tag for aarch64:
+          # - zenoh-link-quic indirectly depends on ring 0.17 through rustls-webpki.
+          # - ring 0.17 depends on a version of BoringSSL that requires GCC/Clang to provide __ARM_ARCH
+          # - When setting the manylinux tag to 'auto', messense/maturin-action@v1 uses manylinux2014 to compile for for aarch64
+          # - the GCC included in the manylinux2014 docker image doesn't provide __ARM_ARCH
+          # See: https://github.com/briansmith/ring/issues/1728
+          manylinux: manylinux_2_28
           args: --release --out dist
       - name: Upload wheels
         uses: actions/upload-artifact@v3
