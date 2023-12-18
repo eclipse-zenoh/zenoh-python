@@ -11,20 +11,25 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
           rustup show
+
       - name: Build wheels - x86_64
         uses: messense/maturin-action@v1
         with:
           target: x86_64
           args: --release --out dist --sdist # Note: this step builds also the sources distrib
+
       - name: Build wheels - universal2
         uses: messense/maturin-action@v1
         with:
           args: --release --universal2 --out dist
+
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -38,16 +43,20 @@ jobs:
         target: [x64]
         # target: [x64, x86]   NOTE: x86 deactivated because of strange error: failed to run custom build command for `pyo3-ffi v0.17.1`
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
           rustup show
+
       - name: Build wheels
         uses: messense/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
+
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -60,13 +69,16 @@ jobs:
       matrix:
         target: [x86_64, i686, armv7]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
       - name: Build wheels
         uses: messense/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           manylinux: auto
           args: --release --out dist
+
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -76,7 +88,9 @@ jobs:
   linux-aarch64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
       - name: Build wheels
         uses: messense/maturin-action@v1
         with:
@@ -89,6 +103,7 @@ jobs:
           # See: https://github.com/briansmith/ring/issues/1728
           manylinux: manylinux_2_28
           args: --release --out dist
+
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -98,11 +113,14 @@ jobs:
   linux-armv6:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
           rustup target add arm-unknown-linux-gnueabihf
+
       - name: install cross toolchain
         run: |
           brew tap messense/macos-cross-toolchains
@@ -115,6 +133,7 @@ jobs:
 
           pip3 install maturin
           maturin build --release --target arm-unknown-linux-gnueabihf --out dist
+
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -126,7 +145,7 @@ jobs:
     name: deploy wheels to pypi
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: wheels
           path: dist
