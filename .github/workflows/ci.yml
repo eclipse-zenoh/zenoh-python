@@ -25,12 +25,13 @@ jobs:
           - "3.10"
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Clone this repository
+        uses: actions/checkout@v4
         with:
           submodules: true
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -41,21 +42,13 @@ jobs:
         uses: messense/maturin-action@v1
 
       - name: Clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
+        run: cargo clippy --all-features --all-targets -- --deny warnings
 
       - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+        run: cargo fmt --check
 
       - name: Check for feature leaks
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features
+        run: cargo test --no-default-features
 
       - name: Install zenoh-python
         run: pip3 install ./target/wheels/*.whl
