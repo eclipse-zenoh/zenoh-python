@@ -63,43 +63,45 @@ key = args.key
 value = args.value
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-# initiate logging
-zenoh.init_logger()
+    print("Opening session...")
+    session = zenoh.open(conf)
 
-print("Opening session...")
-session = zenoh.open(conf)
+    print("Putting Data ('{}': '{}')...".format(key, value))
+    session.put(key, value)
 
-print("Putting Data ('{}': '{}')...".format(key, value))
-session.put(key, value)
+    # --- Examples of put with other types:
 
-# --- Examples of put with other types:
+    # - Integer
+    # session.put('/demo/example/Integer', 3)
 
-# - Integer
-# session.put('/demo/example/Integer', 3)
+    # - Float
+    # session.put('/demo/example/Float', 3.14)
 
-# - Float
-# session.put('/demo/example/Float', 3.14)
+    # - Properties (as a Dictionary with str only)
+    # session.put('/demo/example/Properties', {'p1': 'v1', 'p2': 'v2'})
 
-# - Properties (as a Dictionary with str only)
-# session.put('/demo/example/Properties', {'p1': 'v1', 'p2': 'v2'})
+    # - Json (str format)
+    # session.put('/demo/example/Json',
+    #             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]),
+    #             encoding=Encoding.TEXT_JSON)
 
-# - Json (str format)
-# session.put('/demo/example/Json',
-#             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]),
-#             encoding=Encoding.TEXT_JSON)
+    # - Raw ('application/octet-stream' encoding by default)
+    # session.put('/demo/example/Raw', b'\x48\x69\x21')
 
-# - Raw ('application/octet-stream' encoding by default)
-# session.put('/demo/example/Raw', b'\x48\x69\x21')
+    # - Custom encoding
+    # session.put('/demo/example/Custom',
+    #             b'\x48\x69\x21',
+    #             encoding='my_encoding')
 
-# - Custom encoding
-# session.put('/demo/example/Custom',
-#             b'\x48\x69\x21',
-#             encoding='my_encoding')
+    # - UTF-16 String specifying the charset as Encoding suffix
+    # session.put('/demo/example/UTF-16',
+    #             'hello'.encode('utf-16'),
+    #             encoding=Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16'))
 
-# - UTF-16 String specifying the charset as Encoding suffix
-# session.put('/demo/example/UTF-16',
-#             'hello'.encode('utf-16'),
-#             encoding=Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16'))
+    session.close()
 
-session.close()
+main()

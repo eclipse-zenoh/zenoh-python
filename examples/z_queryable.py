@@ -74,23 +74,26 @@ def queryable_callback(query):
     query.reply(Sample(key, value))
 
 
-# initiate logging
-zenoh.init_logger()
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-print("Opening session...")
-session = zenoh.open(conf)
+    print("Opening session...")
+    session = zenoh.open(conf)
 
-print("Declaring Queryable on '{}'...".format(key))
-queryable = session.declare_queryable(key, queryable_callback, complete)
+    print("Declaring Queryable on '{}'...".format(key))
+    queryable = session.declare_queryable(key, queryable_callback, complete)
 
-print("Enter 'q' to quit...")
-c = '\0'
-while c != 'q':
-    c = sys.stdin.read(1)
-    if c != 'q':
-        print("getting")
-        session.get(key, print, consolidation=zenoh.QueryConsolidation.NONE())
-        time.sleep(1)
+    print("Enter 'q' to quit...")
+    c = '\0'
+    while c != 'q':
+        c = sys.stdin.read(1)
+        if c != 'q':
+            print("getting")
+            session.get(key, print, consolidation=zenoh.QueryConsolidation.NONE())
+            time.sleep(1)
 
-queryable.undeclare()
-session.close()
+    queryable.undeclare()
+    session.close()
+
+main()

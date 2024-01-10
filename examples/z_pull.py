@@ -65,24 +65,27 @@ def listen(sample):
     print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
 
 
-# initiate logging
-zenoh.init_logger()
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-print("Opening session...")
-session = zenoh.open(conf)
+    print("Opening session...")
+    session = zenoh.open(conf)
 
-print("Declaring Subscriber on '{}'...".format(key))
+    print("Declaring Subscriber on '{}'...".format(key))
 
-sub = session.declare_pull_subscriber(key, listen, reliability=Reliability.RELIABLE())
+    sub = session.declare_pull_subscriber(key, listen, reliability=Reliability.RELIABLE())
 
-print("Press <enter> to pull data...")
-c = '\0'
-while c != 'q':
-    c = sys.stdin.read(1)
-    if c == '':
-        time.sleep(1)
-    else:
-        sub.pull()
+    print("Press <enter> to pull data...")
+    c = '\0'
+    while c != 'q':
+        c = sys.stdin.read(1)
+        if c == '':
+            time.sleep(1)
+        else:
+            sub.pull()
 
-sub.undeclare()
-session.close()
+    sub.undeclare()
+    session.close()
+
+main()

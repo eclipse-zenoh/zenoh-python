@@ -56,18 +56,20 @@ if args.listen is not None:
 size = args.payload_size
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-# initiate logging
-zenoh.init_logger()
+    data = bytearray()
+    for i in range(0, size):
+        data.append(i % 10)
+    data = Value(bytes(data))
+    congestion_control = CongestionControl.BLOCK()
 
-data = bytearray()
-for i in range(0, size):
-    data.append(i % 10)
-data = Value(bytes(data))
-congestion_control = CongestionControl.BLOCK()
+    session = zenoh.open(conf)
+    pub = session.declare_publisher('test/thr', congestion_control=congestion_control)
 
-session = zenoh.open(conf)
-pub = session.declare_publisher('test/thr', congestion_control=congestion_control)
+    while True:
+        pub.put(data)
 
-while True:
-    pub.put(data)
+main()

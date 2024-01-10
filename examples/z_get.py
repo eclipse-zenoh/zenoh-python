@@ -71,22 +71,24 @@ target = {
 }.get(args.target)
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-# initiate logging
-zenoh.init_logger()
+    print("Opening session...")
+    session = zenoh.open(conf)
 
-print("Opening session...")
-session = zenoh.open(conf)
-
-print("Sending Query '{}'...".format(selector))
-replies = session.get(selector, zenoh.Queue(), target=target, value=args.value, consolidation=zenoh.QueryConsolidation.NONE())
-for reply in replies.receiver:
-    try:
-        print(">> Received ('{}': '{}')"
-              .format(reply.ok.key_expr, reply.ok.payload.decode("utf-8")))
-    except:
-        print(">> Received (ERROR: '{}')"
-              .format(reply.err.payload.decode("utf-8")))
+    print("Sending Query '{}'...".format(selector))
+    replies = session.get(selector, zenoh.Queue(), target=target, value=args.value, consolidation=zenoh.QueryConsolidation.NONE())
+    for reply in replies.receiver:
+        try:
+            print(">> Received ('{}': '{}')"
+                .format(reply.ok.key_expr, reply.ok.payload.decode("utf-8")))
+        except:
+            print(">> Received (ERROR: '{}')"
+                .format(reply.err.payload.decode("utf-8")))
 
 
-session.close()
+    session.close()
+
+main()

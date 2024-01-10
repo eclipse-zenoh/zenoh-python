@@ -84,26 +84,29 @@ def query_handler(query: Query):
             query.reply(sample)
 
 
-# initiate logging
-zenoh.init_logger()
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-print("Opening session...")
-session = zenoh.open(conf)
+    print("Opening session...")
+    session = zenoh.open(conf)
 
-print("Declaring Subscriber on '{}'...".format(key))
-sub = session.declare_subscriber(
-    key, listener, reliability=Reliability.RELIABLE())
+    print("Declaring Subscriber on '{}'...".format(key))
+    sub = session.declare_subscriber(
+        key, listener, reliability=Reliability.RELIABLE())
 
-print("Declaring Queryable on '{}'...".format(key))
-queryable = session.declare_queryable(key, query_handler, complete)
+    print("Declaring Queryable on '{}'...".format(key))
+    queryable = session.declare_queryable(key, query_handler, complete)
 
-print("Enter 'q' to quit...")
-c = '\0'
-while c != 'q':
-    c = sys.stdin.read(1)
-    if c == '':
-        time.sleep(1)
+    print("Enter 'q' to quit...")
+    c = '\0'
+    while c != 'q':
+        c = sys.stdin.read(1)
+        if c == '':
+            time.sleep(1)
 
-sub.undeclare()
-queryable.undeclare()
-session.close()
+    sub.undeclare()
+    queryable.undeclare()
+    session.close()
+
+main()

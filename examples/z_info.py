@@ -51,15 +51,17 @@ if args.connect is not None:
 if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-# initiate logging
-zenoh.init_logger()
+    print("Opening session...")
+    session = zenoh.open(conf)
 
-print("Opening session...")
-session = zenoh.open(conf)
+    info = session.info()
+    print(f"zid: {info.zid()}")
+    print(f"routers: {info.routers_zid()}")
+    print(f"peers: {info.peers_zid()}")
+    session.close()
 
-info = session.info()
-print(f"zid: {info.zid()}")
-print(f"routers: {info.routers_zid()}")
-print(f"peers: {info.peers_zid()}")
-session.close()
+main()

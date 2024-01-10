@@ -16,6 +16,11 @@ from .zenoh import _Config
 import json
 
 class Config(_Config):
+    """
+    The configuation for a zenoh session.
+
+    The schema and documentation for the config can be found in this file: https://github.com/eclipse-zenoh/zenoh/blob/master/DEFAULT_CONFIG.json5
+    """
     def __init__(self):
         super().__init__()
     @staticmethod
@@ -47,12 +52,16 @@ class Config(_Config):
         """
         Returns the part of the configuration at ``path``,
         in a JSON-serialized form.
+
+        Note that the path is `/`-separated.
         """
         return super().get_json(path)
     
     def insert_json5(self, path: str, value: str) -> str:
         """
-        Inserts the provided value (read from JSON) at the given path in the configuration.
+        Inserts the provided value (read as a JSON string) at the given path in the configuration.
+
+        Note that the path is `/`-separated.
         """
         return super().insert_json5(path, value)
 
