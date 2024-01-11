@@ -86,23 +86,26 @@ def report():
     total = batch_count * n + count
     print(f"Received {total} messages in {end - global_start}: averaged {total / (end - global_start):.6f} msgs/sec")
 
-# initiate logging
-zenoh.init_logger()
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-session = zenoh.open(conf)
+    session = zenoh.open(conf)
 
-# By explicitly constructing the `Closure`, the `Queue` that's normally inserted between the callback and zenoh is removed.
-# Only do this if your callback runs faster than the minimum expected delay between two samples.
-sub = session.declare_subscriber("test/thr", zenoh.Closure((listener, report)), reliability=Reliability.RELIABLE())
+    # By explicitly constructing the `Closure`, the `Queue` that's normally inserted between the callback and zenoh is removed.
+    # Only do this if your callback runs faster than the minimum expected delay between two samples.
+    sub = session.declare_subscriber("test/thr", zenoh.Closure((listener, report)), reliability=Reliability.RELIABLE())
 
-print("Enter 'q' to quit...")
-c = '\0'
-while c != 'q':
-    c = sys.stdin.read(1)
-    if c == '':
-        time.sleep(1)
+    print("Enter 'q' to quit...")
+    c = '\0'
+    while c != 'q':
+        c = sys.stdin.read(1)
+        if c == '':
+            time.sleep(1)
 
-sub.undeclare()
-session.close()
-# while `sub.undeclare()` only returns once the unsubscription is done (no more callbacks will be queued from that instant), already queued callbacks may still be running in threads that Python can't see.
-time.sleep(0.1)
+    sub.undeclare()
+    session.close()
+    # while `sub.undeclare()` only returns once the unsubscription is done (no more callbacks will be queued from that instant), already queued callbacks may still be running in threads that Python can't see.
+    time.sleep(0.1)
+
+main()

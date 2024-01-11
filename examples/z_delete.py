@@ -57,14 +57,16 @@ if args.listen is not None:
 key = args.key
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-# initiate logging
-zenoh.init_logger()
+    print("Opening session...")
+    session = zenoh.open(conf)
 
-print("Opening session...")
-session = zenoh.open(conf)
+    print("Deleting resources matching '{}'...".format(key))
+    session.delete(key)
 
-print("Deleting resources matching '{}'...".format(key))
-session.delete(key)
+    session.close()
 
-session.close()
+main()

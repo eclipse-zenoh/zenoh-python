@@ -64,20 +64,23 @@ if args.listen is not None:
 key = args.key
 value = args.value
 
-# initiate logging
-zenoh.init_logger()
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-print("Opening session...")
-session = zenoh.open(conf)
+    print("Opening session...")
+    session = zenoh.open(conf)
 
-print(f"Declaring Publisher on '{key}'...")
-pub = session.declare_publisher(key)
+    print(f"Declaring Publisher on '{key}'...")
+    pub = session.declare_publisher(key)
 
-for idx in itertools.count() if args.iter is None else range(args.iter):
-    time.sleep(1)
-    buf = f"[{idx:4d}] {value}"
-    print(f"Putting Data ('{key}': '{buf}')...")
-    pub.put(buf)
+    for idx in itertools.count() if args.iter is None else range(args.iter):
+        time.sleep(1)
+        buf = f"[{idx:4d}] {value}"
+        print(f"Putting Data ('{key}': '{buf}')...")
+        pub.put(buf)
 
-pub.undeclare()
-session.close()
+    pub.undeclare()
+    session.close()
+
+main()

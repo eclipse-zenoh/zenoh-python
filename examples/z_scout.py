@@ -14,11 +14,14 @@
 
 import zenoh
 
-# initiate logging
-zenoh.init_logger()
+def main():
+    # initiate logging
+    zenoh.init_logger()
 
-print("Scouting...")
-scout = zenoh.scout(what = "peer|router", timeout=1.0)
+    print("Scouting...")
+    scout = zenoh.scout(what = "peer|router", timeout=1.0)
 
-for hello in scout.receiver():
-    print(hello)
+    for hello in scout.receiver():
+        print(hello)
+
+main()
