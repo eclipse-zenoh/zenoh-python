@@ -24,7 +24,6 @@ def open_session(endpoints: List[str]) -> Tuple[Session, Session]:
     print("[  ][02a] Opening peer02 session");
     peer02 = zenoh.open(conf)
 
-
     return (peer01, peer02)
 
 
