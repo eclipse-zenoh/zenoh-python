@@ -20,7 +20,7 @@ class Priority(_Priority):
     They are ordered à la Linux priority:
     ``Priority.REAL_TIME() < Priority.INTERACTIVE_HIGH() < Priority.INTERACTIVE_LOW() < Priority.DATA() < Priority.BACKGROUND()``
     """
-    def __new__(cls, inner: _SampleKind):
+    def __new__(cls, inner: _Priority):
         return super().__new__(cls, inner)
     @staticmethod
     def REAL_TIME() -> 'Priority':

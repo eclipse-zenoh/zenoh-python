@@ -15,8 +15,8 @@ import abc
 from typing import Union, Tuple, Optional, List
 import json
 
-from .enums import Encoding, SampleKind
-from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello
+from .enums import Encoding, SampleKind, Priority, CongestionControl
+from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello, _QoS
 from .keyexpr import KeyExpr, IntoKeyExpr
 
 class IValue:
@@ -129,6 +129,30 @@ class Timestamp(_Timestamp):
         """
         return super().seconds_since_unix_epoch
 
+class QoS(_QoS):
+    """
+    Quality of Service settings.
+    """
+    def __new__(cls, priority: Priority = Priority.DATA, congestion_control: CongestionControl = CongestionControl.DROP, express: bool = False):
+        return super().new(priority, congestion_control, express)
+    @property
+    def priority(self) -> Priority:
+        "Priority"
+        return Priority(super().priority)
+    @property
+    def congestion_control(self) -> CongestionControl:
+        "Congestion control"
+        return CongestionControl(super().congestion_control)
+    @property
+    def express(self) -> bool:
+        "Express flag: if True, the message is not batched during transmission, in order to reduce latency."
+        return super().express
+    @staticmethod
+    def _upgrade_(inner: _QoS) -> 'QoS':
+        if isinstance(inner, QoS):
+            return inner
+        return _QoS.__new__(QoS, inner)
+    
 
 IntoSample = Union[_Sample, Tuple[IntoKeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
 class Sample(_Sample):
@@ -163,6 +187,10 @@ class Sample(_Sample):
         "The sample's  timestamp. May be None."
         ts = super().timestamp
         return None if ts is None else Timestamp._upgrade_(ts)
+    @property
+    def qos(self) -> QoS:
+        "Quality of service settings the sample was sent with"
+        return QoS._upgrade_(super().qos)
     @staticmethod
     def _upgrade_(inner: _Sample) -> 'Sample':
         if isinstance(inner, Sample):

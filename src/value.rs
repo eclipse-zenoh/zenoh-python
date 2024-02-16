@@ -15,6 +15,7 @@ use uhlc::Timestamp;
 use zenoh::{
     prelude::{Encoding, KeyExpr, Sample, Value, ZenohId},
     query::Reply,
+    sample::QoS,
     scouting::Hello,
 };
 use zenoh_buffers::{
@@ -23,7 +24,7 @@ use zenoh_buffers::{
 };
 
 use crate::{
-    enums::{_Encoding, _SampleKind},
+    enums::{_CongestionControl, _Encoding, _Priority, _SampleKind},
     keyexpr::_KeyExpr,
     ToPyErr,
 };
@@ -161,11 +162,36 @@ impl PyAnyToValue for &PyAny {
 
 #[pyclass(subclass)]
 #[derive(Clone, Debug)]
+pub struct _QoS(pub(crate) QoS);
+
+#[pymethods]
+impl _QoS {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[getter]
+    pub fn priority(&self) -> _Priority {
+        _Priority(self.0.priority)
+    }
+    #[getter]
+    pub fn congestion_control(&self) -> _CongestionControl {
+        _CongestionControl(self.0.congestion_control)
+    }
+    #[getter]
+    pub fn express(&self) -> bool {
+        self.0.express
+    }
+}
+
+#[pyclass(subclass)]
+#[derive(Clone, Debug)]
 pub struct _Sample {
     key_expr: KeyExpr<'static>,
     value: _Value,
     kind: _SampleKind,
     timestamp: Option<_Timestamp>,
+    qos: _QoS,
 }
 impl From<Sample> for _Sample {
     fn from(sample: Sample) -> Self {
@@ -174,6 +200,7 @@ impl From<Sample> for _Sample {
             value,
             kind,
             timestamp,
+            qos,
             ..
         } = sample;
         _Sample {
@@ -181,6 +208,7 @@ impl From<Sample> for _Sample {
             value: value.into(),
             kind: _SampleKind(kind),
             timestamp: timestamp.map(_Timestamp),
+            qos: _QoS(qos),
         }
     }
 }
@@ -267,6 +295,10 @@ impl _Sample {
         _Encoding(self.value.encoding.clone())
     }
     #[getter]
+    pub fn qos(&self) -> _QoS {
+        self.qos.clone()
+    }
+    #[getter]
     pub fn kind(&self) -> _SampleKind {
         self.kind.clone()
     }
@@ -279,6 +311,7 @@ impl _Sample {
         key_expr: _KeyExpr,
         value: _Value,
         kind: _SampleKind,
+        qos: _QoS,
         timestamp: Option<_Timestamp>,
     ) -> Self {
         _Sample {
@@ -286,6 +319,7 @@ impl _Sample {
             value,
             kind,
             timestamp,
+            qos,
         }
     }
     fn __str__(&self) -> String {
@@ -300,10 +334,16 @@ impl From<_Sample> for Sample {
             value,
             kind,
             timestamp,
+            qos,
         } = sample;
         let mut sample = Sample::new(key_expr, value);
         sample.kind = kind.0;
         sample.timestamp = timestamp.map(|t| t.0);
+        sample.qos = QoS {
+            priority: qos.0.priority,
+            congestion_control: qos.0.congestion_control,
+            express: qos.0.express,
+        };
         sample
     }
 }
