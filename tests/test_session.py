@@ -5,7 +5,7 @@ from typing import List, Tuple
 import time
 
 SLEEP = 1
-MSG_COUNT = 1000;
+MSG_COUNT = 1_000;
 MSG_SIZE = [1_024, 131_072];
 
 
@@ -126,7 +126,6 @@ def run_session_pubsub(peer01: Session, peer02: Session):
 
 
 def test_session():
-    print("Start")
     zenoh.init_logger()
     (peer01, peer02) = open_session(["tcp/127.0.0.1:17447"])
     run_session_qryrep(peer01, peer02)

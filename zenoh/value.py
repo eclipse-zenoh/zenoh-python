@@ -133,7 +133,9 @@ class QoS(_QoS):
     """
     Quality of Service settings.
     """
-    def __new__(cls, priority: Priority = Priority.DATA, congestion_control: CongestionControl = CongestionControl.DROP, express: bool = False):
+    def __new__(cls, priority: Priority = None, congestion_control: CongestionControl = None, express: bool = False):
+        priority = Priority.DEFAULT if priority is None else priority
+        congestion_control = CongestionControl.DEFAULT if congestion_control is None else congestion_control
         return super().new(priority, congestion_control, express)
     @property
     def priority(self) -> Priority:
@@ -153,15 +155,18 @@ class QoS(_QoS):
             return inner
         return _QoS.__new__(QoS, inner)
     
+QoS.DEFAULT = QoS()
+    
 
 IntoSample = Union[_Sample, Tuple[IntoKeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
 class Sample(_Sample):
     """
     A KeyExpr-Value pair, annotated with the kind (PUT or DELETE) of publication used to emit it and a timestamp.
     """
-    def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None, timestamp: Timestamp = None):
+    def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None, qos:QoS = None, timestamp: Timestamp = None):
         kind = _SampleKind.PUT if kind is None else kind
-        return Sample._upgrade_(super().new(KeyExpr(key), Value(value), kind, timestamp))
+        qos = QoS.DEFAULT if qos is None else qos
+        return Sample._upgrade_(super().new(KeyExpr(key), Value(value), qos, kind, timestamp))
     @property
     def key_expr(self) -> KeyExpr:
         "The sample's key expression"

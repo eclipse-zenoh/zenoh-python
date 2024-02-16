@@ -182,6 +182,14 @@ impl _QoS {
     pub fn express(&self) -> bool {
         self.0.express
     }
+    #[staticmethod]
+    pub fn new(priority: _Priority, congestion_control: _CongestionControl, express: bool) -> Self {
+        _QoS(QoS {
+            priority: priority.0,
+            congestion_control: congestion_control.0,
+            express,
+        })
+    }
 }
 
 #[pyclass(subclass)]
@@ -310,16 +318,16 @@ impl _Sample {
     pub fn new(
         key_expr: _KeyExpr,
         value: _Value,
-        kind: _SampleKind,
         qos: _QoS,
+        kind: _SampleKind,
         timestamp: Option<_Timestamp>,
     ) -> Self {
         _Sample {
             key_expr: key_expr.0,
             value,
+            qos,
             kind,
             timestamp,
-            qos,
         }
     }
     fn __str__(&self) -> String {
