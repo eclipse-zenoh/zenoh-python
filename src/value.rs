@@ -172,23 +172,19 @@ impl _QoS {
     }
     #[getter]
     pub fn priority(&self) -> _Priority {
-        _Priority(self.0.priority)
+        _Priority(self.0.priority())
     }
     #[getter]
     pub fn congestion_control(&self) -> _CongestionControl {
-        _CongestionControl(self.0.congestion_control)
+        _CongestionControl(self.0.congestion_control())
     }
     #[getter]
     pub fn express(&self) -> bool {
-        self.0.express
+        self.0.express()
     }
     #[staticmethod]
-    pub fn new(priority: _Priority, congestion_control: _CongestionControl, express: bool) -> Self {
-        _QoS(QoS {
-            priority: priority.0,
-            congestion_control: congestion_control.0,
-            express,
-        })
+    pub fn new() -> Self {
+        _QoS(QoS::default())
     }
 }
 
@@ -347,11 +343,7 @@ impl From<_Sample> for Sample {
         let mut sample = Sample::new(key_expr, value);
         sample.kind = kind.0;
         sample.timestamp = timestamp.map(|t| t.0);
-        sample.qos = QoS {
-            priority: qos.0.priority,
-            congestion_control: qos.0.congestion_control,
-            express: qos.0.express,
-        };
+        sample.qos = qos.0;
         sample
     }
 }

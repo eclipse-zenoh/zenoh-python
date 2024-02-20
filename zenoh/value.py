@@ -133,10 +133,8 @@ class QoS(_QoS):
     """
     Quality of Service settings.
     """
-    def __new__(cls, priority: Priority = None, congestion_control: CongestionControl = None, express: bool = False):
-        priority = Priority.DEFAULT if priority is None else priority
-        congestion_control = CongestionControl.DEFAULT if congestion_control is None else congestion_control
-        return super().new(priority, congestion_control, express)
+    def __new__(cls):
+        return super().new()
     @property
     def priority(self) -> Priority:
         "Priority"
