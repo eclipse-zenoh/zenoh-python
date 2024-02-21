@@ -161,7 +161,7 @@ impl PyAnyToValue for &PyAny {
 }
 
 #[pyclass(subclass)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct _QoS(pub(crate) QoS);
 
 #[pymethods]
@@ -184,7 +184,7 @@ impl _QoS {
     }
     #[staticmethod]
     pub fn new() -> Self {
-        _QoS(QoS::default())
+        Self::default()
     }
 }
 
