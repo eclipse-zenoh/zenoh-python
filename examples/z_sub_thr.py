@@ -96,12 +96,9 @@ def main():
     # Only do this if your callback runs faster than the minimum expected delay between two samples.
     sub = session.declare_subscriber("test/thr", zenoh.Closure((listener, report)), reliability=Reliability.RELIABLE())
 
-    print("Enter 'q' to quit...")
-    c = '\0'
-    while c != 'q':
-        c = sys.stdin.read(1)
-        if c == '':
-            time.sleep(1)
+    print("Press CTRL-C to quit...")
+    while True:
+        time.sleep(1)
 
     sub.undeclare()
     session.close()

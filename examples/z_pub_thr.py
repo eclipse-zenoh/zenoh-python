@@ -69,6 +69,7 @@ def main():
     session = zenoh.open(conf)
     pub = session.declare_publisher('test/thr', congestion_control=congestion_control)
 
+    print("Press CTRL-C to quit...")
     while True:
         pub.put(data)
 

@@ -84,14 +84,9 @@ def main():
     print("Declaring Queryable on '{}'...".format(key))
     queryable = session.declare_queryable(key, queryable_callback, complete)
 
-    print("Enter 'q' to quit...")
-    c = '\0'
-    while c != 'q':
-        c = sys.stdin.read(1)
-        if c != 'q':
-            print("getting")
-            session.get(key, print, consolidation=zenoh.QueryConsolidation.NONE())
-            time.sleep(1)
+    print("Press CTRL-C to quit...")
+    while True:
+        time.sleep(1)
 
     queryable.undeclare()
     session.close()
