@@ -15,8 +15,8 @@ import abc
 from typing import Union, Tuple, Optional, List
 import json
 
-from .enums import Encoding, SampleKind
-from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello
+from .enums import Encoding, SampleKind, Priority, CongestionControl
+from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello, _QoS
 from .keyexpr import KeyExpr, IntoKeyExpr
 
 class IValue:
@@ -129,15 +129,42 @@ class Timestamp(_Timestamp):
         """
         return super().seconds_since_unix_epoch
 
+class QoS(_QoS):
+    """
+    Quality of Service settings.
+    """
+    def __new__(cls):
+        return super().new()
+    @property
+    def priority(self) -> Priority:
+        "Priority"
+        return Priority(super().priority)
+    @property
+    def congestion_control(self) -> CongestionControl:
+        "Congestion control"
+        return CongestionControl(super().congestion_control)
+    @property
+    def express(self) -> bool:
+        "Express flag: if True, the message is not batched during transmission, in order to reduce latency."
+        return super().express
+    @staticmethod
+    def _upgrade_(inner: _QoS) -> 'QoS':
+        if isinstance(inner, QoS):
+            return inner
+        return _QoS.__new__(QoS, inner)
+    
+QoS.DEFAULT = QoS()
+    
 
 IntoSample = Union[_Sample, Tuple[IntoKeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
 class Sample(_Sample):
     """
     A KeyExpr-Value pair, annotated with the kind (PUT or DELETE) of publication used to emit it and a timestamp.
     """
-    def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None, timestamp: Timestamp = None):
+    def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None, qos:QoS = None, timestamp: Timestamp = None):
         kind = _SampleKind.PUT if kind is None else kind
-        return Sample._upgrade_(super().new(KeyExpr(key), Value(value), kind, timestamp))
+        qos = QoS.DEFAULT if qos is None else qos
+        return Sample._upgrade_(super().new(KeyExpr(key), Value(value), qos, kind, timestamp))
     @property
     def key_expr(self) -> KeyExpr:
         "The sample's key expression"
@@ -163,6 +190,10 @@ class Sample(_Sample):
         "The sample's  timestamp. May be None."
         ts = super().timestamp
         return None if ts is None else Timestamp._upgrade_(ts)
+    @property
+    def qos(self) -> QoS:
+        "Quality of service settings the sample was sent with"
+        return QoS._upgrade_(super().qos)
     @staticmethod
     def _upgrade_(inner: _Sample) -> 'Sample':
         if isinstance(inner, Sample):

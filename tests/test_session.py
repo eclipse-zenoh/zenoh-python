@@ -1,6 +1,6 @@
 import zenoh
 import json
-from zenoh import Session, Query, Sample
+from zenoh import Session, Query, Sample, Priority, CongestionControl
 from typing import List, Tuple
 import time
 
@@ -28,9 +28,9 @@ def open_session(endpoints: List[str]) -> Tuple[Session, Session]:
 
 
 def close_session(peer01: Session, peer02: Session):
-    print("[  ][01d] Closing peer01 session");
+    print("[  ][01e] Closing peer01 session");
     peer01.close()
-    print("[  ][02d] Closing peer02 session");
+    print("[  ][02e] Closing peer02 session");
     peer02.close()
 
 
@@ -81,8 +81,52 @@ def run_session_qryrep(peer01: Session, peer02: Session):
         queryable.undeclare()
 
 
+def run_session_pubsub(peer01: Session, peer02: Session):
+    keyexpr = "test_pub/session"
+    msg = 'Pub Message'.encode()
+
+    num_received = 0
+    num_errors = 0
+
+    def sub_callback(sample: Sample):
+        nonlocal num_received
+        nonlocal num_errors
+        if sample.key_expr != keyexpr \
+            or sample.qos.priority != Priority.DATA_HIGH() \
+            or sample.qos.congestion_control != CongestionControl.BLOCK() \
+            or sample.payload != msg:
+            num_errors += 1
+        num_received += 1
+
+    print("[PS][01d] Publisher on peer01 session");
+    publisher = peer01.declare_publisher(
+        keyexpr,
+        Priority.DATA_HIGH(),
+        CongestionControl.BLOCK()
+    )
+    time.sleep(SLEEP)
+
+    print(f"[PS][02d] Subscriber on peer02 session. {MSG_COUNT} msgs.")
+    subscriber = peer02.declare_subscriber(keyexpr, sub_callback)
+    time.sleep(SLEEP)
+
+    for _ in range(0, MSG_COUNT):
+        publisher.put('Pub Message')
+
+    time.sleep(SLEEP)
+    print(f"[PS][02d] Received on peer02 session. {num_received}/{MSG_COUNT} msgs.");
+    assert num_received == MSG_COUNT
+    assert num_errors == 0
+
+    print("[PS][03d] Undeclare publisher on peer01 session");
+    publisher.undeclare()
+    print("[PS][04d] Undeclare subscriber on peer02 session");
+    subscriber.undeclare()
+
+
 def test_session():
     zenoh.init_logger()
     (peer01, peer02) = open_session(["tcp/127.0.0.1:17447"])
     run_session_qryrep(peer01, peer02)
+    run_session_pubsub(peer01, peer02)
     close_session(peer01, peer02)

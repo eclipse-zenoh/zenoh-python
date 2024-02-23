@@ -20,7 +20,7 @@ class Priority(_Priority):
     They are ordered à la Linux priority:
     ``Priority.REAL_TIME() < Priority.INTERACTIVE_HIGH() < Priority.INTERACTIVE_LOW() < Priority.DATA() < Priority.BACKGROUND()``
     """
-    def __new__(cls, inner: _SampleKind):
+    def __new__(cls, inner: _Priority):
         return super().__new__(cls, inner)
     @staticmethod
     def REAL_TIME() -> 'Priority':
@@ -57,6 +57,8 @@ class Priority(_Priority):
         return super().__gt__(other)
     def __ge__(self, other) -> bool:
         return super().__ge__(other)
+    
+Priority.DEFAULT = Priority.DATA()
 
 class SampleKind(_SampleKind):
     "Similar to an HTTP METHOD: only PUT and DELETE are currently supported."
@@ -94,6 +96,8 @@ class CongestionControl(_CongestionControl):
         return super().__eq__(other)
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
+    
+CongestionControl.DEFAULT = CongestionControl.DROP()
 
 class Encoding(_Encoding):
     def __new__(cls, inner: _Encoding):

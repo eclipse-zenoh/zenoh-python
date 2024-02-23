@@ -103,7 +103,7 @@ impl _Encoding {
 }
 
 #[pyclass(subclass)]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct _Priority(pub(crate) Priority);
 #[pymethods]
 impl _Priority {
@@ -187,7 +187,7 @@ impl core::fmt::Debug for _SampleKind {
 }
 
 #[pyclass(subclass)]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct _CongestionControl(pub(crate) CongestionControl);
 #[pymethods]
 impl _CongestionControl {
