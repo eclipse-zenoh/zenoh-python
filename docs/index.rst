@@ -41,7 +41,7 @@ Publish a key/value pair onto Zenoh
 
 >>> import zenoh
 >>> z = zenoh.open()
->>> z.put('/demo/example/hello', 'Hello World!')
+>>> z.put('demo/example/hello', 'Hello World!')
 
 Subscribe to a set of keys with Zenoh
 """""""""""""""""""""""""""""""""""""
@@ -51,7 +51,7 @@ Subscribe to a set of keys with Zenoh
 >>>     print(f"{sample.key_expr} => {sample.payload.decode('utf-8')}")
 >>>
 >>> z = zenoh.open()
->>> subscriber = z.subscribe('/demo/example/**', listener)
+>>> subscriber = z.subscribe('demo/example/**', listener)
 >>> time.sleep(60)
 >>> subscriber.undeclare()
 
@@ -60,7 +60,7 @@ Get keys/values from zenoh
 
 >>> import zenoh
 >>> z = zenoh.open()
->>> for response in z.get('/demo/example/**', zenoh.Queue()):
+>>> for response in z.get('demo/example/**', zenoh.Queue()):
 >>>     response = response.ok
 >>>     print(f"{response.key_expr} => {response.payload.decode('utf-8')}")
 
