@@ -28,10 +28,9 @@ build:
   tools:
     python: "3.8"
     rust: "latest"
-
-# Build documentation with MkDocs
-#mkdocs:
-#  configuration: mkdocs.yml
+  jobs:
+    pre_build:
+      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH maturin develop
 
 # Optionally build your docs in additional formats such as PDF
 formats:
@@ -41,3 +40,4 @@ formats:
 python:
   install:
     - requirements: docs/requirements.txt
+    - requirements: requirements-dev.txt

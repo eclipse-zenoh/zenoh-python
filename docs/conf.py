@@ -23,9 +23,6 @@
 
 # -- Project setup --------------------------------------------------------------
 
-# NOTE: as zenoh-python is developped in Rust, it must be compiled and install in Python environment
-# in order to be imported here (and the Sphinx autodoc extension to load the doc from the compiled code)
-# For readthedocs.org, zenoh-python is added in docs/requirements.txt so it get it from pypi.org
 import zenoh
 
 # -- Project information -----------------------------------------------------
