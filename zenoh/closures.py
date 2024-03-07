@@ -110,7 +110,7 @@ class Closure(IClosure, Generic[In, Out]):
                 _drop_()
             self._drop_ = drop
         else:
-            self._call_ = _call_
+            self._call_ = adapted
             self._drop_ = _drop_
 
     @property

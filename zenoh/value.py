@@ -16,7 +16,7 @@ from typing import Union, Tuple, Optional, List
 import json
 
 from .enums import Encoding, SampleKind, Priority, CongestionControl
-from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello, _QoS
+from .zenoh import _ZBuf, _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello, _QoS
 from .keyexpr import KeyExpr, IntoKeyExpr
 
 class IValue:
@@ -34,6 +34,34 @@ class IValue:
         ...
 
 IntoValue = Union[IValue, bytes, str, int, float, object]
+
+IntoZBuf = Union[bytes, 'ZBuf']
+Slice = Union[bytes, memoryview]
+class ZBuf(_ZBuf):
+    """
+    A possibly split buffer.
+
+    In order to minimize copies, Zenoh avoids defragmenting large payloads.
+    You may use the `contiguous` method to defragment the data.
+    """
+    def __new__(cls, data: IntoZBuf):
+        return ZBuf._upgrade_(super().new(data))
+    @staticmethod
+    def _upgrade_(this: _ZBuf) -> 'ZBuf':
+        return _ZBuf.__new__(ZBuf, this)
+    def contiguous(self) -> bytes:
+        """
+        Defragments the buffer and returns a view to it.
+        
+        The returned value aliases `self`, meaning that if `self` is destroyed, the returned value is no longer valid.
+        """
+        return bytes(super().contiguous())
+    def n_slices(self) -> int:
+        "The number of slices that the buffer is split into."
+        return super().n_slices()
+    def __getitem__(self, index: int) -> Slice:
+        return super().__getitem__(index)
+
 
 class Value(_Value, IValue):
     """
@@ -71,20 +99,12 @@ class Value(_Value, IValue):
         return Value._upgrade_(_Value.new(payload, encoding))
 
     @property
-    def payload(self) -> bytes:
-        return super().payload
-
-    @payload.setter
-    def payload(self, payload: bytes):
-        super().with_payload(payload)
+    def payload(self) -> ZBuf:
+        return ZBuf._upgrade_(super().payload)
 
     @property
     def encoding(self) -> Encoding:
         return Encoding(super().encoding)
-
-    @encoding.setter
-    def encoding(self, encoding: Encoding):
-        super().with_encoding(encoding)
 
     @staticmethod
     def _upgrade_(inner: _Value) -> 'Value':
@@ -174,9 +194,9 @@ class Sample(_Sample):
         "The sample's value"
         return Value._upgrade_(super().value)
     @property
-    def payload(self) -> bytes:
+    def payload(self) -> ZBuf:
         "A shortcut to ``self.value.payload``"
-        return super().payload
+        return self.value.payload
     @property
     def encoding(self) -> Encoding:
         "A shortcut to ``self.value.encoding``"
@@ -199,6 +219,8 @@ class Sample(_Sample):
         if isinstance(inner, Sample):
             return inner
         return _Sample.__new__(Sample, inner)
+    def __str__(self):
+        return super().__str__()[1:]
 
 class Reply(_Reply):
     """

@@ -62,8 +62,9 @@ impl<K: ToPyObject> PyExtract<K> for PyAny {
 impl<K: ToPyObject> PyExtract<K> for PyDict {
     fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError> {
         match self.get_item(key) {
-            Some(item) => Ok(item.extract::<V>()?),
-            None => Err(ExtractError::Unavailable(None)),
+            Ok(Some(item)) => Ok(item.extract::<V>()?),
+            Ok(None) => Err(ExtractError::Unavailable(None)),
+            Err(e) => Err(e.into()),
         }
     }
 }
@@ -81,6 +82,7 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<session::_Scout>()?;
     m.add_class::<queryable::_Query>()?;
     m.add_class::<queryable::_Queryable>()?;
+    m.add_class::<value::_ZBuf>()?;
     m.add_class::<value::_Value>()?;
     m.add_class::<value::_Sample>()?;
     m.add_class::<value::_QoS>()?;

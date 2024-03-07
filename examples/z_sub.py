@@ -70,7 +70,7 @@ def main():
 
 
     def listener(sample: Sample):
-        print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
+        print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.contiguous().decode('utf-8')}')")
         
 
     # WARNING, you MUST store the return value in order for the subscription to work!!

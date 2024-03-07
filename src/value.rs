@@ -10,7 +10,7 @@
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 
-use pyo3::{prelude::*, types::PyBytes};
+use pyo3::{prelude::*, types::PyBytes, PyObject};
 use uhlc::Timestamp;
 use zenoh::{
     prelude::{Encoding, KeyExpr, Sample, Value, ZenohId},
@@ -18,10 +18,7 @@ use zenoh::{
     sample::QoS,
     scouting::Hello,
 };
-use zenoh_buffers::{
-    buffer::{Buffer, SplitBuffer},
-    ZBuf,
-};
+use zenoh_buffers::{buffer::SplitBuffer, ZBuf};
 
 use crate::{
     enums::{_CongestionControl, _Encoding, _Priority, _SampleKind},
@@ -29,61 +26,113 @@ use crate::{
     ToPyErr,
 };
 
+#[pyclass(subclass)]
+#[derive(Clone)]
+pub struct _ZBuf {
+    inner: Payload,
+}
+fn memoryview(slice: &[u8], py: Python) -> PyObject {
+    unsafe {
+        let memview = pyo3::ffi::PyMemoryView_FromMemory(
+            slice.as_ptr().cast_mut().cast(),
+            slice.len() as isize,
+            100,
+        );
+        PyObject::from_owned_ptr(py, memview)
+    }
+}
+#[pymethods]
+impl _ZBuf {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+    #[staticmethod]
+    pub fn new(bytes: PyObject, py: Python) -> PyResult<Self> {
+        if let Ok(this) = bytes.downcast::<PyBytes>(py) {
+            return Ok(Self {
+                inner: Payload::Python(Py::from(this)),
+            });
+        }
+        bytes.extract(py)
+    }
+    pub fn contiguous(&mut self, py: Python) -> PyObject {
+        match &mut self.inner {
+            Payload::Zenoh(buf) => match buf.contiguous() {
+                std::borrow::Cow::Borrowed(slice) => memoryview(slice, py),
+                std::borrow::Cow::Owned(vec) => {
+                    *buf = vec.into();
+                    let slice = buf.slices().next().unwrap();
+                    memoryview(slice, py)
+                }
+            },
+            Payload::Python(buf) => buf.to_object(py),
+        }
+    }
+    fn n_slices(&self) -> usize {
+        match &self.inner {
+            Payload::Zenoh(buf) => buf.slices().len(),
+            Payload::Python(_) => 1,
+        }
+    }
+    fn __getitem__(&self, index: usize, py: Python) -> PyResult<PyObject> {
+        match &self.inner {
+            Payload::Python(buf) => {
+                if index == 0 {
+                    return Ok(buf.to_object(py));
+                }
+            }
+            Payload::Zenoh(buf) => {
+                if let Some(slice) = buf.slices().nth(index) {
+                    return Ok(memoryview(slice, py));
+                }
+            }
+        }
+        Err(PyErr::new::<pyo3::exceptions::PyIndexError, _>(format!(
+            "index: {index}, n_slices: {}",
+            self.n_slices()
+        )))
+    }
+}
+
 #[derive(Clone)]
 pub(crate) enum Payload {
     Zenoh(ZBuf),
     Python(Py<PyBytes>),
 }
-impl Payload {
-    pub(crate) fn into_zbuf(self) -> ZBuf {
-        match self {
+impl From<_ZBuf> for ZBuf {
+    fn from(value: _ZBuf) -> ZBuf {
+        match value.inner {
             Payload::Zenoh(buf) => buf,
             Payload::Python(buf) => Python::with_gil(|py| ZBuf::from(buf.as_bytes(py).to_owned())),
         }
     }
-    pub(crate) fn into_pybytes(self) -> Py<PyBytes> {
-        match self {
-            Payload::Zenoh(buf) => {
-                let len = buf.len();
-                Python::with_gil(|py| {
-                    Py::from(
-                        PyBytes::new_with(py, len, |mut bytes| {
-                            for slice in buf.slices() {
-                                let len = slice.len();
-                                bytes[..len].copy_from_slice(slice);
-                                bytes = &mut bytes[len..];
-                            }
-                            Ok(())
-                        })
-                        .unwrap(),
-                    )
-                })
-            }
-            Payload::Python(buf) => buf,
+}
+impl From<ZBuf> for _ZBuf {
+    fn from(buf: ZBuf) -> Self {
+        _ZBuf {
+            inner: Payload::Zenoh(buf),
         }
     }
 }
-impl From<ZBuf> for Payload {
-    fn from(buf: ZBuf) -> Self {
-        Payload::Zenoh(buf)
-    }
-}
-impl From<Py<PyBytes>> for Payload {
+impl From<Py<PyBytes>> for _ZBuf {
     fn from(buf: Py<PyBytes>) -> Self {
-        Payload::Python(buf)
+        _ZBuf {
+            inner: Payload::Python(buf),
+        }
     }
 }
-impl core::fmt::Debug for Payload {
+impl core::fmt::Debug for _ZBuf {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Zenoh(arg0) => {
+        match &self.inner {
+            Payload::Zenoh(arg0) => {
                 for slice in arg0.slices() {
                     for byte in slice {
                         write!(f, "{byte:02x}")?
                     }
                 }
             }
-            Self::Python(arg0) => {
+            Payload::Python(arg0) => {
                 for byte in arg0.as_bytes(unsafe { Python::assume_gil_acquired() }) {
                     write!(f, "{byte:02x}")?
                 }
@@ -95,7 +144,7 @@ impl core::fmt::Debug for Payload {
 #[pyclass(subclass)]
 #[derive(Clone, Debug)]
 pub struct _Value {
-    pub(crate) payload: Payload,
+    pub(crate) payload: _ZBuf,
     pub(crate) encoding: Encoding,
 }
 #[pymethods]
@@ -105,24 +154,18 @@ impl _Value {
         this
     }
     #[staticmethod]
-    pub fn new(payload: Py<PyBytes>, encoding: Option<_Encoding>) -> Self {
-        Self {
-            payload: payload.into(),
+    pub fn new(bytes: PyObject, encoding: Option<_Encoding>, py: Python) -> PyResult<Self> {
+        Ok(Self {
+            payload: _ZBuf::new(bytes, py)?,
             encoding: encoding.map(|e| e.0).unwrap_or(Encoding::EMPTY),
-        }
+        })
     }
     #[getter]
-    pub fn payload(&mut self) -> Py<PyBytes> {
-        if let Payload::Python(buf) = &self.payload {
-            return buf.clone();
-        }
-        let payload = unsafe { std::ptr::read(&self.payload) };
-        let buf = payload.into_pybytes();
-        unsafe { std::ptr::write(&mut self.payload, Payload::Python(buf.clone())) };
-        buf
+    pub fn payload(&self) -> _ZBuf {
+        self.payload.clone()
     }
-    pub fn with_payload(&mut self, payload: Py<PyBytes>) {
-        self.payload = Payload::Python(payload)
+    pub fn with_payload(&mut self, payload: _ZBuf) {
+        self.payload = payload
     }
     #[getter]
     pub fn encoding(&self) -> _Encoding {
@@ -145,7 +188,7 @@ impl From<Value> for _Value {
 }
 impl From<_Value> for Value {
     fn from(value: _Value) -> Self {
-        Value::new(value.payload.into_zbuf()).encoding(value.encoding)
+        Value::new(value.payload.into()).encoding(value.encoding)
     }
 }
 
@@ -285,14 +328,8 @@ impl _Sample {
         _KeyExpr(self.key_expr.clone())
     }
     #[getter]
-    pub fn payload(&mut self) -> Py<PyBytes> {
-        if let Payload::Python(buf) = &self.value.payload {
-            return buf.clone();
-        }
-        let payload = unsafe { std::ptr::read(&self.value.payload) };
-        let buf = payload.into_pybytes();
-        unsafe { std::ptr::write(&mut self.value.payload, Payload::Python(buf.clone())) };
-        buf
+    pub fn payload(&self) -> _ZBuf {
+        self.value.payload()
     }
     #[getter]
     pub fn encoding(&self) -> _Encoding {
