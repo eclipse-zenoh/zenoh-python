@@ -12,6 +12,7 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
+import itertools
 import sys
 import time
 from datetime import datetime
@@ -73,17 +74,13 @@ def main():
     session = zenoh.open(conf)
 
     print("Declaring Subscriber on '{}'...".format(key))
-
     sub = session.declare_pull_subscriber(key, listen, reliability=Reliability.RELIABLE())
 
-    print("Press <enter> to pull data...")
-    c = '\0'
-    while c != 'q':
-        c = sys.stdin.read(1)
-        if c == '':
-            time.sleep(1)
-        else:
-            sub.pull()
+    print("Press CTRL-C to quit...")
+    for idx in itertools.count():
+        time.sleep(1)
+        print(f"[{idx:4d}] Pulling...")
+        sub.pull()
 
     sub.undeclare()
     session.close()

@@ -10,11 +10,12 @@
 # Contributors:
 #   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 # 
-from os import path
+from os import path, getpgid, killpg
+from signal import SIGINT
 from subprocess import Popen, PIPE
 import time
 
-examples = path.dirname(path.realpath(__file__)).replace('tests', 'examples')
+examples = path.realpath(__file__).split("/tests")[0]+"/examples/"
 tab = "\t"
 ret = "\r\n"
 KILL = -9
@@ -25,7 +26,7 @@ class Pyrun:
 			args = []
 		self.name = p
 		print(f"starting {self.name}")
-		self.process: Popen = Popen(["python3", path.join(examples, p), *args], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+		self.process: Popen = Popen(["python3", path.join(examples, p), *args], stdin=PIPE, stdout=PIPE, stderr=PIPE, start_new_session=True)
 		self.start = time.time()
 		self.end = None
 		self._stdouts = []
@@ -51,6 +52,10 @@ class Pyrun:
 		if self.end is None:
 			self.end = time.time()
 		return code
+	def interrupt(self):
+		# send SIGINT to process group
+		pgid = getpgid(self.process.pid)
+		killpg(pgid, SIGINT)
 	@property
 	def stdout(self):
 		self._stdouts.extend(line.decode('utf8') for line in self.process.stdout.readlines())
@@ -85,22 +90,14 @@ if put.status():
 time.sleep(1)
 pub = Pyrun("z_pub.py", ["--iter=2"])
 time.sleep(4)
-try:
-	pull.process.stdin.write(b"\n")
-	pull.process.stdin.flush()
-	time.sleep(1)
-	pull.process.stdin.write(b"q\n")
-	pull.process.stdin.flush()
-	pull.process.stdin.close()
-except Exception as e:
-	pull.dbg()
-	errors.append(f"pull stdin sequence failed: {e}")
+
+pull.interrupt()
 if pub.status():
 	pub.dbg()
 	errors.append(pub.status())
-if pull.status():
+if pull.status(KILL):
 	pull.dbg()
-	errors.append(pull.status())
+	errors.append(pull.status(KILL))
 subout = "".join(pull.stdout)
 if not ("Received PUT ('demo/example/zenoh-python-put': 'Put from Python!')" in subout):
 	errors.append("z_pull didn't catch put")
@@ -120,15 +117,10 @@ if not ("Received ('demo/example/zenoh-python-queryable': 'Queryable from Python
 	queryable.dbg()
 	errors.append("z_get didn't get a response from z_queryable")
 
-try:
-	queryable.process.stdin.write(b"q\n")
-	queryable.process.stdin.flush()
-	queryable.process.stdin.close()
-except Exception as e:
-	errors.append(f"queryable stdin sequence failed: {e}")
-if queryable.status():
+queryable.interrupt()
+if queryable.status(KILL):
 	queryable.dbg()
-	errors.append(queryable.status())
+	errors.append(queryable.status(KILL))
 queryableout = "".join(queryable.stdout)
 if not ("Received Query 'demo/example/zenoh-python-queryable'" in queryableout):
 	errors.append("z_queryable didn't catch query")
@@ -163,15 +155,10 @@ if ("Received ('demo/example/zenoh-python-put': 'Put from Python!')" in "".join(
 if any(("z_get" in error) for error in errors):
 	get.dbg()
 
-try:
-	sub.process.stdin.write(b"q\n")
-	sub.process.stdin.flush()
-	sub.process.stdin.close()
-except Exception as e:
-	errors.append(f"pub stdin sequence failed: {e}")
-if sub.status():
+sub.interrupt()
+if sub.status(KILL):
 	sub.dbg()
-	errors.append(sub.status())
+	errors.append(sub.status(KILL))
 subout = "".join(sub.stdout)
 if not ("Received PUT ('demo/example/zenoh-python-put': 'Put from Python!')" in subout):
 	errors.append("z_sub didn't catch put")
@@ -182,15 +169,10 @@ if not ("Received DELETE ('demo/example/zenoh-python-put': '')" in subout):
 if any(("z_sub" in error) for error in errors):
 	sub.dbg()
 
-try:
-	storage.process.stdin.write(b"q\n")
-	storage.process.stdin.flush()
-	storage.process.stdin.close()
-except Exception as e:
-	errors.append(f"storage stdin sequence failed: {e}")
-if storage.status():
+storage.interrupt()
+if storage.status(KILL):
 	storage.dbg()
-	errors.append(storage.status())
+	errors.append(storage.status(KILL))
 storageout = "".join(storage.stdout)
 if not ("Received PUT ('demo/example/zenoh-python-put': 'Put from Python!')" in storageout):
 	errors.append("z_storage didn't catch put")
@@ -210,10 +192,10 @@ sub_thr.process.kill()
 pub_thr.process.kill()
 if sub_thr.status(KILL):
 	sub_thr.dbg()
-	errors.append(sub_thr.status())
+	errors.append(sub_thr.status(KILL))
 if pub_thr.status(KILL):
 	pub_thr.dbg()
-	errors.append(pub_thr.status())
+	errors.append(pub_thr.status(KILL))
 
 
 if len(errors):

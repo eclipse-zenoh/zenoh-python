@@ -74,6 +74,7 @@ def main():
     print(f"Declaring Publisher on '{key}'...")
     pub = session.declare_publisher(key)
 
+    print("Press CTRL-C to quit...")
     for idx in itertools.count() if args.iter is None else range(args.iter):
         time.sleep(1)
         buf = f"[{idx:4d}] {value}"

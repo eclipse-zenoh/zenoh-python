@@ -84,12 +84,9 @@ def main():
 
     t = Thread(target=consumer)
     t.start()
-    print("Enter 'q' to quit...")
-    c = '\0'
-    while c != 'q':
-        c = sys.stdin.read(1)
-        if c == '':
-            time.sleep(1)
+    print("Press CTRL-C to quit...")
+    while True:
+        time.sleep(1)
 
     # Cleanup: note that even if you forget it, cleanup will happen automatically when 
     # the reference counter reaches 0
