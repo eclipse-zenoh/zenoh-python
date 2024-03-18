@@ -1,14 +1,36 @@
 name: Release
 
 on:
-  release:
-    types: [published]
   schedule:
     - cron: "0 1 * * 1-5"
   workflow_dispatch:
+    inputs:
+      live-run:
+        type: boolean
+        description: If false (or undefined) the workflow runs in dry-run mode (i.e. with no side-effects)
+        required: false
+      version:
+        type: string
+        description: Release number. If undefined, the workflow auto-generates a version using git-describe
+        required: false
+      zenoh-version:
+        type: string
+        description: Release number of Zenoh. Required in live-run mode and ignored in dry-run mode
+        required: false
 
 jobs:
-  macos:
+  tag:
+    name: Bump and tag crates
+    uses: eclipse-zenoh/ci/.github/workflows/tag-crates.yml@main
+    with:
+      repo: ${{ github.repository }}
+      live-run: ${{ inputs.live-run || false }}
+      version: ${{ inputs.version }}
+      inter-deps-pattern: ${{ inputs.live-run && 'zenoh.*' || '^$' }}
+      inter-deps-version: ${{ inputs.live-run && inputs.zenoh-version || '' }}
+    secrets: inherit
+
+  build-macos:
     runs-on: macos-latest
     steps:
       - name: Checkout this repository
@@ -36,7 +58,7 @@ jobs:
           name: wheels
           path: dist
 
-  windows:
+  build-windows:
     runs-on: windows-latest
     strategy:
       matrix:
@@ -63,7 +85,7 @@ jobs:
           name: wheels
           path: dist
 
-  linux:
+  build-linux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -85,7 +107,7 @@ jobs:
           name: wheels
           path: dist
 
-  linux-aarch64:
+  build-linux-aarch64:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout this repository
@@ -110,7 +132,7 @@ jobs:
           name: wheels
           path: dist
 
-  linux-armv6:
+  build-linux-armv6:
     runs-on: macos-latest
     steps:
       - name: Checkout this repository
@@ -121,7 +143,7 @@ jobs:
           rustup set profile minimal
           rustup target add arm-unknown-linux-gnueabihf
 
-      - name: install cross toolchain
+      - name: Install cross toolchain
         run: |
           brew tap messense/macos-cross-toolchains
           brew install arm-unknown-linux-gnueabihf
@@ -141,18 +163,20 @@ jobs:
           path: dist
 
   deploy-wheels:
-    needs: [macos, windows, linux, linux-armv6]
-    name: deploy wheels to pypi
+    needs: [build-macos, build-windows, build-linux, build-linux-armv6]
+    name: Deploy wheels to pypi
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: wheels
           path: dist
+
       - name: Check dist
         run: ls -al ./dist/*
-      - name: publish
-        if: github.event_name == 'release' && github.event.action == 'published'
+
+      - name: Publish
+        if: ${{ inputs.live-run || false }}
         uses: pypa/gh-action-pypi-publish@v1.6.4
         with:
           password: ${{ secrets.PYPI_ORG_TOKEN }}
