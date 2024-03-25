@@ -23,6 +23,8 @@
 
 # -- Project setup --------------------------------------------------------------
 
+import tomllib
+
 import zenoh
 
 # -- Project information -----------------------------------------------------
@@ -31,8 +33,9 @@ project = 'zenoh-python'
 copyright = '2020, ZettaScale Zenoh team, <zenoh@zettascale.tech>'
 author = 'ZettaScale Zenoh team, <zenoh@zettascale.tech>'
 
-# The full version, including alpha/beta/rc tags
-release = '0.11.0-dev'
+# Extract the release number from the Cargo manifest
+with open("../Cargo.toml", "rb") as f:
+    release = tomllib.load(f)["package"]["version"]
 
 
 # -- General configuration ---------------------------------------------------
