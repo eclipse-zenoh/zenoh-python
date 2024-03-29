@@ -13,7 +13,7 @@
 #
 from typing import Union, Any, List
 
-from .zenoh import _Session, _Config, _Publisher, _Subscriber, _PullSubscriber
+from .zenoh import _Session, _Config, _Publisher, _Subscriber
 
 from .keyexpr import KeyExpr, IntoKeyExpr, Selector, IntoSelector
 from .config import Config
@@ -60,34 +60,6 @@ class Subscriber:
     def __init__(self, s: _Subscriber, receiver=None):
         self._subscriber_ = s
         self.receiver = receiver
-
-    def undeclare(self):
-        "Undeclares the subscription"
-        self._subscriber_ = None
-
-
-class PullSubscriber:
-    """
-    A handle to a pull subscription.
-
-    Its main purpose is to keep the subscription active as long as it exists.
-
-    When constructed through ``Session.declare_pull_subscriber(session, keyexpr, handler)``, it exposes ``handler``'s receiver
-    through ``self.receiver``.
-
-    Calling ``self.pull()`` will prompt the Zenoh network to send a new sample when available.
-    """
-
-    def __init__(self, s: _PullSubscriber, receiver=None):
-        self._subscriber_ = s
-        self.receiver = receiver
-
-    def pull(self):
-        """
-        Prompts the Zenoh network to send a new sample if available.
-        Note that this sample will not be returned by this function, but provided to the handler's callback.
-        """
-        self._subscriber_.pull()
 
     def undeclare(self):
         "Undeclares the subscription"
@@ -341,35 +313,6 @@ class Session(_Session):
             kwargs['reliability'] = reliability
         s = super().declare_subscriber(KeyExpr(keyexpr), handler.closure, **kwargs)
         return Subscriber(s, handler.receiver)
-
-    def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None) -> PullSubscriber:
-        """
-        Declares a pull-mode subscriber, which will receive a single published sample with a key expression intersecting ``keyexpr`` any time its ``pull`` method is called.
-
-        These samples are passed to the `handler`'s closure as instances of the `Sample` class.
-        The `handler` can typically be a queue or a callback.
-        The `handler`'s receiver is returned as the `receiver` field of the returned `PullSubscriber`.
-
-        :param keyexpr: The key expression to subscribe to
-        :param handler:
-        :param reliability: the reliability to use when routing the subscribed samples
-        :rtype: PullSubscriber
-
-        :Examples:
-
-        >>> import zenoh
-        >>> s = zenoh.open({})
-        >>> sub = s.declare_pull_subscriber('key/expression', lambda sample:
-        ...     print(f"Received '{sample.key_expr}': '{sample.payload.decode('utf-8')}'"))
-        ...
-        >>> sub.pull()
-        """
-        handler = Handler(handler, lambda x: Sample._upgrade_(x))
-        kwargs = dict()
-        if reliability is not None:
-            kwargs['reliability'] = reliability
-        s = super().declare_pull_subscriber(KeyExpr(keyexpr), handler.closure, **kwargs)
-        return PullSubscriber(s, handler.receiver)
 
     def close(self):
         """Attempts to close the Session.
