@@ -20,7 +20,7 @@ use pyo3::{
     prelude::*,
     types::{PyList, PyTuple},
 };
-use zenoh::prelude::IntoCallbackReceiverPair;
+use zenoh::prelude::IntoHandler;
 
 trait CallbackUnwrap {
     type Output;
@@ -85,7 +85,7 @@ impl<I> Drop for PyClosure<I> {
         }
     }
 }
-impl<T, I> IntoCallbackReceiverPair<'static, T> for PyClosure<(I,)>
+impl<T, I> IntoHandler<'static, T> for PyClosure<(I,)>
 where
     T: Into<I>,
     I: Send + Sync + 'static,
