@@ -19,6 +19,7 @@ from datetime import datetime
 import argparse
 import json
 import zenoh
+from threading import Thread
 from zenoh import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -74,15 +75,30 @@ def main():
     session = zenoh.open(conf)
 
     print("Declaring Subscriber on '{}'...".format(key))
-    sub = session.declare_pull_subscriber(key, listen, reliability=Reliability.RELIABLE())
 
-    print("Press CTRL-C to quit...")
-    for idx in itertools.count():
-        time.sleep(1)
-        print(f"[{idx:4d}] Pulling...")
-        sub.pull()
 
-    sub.undeclare()
-    session.close()
+    # WARNING, you MUST store the return value in order for the subscription to work!!
+    # This is because if you don't, the reference counter will reach 0 and the subscription
+    # will be immediately undeclared.
+
+    print("Pull subscriber not implemented...")
+    # TODO: implement zenoh.Ring()
+    # sub = session.declare_subscriber(key, zenoh.Queue(), reliability=Reliability.RELIABLE())
+
+    # def consumer():
+    #     for sample in sub.receiver: # zenoh.Queue's receiver (the queue itself) is an iterator
+    #         print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
+
+    # t = Thread(target=consumer)
+    # t.start()
+    # print("Press CTRL-C to quit...")
+    # while True:
+    #     time.sleep(1)
+
+    # Cleanup: note that even if you forget it, cleanup will happen automatically when 
+    # the reference counter reaches 0
+    # sub.undeclare()
+    # t.join()
+    # session.close()
 
 main()

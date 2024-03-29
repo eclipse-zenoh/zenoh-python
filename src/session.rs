@@ -23,7 +23,7 @@ use zenoh::{
     prelude::{sync::SyncResolve, SessionDeclarations},
     publication::Publisher,
     scouting::Scout,
-    subscriber::{PullSubscriber, Subscriber},
+    subscriber::Subscriber,
     Session,
 };
 
@@ -226,30 +226,6 @@ impl _Session {
         Ok(_Subscriber(subscriber))
     }
 
-    #[pyo3(signature = (key_expr, callback, **kwargs))]
-    pub fn declare_pull_subscriber(
-        &self,
-        key_expr: &_KeyExpr,
-        callback: &PyAny,
-        kwargs: Option<&PyDict>,
-    ) -> PyResult<_PullSubscriber> {
-        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self
-            .0
-            .declare_subscriber(&key_expr.0)
-            .pull_mode()
-            .with(callback);
-        if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_Reliability>("reliability") {
-                Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-        }
-        let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
-        Ok(_PullSubscriber(subscriber))
-    }
-
     pub fn zid(&self) -> _ZenohId {
         _ZenohId(self.0.zid())
     }
@@ -289,15 +265,6 @@ impl _Publisher {
 
 #[pyclass(subclass)]
 pub struct _Subscriber(Subscriber<'static, ()>);
-
-#[pyclass(subclass)]
-pub struct _PullSubscriber(PullSubscriber<'static, ()>);
-#[pymethods]
-impl _PullSubscriber {
-    fn pull(&self) -> PyResult<()> {
-        self.0.pull().res_sync().map_err(|e| e.to_pyerr())
-    }
-}
 
 #[pyclass(subclass)]
 pub struct _Scout(Scout<()>);
