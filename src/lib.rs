@@ -107,11 +107,12 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
 ///
 ///    $ RUST_LOG=debug python
 ///
-/// More details on the RUST_LOG configuration on https://docs.rs/env_logger/latest/env_logger
+/// More details on the RUST_LOG configuration on 
+/// https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#method.try_from_env
 ///
 #[pyfunction]
 fn init_logger() {
-    let _ = env_logger::try_init();
+    zenoh_util::init_log();
 }
 
 pub(crate) use value::PyAnyToValue;
