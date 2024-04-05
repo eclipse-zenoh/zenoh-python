@@ -29,16 +29,13 @@ trait CallbackUnwrap {
 impl<T> CallbackUnwrap for PyResult<T> {
     type Output = T;
     fn cb_unwrap(self) -> Self::Output {
-        match self {
-            Ok(o) => o,
-            Err(e) => Python::with_gil(|py| {
-                if let Some(trace) = e.traceback(py).and_then(|trace| trace.format().ok()) {
-                    panic!("Exception thrown in callback: {}.\n{}", e, trace)
-                } else {
-                    panic!("Exception thrown in callback: {}.", e,)
-                }
-            }),
-        }
+        self.unwrap_or_else(|e| Python::with_gil(|py| {
+            if let Some(trace) = e.traceback_bound(py).and_then(|trace| trace.format().ok()) {
+                panic!("Exception thrown in callback: {}.\n{}", e, trace)
+            } else {
+                panic!("Exception thrown in callback: {}.", e, )
+            }
+        }))
     }
 }
 
@@ -47,9 +44,9 @@ pub(crate) struct PyClosure<I> {
     pub(crate) drop: Option<Py<PyAny>>,
     _marker: std::marker::PhantomData<I>,
 }
-impl<I> TryFrom<&PyAny> for PyClosure<I> {
+impl<I> TryFrom<&Bound<'_, PyAny>> for PyClosure<I> {
     type Error = PyErr;
-    fn try_from(value: &PyAny) -> Result<Self, Self::Error> {
+    fn try_from(value: &Bound<PyAny>) -> Result<Self, Self::Error> {
         Python::with_gil(|py| {
             let pycall = match value.getattr("call") {
                 Ok(value) => value.into_py(py),
@@ -169,7 +166,7 @@ impl _Queue {
                             Err(flume::RecvTimeoutError::Disconnected) => break,
                             Err(flume::RecvTimeoutError::Timeout) => {
                                 let list: Py<PyList> =
-                                    Python::with_gil(|py| PyList::new(py, vec).into_py(py));
+                                    Python::with_gil(|py| PyList::new_bound(py, vec).into());
                                 return Err(pyo3::exceptions::PyTimeoutError::new_err((list,)));
                             }
                         }
@@ -177,7 +174,7 @@ impl _Queue {
                     vec
                 }
             };
-            Ok(Python::with_gil(|py| PyList::new(py, vec).into_py(py)))
+            Ok(Python::with_gil(|py| PyList::new_bound(py, vec).into()))
         })
     }
     pub fn is_closed(&self) -> bool {
