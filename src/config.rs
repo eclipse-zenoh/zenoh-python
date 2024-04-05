@@ -63,7 +63,7 @@ impl _Config {
     pub fn from_json5(expr: &str) -> PyResult<Self> {
         match Config::from_deserializer(&mut json5::Deserializer::from_str(expr).to_pyres()?) {
             Ok(k) => Ok(Self(PyConfig::Config(Box::new(k)))),
-            Err(Ok(_)) => Err(zenoh_core::zerror!(
+            Err(Ok(_)) => Err(zerror!(
                 "{} did parse into a config, but invalid values were found",
                 expr,
             )
