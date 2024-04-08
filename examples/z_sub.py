@@ -12,51 +12,72 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import sys
 import time
-from datetime import datetime
 import argparse
 import json
 import zenoh
-from zenoh import Reliability, Sample
+from zenoh.sample import Sample
+from zenoh.subscriber import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
-parser = argparse.ArgumentParser(
-    prog='z_sub',
-    description='zenoh sub example')
-parser.add_argument('--mode', '-m', dest='mode',
-                    choices=['peer', 'client'],
-                    type=str,
-                    help='The zenoh session mode.')
-parser.add_argument('--connect', '-e', dest='connect',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to connect to.')
-parser.add_argument('--listen', '-l', dest='listen',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to listen on.')
-parser.add_argument('--key', '-k', dest='key',
-                    default='demo/example/**',
-                    type=str,
-                    help='The key expression to subscribe to.')
-parser.add_argument('--config', '-c', dest='config',
-                    metavar='FILE',
-                    type=str,
-                    help='A configuration file.')
+parser = argparse.ArgumentParser(prog="z_sub", description="zenoh sub example")
+parser.add_argument(
+    "--mode",
+    "-m",
+    dest="mode",
+    choices=["peer", "client"],
+    type=str,
+    help="The zenoh session mode.",
+)
+parser.add_argument(
+    "--connect",
+    "-e",
+    dest="connect",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to connect to.",
+)
+parser.add_argument(
+    "--listen",
+    "-l",
+    dest="listen",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to listen on.",
+)
+parser.add_argument(
+    "--key",
+    "-k",
+    dest="key",
+    default="demo/example/**",
+    type=str,
+    help="The key expression to subscribe to.",
+)
+parser.add_argument(
+    "--config",
+    "-c",
+    dest="config",
+    metavar="FILE",
+    type=str,
+    help="A configuration file.",
+)
 
 args = parser.parse_args()
-conf = zenoh.Config.from_file(
-    args.config) if args.config is not None else zenoh.Config()
+conf = (
+    zenoh.config.Config.from_file(args.config)
+    if args.config is not None
+    else zenoh.config.default()
+)
 if args.mode is not None:
-    conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
+    conf.insert_json5("mode", json.dumps(args.mode))
 if args.connect is not None:
-    conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
+    conf.insert_json5("connect/endpoints", json.dumps(args.connect))
 if args.listen is not None:
-    conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
+    conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
+
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
@@ -68,22 +89,26 @@ def main():
 
     print("Declaring Subscriber on '{}'...".format(key))
 
-
     def listener(sample: Sample):
-        print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
-        
+        print(
+            f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')"
+        )
 
     # WARNING, you MUST store the return value in order for the subscription to work!!
     # This is because if you don't, the reference counter will reach 0 and the subscription
     # will be immediately undeclared.
-    sub = session.declare_subscriber(key, listener, reliability=Reliability.RELIABLE())
+    sub = session.declare_subscriber(
+        key, handler=listener, reliability=Reliability.RELIABLE
+    )
 
     print("Press CTRL-C to quit...")
     while True:
         time.sleep(1)
 
-    # Cleanup: note that even if you forget it, cleanup will happen automatically when 
+    # Cleanup: note that even if you forget it, cleanup will happen automatically when
     # the reference counter reaches 0
     # sub.undeclare()
     # session.close()
+
+
 main()

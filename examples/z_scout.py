@@ -11,17 +11,21 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import threading
 
 import zenoh
+
 
 def main():
     # initiate logging
     zenoh.init_logger()
 
     print("Scouting...")
-    scout = zenoh.scout(what = "peer|router", timeout=1.0)
+    scout = zenoh.scout("peer|router", zenoh.config.default())
+    threading.Timer(1.0, lambda: scout.stop()).start()
 
-    for hello in scout.receiver():
+    for hello in scout:
         print(hello)
+
 
 main()

@@ -19,48 +19,69 @@ import argparse
 import json
 import zenoh
 from threading import Thread
-from zenoh import Reliability, Sample
+
+from zenoh.subscriber import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
-parser = argparse.ArgumentParser(
-    prog='z_sub',
-    description='zenoh sub example')
-parser.add_argument('--mode', '-m', dest='mode',
-                    choices=['peer', 'client'],
-                    type=str,
-                    help='The zenoh session mode.')
-parser.add_argument('--connect', '-e', dest='connect',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to connect to.')
-parser.add_argument('--listen', '-l', dest='listen',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to listen on.')
-parser.add_argument('--key', '-k', dest='key',
-                    default='demo/example/**',
-                    type=str,
-                    help='The key expression to subscribe to.')
-parser.add_argument('--config', '-c', dest='config',
-                    metavar='FILE',
-                    type=str,
-                    help='A configuration file.')
+parser = argparse.ArgumentParser(prog="z_sub", description="zenoh sub example")
+parser.add_argument(
+    "--mode",
+    "-m",
+    dest="mode",
+    choices=["peer", "client"],
+    type=str,
+    help="The zenoh session mode.",
+)
+parser.add_argument(
+    "--connect",
+    "-e",
+    dest="connect",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to connect to.",
+)
+parser.add_argument(
+    "--listen",
+    "-l",
+    dest="listen",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to listen on.",
+)
+parser.add_argument(
+    "--key",
+    "-k",
+    dest="key",
+    default="demo/example/**",
+    type=str,
+    help="The key expression to subscribe to.",
+)
+parser.add_argument(
+    "--config",
+    "-c",
+    dest="config",
+    metavar="FILE",
+    type=str,
+    help="A configuration file.",
+)
 
 args = parser.parse_args()
-conf = zenoh.Config.from_file(
-    args.config) if args.config is not None else zenoh.Config()
+conf = (
+    zenoh.config.Config.from_file(args.config)
+    if args.config is not None
+    else zenoh.config.default()
+)
 if args.mode is not None:
-    conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
+    conf.insert_json5("mode", json.dumps(args.mode))
 if args.connect is not None:
-    conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
+    conf.insert_json5("connect/endpoints", json.dumps(args.connect))
 if args.listen is not None:
-    conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
+    conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
-
 
 
 def main():
@@ -72,15 +93,16 @@ def main():
 
     print("Declaring Subscriber on '{}'...".format(key))
 
-
     # WARNING, you MUST store the return value in order for the subscription to work!!
     # This is because if you don't, the reference counter will reach 0 and the subscription
     # will be immediately undeclared.
-    sub = session.declare_subscriber(key, zenoh.Queue(), reliability=Reliability.RELIABLE())
+    sub = session.declare_subscriber(key, reliability=Reliability.RELIABLE)
 
     def consumer():
-        for sample in sub.receiver: # zenoh.Queue's receiver (the queue itself) is an iterator
-            print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
+        for sample in sub:  # zenoh.Queue's receiver (the queue itself) is an iterator
+            print(
+                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload_as(str)}')"
+            )
 
     t = Thread(target=consumer)
     t.start()
@@ -88,9 +110,11 @@ def main():
     while True:
         time.sleep(1)
 
-    # Cleanup: note that even if you forget it, cleanup will happen automatically when 
+    # Cleanup: note that even if you forget it, cleanup will happen automatically when
     # the reference counter reaches 0
-    sub.undeclare()
-    t.join()
-    session.close()
+    # sub.undeclare()
+    # t.join()
+    # session.close()
+
+
 main()

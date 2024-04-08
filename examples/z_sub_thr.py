@@ -17,53 +17,79 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import Reliability
+import zenoh.prelude
+from zenoh.handlers import CallbackDrop
+from zenoh.subscriber import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
-    prog='z_sub_thr',
-    description='zenoh throughput sub example')
-parser.add_argument('--mode', '-m', dest='mode',
-                    choices=['peer', 'client'],
-                    type=str,
-                    help='The zenoh session mode.')
-parser.add_argument('--connect', '-e', dest='connect',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to connect to.')
-parser.add_argument('--listen', '-l', dest='listen',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to listen on.')
-parser.add_argument('--number', '-n', dest='number',
-                    default=50000,
-                    metavar='NUMBER',
-                    action='append',
-                    type=int,
-                    help='Number of messages in each throughput measurements.')
-parser.add_argument('--config', '-c', dest='config',
-                    metavar='FILE',
-                    type=str,
-                    help='A configuration file.')
+    prog="z_sub_thr", description="zenoh throughput sub example"
+)
+parser.add_argument(
+    "--mode",
+    "-m",
+    dest="mode",
+    choices=["peer", "client"],
+    type=str,
+    help="The zenoh session mode.",
+)
+parser.add_argument(
+    "--connect",
+    "-e",
+    dest="connect",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to connect to.",
+)
+parser.add_argument(
+    "--listen",
+    "-l",
+    dest="listen",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to listen on.",
+)
+parser.add_argument(
+    "--number",
+    "-n",
+    dest="number",
+    default=50000,
+    metavar="NUMBER",
+    action="append",
+    type=int,
+    help="Number of messages in each throughput measurements.",
+)
+parser.add_argument(
+    "--config",
+    "-c",
+    dest="config",
+    metavar="FILE",
+    type=str,
+    help="A configuration file.",
+)
 
 args = parser.parse_args()
-conf = zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
+conf = (
+    zenoh.prelude.Config.from_file(args.config)
+    if args.config is not None
+    else zenoh.prelude.Config()
+)
 if args.mode is not None:
-    conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
+    conf.insert_json5("mode", json.dumps(args.mode))
 if args.connect is not None:
-    conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
+    conf.insert_json5("connect/endpoints", json.dumps(args.connect))
 if args.listen is not None:
-    conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
+    conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 n = args.number
-
 
 
 batch_count = 0
 count = 0
 start = None
 global_start = None
+
 
 def listener(sample):
     global n, count, batch_count, start, global_start
@@ -80,11 +106,15 @@ def listener(sample):
         batch_count += 1
         count = 0
 
+
 def report():
-    global n, m, count, batch_count,  global_start
+    global n, m, count, batch_count, global_start
     end = time.time()
     total = batch_count * n + count
-    print(f"Received {total} messages in {end - global_start}: averaged {total / (end - global_start):.6f} msgs/sec")
+    print(
+        f"Received {total} messages in {end - global_start}: averaged {total / (end - global_start):.6f} msgs/sec"
+    )
+
 
 def main():
     # initiate logging
@@ -94,7 +124,11 @@ def main():
 
     # By explicitly constructing the `Closure`, the `Queue` that's normally inserted between the callback and zenoh is removed.
     # Only do this if your callback runs faster than the minimum expected delay between two samples.
-    sub = session.declare_subscriber("test/thr", zenoh.Closure((listener, report)), reliability=Reliability.RELIABLE())
+    sub = session.declare_subscriber(
+        "test/thr",
+        handler=CallbackDrop(listener, report),
+        reliability=Reliability.RELIABLE,
+    )
 
     print("Press CTRL-C to quit...")
     while True:
@@ -104,5 +138,6 @@ def main():
     session.close()
     # while `sub.undeclare()` only returns once the unsubscription is done (no more callbacks will be queued from that instant), already queued callbacks may still be running in threads that Python can't see.
     time.sleep(0.1)
+
 
 main()

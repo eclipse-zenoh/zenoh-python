@@ -12,59 +12,83 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import itertools
-import sys
 import time
-from datetime import datetime
 import argparse
 import json
 import zenoh
-from threading import Thread
-from zenoh import Reliability
+from zenoh.handlers import RingChannel
+from zenoh.subscriber import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
-parser = argparse.ArgumentParser(
-    prog='z_pull',
-    description='zenoh pull example')
-parser.add_argument('--mode', '-m', dest='mode',
-                    choices=['peer', 'client'],
-                    type=str,
-                    help='The zenoh session mode.')
-parser.add_argument('--connect', '-e', dest='connect',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to connect to.')
-parser.add_argument('--listen', '-l', dest='listen',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to listen on.')
-parser.add_argument('--key', '-k', dest='key',
-                    default='demo/example/**',
-                    type=str,
-                    help='The key expression matching resources to pull.')
-parser.add_argument('--config', '-c', dest='config',
-                    metavar='FILE',
-                    type=str,
-                    help='A configuration file.')
+parser = argparse.ArgumentParser(prog="z_pull", description="zenoh pull example")
+parser.add_argument(
+    "--mode",
+    "-m",
+    dest="mode",
+    choices=["peer", "client"],
+    type=str,
+    help="The zenoh session mode.",
+)
+parser.add_argument(
+    "--connect",
+    "-e",
+    dest="connect",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to connect to.",
+)
+parser.add_argument(
+    "--listen",
+    "-l",
+    dest="listen",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to listen on.",
+)
+parser.add_argument(
+    "--key",
+    "-k",
+    dest="key",
+    default="demo/example/**",
+    type=str,
+    help="The key expression matching resources to pull.",
+)
+parser.add_argument(
+    "--config",
+    "-c",
+    dest="config",
+    metavar="FILE",
+    type=str,
+    help="A configuration file.",
+)
+parser.add_argument(
+    "--size", dest="size", default=3, type=int, help="The size of the ringbuffer"
+)
+parser.add_argument(
+    "--interval",
+    dest="interval",
+    default=5.0,
+    type=float,
+    help="The interval for pulling the ringbuffer",
+)
 
 args = parser.parse_args()
-conf = zenoh.Config.from_file(
-    args.config) if args.config is not None else zenoh.Config()
+conf = (
+    zenoh.config.Config.from_file(args.config)
+    if args.config is not None
+    else zenoh.config.default()
+)
 if args.mode is not None:
-    conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
+    conf.insert_json5("mode", json.dumps(args.mode))
 if args.connect is not None:
-    conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
+    conf.insert_json5("connect/endpoints", json.dumps(args.connect))
 if args.listen is not None:
-    conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
+    conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
-
-
-def listen(sample):
-    print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
 
 
 def main():
@@ -75,30 +99,27 @@ def main():
     session = zenoh.open(conf)
 
     print("Declaring Subscriber on '{}'...".format(key))
+    # Subscriber doesn't receive messages over the RingBuffer size.
+    # The oldest message is overwritten by the latest one.
+    sub = session.declare_subscriber(
+        key, reliability=Reliability.RELIABLE, handler=RingChannel(args.size)
+    )
 
+    print("Press CTRL-C to quit...")
+    while True:
+        time.sleep(args.interval)
+        while True:
+            sample = sub.try_recv()
+            if sample is None:
+                break
+            print(
+                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')"
+            )
 
-    # WARNING, you MUST store the return value in order for the subscription to work!!
-    # This is because if you don't, the reference counter will reach 0 and the subscription
-    # will be immediately undeclared.
-
-    print("Pull subscriber not implemented...")
-    # TODO: implement zenoh.Ring()
-    # sub = session.declare_subscriber(key, zenoh.Queue(), reliability=Reliability.RELIABLE())
-
-    # def consumer():
-    #     for sample in sub.receiver: # zenoh.Queue's receiver (the queue itself) is an iterator
-    #         print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
-
-    # t = Thread(target=consumer)
-    # t.start()
-    # print("Press CTRL-C to quit...")
-    # while True:
-    #     time.sleep(1)
-
-    # Cleanup: note that even if you forget it, cleanup will happen automatically when 
+    # Cleanup: note that even if you forget it, cleanup will happen automatically when
     # the reference counter reaches 0
     # sub.undeclare()
-    # t.join()
     # session.close()
+
 
 main()

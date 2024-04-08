@@ -1,97 +1,160 @@
-//
-// Copyright (c) 2017, 2022 ZettaScale Technology Inc.
-//
-// This program and the accompanying materials are made available under the
-// terms of the Eclipse Public License 2.0 which is available at
-// http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
-// which is available at https://www.apache.org/licenses/LICENSE-2.0.
-//
-// SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
-//
-// Contributors:
-//   ZettaScale Zenoh team, <zenoh@zettascale.tech>
-//
-use std::{collections::HashMap, sync::Arc};
-
-use pyo3::prelude::*;
+use pyo3::{
+    prelude::*,
+    types::{PyBytes, PyDict, PyIterator, PyTuple, PyType},
+};
 use zenoh::{
-    prelude::sync::SyncResolve,
-    queryable::{Query, Queryable},
-    selector::Parameters,
+    payload::Payload,
+    prelude::{QoSBuilderTrait, ValueBuilderTrait},
 };
 
 use crate::{
-    keyexpr::{_KeyExpr, _Selector},
-    value::{_Sample, _Value},
-    ToPyErr,
+    encoding::Encoding,
+    handlers::HandlerImpl,
+    key_expr::KeyExpr,
+    payload::{from_payload, into_payload, payload_to_bytes},
+    publication::{CongestionControl, Priority},
+    selector::Selector,
+    utils::{allow_threads, build, generic, opt_wrapper, wrapper, MapInto, PySyncResolve},
+    value::Value,
 };
 
-#[pyclass(subclass)]
-#[derive(Clone)]
-pub struct _Query(pub(crate) Arc<Query>);
+wrapper!(zenoh::queryable::Query: Clone);
+
 #[pymethods]
-impl _Query {
-    #[new]
-    pub fn pynew(this: Self) -> Self {
-        this
-    }
+impl Query {
     #[getter]
-    pub fn key_expr(&self) -> _KeyExpr {
-        _KeyExpr(self.0.key_expr().clone())
+    fn selector(&self) -> Selector {
+        self.0.selector().into_owned().into()
     }
+
     #[getter]
-    pub fn parameters(&self) -> &str {
-        self.0.parameters()
+    fn key_expr(&self) -> KeyExpr {
+        self.0.key_expr().clone().into_owned().into()
     }
-    pub fn decode_parameters(&self) -> PyResult<HashMap<String, String>> {
-        let mut res = HashMap::new();
-        for (k, v) in self.0.parameters().decode() {
-            let k = k.into_owned();
-            match res.entry(k) {
-                std::collections::hash_map::Entry::Occupied(e) => {
-                    return Err(zenoh_core::zerror!(
-                        "Detected duplicate key {} in value selector {}",
-                        e.key(),
-                        self.0.parameters()
-                    )
-                    .to_pyerr())
-                }
-                std::collections::hash_map::Entry::Vacant(e) => {
-                    e.insert(v.into_owned());
-                }
-            }
-        }
-        Ok(res)
-    }
+
+    // #[getter]
+    // fn parameters(&self) -> &str {
+    //     self.0.parameters()
+    // }
+
     #[getter]
-    pub fn selector(&self) -> _Selector {
-        _Selector(self.0.selector().clone().into_owned())
+    fn value(&self) -> Option<Value> {
+        self.0.value().cloned().map_into()
     }
+
     #[getter]
-    pub fn value(&self) -> Option<_Value> {
-        self.0.value().map(|v| v.clone().into())
+    fn payload<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
+        self.0.payload().map(|p| payload_to_bytes(py, p))
     }
-    pub fn reply(&self, sample: _Sample) -> PyResult<()> {
+
+    fn payload_as(&self, r#type: &Bound<PyType>) -> PyResult<Option<PyObject>> {
         self.0
-            .reply(Ok(sample.into()))
-            .res_sync()
-            .map_err(|e| e.to_pyerr())
+            .payload()
+            .map(|p| from_payload(r#type, p))
+            .transpose()
     }
-    pub fn reply_err(&self, value: _Value) -> PyResult<()> {
-        self.0
-            .reply(Err(value.into()))
-            .res_sync()
-            .map_err(|e| e.to_pyerr())
+
+    #[getter]
+    fn encoding(&self) -> Option<Encoding> {
+        self.0.encoding().cloned().map_into()
     }
-    pub fn __str__(&self) -> String {
+
+    // TODO timestamp
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None))]
+    fn reply(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "into_payload")] payload: Payload,
+        #[pyo3(from_py_with = "Encoding::opt")] encoding: Option<Encoding>,
+        congestion_control: Option<CongestionControl>,
+        priority: Option<Priority>,
+        express: Option<bool>,
+    ) -> PyResult<()> {
+        allow_threads(py, || {
+            let mut builder = self.0.reply(key_expr, payload);
+            build!(builder, encoding, congestion_control, priority, express);
+            builder.py_res_sync()
+        })
+    }
+
+    #[pyo3(signature = (payload, *, encoding = None))]
+    fn reply_err(
+        &self,
+        py: Python,
+        payload: &Bound<PyAny>,
+        encoding: Option<&Bound<PyAny>>,
+    ) -> PyResult<()> {
+        let value = Value::new(payload, encoding)?.0;
+        allow_threads(py, || self.0.reply_err(value).py_res_sync())
+    }
+
+    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
+    fn reply_del(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        congestion_control: Option<CongestionControl>,
+        priority: Option<Priority>,
+        express: Option<bool>,
+    ) -> PyResult<()> {
+        allow_threads(py, || {
+            let mut builder = self.0.reply_del(key_expr);
+            build!(builder, congestion_control, priority, express);
+            builder.py_res_sync()
+        })
+    }
+
+    fn __repr__(&self) -> String {
         self.0.to_string()
     }
 }
-impl From<Query> for _Query {
-    fn from(q: Query) -> Self {
-        Self(Arc::new(q))
+
+opt_wrapper!(
+    zenoh::queryable::Queryable<'static, HandlerImpl<Query>>,
+    "Undeclared queryable"
+);
+
+#[pymethods]
+impl Queryable {
+    #[classmethod]
+    fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
+        generic(cls, args)
+    }
+
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> PyResult<&'a Bound<'py, Self>> {
+        Self::check(this)
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<()> {
+        self.undeclare(py)
+    }
+
+    #[getter]
+    fn handler(&self, py: Python) -> PyResult<PyObject> {
+        Ok(self.get_ref()?.handler().to_object(py))
+    }
+
+    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().try_recv(py)
+    }
+
+    fn recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().recv(py)
+    }
+
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        allow_threads(py, || self.take()?.undeclare().py_res_sync())
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        self.handler(py)?.bind(py).iter()
     }
 }
-
-#[pyclass(subclass)]
-pub struct _Queryable(pub(crate) Queryable<'static, ()>);

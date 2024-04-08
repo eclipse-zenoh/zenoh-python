@@ -1,90 +1,239 @@
-//
-// Copyright (c) 2017, 2022 ZettaScale Technology Inc.
-//
-// This program and the accompanying materials are made available under the
-// terms of the Eclipse Public License 2.0 which is available at
-// http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
-// which is available at https://www.apache.org/licenses/LICENSE-2.0.
-//
-// SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
-//
-// Contributors:
-//   ZettaScale Zenoh team, <zenoh@zettascale.tech>
-//
-
-#![allow(clippy::borrow_deref_ref)] // false positives with pyo3 macros
-
-use pyo3::prelude::*;
+use pyo3::{
+    prelude::*,
+    sync::GILOnceCell,
+    types::{PyIterator, PyString},
+};
 use validated_struct::ValidatedMap;
-use zenoh::config::{Config, Notifier};
-use zenoh_core::zerror;
+use zenoh::config::Notifier;
 
-use crate::{ToPyErr, ToPyResult};
-#[derive(Clone)]
-pub(crate) enum PyConfig {
-    None,
-    Config(Box<Config>),
-    Notifier(Notifier<Config>),
+use crate::{
+    key_expr::KeyExpr,
+    utils::{
+        bail, r#enum, try_downcast, try_downcast_or_parse, try_process, wrapper, ToPyErr,
+        ToPyResult,
+    },
+};
+
+fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {
+    if let Ok(s) = obj.downcast::<PyString>() {
+        return Ok(s.to_string());
+    }
+    static DUMPS: GILOnceCell<PyObject> = GILOnceCell::new();
+    let import = || {
+        let module = obj.py().import_bound("json")?;
+        PyResult::Ok(module.getattr("dumps")?.into())
+    };
+    Ok(DUMPS
+        .get_or_try_init(obj.py(), import)?
+        .bind(obj.py())
+        .call1((obj,))?
+        .downcast_into::<PyString>()?
+        .to_string())
 }
-impl Default for PyConfig {
-    fn default() -> Self {
-        Self::Config(Default::default())
+
+#[derive(Clone)]
+pub(crate) enum ConfigInner {
+    Init(zenoh::config::Config),
+    Notifier(Notifier<zenoh::config::Config>),
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct Config(pub(crate) ConfigInner);
+
+impl From<zenoh::config::Config> for Config {
+    fn from(value: zenoh::config::Config) -> Self {
+        Self(ConfigInner::Init(value))
     }
 }
-impl PyConfig {
-    pub fn take(&mut self) -> Option<Config> {
-        if let Self::Config(c) = self {
-            let c = unsafe { std::ptr::read(c) };
-            unsafe { std::ptr::write(self, PyConfig::None) }
-            Some(*c)
-        } else {
-            None
+
+impl From<Notifier<zenoh::config::Config>> for Config {
+    fn from(value: Notifier<zenoh::config::Config>) -> Self {
+        Self(ConfigInner::Notifier(value))
+    }
+}
+
+impl From<Config> for zenoh::config::Config {
+    fn from(value: Config) -> Self {
+        match value.0 {
+            ConfigInner::Init(cfg) => cfg.clone(),
+            ConfigInner::Notifier(cfg) => cfg.lock().clone(),
         }
     }
 }
-#[pyclass(subclass)]
-pub struct _Config(pub(crate) PyConfig);
 
 #[pymethods]
-impl _Config {
-    #[allow(clippy::new_without_default)]
+impl Config {
     #[new]
-    pub fn new() -> Self {
-        _Config(Default::default())
-    }
-    #[staticmethod]
-    pub fn from_file(expr: &str) -> PyResult<Self> {
-        match Config::from_file(expr) {
-            Ok(k) => Ok(Self(PyConfig::Config(Box::new(k)))),
-            Err(e) => Err(e.to_pyerr()),
-        }
-    }
-    #[staticmethod]
-    pub fn from_json5(expr: &str) -> PyResult<Self> {
-        match Config::from_deserializer(&mut json5::Deserializer::from_str(expr).to_pyres()?) {
-            Ok(k) => Ok(Self(PyConfig::Config(Box::new(k)))),
-            Err(Ok(_)) => Err(zerror!(
-                "{} did parse into a config, but invalid values were found",
-                expr,
-            )
-            .to_pyerr()),
-            Err(Err(e)) => Err(e.to_pyerr()),
-        }
+    fn new() -> Self {
+        Self(ConfigInner::Init(Default::default()))
     }
 
-    pub fn get_json(&self, path: &str) -> PyResult<String> {
+    #[getter]
+    fn id(&self) -> ZenohId {
         match &self.0 {
-            PyConfig::None => Err(zerror!("Attempted to use a destroyed configuration").to_pyerr()),
-            PyConfig::Config(c) => c.get_json(path).to_pyres(),
-            PyConfig::Notifier(c) => c.get_json(path).map_err(|e| e.to_pyerr()),
+            ConfigInner::Init(cfg) => *cfg.id(),
+            ConfigInner::Notifier(cfg) => *cfg.lock().id(),
+        }
+        .into()
+    }
+
+    #[staticmethod]
+    fn from_env() -> PyResult<Self> {
+        Ok(Self(ConfigInner::Init(
+            zenoh::config::Config::from_env().to_pyres()?,
+        )))
+    }
+
+    #[staticmethod]
+    fn from_file(path: &str) -> PyResult<Self> {
+        Ok(Self(ConfigInner::Init(
+            zenoh::config::Config::from_file(path).to_pyres()?,
+        )))
+    }
+
+    #[staticmethod]
+    fn from_json5(obj: &Bound<PyAny>) -> PyResult<Self> {
+        let json = string_or_dumps(obj)?;
+        let mut deserializer = json5::Deserializer::from_str(&json).to_pyres()?;
+        match zenoh::config::Config::from_deserializer(&mut deserializer) {
+            Ok(cfg) => Ok(Self(ConfigInner::Init(cfg))),
+            Err(Ok(_)) => bail!("{json} did parse into a config, but invalid values were found",),
+            Err(Err(err)) => Err(err.to_pyerr()),
         }
     }
 
-    pub fn insert_json5(&mut self, path: &str, value: &str) -> PyResult<()> {
-        match &mut self.0 {
-            PyConfig::None => Err(zerror!("Attempted to use a destroyed configuration").to_pyerr()),
-            PyConfig::Config(c) => c.insert_json5(path, value).to_pyres(),
-            PyConfig::Notifier(c) => c.insert_json5(path, value).map_err(|e| e.to_pyerr()),
+    fn get_json(&self, key: &str) -> PyResult<String> {
+        match &self.0 {
+            ConfigInner::Init(cfg) => cfg.get_json(key).to_pyres(),
+            ConfigInner::Notifier(cfg) => cfg.get_json(key).to_pyres(),
         }
     }
+
+    fn insert_json5(&mut self, key: &str, value: &Bound<PyAny>) -> PyResult<()> {
+        match &mut self.0 {
+            ConfigInner::Init(cfg) => cfg.insert_json5(key, &string_or_dumps(value)?).to_pyres(),
+            ConfigInner::Notifier(cfg) => {
+                cfg.insert_json5(key, &string_or_dumps(value)?).to_pyres()
+            }
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        match &self.0 {
+            ConfigInner::Init(cfg) => cfg.to_string(),
+            ConfigInner::Notifier(cfg) => cfg.lock().to_string(),
+        }
+    }
+}
+
+r#enum!(zenoh::config::WhatAmI: u8 {
+    Router = 0b001,
+    Peer = 0b010,
+    Client = 0b100,
+});
+
+#[pymethods]
+impl WhatAmI {
+    #[new]
+    fn new(whatami: &Bound<PyAny>) -> PyResult<Self> {
+        try_downcast_or_parse!(from<zenoh::config::WhatAmI> whatami)
+    }
+
+    fn __str__(&self) -> &str {
+        zenoh::config::WhatAmI::to_str((*self).into())
+    }
+}
+
+wrapper!(zenoh::config::WhatAmIMatcher: Clone, Copy);
+
+#[pymethods]
+impl WhatAmIMatcher {
+    #[new]
+    pub(crate) fn new(obj: &Bound<PyAny>) -> PyResult<Self> {
+        try_downcast!(obj);
+        if let Ok(i) = u8::extract_bound(obj) {
+            if let Ok(i) = i.try_into() {
+                return Ok(Self(i));
+            }
+        }
+        if let Ok(s) = String::extract_bound(obj) {
+            if let Ok(s) = s.parse() {
+                return Ok(Self(s));
+            }
+        }
+        bail!("Invalid WhatAmIMatcher");
+    }
+
+    #[staticmethod]
+    fn empty() -> Self {
+        Self(zenoh::config::WhatAmIMatcher::empty())
+    }
+
+    fn router(&self) -> Self {
+        Self(zenoh::config::WhatAmIMatcher::router(self.0))
+    }
+
+    fn peer(&self) -> Self {
+        Self(zenoh::config::WhatAmIMatcher::peer(self.0))
+    }
+
+    fn client(&self) -> Self {
+        Self(zenoh::config::WhatAmIMatcher::client(self.0))
+    }
+
+    fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    fn matches(&self, #[pyo3(from_py_with = "WhatAmI::new")] whatami: WhatAmI) -> bool {
+        self.0.matches(whatami.into())
+    }
+
+    fn __contains__(&self, #[pyo3(from_py_with = "WhatAmI::new")] whatami: WhatAmI) -> bool {
+        self.0.matches(whatami.into())
+    }
+
+    fn __str__(&self) -> &'static str {
+        self.0.to_str()
+    }
+}
+
+wrapper!(zenoh::config::ZenohId);
+
+#[pymethods]
+impl ZenohId {
+    #[allow(clippy::wrong_self_convention)]
+    fn into_keyexpr(&self) -> KeyExpr {
+        KeyExpr(self.0.into_keyexpr().into())
+    }
+
+    fn __str__(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+#[pyfunction]
+pub(crate) fn client(peers: Bound<PyIterator>) -> PyResult<Config> {
+    let config = try_process(
+        peers
+            .map(|obj| zenoh::config::EndPoint::try_from(String::extract_bound(&obj?)?).to_pyres()),
+        |peers| zenoh::config::client(peers),
+    )?;
+    Ok(config.into())
+}
+
+#[pyfunction]
+pub(crate) fn default() -> Config {
+    peer()
+}
+
+#[pyfunction]
+pub(crate) fn empty() -> Config {
+    Config::new()
+}
+
+#[pyfunction]
+pub(crate) fn peer() -> Config {
+    zenoh::config::peer().into()
 }
