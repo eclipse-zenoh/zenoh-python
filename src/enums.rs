@@ -13,7 +13,7 @@
 //
 use crate::ToPyErr;
 use pyo3::prelude::*;
-use zenoh::prelude::{Encoding, KnownEncoding, Priority, SampleKind};
+use zenoh::prelude::{Encoding, Priority, SampleKind};
 use zenoh::publication::CongestionControl;
 use zenoh::query::{ConsolidationMode, QueryTarget};
 use zenoh::subscriber::Reliability;
@@ -36,48 +36,121 @@ impl _Encoding {
         }
     }
     #[classattr]
-    pub const EMPTY: Self = Self(Encoding::Exact(KnownEncoding::Empty));
+    pub const ZENOH_BYTES: Self = Self(Encoding::ZENOH_BYTES);
     #[classattr]
-    pub const APP_OCTET_STREAM: Self = Self(Encoding::Exact(KnownEncoding::AppOctetStream));
+    pub const ZENOH_INT: Self = Self(Encoding::ZENOH_INT);
     #[classattr]
-    pub const APP_CUSTOM: Self = Self(Encoding::Exact(KnownEncoding::AppCustom));
+    pub const ZENOH_UINT: Self = Self(Encoding::ZENOH_UINT);
     #[classattr]
-    pub const TEXT_PLAIN: Self = Self(Encoding::Exact(KnownEncoding::TextPlain));
+    pub const ZENOH_FLOAT: Self = Self(Encoding::ZENOH_FLOAT);
     #[classattr]
-    pub const APP_PROPERTIES: Self = Self(Encoding::Exact(KnownEncoding::AppProperties));
+    pub const ZENOH_BOOL: Self = Self(Encoding::ZENOH_BOOL);
     #[classattr]
-    pub const APP_JSON: Self = Self(Encoding::Exact(KnownEncoding::AppJson));
+    pub const ZENOH_STRING: Self = Self(Encoding::ZENOH_STRING);
     #[classattr]
-    pub const APP_SQL: Self = Self(Encoding::Exact(KnownEncoding::AppSql));
+    pub const ZENOH_ERROR: Self = Self(Encoding::ZENOH_ERROR);
     #[classattr]
-    pub const APP_INTEGER: Self = Self(Encoding::Exact(KnownEncoding::AppInteger));
+    pub const APPLICATION_OCTET_STREAM: Self = Self(Encoding::APPLICATION_OCTET_STREAM);
     #[classattr]
-    pub const APP_FLOAT: Self = Self(Encoding::Exact(KnownEncoding::AppFloat));
+    pub const TEXT_PLAIN: Self = Self(Encoding::TEXT_PLAIN);
     #[classattr]
-    pub const APP_XML: Self = Self(Encoding::Exact(KnownEncoding::AppXml));
+    pub const APPLICATION_JSON: Self = Self(Encoding::APPLICATION_JSON);
     #[classattr]
-    pub const APP_XHTML_XML: Self = Self(Encoding::Exact(KnownEncoding::AppXhtmlXml));
+    pub const TEXT_JSON: Self = Self(Encoding::TEXT_JSON);
     #[classattr]
-    pub const APP_X_WWW_FORM_URLENCODED: Self =
-        Self(Encoding::Exact(KnownEncoding::AppXWwwFormUrlencoded));
+    pub const APPLICATION_CDR: Self = Self(Encoding::APPLICATION_CDR);
     #[classattr]
-    pub const TEXT_JSON: Self = Self(Encoding::Exact(KnownEncoding::TextJson));
+    pub const APPLICATION_CBOR: Self = Self(Encoding::APPLICATION_CBOR);
     #[classattr]
-    pub const TEXT_HTML: Self = Self(Encoding::Exact(KnownEncoding::TextHtml));
+    pub const APPLICATION_YAML: Self = Self(Encoding::APPLICATION_YAML);
     #[classattr]
-    pub const TEXT_XML: Self = Self(Encoding::Exact(KnownEncoding::TextXml));
+    pub const TEXT_YAML: Self = Self(Encoding::TEXT_YAML);
     #[classattr]
-    pub const TEXT_CSS: Self = Self(Encoding::Exact(KnownEncoding::TextCss));
+    pub const TEXT_JSON5: Self = Self(Encoding::TEXT_JSON5);
+    pub const APPLICATION_PYTHON_SERIALIZED_OBJECT: Self =
+        Self(Encoding::APPLICATION_PYTHON_SERIALIZED_OBJECT);
     #[classattr]
-    pub const TEXT_CSV: Self = Self(Encoding::Exact(KnownEncoding::TextCsv));
+    pub const APPLICATION_PROTOBUF: Self = Self(Encoding::APPLICATION_PROTOBUF);
     #[classattr]
-    pub const TEXT_JAVASCRIPT: Self = Self(Encoding::Exact(KnownEncoding::TextJavascript));
+    pub const APPLICATION_JAVA_SERIALIZED_OBJECT: Self =
+        Self(Encoding::APPLICATION_JAVA_SERIALIZED_OBJECT);
     #[classattr]
-    pub const IMAGE_JPEG: Self = Self(Encoding::Exact(KnownEncoding::ImageJpeg));
+    pub const APPLICATION_OPENMETRICS_TEXT: Self = Self(Encoding::APPLICATION_OPENMETRICS_TEXT);
     #[classattr]
-    pub const IMAGE_PNG: Self = Self(Encoding::Exact(KnownEncoding::ImagePng));
+    pub const IMAGE_PNG: Self = Self(Encoding::IMAGE_PNG);
     #[classattr]
-    pub const IMAGE_GIF: Self = Self(Encoding::Exact(KnownEncoding::ImageGif));
+    pub const IMAGE_JPEG: Self = Self(Encoding::IMAGE_JPEG);
+    #[classattr]
+    pub const IMAGE_GIF: Self = Self(Encoding::IMAGE_GIF);
+    #[classattr]
+    pub const IMAGE_BMP: Self = Self(Encoding::IMAGE_BMP);
+    #[classattr]
+    pub const IMAGE_WEBP: Self = Self(Encoding::IMAGE_WEBP);
+    #[classattr]
+    pub const APPLICATION_XML: Self = Self(Encoding::APPLICATION_XML);
+    #[classattr]
+    pub const APPLICATION_X_WWW_FORM_URLENCODED: Self =
+        Self(Encoding::APPLICATION_X_WWW_FORM_URLENCODED);
+    #[classattr]
+    pub const TEXT_HTML: Self = Self(Encoding::TEXT_HTML);
+    #[classattr]
+    pub const TEXT_XML: Self = Self(Encoding::TEXT_XML);
+    #[classattr]
+    pub const TEXT_CSS: Self = Self(Encoding::TEXT_CSS);
+    #[classattr]
+    pub const TEXT_JAVASCRIPT: Self = Self(Encoding::TEXT_JAVASCRIPT);
+    #[classattr]
+    pub const TEXT_MARKDOWN: Self = Self(Encoding::TEXT_MARKDOWN);
+    #[classattr]
+    pub const TEXT_CSV: Self = Self(Encoding::TEXT_CSV);
+    #[classattr]
+    pub const APPLICATION_SQL: Self = Self(Encoding::APPLICATION_SQL);
+    #[classattr]
+    pub const APPLICATION_COAP_PAYLOAD: Self = Self(Encoding::APPLICATION_COAP_PAYLOAD);
+    #[classattr]
+    pub const APPLICATION_JSON_PATCH_JSON: Self = Self(Encoding::APPLICATION_JSON_PATCH_JSON);
+    #[classattr]
+    pub const APPLICATION_JSON_SEQ: Self = Self(Encoding::APPLICATION_JSON_SEQ);
+    #[classattr]
+    pub const APPLICATION_JSONPATH: Self = Self(Encoding::APPLICATION_JSONPATH);
+    #[classattr]
+    pub const APPLICATION_JWT: Self = Self(Encoding::APPLICATION_JWT);
+    #[classattr]
+    pub const APPLICATION_MP4: Self = Self(Encoding::APPLICATION_MP4);
+    #[classattr]
+    pub const APPLICATION_SOAP_XML: Self = Self(Encoding::APPLICATION_SOAP_XML);
+    #[classattr]
+    pub const APPLICATION_YANG: Self = Self(Encoding::APPLICATION_YANG);
+    #[classattr]
+    pub const AUDIO_AAC: Self = Self(Encoding::AUDIO_AAC);
+    #[classattr]
+    pub const AUDIO_FLAC: Self = Self(Encoding::AUDIO_FLAC);
+    #[classattr]
+    pub const AUDIO_MP4: Self = Self(Encoding::AUDIO_MP4);
+    #[classattr]
+    pub const AUDIO_OGG: Self = Self(Encoding::AUDIO_OGG);
+    #[classattr]
+    pub const AUDIO_VORBIS: Self = Self(Encoding::AUDIO_VORBIS);
+    #[classattr]
+    pub const VIDEO_H261: Self = Self(Encoding::VIDEO_H261);
+    #[classattr]
+    pub const VIDEO_H263: Self = Self(Encoding::VIDEO_H263);
+    #[classattr]
+    pub const VIDEO_H264: Self = Self(Encoding::VIDEO_H264);
+    #[classattr]
+    pub const VIDEO_H265: Self = Self(Encoding::VIDEO_H265);
+    #[classattr]
+    pub const VIDEO_H266: Self = Self(Encoding::VIDEO_H266);
+    #[classattr]
+    pub const VIDEO_MP4: Self = Self(Encoding::VIDEO_MP4);
+    #[classattr]
+    pub const VIDEO_OGG: Self = Self(Encoding::VIDEO_OGG);
+    #[classattr]
+    pub const VIDEO_RAW: Self = Self(Encoding::VIDEO_RAW);
+    #[classattr]
+    pub const VIDEO_VP8: Self = Self(Encoding::VIDEO_VP8);
+    #[classattr]
+    pub const VIDEO_VP9: Self = Self(Encoding::VIDEO_VP9);
     #[staticmethod]
     pub fn from_str(s: String) -> Self {
         Self(s.into())
@@ -85,20 +158,8 @@ impl _Encoding {
     pub fn __str__(&self) -> String {
         self.0.to_string()
     }
-    pub fn append(&mut self, suffix: String) -> PyResult<()> {
-        unsafe {
-            let tmp = std::ptr::read(&self.0);
-            match tmp.with_suffix(suffix) {
-                Ok(tmp) => {
-                    std::ptr::write(&mut self.0, tmp);
-                    Ok(())
-                }
-                Err(e) => Err(e.to_pyerr()),
-            }
-        }
-    }
-    pub fn equals(&self, other: &Self) -> bool {
-        self == other
+    pub fn with_schema(&self, suffix: String) -> Self {
+        Self(self.0.clone().with_schema(suffix))
     }
 }
 

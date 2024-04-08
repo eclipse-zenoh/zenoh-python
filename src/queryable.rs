@@ -73,15 +73,12 @@ impl _Query {
     }
     pub fn reply(&self, sample: _Sample) -> PyResult<()> {
         self.0
-            .reply(Ok(sample.into()))
+            .reply_sample(sample.into())
             .res_sync()
             .map_err(|e| e.to_pyerr())
     }
     pub fn reply_err(&self, value: _Value) -> PyResult<()> {
-        self.0
-            .reply(Err(value.into()))
-            .res_sync()
-            .map_err(|e| e.to_pyerr())
+        self.0.reply_err(value).res_sync().map_err(|e| e.to_pyerr())
     }
     pub fn __str__(&self) -> String {
         self.0.to_string()

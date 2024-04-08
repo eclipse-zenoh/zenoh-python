@@ -18,19 +18,20 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use pyo3::{prelude::*, types::PyDict};
+use zenoh::prelude::{QoSBuilderTrait, ValueBuilderTrait};
 use zenoh::{
     config::{WhatAmI, WhatAmIMatcher},
     prelude::{sync::SyncResolve, SessionDeclarations},
     publication::Publisher,
     scouting::Scout,
-    subscriber::{PullSubscriber, Subscriber},
+    subscriber::Subscriber,
     Session,
 };
 
 use crate::closures::PyClosure;
 use crate::config::{PyConfig, _Config};
 use crate::enums::{
-    _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability, _SampleKind,
+    _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability,
 };
 use crate::keyexpr::{_KeyExpr, _Selector};
 use crate::queryable::{_Query, _Queryable};
@@ -69,13 +70,8 @@ impl _Session {
         let s = &self.0;
         let k = &key_expr.0;
         let v = value.to_value()?;
-        let mut builder = s.put(k, v);
+        let mut builder = s.put(k, v.payload).encoding(v.encoding);
         if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_SampleKind>("kind") {
-                Ok(kind) => builder = builder.kind(kind.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
             match kwargs.extract_item::<_CongestionControl>("congestion_control") {
                 Ok(congestion_control) => {
                     builder = builder.congestion_control(congestion_control.0)
@@ -98,11 +94,6 @@ impl _Session {
         let k = &key_expr.0;
         let mut builder = s.delete(k);
         if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_SampleKind>("kind") {
-                Ok(kind) => builder = builder.kind(kind.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
             match kwargs.extract_item::<_CongestionControl>("congestion_control") {
                 Ok(congestion_control) => {
                     builder = builder.congestion_control(congestion_control.0)
@@ -140,7 +131,7 @@ impl _Session {
                 _ => {}
             }
             match kwargs.extract_item::<_Value>("value") {
-                Ok(value) => builder = builder.with_value(value),
+                Ok(value) => builder = builder.value(value),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -222,30 +213,6 @@ impl _Session {
         Ok(_Subscriber(subscriber))
     }
 
-    #[pyo3(signature = (key_expr, callback, **kwargs))]
-    pub fn declare_pull_subscriber(
-        &self,
-        key_expr: &_KeyExpr,
-        callback: &Bound<PyAny>,
-        kwargs: Option<&Bound<PyDict>>,
-    ) -> PyResult<_PullSubscriber> {
-        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self
-            .0
-            .declare_subscriber(&key_expr.0)
-            .pull_mode()
-            .with(callback);
-        if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_Reliability>("reliability") {
-                Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-        }
-        let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
-        Ok(_PullSubscriber(subscriber))
-    }
-
     pub fn zid(&self) -> _ZenohId {
         _ZenohId(self.0.zid())
     }
@@ -276,7 +243,11 @@ impl _Publisher {
         _KeyExpr(self.0.key_expr().clone())
     }
     pub fn put(&self, value: _Value) -> PyResult<()> {
-        self.0.put(value).res_sync().map_err(|e| e.to_pyerr())
+        self.0
+            .put(value.payload.into_zbuf())
+            .encoding(value.encoding)
+            .res_sync()
+            .map_err(|e| e.to_pyerr())
     }
     pub fn delete(&self) -> PyResult<()> {
         self.0.delete().res_sync().map_err(|e| e.to_pyerr())
@@ -285,15 +256,6 @@ impl _Publisher {
 
 #[pyclass(subclass)]
 pub struct _Subscriber(Subscriber<'static, ()>);
-
-#[pyclass(subclass)]
-pub struct _PullSubscriber(PullSubscriber<'static, ()>);
-#[pymethods]
-impl _PullSubscriber {
-    fn pull(&self) -> PyResult<()> {
-        self.0.pull().res_sync().map_err(|e| e.to_pyerr())
-    }
-}
 
 #[pyclass(subclass)]
 pub struct _Scout(Scout<()>);

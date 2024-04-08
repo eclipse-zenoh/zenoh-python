@@ -12,6 +12,9 @@
 
 use pyo3::{prelude::*, types::PyBytes};
 use uhlc::Timestamp;
+use zenoh::prelude::{TimestampBuilderTrait, ValueBuilderTrait};
+use zenoh::sample::builder::SampleBuilder;
+use zenoh::sample::SampleKind;
 use zenoh::{
     prelude::{Encoding, KeyExpr, Sample, Value, ZenohId},
     query::Reply,
@@ -108,7 +111,7 @@ impl _Value {
     pub fn new(payload: Py<PyBytes>, encoding: Option<_Encoding>) -> Self {
         Self {
             payload: payload.into(),
-            encoding: encoding.map(|e| e.0).unwrap_or(Encoding::EMPTY),
+            encoding: encoding.map(|e| e.0).unwrap_or_default(),
         }
     }
     #[getter]
@@ -138,7 +141,7 @@ impl _Value {
 impl From<Value> for _Value {
     fn from(value: Value) -> Self {
         _Value {
-            payload: value.payload.into(),
+            payload: Payload::Zenoh(value.payload.into()),
             encoding: value.encoding,
         }
     }
@@ -199,20 +202,15 @@ pub struct _Sample {
 }
 impl From<Sample> for _Sample {
     fn from(sample: Sample) -> Self {
-        let Sample {
-            key_expr,
-            value,
-            kind,
-            timestamp,
-            qos,
-            ..
-        } = sample;
         _Sample {
-            key_expr,
-            value: value.into(),
-            kind: _SampleKind(kind),
-            timestamp: timestamp.map(_Timestamp),
-            qos: _QoS(qos),
+            key_expr: sample.key_expr().clone(),
+            value: _Value {
+                payload: Payload::Zenoh(sample.payload().into()),
+                encoding: sample.encoding().clone(),
+            },
+            kind: _SampleKind(sample.kind()),
+            timestamp: sample.timestamp().cloned().map(_Timestamp),
+            qos: _QoS(*sample.qos()),
         }
     }
 }
@@ -340,11 +338,17 @@ impl From<_Sample> for Sample {
             timestamp,
             qos,
         } = sample;
-        let mut sample = Sample::new(key_expr, value);
-        sample.kind = kind.0;
-        sample.timestamp = timestamp.map(|t| t.0);
-        sample.qos = qos.0;
-        sample
+        match kind.0 {
+            SampleKind::Put => SampleBuilder::put(key_expr, value.payload.into_zbuf())
+                .encoding(value.encoding)
+                .timestamp(timestamp.map(|t| t.0))
+                .qos(qos.0)
+                .into(),
+            SampleKind::Delete => SampleBuilder::delete(key_expr)
+                .timestamp(timestamp.map(|t| t.0))
+                .qos(qos.0)
+                .into(),
+        }
     }
 }
 

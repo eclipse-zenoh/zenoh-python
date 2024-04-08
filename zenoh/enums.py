@@ -105,47 +105,88 @@ class Encoding(_Encoding):
     @staticmethod
     def from_str(s: str) -> 'Encoding':
         return super(Encoding, Encoding).from_str(s)
-    def append(self, s: str):
-        super().append(s)
+    def with_schema(self, s: str):
+        super().with_schema(s)
     @staticmethod
-    def EMPTY() -> 'Encoding':
-        return Encoding(_Encoding.EMPTY )
+    def ZENOH_BYTES() -> 'Encoding':
+        return Encoding(_Encoding.ZENOH_BYTES)
     @staticmethod
-    def APP_OCTET_STREAM() -> 'Encoding':
-        return Encoding(_Encoding.APP_OCTET_STREAM)
+    def ZENOH_INT() -> 'Encoding':
+        return Encoding(_Encoding.ZENOH_INT)
     @staticmethod
-    def APP_CUSTOM() -> 'Encoding':
-        return Encoding(_Encoding.APP_CUSTOM)
+    def ZENOH_UINT() -> 'Encoding':
+        return Encoding(_Encoding.ZENOH_UINT)
+    @staticmethod
+    def ZENOH_FLOAT() -> 'Encoding':
+        return Encoding(_Encoding.ZENOH_FLOAT)
+    @staticmethod
+    def ZENOH_BOOL() -> 'Encoding':
+        return Encoding(_Encoding.ZENOH_BOOL)
+    @staticmethod
+    def ZENOH_STRING() -> 'Encoding':
+        return Encoding(_Encoding.ZENOH_STRING)
+    @staticmethod
+    def ZENOH_ERROR() -> 'Encoding':
+        return Encoding(_Encoding.ZENOH_ERROR)
+    @staticmethod
+    def APPLICATION_OCTET_STREAM() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_OCTET_STREAM)
     @staticmethod
     def TEXT_PLAIN() -> 'Encoding':
         return Encoding(_Encoding.TEXT_PLAIN)
     @staticmethod
-    def APP_PROPERTIES() -> 'Encoding':
-        return Encoding(_Encoding.APP_PROPERTIES)
-    @staticmethod
-    def APP_JSON() -> 'Encoding':
-        return Encoding(_Encoding.APP_JSON)
-    @staticmethod
-    def APP_SQL() -> 'Encoding':
-        return Encoding(_Encoding.APP_SQL)
-    @staticmethod
-    def APP_INTEGER() -> 'Encoding':
-        return Encoding(_Encoding.APP_INTEGER)
-    @staticmethod
-    def APP_FLOAT() -> 'Encoding':
-        return Encoding(_Encoding.APP_FLOAT)
-    @staticmethod
-    def APP_XML() -> 'Encoding':
-        return Encoding(_Encoding.APP_XML)
-    @staticmethod
-    def APP_XHTML_XML() -> 'Encoding':
-        return Encoding(_Encoding.APP_XHTML_XML)
-    @staticmethod
-    def APP_X_WWW_FORM_URLENCODED() -> 'Encoding':
-        return Encoding(_Encoding.APP_X_WWW_FORM_URLENCODED)
+    def APPLICATION_JSON() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_JSON)
     @staticmethod
     def TEXT_JSON() -> 'Encoding':
         return Encoding(_Encoding.TEXT_JSON)
+    @staticmethod
+    def APPLICATION_CDR() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_CDR)
+    @staticmethod
+    def APPLICATION_CBOR() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_CBOR)
+    @staticmethod
+    def APPLICATION_YAML() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_YAML)
+    @staticmethod
+    def TEXT_YAML() -> 'Encoding':
+        return Encoding(_Encoding.TEXT_YAML)
+    @staticmethod
+    def TEXT_JSON5() -> 'Encoding':
+        return Encoding(_Encoding.TEXT_JSON5)
+    pub const APPLICATION_PYTHON_SERIALIZED_OBJECT: Self =
+        Self(Encoding::APPLICATION_PYTHON_SERIALIZED_OBJECT);
+    @staticmethod
+    def APPLICATION_PROTOBUF() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_PROTOBUF)
+    #[classattr]
+    pub const APPLICATION_JAVA_SERIALIZED_OBJECT: Self =
+        Self(Encoding::APPLICATION_JAVA_SERIALIZED_OBJECT);
+    @staticmethod
+    def APPLICATION_OPENMETRICS_TEXT() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_OPENMETRICS_TEXT)
+    @staticmethod
+    def IMAGE_PNG() -> 'Encoding':
+        return Encoding(_Encoding.IMAGE_PNG)
+    @staticmethod
+    def IMAGE_JPEG() -> 'Encoding':
+        return Encoding(_Encoding.IMAGE_JPEG)
+    @staticmethod
+    def IMAGE_GIF() -> 'Encoding':
+        return Encoding(_Encoding.IMAGE_GIF)
+    @staticmethod
+    def IMAGE_BMP() -> 'Encoding':
+        return Encoding(_Encoding.IMAGE_BMP)
+    @staticmethod
+    def IMAGE_WEBP() -> 'Encoding':
+        return Encoding(_Encoding.IMAGE_WEBP)
+    @staticmethod
+    def APPLICATION_XML() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_XML)
+    #[classattr]
+    pub const APPLICATION_X_WWW_FORM_URLENCODED: Self =
+        Self(Encoding::APPLICATION_X_WWW_FORM_URLENCODED);
     @staticmethod
     def TEXT_HTML() -> 'Encoding':
         return Encoding(_Encoding.TEXT_HTML)
@@ -156,20 +197,86 @@ class Encoding(_Encoding):
     def TEXT_CSS() -> 'Encoding':
         return Encoding(_Encoding.TEXT_CSS)
     @staticmethod
-    def TEXT_CSV() -> 'Encoding':
-        return Encoding(_Encoding.TEXT_CSV)
-    @staticmethod
     def TEXT_JAVASCRIPT() -> 'Encoding':
         return Encoding(_Encoding.TEXT_JAVASCRIPT)
     @staticmethod
-    def IMAGE_JPEG() -> 'Encoding':
-        return Encoding(_Encoding.IMAGE_JPEG)
+    def TEXT_MARKDOWN() -> 'Encoding':
+        return Encoding(_Encoding.TEXT_MARKDOWN)
     @staticmethod
-    def IMAGE_PNG() -> 'Encoding':
-        return Encoding(_Encoding.IMAGE_PNG)
+    def TEXT_CSV() -> 'Encoding':
+        return Encoding(_Encoding.TEXT_CSV)
     @staticmethod
-    def IMAGE_GIF() -> 'Encoding':
-        return Encoding(_Encoding.IMAGE_GIF)
+    def APPLICATION_SQL() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_SQL)
+    @staticmethod
+    def APPLICATION_COAP_PAYLOAD() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_COAP_PAYLOAD)
+    @staticmethod
+    def APPLICATION_JSON_PATCH_JSON() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_JSON_PATCH_JSON)
+    @staticmethod
+    def APPLICATION_JSON_SEQ() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_JSON_SEQ)
+    @staticmethod
+    def APPLICATION_JSONPATH() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_JSONPATH)
+    @staticmethod
+    def APPLICATION_JWT() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_JWT)
+    @staticmethod
+    def APPLICATION_MP4() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_MP4)
+    @staticmethod
+    def APPLICATION_SOAP_XML() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_SOAP_XML)
+    @staticmethod
+    def APPLICATION_YANG() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_YANG)
+    @staticmethod
+    def AUDIO_AAC() -> 'Encoding':
+        return Encoding(_Encoding.AUDIO_AAC)
+    @staticmethod
+    def AUDIO_FLAC() -> 'Encoding':
+        return Encoding(_Encoding.AUDIO_FLAC)
+    @staticmethod
+    def AUDIO_MP4() -> 'Encoding':
+        return Encoding(_Encoding.AUDIO_MP4)
+    @staticmethod
+    def AUDIO_OGG() -> 'Encoding':
+        return Encoding(_Encoding.AUDIO_OGG)
+    @staticmethod
+    def AUDIO_VORBIS() -> 'Encoding':
+        return Encoding(_Encoding.AUDIO_VORBIS)
+    @staticmethod
+    def VIDEO_H261() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_H261)
+    @staticmethod
+    def VIDEO_H263() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_H263)
+    @staticmethod
+    def VIDEO_H264() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_H264)
+    @staticmethod
+    def VIDEO_H265() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_H265)
+    @staticmethod
+    def VIDEO_H266() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_H266)
+    @staticmethod
+    def VIDEO_MP4() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_MP4)
+    @staticmethod
+    def VIDEO_OGG() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_OGG)
+    @staticmethod
+    def VIDEO_RAW() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_RAW)
+    @staticmethod
+    def VIDEO_VP8() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_VP8)
+    @staticmethod
+    def VIDEO_VP9() -> 'Encoding':
+        return Encoding(_Encoding.VIDEO_VP9)
     def __eq__(self, other) -> bool:
         return super().__eq__(other)
     def __ne__(self, other) -> bool:
