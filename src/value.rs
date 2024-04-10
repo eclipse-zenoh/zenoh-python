@@ -152,17 +152,6 @@ impl From<_Value> for Value {
     }
 }
 
-pub(crate) trait PyAnyToValue {
-    fn to_value(self) -> PyResult<Value>;
-}
-impl PyAnyToValue for &Bound<'_, PyAny> {
-    fn to_value(self) -> PyResult<Value> {
-        let encoding: _Encoding = self.getattr("encoding")?.extract()?;
-        let payload: &PyBytes = self.getattr("payload")?.extract()?;
-        Ok(Value::new(ZBuf::from(payload.as_bytes().to_owned())).encoding(encoding.0))
-    }
-}
-
 #[pyclass(subclass)]
 #[derive(Clone, Debug, Default)]
 pub struct _QoS(pub(crate) QoS);
@@ -195,7 +184,8 @@ impl _QoS {
 #[derive(Clone, Debug)]
 pub struct _Sample {
     key_expr: KeyExpr<'static>,
-    value: _Value,
+    payload: Payload,
+    encoding: Encoding,
     kind: _SampleKind,
     timestamp: Option<_Timestamp>,
     qos: _QoS,
@@ -204,10 +194,8 @@ impl From<Sample> for _Sample {
     fn from(sample: Sample) -> Self {
         _Sample {
             key_expr: sample.key_expr().clone(),
-            value: _Value {
-                payload: Payload::Zenoh(sample.payload().into()),
-                encoding: sample.encoding().clone(),
-            },
+            payload: Payload::Zenoh(sample.payload().into()),
+            encoding: sample.encoding().clone(),
             kind: _SampleKind(sample.kind()),
             timestamp: sample.timestamp().cloned().map(_Timestamp),
             qos: _QoS(*sample.qos()),
@@ -275,26 +263,22 @@ impl _Sample {
         this
     }
     #[getter]
-    pub fn value(&self) -> _Value {
-        self.value.clone()
-    }
-    #[getter]
     pub fn key_expr(&self) -> _KeyExpr {
         _KeyExpr(self.key_expr.clone())
     }
     #[getter]
     pub fn payload(&mut self) -> Py<PyBytes> {
-        if let Payload::Python(buf) = &self.value.payload {
+        if let Payload::Python(buf) = &self.payload {
             return buf.clone();
         }
-        let payload = unsafe { std::ptr::read(&self.value.payload) };
+        let payload = unsafe { std::ptr::read(&self.payload) };
         let buf = payload.into_pybytes();
-        unsafe { std::ptr::write(&mut self.value.payload, Payload::Python(buf.clone())) };
+        unsafe { std::ptr::write(&mut self.payload, Payload::Python(buf.clone())) };
         buf
     }
     #[getter]
     pub fn encoding(&self) -> _Encoding {
-        _Encoding(self.value.encoding.clone())
+        _Encoding(self.encoding.clone())
     }
     #[getter]
     pub fn qos(&self) -> _QoS {
@@ -311,16 +295,18 @@ impl _Sample {
     #[staticmethod]
     pub fn new(
         key_expr: _KeyExpr,
-        value: _Value,
-        qos: _QoS,
-        kind: _SampleKind,
+        payload: Py<PyBytes>,
+        encoding: Option<_Encoding>,
+        qos: Option<_QoS>,
+        kind: Option<_SampleKind>,
         timestamp: Option<_Timestamp>,
     ) -> Self {
         _Sample {
             key_expr: key_expr.0,
-            value,
-            qos,
-            kind,
+            payload: payload.into(),
+            encoding: encoding.unwrap_or_default().0,
+            qos: qos.unwrap_or_default(),
+            kind: kind.unwrap_or_default(),
             timestamp,
         }
     }
@@ -333,14 +319,15 @@ impl From<_Sample> for Sample {
     fn from(sample: _Sample) -> Self {
         let _Sample {
             key_expr,
-            value,
+            payload,
+            encoding,
             kind,
             timestamp,
             qos,
         } = sample;
         match kind.0 {
-            SampleKind::Put => SampleBuilder::put(key_expr, value.payload.into_zbuf())
-                .encoding(value.encoding)
+            SampleKind::Put => SampleBuilder::put(key_expr, payload.into_zbuf())
+                .encoding(encoding)
                 .timestamp(timestamp.map(|t| t.0))
                 .qos(qos.0)
                 .into(),

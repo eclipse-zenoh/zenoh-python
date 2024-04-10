@@ -12,87 +12,46 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 import abc
-from typing import Union, Tuple, Optional, List
+from typing import Union, Tuple, Optional, List, TypeVar
 import json
+import struct
 
 from .enums import Encoding, SampleKind, Priority, CongestionControl
 from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello, _QoS
 from .keyexpr import KeyExpr, IntoKeyExpr
 
-class IValue:
-    "The IValue interface exposes how to recover a value's payload in a binary-serialized format, as well as that format's encoding."
-    @property
-    @abc.abstractmethod
-    def payload(self) -> bytes:
-        "The value itself, as an array of bytes"
-        ...
-    
-    @property
-    @abc.abstractmethod
-    def encoding(self) -> Encoding:
-        "The value's encoding"
-        ...
+IntoPayload = Union[bytes, str, int, float, bool, list, dict]
 
-IntoValue = Union[IValue, bytes, str, int, float, object]
+def into_payload(obj: IntoPayload) -> bytes:
+    if isinstance(obj, bytes):
+        return obj
+    if isinstance(obj, str):
+        return obj.encode()
+    if isinstance(obj, int):
+        return struct.pack('<q', obj).rstrip(b'\0')
+    if isinstance(obj, float):
+        return struct.pack('<d', obj).rstrip(b'\0')
+    if isinstance(obj, (dict, list)):
+        return json.dumps(obj).encode()
+    raise NotImplementedError()
 
-class Value(_Value, IValue):
-    """
-    A Value is a pair of a binary payload, and a mime-type-like encoding string.
-    
-    When constructed with ``encoding==None``, the encoding will be selected depending on the payload's type.
-    """
-    def __new__(cls, payload: IntoValue, encoding: Encoding=None):
-        if encoding is None:
-            if isinstance(payload, Value):
-                return payload
-            return Value.autoencode(payload)
-        else:
-            if not isinstance(payload, bytes):
-                raise TypeError("`encoding` was passed, but `payload` is not of type `bytes`")
-            return Value.new(payload, encoding)
-    
-    @staticmethod
-    def autoencode(value: IntoValue) -> 'Value':
-        "Automatically encodes the value based on its type"
-        if isinstance(value, IValue):
-            return Value.new(value.payload, value.encoding)
-        if isinstance(value, bytes):
-            return Value.new(value, Encoding.APP_OCTET_STREAM())
-        if isinstance(value, str):
-            return Value.new(value.encode(), Encoding.TEXT_PLAIN())
-        if isinstance(value, int):
-            return Value.new(f"{value}".encode(), Encoding.APP_INTEGER())
-        if isinstance(value, float):
-            return Value.new(f"{value}".encode(), Encoding.APP_FLOAT())
-        return Value.new(json.dumps(value).encode(), Encoding.APP_JSON())
-    
-    @staticmethod
-    def new(payload: bytes, encoding: Encoding = None) -> 'Value':
-        return Value._upgrade_(_Value.new(payload, encoding))
-
-    @property
-    def payload(self) -> bytes:
-        return super().payload
-
-    @payload.setter
-    def payload(self, payload: bytes):
-        super().with_payload(payload)
-
-    @property
-    def encoding(self) -> Encoding:
-        return Encoding(super().encoding)
-
-    @encoding.setter
-    def encoding(self, encoding: Encoding):
-        super().with_encoding(encoding)
-
-    @staticmethod
-    def _upgrade_(inner: _Value) -> 'Value':
-        if inner is None:
-            return None
-        if isinstance(inner, Value):
-            return inner
-        return _Value.__new__(Value, inner)
+T = TypeVar("T", bytes, str, int, float, bool, list, dict)
+def from_payload(tp: type[T], payload: bytes) -> T:
+    if tp == bytes:
+        return payload
+    if tp == str:
+        return payload.decode()
+    if tp == int:
+        if len(payload) > 8:
+            raise ValueError("invalid int payload")
+        return struct.unpack('<q', payload + b'\0' * (8 - len(payload)))[0]
+    if tp == float:
+        if len(payload) > 8:
+            raise ValueError("invalid float payload")
+        return struct.unpack('<d', payload + b'\0' * (8 - len(payload)))[0]
+    if tp in (list, dict):
+        return json.loads(payload)
+    raise NotImplementedError()
 
 class ZenohId(_ZenohId):
     """A Zenoh UUID"""
@@ -161,18 +120,14 @@ class Sample(_Sample):
     """
     A KeyExpr-Value pair, annotated with the kind (PUT or DELETE) of publication used to emit it and a timestamp.
     """
-    def __new__(cls, key: IntoKeyExpr, value: IntoValue, kind: SampleKind = None, qos:QoS = None, timestamp: Timestamp = None):
+    def __new__(cls, key: IntoKeyExpr, payload: IntoPayload, *, encoding: Encoding = None, kind: SampleKind = None, qos:QoS = None, timestamp: Timestamp = None):
         kind = _SampleKind.PUT if kind is None else kind
         qos = QoS.DEFAULT if qos is None else qos
-        return Sample._upgrade_(super().new(KeyExpr(key), Value(value), qos, kind, timestamp))
+        return Sample._upgrade_(super().new(KeyExpr(key), into_payload(payload), encoding, qos, kind, timestamp))
     @property
     def key_expr(self) -> KeyExpr:
         "The sample's key expression"
         return KeyExpr(super().key_expr)
-    @property
-    def value(self) -> Value:
-        "The sample's value"
-        return Value._upgrade_(super().value)
     @property
     def payload(self) -> bytes:
         "A shortcut to ``self.value.payload``"

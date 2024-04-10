@@ -11,7 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from typing import Union, Any, List
+from typing import Union, Any, List, overload
 
 from .zenoh import _Session, _Config, _Publisher, _Subscriber
 
@@ -19,7 +19,7 @@ from .keyexpr import KeyExpr, IntoKeyExpr, Selector, IntoSelector
 from .config import Config
 from .closures import IntoHandler, Handler, Receiver
 from .enums import *
-from .value import IntoValue, Value, Sample, Reply, ZenohId
+from .value import into_payload, IntoValue, Value, Sample, Reply, ZenohId
 from .queryable import Queryable, Query
 
 
@@ -29,9 +29,9 @@ class Publisher:
     def __init__(self, p: _Publisher):
         self._inner_ = p
 
-    def put(self, value: IntoValue, encoding: Encoding = None):
+    def put(self, payload: IntoPayload, encoding: Encoding = None):
         "An optimised version of ``session.put(self.key_expr, value, encoding=encoding)``"
-        self._inner_.put(Value(value, encoding))
+        self._inner_.put(into_payload(payload), encoding)
 
     def delete(self):
         "An optimised version of ``session.delete(self.key_expr)``"
@@ -80,7 +80,7 @@ class Session(_Session):
         else:
             return super().__new__(cls, Config.from_obj(config))
 
-    def put(self, keyexpr: IntoKeyExpr, value: IntoValue, encoding=None,
+    def put(self, keyexpr: IntoKeyExpr, payload: IntoPayload, encoding: Encoding = None,
             priority: Priority = None, congestion_control: CongestionControl = None):
         """
         Sends a value over Zenoh.
@@ -89,7 +89,8 @@ class Session(_Session):
         Storages will store the value if ``keyexpr`` is non-wild, or update the values for all known keys that are included in ``keyexpr`` if it is wild.
 
         :param keyexpr: The key expression to publish
-        :param value: The value to send
+        :param payload: The payload to send
+        :param encoding: The encoding of the payload to send
         :param priority: The priority to use when routing the published data
         :param congestion_control: The congestion control to use when routing the published data
 
@@ -99,14 +100,13 @@ class Session(_Session):
         >>> s = zenoh.open({})
         >>> s.put('key/expression', 'value')
         """
-        value = Value(value, encoding)
         keyexpr = KeyExpr(keyexpr)
         kwargs = dict()
         if priority is not None:
             kwargs['priority'] = priority
         if congestion_control is not None:
             kwargs['congestion_control'] = congestion_control
-        return super().put(keyexpr, value, **kwargs)
+        return super().put(keyexpr, into_payload(payload), encoding=encoding, **kwargs)
 
     def config(self) -> Config:
         """Returns a configuration object that can be used to alter the session's configuration at runtime.
@@ -142,7 +142,15 @@ class Session(_Session):
             kwargs['congestion_control'] = congestion_control
         return super().delete(keyexpr, **kwargs)
 
-    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, value: IntoValue = None) -> Receiver:
+    @overload
+    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None) -> Receiver:
+        ...
+
+    @overload
+    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, payload: IntoPayload, encoding: Encoding = None) -> Receiver:
+        ...
+
+    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, payload = None, encoding = None) -> Receiver:
         """
         Emits a query, which queryables with intersecting selectors will be able to reply to.
 
@@ -154,7 +162,8 @@ class Session(_Session):
         :param handler:
         :param consolidation: The consolidation to apply to replies
         :param target: The queryables that should be target to this query
-        :param value: An optional value to attach to this query
+        :param payload: An optional payload to attach to this query
+        :param encoding: The encoding of the optional payload
         :return: The receiver of the handler
         :rtype: Receiver
 
@@ -191,8 +200,12 @@ class Session(_Session):
             kwargs["consolidation"] = consolidation
         if target is not None:
             kwargs["target"] = target
-        if value is not None:
-            kwargs["value"] = Value(value)
+        if payload is not None:
+            kwargs["payload"] = payload
+        if encoding is not None:
+            if payload is None:
+                raise ValueError("encoding specified without payload")
+            kwargs["encoding"] = encoding
         super().get(Selector(selector), handler.closure, **kwargs)
         return handler.receiver
 

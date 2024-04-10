@@ -17,6 +17,7 @@
 use std::convert::TryInto;
 use std::sync::Arc;
 
+use pyo3::types::PyBytes;
 use pyo3::{prelude::*, types::PyDict};
 use zenoh::prelude::{QoSBuilderTrait, ValueBuilderTrait};
 use zenoh::{
@@ -27,16 +28,17 @@ use zenoh::{
     subscriber::Subscriber,
     Session,
 };
+use zenoh_buffers::ZBuf;
 
 use crate::closures::PyClosure;
 use crate::config::{PyConfig, _Config};
 use crate::enums::{
-    _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability,
+    _CongestionControl, _Encoding, _Priority, _QueryConsolidation, _QueryTarget, _Reliability,
 };
 use crate::keyexpr::{_KeyExpr, _Selector};
 use crate::queryable::{_Query, _Queryable};
-use crate::value::{_Hello, _Reply, _Sample, _Value, _ZenohId};
-use crate::{PyAnyToValue, PyExtract, ToPyErr};
+use crate::value::{Payload, _Hello, _Reply, _Sample, _ZenohId};
+use crate::{PyExtract, ToPyErr};
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -60,17 +62,19 @@ impl _Session {
         _Config(PyConfig::Notifier(self.0.config().clone()))
     }
 
-    #[pyo3(signature = (key_expr, value, **kwargs))]
+    #[pyo3(signature = (key_expr, payload, encoding = None, **kwargs))]
     pub fn put(
         &self,
         key_expr: &_KeyExpr,
-        value: &Bound<PyAny>,
+        payload: &Bound<PyBytes>,
+        encoding: Option<_Encoding>,
         kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<()> {
         let s = &self.0;
         let k = &key_expr.0;
-        let v = value.to_value()?;
-        let mut builder = s.put(k, v.payload).encoding(v.encoding);
+        let mut builder = s
+            .put(k, ZBuf::from(payload.as_bytes().to_owned()))
+            .encoding(encoding.unwrap_or_default().0);
         if let Some(kwargs) = kwargs {
             match kwargs.extract_item::<_CongestionControl>("congestion_control") {
                 Ok(congestion_control) => {
@@ -130,8 +134,13 @@ impl _Session {
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
-            match kwargs.extract_item::<_Value>("value") {
-                Ok(value) => builder = builder.value(value),
+            match kwargs.extract_item::<Py<PyBytes>>("payload") {
+                Ok(value) => builder = builder.payload(Payload::Python(value).into_zbuf()),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_Encoding>("encoding") {
+                Ok(value) => builder = builder.encoding(value.0),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -242,10 +251,10 @@ impl _Publisher {
     pub fn key_expr(&self) -> _KeyExpr {
         _KeyExpr(self.0.key_expr().clone())
     }
-    pub fn put(&self, value: _Value) -> PyResult<()> {
+    pub fn put(&self, payload: Py<PyBytes>, encoding: Option<_Encoding>) -> PyResult<()> {
         self.0
-            .put(value.payload.into_zbuf())
-            .encoding(value.encoding)
+            .put(Payload::Python(payload).into_zbuf())
+            .encoding(encoding.unwrap_or_default().0)
             .res_sync()
             .map_err(|e| e.to_pyerr())
     }

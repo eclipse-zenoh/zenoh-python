@@ -105,8 +105,6 @@ fn init_logger() {
     let _ = env_logger::try_init();
 }
 
-pub(crate) use value::PyAnyToValue;
-
 // Test should be runned with `cargo test --no-default-features`
 #[test]
 #[cfg(not(feature = "default"))]

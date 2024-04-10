@@ -14,12 +14,17 @@
 use std::{collections::HashMap, sync::Arc};
 
 use pyo3::prelude::*;
+use pyo3::types::PyBytes;
+use zenoh::prelude::ValueBuilderTrait;
+use zenoh::value::Value;
 use zenoh::{
     prelude::sync::SyncResolve,
     queryable::{Query, Queryable},
     selector::Parameters,
 };
 
+use crate::enums::_Encoding;
+use crate::value::Payload;
 use crate::{
     keyexpr::{_KeyExpr, _Selector},
     value::{_Sample, _Value},
@@ -77,7 +82,9 @@ impl _Query {
             .res_sync()
             .map_err(|e| e.to_pyerr())
     }
-    pub fn reply_err(&self, value: _Value) -> PyResult<()> {
+    pub fn reply_err(&self, payload: Py<PyBytes>, encoding: Option<_Encoding>) -> PyResult<()> {
+        let value = Value::new(Payload::Python(payload).into_zbuf())
+            .encoding(encoding.unwrap_or_default().0);
         self.0.reply_err(value).res_sync().map_err(|e| e.to_pyerr())
     }
     pub fn __str__(&self) -> String {

@@ -20,7 +20,7 @@ use zenoh::subscriber::Reliability;
 
 #[pyclass(subclass)]
 #[repr(transparent)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct _Encoding(pub(crate) Encoding);
 #[pymethods]
 impl _Encoding {
@@ -215,7 +215,7 @@ impl PartialOrd for _Priority {
 }
 
 #[pyclass(subclass)]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Default)]
 pub struct _SampleKind(pub(crate) SampleKind);
 #[pymethods]
 impl _SampleKind {

@@ -74,10 +74,10 @@ class Query(_Query):
         You may send any amount of replies to a single query, including 0.
         """
         super().reply(sample)
-    def reply_err(self, value: IntoValue):
+    def reply_err(self, payload: IntoPayload, encoding: Encoding = None):
         """
         Allows you to reply to a query with an error.
         You may send any amount of replies to a single query, including 0.
         Sending error responses does not exclude sending other responses.
         """
-        super().reply_err(Value(value))
+        super().reply_err(payload, encoding)
