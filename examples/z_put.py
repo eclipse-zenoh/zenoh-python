@@ -17,7 +17,6 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, Value, Encoding
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -87,7 +86,7 @@ def main():
     # - Json (str format)
     # session.put('demo/example/Json',
     #             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]).encode(),
-    #             encoding=Encoding.TEXT_JSON)
+    #             encoding=Encoding.TEXT_JSON())
 
     # - Raw ('application/octet-stream' encoding by default)
     # session.put('demo/example/Raw', b'\x48\x69\x21')
