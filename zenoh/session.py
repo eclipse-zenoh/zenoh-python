@@ -147,7 +147,7 @@ class Session(_Session):
         ...
 
     @overload
-    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, payload: IntoPayload, encoding: Encoding = None) -> Receiver:
+    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, *, payload: IntoPayload, encoding: Encoding = None) -> Receiver:
         ...
 
     def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, payload = None, encoding = None) -> Receiver:
