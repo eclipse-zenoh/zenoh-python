@@ -155,14 +155,15 @@ class Encoding(_Encoding):
     @staticmethod
     def TEXT_JSON5() -> 'Encoding':
         return Encoding(_Encoding.TEXT_JSON5)
-    pub const APPLICATION_PYTHON_SERIALIZED_OBJECT: Self =
-        Self(Encoding::APPLICATION_PYTHON_SERIALIZED_OBJECT);
+    @staticmethod
+    def APPLICATION_PYTHON_SERIALIZED_OBJECT() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_PYTHON_SERIALIZED_OBJECT)
     @staticmethod
     def APPLICATION_PROTOBUF() -> 'Encoding':
         return Encoding(_Encoding.APPLICATION_PROTOBUF)
-    #[classattr]
-    pub const APPLICATION_JAVA_SERIALIZED_OBJECT: Self =
-        Self(Encoding::APPLICATION_JAVA_SERIALIZED_OBJECT);
+    @staticmethod
+    def APPLICATION_JAVA_SERIALIZED_OBJECT() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_JAVA_SERIALIZED_OBJECT)
     @staticmethod
     def APPLICATION_OPENMETRICS_TEXT() -> 'Encoding':
         return Encoding(_Encoding.APPLICATION_OPENMETRICS_TEXT)
@@ -184,9 +185,9 @@ class Encoding(_Encoding):
     @staticmethod
     def APPLICATION_XML() -> 'Encoding':
         return Encoding(_Encoding.APPLICATION_XML)
-    #[classattr]
-    pub const APPLICATION_X_WWW_FORM_URLENCODED: Self =
-        Self(Encoding::APPLICATION_X_WWW_FORM_URLENCODED);
+    @staticmethod
+    def APPLICATION_X_WWW_FORM_URLENCODED() -> 'Encoding':
+        return Encoding(_Encoding.APPLICATION_X_WWW_FORM_URLENCODED)
     @staticmethod
     def TEXT_HTML() -> 'Encoding':
         return Encoding(_Encoding.TEXT_HTML)
