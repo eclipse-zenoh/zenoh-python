@@ -12,7 +12,7 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 import abc
-from typing import Union, Tuple, Optional, List, TypeVar
+from typing import Union, Tuple, Optional, List, Type, TypeVar
 import json
 import struct
 
@@ -36,7 +36,7 @@ def into_payload(obj: IntoPayload) -> bytes:
     raise NotImplementedError()
 
 T = TypeVar("T", bytes, str, int, float, bool, list, dict)
-def from_payload(tp: type[T], payload: bytes) -> T:
+def from_payload(tp: Type[T], payload: bytes) -> T:
     if tp == bytes:
         return payload
     if tp == str:
