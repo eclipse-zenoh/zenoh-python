@@ -53,6 +53,43 @@ def from_payload(tp: Type[T], payload: bytes) -> T:
         return json.loads(payload)
     raise NotImplementedError()
 
+class Value(_Value):
+    """
+    A Value is a pair of a binary payload, and a mime-type-like encoding string.
+
+    When constructed with ``encoding==None``, the encoding will be selected depending on the payload's type.
+    """
+    def __new__(cls, payload: IntoPayload, encoding: Encoding=None):
+        return Value.new(into_payload(payload), encoding)
+
+    @staticmethod
+    def new(payload: bytes, encoding: Encoding = None) -> 'Value':
+        return Value._upgrade_(_Value.new(payload, encoding))
+
+    @property
+    def payload(self) -> bytes:
+        return super().payload
+
+    @payload.setter
+    def payload(self, payload: bytes):
+        super().with_payload(payload)
+
+    @property
+    def encoding(self) -> Encoding:
+        return Encoding(super().encoding)
+
+    @encoding.setter
+    def encoding(self, encoding: Encoding):
+        super().with_encoding(encoding)
+
+    @staticmethod
+    def _upgrade_(inner: _Value) -> 'Value':
+        if inner is None:
+            return None
+        if isinstance(inner, Value):
+            return inner
+        return _Value.__new__(Value, inner)
+
 class ZenohId(_ZenohId):
     """A Zenoh UUID"""
     @staticmethod
@@ -115,7 +152,6 @@ class QoS(_QoS):
 QoS.DEFAULT = QoS()
     
 
-IntoSample = Union[_Sample, Tuple[IntoKeyExpr, IntoValue, SampleKind], Tuple[KeyExpr, IntoValue]]
 class Sample(_Sample):
     """
     A KeyExpr-Value pair, annotated with the kind (PUT or DELETE) of publication used to emit it and a timestamp.

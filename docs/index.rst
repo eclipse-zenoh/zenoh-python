@@ -139,11 +139,6 @@ Subscriber
 .. autoclass:: zenoh.Subscriber
     :members:
 
-PullSubscriber
---------------
-.. autoclass:: zenoh.PullSubscriber
-    :members:
-
 Reliability
 -----------
 .. autoclass:: zenoh.Reliability

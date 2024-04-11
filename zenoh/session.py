@@ -19,7 +19,7 @@ from .keyexpr import KeyExpr, IntoKeyExpr, Selector, IntoSelector
 from .config import Config
 from .closures import IntoHandler, Handler, Receiver
 from .enums import *
-from .value import into_payload, IntoValue, Value, Sample, Reply, ZenohId
+from .value import into_payload, IntoPayload, Sample, Reply, ZenohId
 from .queryable import Queryable, Query
 
 

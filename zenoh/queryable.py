@@ -15,7 +15,8 @@ from typing import Dict, Optional
 
 from .zenoh import _Query, _Queryable
 from .keyexpr import KeyExpr, Selector
-from .value import Sample, Value, IntoValue, IntoSample
+from .value import Sample, Value, IntoPayload, into_payload
+from .enums import Encoding
 
 class Queryable:
     """
@@ -80,4 +81,4 @@ class Query(_Query):
         You may send any amount of replies to a single query, including 0.
         Sending error responses does not exclude sending other responses.
         """
-        super().reply_err(payload, encoding)
+        super().reply_err(into_payload(payload), encoding)
