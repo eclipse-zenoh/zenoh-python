@@ -81,7 +81,6 @@ if scout.status():
 
 storage = Pyrun("z_storage.py")
 sub = Pyrun("z_sub.py")
-pull = Pyrun("z_pull.py")
 time.sleep(1)
 put = Pyrun("z_put.py")
 if put.status():
@@ -90,21 +89,6 @@ if put.status():
 time.sleep(1)
 pub = Pyrun("z_pub.py", ["--iter=2"])
 time.sleep(4)
-
-pull.interrupt()
-if pub.status():
-	pub.dbg()
-	errors.append(pub.status())
-if pull.status(KILL):
-	pull.dbg()
-	errors.append(pull.status(KILL))
-subout = "".join(pull.stdout)
-if not ("Received PUT ('demo/example/zenoh-python-put': 'Put from Python!')" in subout):
-	errors.append("z_pull didn't catch put")
-if not ("Received PUT ('demo/example/zenoh-python-pub': '[   1] Pub from Python!')" in subout):
-	errors.append("z_pull didn't catch second z_pub")
-if any(("z_pull" in error) for error in errors):
-	pull.dbg()
 
 queryable = Pyrun("z_queryable.py", ["-k=demo/example/zenoh-python-queryable"])
 time.sleep(1)

@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, CongestionControl, Value
+from zenoh import config, CongestionControl
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -63,7 +63,6 @@ def main():
     data = bytearray()
     for i in range(0, size):
         data.append(i % 10)
-    data = Value(bytes(data))
     congestion_control = CongestionControl.BLOCK()
 
     session = zenoh.open(conf)
@@ -71,6 +70,6 @@ def main():
 
     print("Press CTRL-C to quit...")
     while True:
-        pub.put(data)
+        pub.put(bytes(data))
 
 main()

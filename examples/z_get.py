@@ -17,7 +17,7 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh import config, QueryTarget
+from zenoh import config, QueryTarget, into_payload
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -79,7 +79,7 @@ def main():
     session = zenoh.open(conf)
 
     print("Sending Query '{}'...".format(selector))
-    replies = session.get(selector, zenoh.Queue(), target=target, value=args.value, consolidation=zenoh.QueryConsolidation.NONE())
+    replies = session.get(selector, zenoh.Queue(), target=target, payload=into_payload(args.value), consolidation=zenoh.QueryConsolidation.NONE())
     for reply in replies.receiver:
         try:
             print(">> Received ('{}': '{}')"

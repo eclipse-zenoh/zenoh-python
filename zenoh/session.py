@@ -142,15 +142,7 @@ class Session(_Session):
             kwargs['congestion_control'] = congestion_control
         return super().delete(keyexpr, **kwargs)
 
-    @overload
-    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None) -> Receiver:
-        ...
-
-    @overload
-    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, *, payload: IntoPayload, encoding: Encoding = None) -> Receiver:
-        ...
-
-    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, payload = None, encoding = None) -> Receiver:
+    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, payload: IntoPayload = None, encoding: Encoding = None) -> Receiver:
         """
         Emits a query, which queryables with intersecting selectors will be able to reply to.
 
@@ -203,8 +195,6 @@ class Session(_Session):
         if payload is not None:
             kwargs["payload"] = payload
         if encoding is not None:
-            if payload is None:
-                raise ValueError("encoding specified without payload")
             kwargs["encoding"] = encoding
         super().get(Selector(selector), handler.closure, **kwargs)
         return handler.receiver

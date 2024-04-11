@@ -22,7 +22,9 @@ from .keyexpr import KeyExpr, IntoKeyExpr
 
 IntoPayload = Union[bytes, str, int, float, bool, list, dict]
 
-def into_payload(obj: IntoPayload) -> bytes:
+def into_payload(obj: Optional[IntoPayload]) -> Optional[bytes]:
+    if obj is None:
+        return obj
     if isinstance(obj, bytes):
         return obj
     if isinstance(obj, str):
