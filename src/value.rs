@@ -47,7 +47,7 @@ impl Payload {
                 let len = buf.len();
                 Python::with_gil(|py| {
                     Py::from(
-                        PyBytes::new_with(py, len, |mut bytes| {
+                        PyBytes::new_bound_with(py, len, |mut bytes| {
                             for slice in buf.slices() {
                                 let len = slice.len();
                                 bytes[..len].copy_from_slice(slice);
@@ -152,7 +152,7 @@ impl From<_Value> for Value {
 pub(crate) trait PyAnyToValue {
     fn to_value(self) -> PyResult<Value>;
 }
-impl PyAnyToValue for &PyAny {
+impl PyAnyToValue for &Bound<'_, PyAny> {
     fn to_value(self) -> PyResult<Value> {
         let encoding: _Encoding = self.getattr("encoding")?.extract()?;
         let payload: &PyBytes = self.getattr("payload")?.extract()?;
