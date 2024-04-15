@@ -51,17 +51,9 @@ impl From<PyErr> for ExtractError {
 pub(crate) trait PyExtract<K> {
     fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError>;
 }
-impl<K: ToPyObject> PyExtract<K> for PyAny {
+impl<K: ToPyObject> PyExtract<K> for Bound<'_, PyDict> {
     fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError> {
-        match self.get_item(key) {
-            Ok(item) => Ok(item.extract::<V>()?),
-            Err(e) => Err(ExtractError::Unavailable(Some(e))),
-        }
-    }
-}
-impl<K: ToPyObject> PyExtract<K> for PyDict {
-    fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError> {
-        match self.get_item(key) {
+        match self.get_item(key)? {
             Some(item) => Ok(item.extract::<V>()?),
             None => Err(ExtractError::Unavailable(None)),
         }
@@ -69,7 +61,7 @@ impl<K: ToPyObject> PyExtract<K> for PyDict {
 }
 
 #[pymodule]
-fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
+fn zenoh(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<config::_Config>()?;
     m.add_class::<closures::_Queue>()?;
     m.add_class::<keyexpr::_KeyExpr>()?;

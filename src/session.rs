@@ -23,7 +23,7 @@ use zenoh::{
     prelude::{sync::SyncResolve, SessionDeclarations},
     publication::Publisher,
     scouting::Scout,
-    subscriber::Subscriber,
+    subscriber::{PullSubscriber, Subscriber},
     Session,
 };
 
@@ -44,7 +44,7 @@ pub struct _Session(pub(crate) Arc<Session>);
 #[pymethods]
 impl _Session {
     #[new]
-    pub fn new(mut config: Option<&mut crate::config::_Config>) -> PyResult<Self> {
+    pub fn new(mut config: Option<&mut _Config>) -> PyResult<Self> {
         let c = match &mut config {
             Some(c) => c.0.take().unwrap_or_default(),
             None => Default::default(),
@@ -62,9 +62,9 @@ impl _Session {
     #[pyo3(signature = (key_expr, value, **kwargs))]
     pub fn put(
         &self,
-        key_expr: &crate::keyexpr::_KeyExpr,
-        value: &PyAny,
-        kwargs: Option<&PyDict>,
+        key_expr: &_KeyExpr,
+        value: &Bound<PyAny>,
+        kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<()> {
         let s = &self.0;
         let k = &key_expr.0;
@@ -93,11 +93,7 @@ impl _Session {
     }
 
     #[pyo3(signature = (key_expr, **kwargs))]
-    pub fn delete(
-        &self,
-        key_expr: &crate::keyexpr::_KeyExpr,
-        kwargs: Option<&PyDict>,
-    ) -> PyResult<()> {
+    pub fn delete(&self, key_expr: &_KeyExpr, kwargs: Option<&Bound<PyDict>>) -> PyResult<()> {
         let s = &self.0;
         let k = &key_expr.0;
         let mut builder = s.delete(k);
@@ -127,8 +123,8 @@ impl _Session {
     pub fn get(
         &self,
         selector: &_Selector,
-        callback: &PyAny,
-        kwargs: Option<&PyDict>,
+        callback: &Bound<PyAny>,
+        kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<()> {
         let callback: PyClosure<(_Reply,)> = <_ as TryInto<_>>::try_into(callback)?;
         let mut builder = self.0.get(&selector.0).with(callback);
@@ -163,8 +159,8 @@ impl _Session {
     pub fn declare_queryable(
         &self,
         key_expr: _KeyExpr,
-        callback: &PyAny,
-        kwargs: Option<&PyDict>,
+        callback: &Bound<PyAny>,
+        kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<_Queryable> {
         let callback: PyClosure<(_Query,)> = <_ as TryInto<_>>::try_into(callback)?;
         let mut builder = self.0.declare_queryable(key_expr.0).with(callback);
@@ -185,7 +181,7 @@ impl _Session {
     pub fn declare_publisher(
         &self,
         key_expr: _KeyExpr,
-        kwargs: Option<&PyDict>,
+        kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<_Publisher> {
         let mut builder = self.0.declare_publisher(key_expr.0);
         if let Some(kwargs) = kwargs {
@@ -210,8 +206,8 @@ impl _Session {
     pub fn declare_subscriber(
         &self,
         key_expr: &_KeyExpr,
-        callback: &PyAny,
-        kwargs: Option<&PyDict>,
+        callback: &Bound<PyAny>,
+        kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<_Subscriber> {
         let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
         let mut builder = self.0.declare_subscriber(&key_expr.0).with(callback);
@@ -224,6 +220,30 @@ impl _Session {
         }
         let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
         Ok(_Subscriber(subscriber))
+    }
+
+    #[pyo3(signature = (key_expr, callback, **kwargs))]
+    pub fn declare_pull_subscriber(
+        &self,
+        key_expr: &_KeyExpr,
+        callback: &Bound<PyAny>,
+        kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<_PullSubscriber> {
+        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
+        let mut builder = self
+            .0
+            .declare_subscriber(&key_expr.0)
+            .pull_mode()
+            .with(callback);
+        if let Some(kwargs) = kwargs {
+            match kwargs.extract_item::<_Reliability>("reliability") {
+                Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+        }
+        let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
+        Ok(_PullSubscriber(subscriber))
     }
 
     pub fn zid(&self) -> _ZenohId {
@@ -267,10 +287,23 @@ impl _Publisher {
 pub struct _Subscriber(Subscriber<'static, ()>);
 
 #[pyclass(subclass)]
+pub struct _PullSubscriber(PullSubscriber<'static, ()>);
+#[pymethods]
+impl _PullSubscriber {
+    fn pull(&self) -> PyResult<()> {
+        self.0.pull().res_sync().map_err(|e| e.to_pyerr())
+    }
+}
+
+#[pyclass(subclass)]
 pub struct _Scout(Scout<()>);
 
 #[pyfunction]
-pub fn scout(callback: &PyAny, config: Option<&_Config>, what: Option<&str>) -> PyResult<_Scout> {
+pub fn scout(
+    callback: &Bound<PyAny>,
+    config: Option<&_Config>,
+    what: Option<&str>,
+) -> PyResult<_Scout> {
     let callback: PyClosure<(_Hello,)> = <_ as TryInto<_>>::try_into(callback)?;
     let what: WhatAmIMatcher = match what {
         None => WhatAmI::Client | WhatAmI::Peer | WhatAmI::Router,
