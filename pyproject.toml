@@ -23,8 +23,9 @@ name = "eclipse-zenoh"
 version = "0.11.0-dev"
 description = "The python API for Eclipse zenoh"
 requires-python = ">=3.7"
-author = "ZettaScale Zenoh team"
-author_email = "zenoh@zettascale.tech"
+authors = [
+  { name = "ZettaScale Zenoh team", email = "zenoh@zettascale.tech"}
+]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.7",
@@ -41,7 +42,6 @@ classifiers = [
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows",
 ]
-zip_safe = false
 
 [project.urls]
 "Bug Tracker" = "https://github.com/eclipse-zenoh/zenoh-python/issues"
