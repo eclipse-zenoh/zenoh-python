@@ -7,27 +7,28 @@ on:
     inputs:
       live-run:
         type: boolean
-        description: If false (or undefined) the workflow runs in dry-run mode (i.e. with no side-effects)
+        description: Live-run
         required: false
       version:
         type: string
-        description: Release number. If undefined, the workflow auto-generates a version using git-describe
+        description: Release number
         required: false
       zenoh-version:
         type: string
-        description: Release number of Zenoh. Required in live-run mode and ignored in dry-run mode
+        description: Release number of Zenoh
         required: false
 
 jobs:
   tag:
     name: Bump and tag crates
-    uses: eclipse-zenoh/ci/.github/workflows/tag-crates.yml@main
+    uses: eclipse-zenoh/ci/.github/workflows/branch-bump-tag-crates.yml@main
     with:
       repo: ${{ github.repository }}
       live-run: ${{ inputs.live-run || false }}
       version: ${{ inputs.version }}
-      inter-deps-pattern: ${{ inputs.live-run && 'zenoh.*' || '^$' }}
-      inter-deps-version: ${{ inputs.live-run && inputs.zenoh-version || '' }}
+      bump-deps-version: ${{ inputs.zenoh-version }}
+      bump-deps-pattern: ${{ inputs.zenoh-version && 'zenoh.*' || '^$' }}
+      bump-deps-branch: ${{ inputs.zenoh-version && format('release/{0}', inputs.zenoh-version) || '' }}
     secrets: inherit
 
   build-macos:
@@ -162,7 +163,7 @@ jobs:
           name: wheels
           path: dist
 
-  deploy-wheels:
+  publish-pypi:
     needs: [build-macos, build-windows, build-linux, build-linux-armv6]
     name: Deploy wheels to pypi
     runs-on: ubuntu-latest
@@ -180,3 +181,16 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.6.4
         with:
           password: ${{ secrets.PYPI_ORG_TOKEN }}
+
+  publish-github:
+    needs: tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: eclipse-zenoh/ci/publish-crates-github@main
+        with:
+          repo: ${{ github.repository }}
+          live-run: ${{ inputs.live-run || false }}
+          version: ${{ needs.tag.outputs.version }}
+          branch: ${{ needs.tag.outputs.branch }}
+          github-token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
+          archive-patterns: "^$"
