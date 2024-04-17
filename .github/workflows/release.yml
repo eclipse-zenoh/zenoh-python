@@ -32,6 +32,7 @@ jobs:
     secrets: inherit
 
   build-macos:
+    needs: tag
     runs-on: macos-latest
     steps:
       - name: Checkout this repository
@@ -60,6 +61,7 @@ jobs:
           path: dist
 
   build-windows:
+    needs: tag
     runs-on: windows-latest
     strategy:
       matrix:
@@ -87,6 +89,7 @@ jobs:
           path: dist
 
   build-linux:
+    needs: tag
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -109,6 +112,7 @@ jobs:
           path: dist
 
   build-linux-aarch64:
+    needs: tag
     runs-on: ubuntu-latest
     steps:
       - name: Checkout this repository
@@ -134,6 +138,7 @@ jobs:
           path: dist
 
   build-linux-armv6:
+    needs: tag
     runs-on: macos-latest
     steps:
       - name: Checkout this repository
@@ -164,7 +169,15 @@ jobs:
           path: dist
 
   publish-pypi:
-    needs: [build-macos, build-windows, build-linux, build-linux-armv6]
+    needs:
+      [
+        tag,
+        build-macos,
+        build-windows,
+        build-linux,
+        build-linux-armv6,
+        build-linux-aarch64,
+      ]
     name: Deploy wheels to pypi
     runs-on: ubuntu-latest
     steps:
@@ -183,7 +196,15 @@ jobs:
           password: ${{ secrets.PYPI_ORG_TOKEN }}
 
   publish-github:
-    needs: tag
+    needs:
+      [
+        tag,
+        build-macos,
+        build-windows,
+        build-linux,
+        build-linux-armv6,
+        build-linux-aarch64,
+      ]
     runs-on: ubuntu-latest
     steps:
       - uses: eclipse-zenoh/ci/publish-crates-github@main
