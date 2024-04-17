@@ -50,3 +50,8 @@ validated_struct = "2.1.0"
 zenoh = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["unstable"], default-features = false }
 zenoh-buffers = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main" }
 zenoh-core = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main" }
+
+[patch."https://github.com/eclipse-zenoh/zenoh.git"]
+zenoh = { version = "0.11.0-dev", git = "https://github.com/ZettaScaleLabs/zenoh.git", branch = "fix/scout-termination", features = ["unstable"], default-features = false }
+zenoh-buffers = { version = "0.11.0-dev", git = "https://github.com/ZettaScaleLabs/zenoh.git", branch = "fix/scout-termination" }
+zenoh-core = { version = "0.11.0-dev", git = "https://github.com/ZettaScaleLabs/zenoh.git", branch = "fix/scout-termination" }
