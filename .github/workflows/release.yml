@@ -219,7 +219,7 @@ jobs:
 
       - name: Publish
         if: ${{ inputs.live-run || false }}
-        uses: pypa/gh-action-pypi-publish@v1.6.4
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_ORG_TOKEN }}
 
