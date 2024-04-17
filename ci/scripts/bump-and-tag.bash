@@ -39,7 +39,7 @@ git commit Cargo.toml pyproject.toml -m "chore: Bump version to $version"
 
 # Select all package dependencies that match $bump_deps_pattern and bump them to $bump_deps_version
 if [[ "$bump_deps_pattern" != '' ]]; then
-  deps=$(toml get Cargo.toml dependencies | jq -r "keys.[] | select(test(\"$bump_deps_pattern\"))")
+  deps=$(toml get Cargo.toml dependencies | jq -r "keys[] | select(test(\"$bump_deps_pattern\"))")
   for dep in $deps; do
     if [[ -n $bump_deps_version ]]; then
       toml_set_in_place Cargo.toml "dependencies.$dep.version" "$bump_deps_version"
