@@ -1,18 +1,62 @@
 name: Release
 
 on:
-  release:
-    types: [published]
   schedule:
     - cron: "0 1 * * 1-5"
   workflow_dispatch:
+    inputs:
+      live-run:
+        type: boolean
+        description: Live-run
+        required: false
+      version:
+        type: string
+        description: Release number
+        required: false
+      zenoh-version:
+        type: string
+        description: Release number of Zenoh
+        required: false
 
 jobs:
-  macos:
+  tag:
+    name: Branch, Bump & tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.create-release-branch.outputs.version }}
+      branch: ${{ steps.create-release-branch.outputs.branch }}
+    steps:
+      - id: create-release-branch
+        uses: eclipse-zenoh/ci/create-release-branch@main
+        with:
+          repo: ${{ github.repository }}
+          live-run: ${{ inputs.live-run || false }}
+          version: ${{ inputs.version }}
+          github-token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
+
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.create-release-branch.outputs.branch }}
+
+      - name: Bump and tag project
+        run: bash ci/scripts/bump-and-tag.bash
+        env:
+          VERSION: ${{ steps.create-release-branch.outputs.version }}
+          BUMP_DEPS_VERSION: ${{ inputs.zenoh-version }}
+          BUMP_DEPS_PATTERN: ${{ inputs.zenoh-version && 'zenoh.*' || '' }}
+          BUMP_DEPS_BRANCH: ${{ inputs.zenoh-version && format('release/{0}', inputs.zenoh-version) || '' }}
+          GIT_USER_NAME: eclipse-zenoh-bot
+          GIT_USER_EMAIL: eclipse-zenoh-bot@users.noreply.github.com
+
+  build-macos:
+    needs: tag
     runs-on: macos-latest
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.branch }}
 
       - name: Install Rust toolchain
         run: |
@@ -36,7 +80,8 @@ jobs:
           name: wheels
           path: dist
 
-  windows:
+  build-windows:
+    needs: tag
     runs-on: windows-latest
     strategy:
       matrix:
@@ -45,6 +90,8 @@ jobs:
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.branch }}
 
       - name: Install Rust toolchain
         run: |
@@ -63,7 +110,8 @@ jobs:
           name: wheels
           path: dist
 
-  linux:
+  build-linux:
+    needs: tag
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -71,6 +119,8 @@ jobs:
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.branch }}
 
       - name: Build wheels
         uses: messense/maturin-action@v1
@@ -85,11 +135,14 @@ jobs:
           name: wheels
           path: dist
 
-  linux-aarch64:
+  build-linux-aarch64:
+    needs: tag
     runs-on: ubuntu-latest
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.branch }}
 
       - name: Build wheels
         uses: messense/maturin-action@v1
@@ -110,18 +163,21 @@ jobs:
           name: wheels
           path: dist
 
-  linux-armv6:
+  build-linux-armv6:
+    needs: tag
     runs-on: macos-latest
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.branch }}
 
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
           rustup target add arm-unknown-linux-gnueabihf
 
-      - name: install cross toolchain
+      - name: Install cross toolchain
         run: |
           brew tap messense/macos-cross-toolchains
           brew install arm-unknown-linux-gnueabihf
@@ -140,19 +196,50 @@ jobs:
           name: wheels
           path: dist
 
-  deploy-wheels:
-    needs: [macos, windows, linux, linux-armv6]
-    name: deploy wheels to pypi
+  publish-pypi:
+    needs:
+      [
+        tag,
+        build-macos,
+        build-windows,
+        build-linux,
+        build-linux-armv6,
+        build-linux-aarch64,
+      ]
+    name: Deploy wheels to pypi
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: wheels
           path: dist
+
       - name: Check dist
         run: ls -al ./dist/*
-      - name: publish
-        if: github.event_name == 'release' && github.event.action == 'published'
-        uses: pypa/gh-action-pypi-publish@v1.6.4
+
+      - name: Publish
+        if: ${{ inputs.live-run || false }}
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_ORG_TOKEN }}
+
+  publish-github:
+    needs:
+      [
+        tag,
+        build-macos,
+        build-windows,
+        build-linux,
+        build-linux-armv6,
+        build-linux-aarch64,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: eclipse-zenoh/ci/publish-crates-github@main
+        with:
+          repo: ${{ github.repository }}
+          live-run: ${{ inputs.live-run || false }}
+          version: ${{ needs.tag.outputs.version }}
+          branch: ${{ needs.tag.outputs.branch }}
+          github-token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
+          archive-patterns: "^$"
