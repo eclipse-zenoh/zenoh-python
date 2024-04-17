@@ -35,7 +35,7 @@ toml_set_in_place Cargo.toml "package.version" "$version"
 # Propagate version change to pyproject.toml
 toml_set_in_place pyproject.toml "project.version" "$version"
 
-git commit version.txt Cargo.toml pyproject.toml -m "chore: Bump version to $version"
+git commit Cargo.toml pyproject.toml -m "chore: Bump version to $version"
 
 # Select all package dependencies that match $bump_deps_pattern and bump them to $bump_deps_version
 if [[ "$bump_deps_pattern" != '' ]]; then
