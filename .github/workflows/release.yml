@@ -20,16 +20,35 @@ on:
 
 jobs:
   tag:
-    name: Bump and tag crates
-    uses: eclipse-zenoh/ci/.github/workflows/branch-bump-tag-crates.yml@main
-    with:
-      repo: ${{ github.repository }}
-      live-run: ${{ inputs.live-run || false }}
-      version: ${{ inputs.version }}
-      bump-deps-version: ${{ inputs.zenoh-version }}
-      bump-deps-pattern: ${{ inputs.zenoh-version && 'zenoh.*' || '^$' }}
-      bump-deps-branch: ${{ inputs.zenoh-version && format('release/{0}', inputs.zenoh-version) || '' }}
-    secrets: inherit
+    name: Branch, Bump & tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.create-release-branch.outputs.version }}
+      branch: ${{ steps.create-release-branch.outputs.branch }}
+    steps:
+      - id: create-release-branch
+        uses: eclipse-zenoh/ci/create-release-branch@main
+        with:
+          repo: ${{ github.repository }}
+          live-run: ${{ inputs.live-run || false }}
+          version: ${{ inputs.version }}
+          github-token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
+
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.create-release-branch.outputs.branch }}
+          token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
+
+      - name: Bump and tag project
+        run: bash ci/scripts/bump-and-tag.bash
+        env:
+          VERSION: ${{ steps.create-release-branch.outputs.version }}
+          BUMP_DEPS_VERSION: ${{ inputs.zenoh-version }}
+          BUMP_DEPS_PATTERN: ${{ inputs.zenoh-version && 'zenoh.*' || '' }}
+          BUMP_DEPS_BRANCH: ${{ inputs.zenoh-version && format('release/{0}', inputs.zenoh-version) || '' }}
+          GIT_USER_NAME: eclipse-zenoh-bot
+          GIT_USER_EMAIL: eclipse-zenoh-bot@users.noreply.github.com
 
   build-macos:
     needs: tag
