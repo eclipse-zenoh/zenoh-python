@@ -112,7 +112,7 @@ fn zenoh(_py: Python, m: &PyModule) -> PyResult<()> {
 ///
 #[pyfunction]
 fn init_logger() {
-    zenoh_util::init_log_from_env();
+    zenoh_util::try_init_log_from_env();
 }
 
 pub(crate) use value::PyAnyToValue;
