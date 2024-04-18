@@ -187,7 +187,7 @@ jobs:
           export AR_arm_unknown_linux_gnueabihf=arm-unknown-linux-gnueabihf-ar
           export CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-unknown-linux-gnueabihf-gcc
 
-          pip3 install maturin
+          pip3 install -r requirements-dev.txt
           maturin build --release --target arm-unknown-linux-gnueabihf --out dist
 
       - name: Upload wheels
