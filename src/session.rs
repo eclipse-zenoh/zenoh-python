@@ -296,7 +296,7 @@ impl _PullSubscriber {
 }
 
 #[pyclass(subclass)]
-pub struct _Scout(Scout<()>);
+pub struct _Scout(Option<Scout<()>>);
 
 #[pyfunction]
 pub fn scout(
@@ -315,7 +315,13 @@ pub fn scout(
     let config = config.and_then(|c| c.0.clone().take()).unwrap_or_default();
     let scout = zenoh::scout(what, config).with(callback).res_sync();
     match scout {
-        Ok(scout) => Ok(_Scout(scout)),
+        Ok(scout) => Ok(_Scout(Some(scout))),
         Err(e) => Err(e.to_pyerr()),
+    }
+}
+
+impl Drop for _Scout {
+    fn drop(&mut self) {
+        Python::with_gil(|gil| gil.allow_threads(|| drop(self.0.take())));
     }
 }
