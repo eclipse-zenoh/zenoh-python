@@ -19,7 +19,7 @@ from .keyexpr import KeyExpr, IntoKeyExpr, Selector, IntoSelector
 from .config import Config
 from .closures import IntoHandler, Handler, Receiver
 from .enums import *
-from .value import IntoValue, Value, Sample, Reply, ZenohId
+from .value import IntoValue, Value, Sample, Reply, ZenohId, IntoAttachment, Attachment
 from .queryable import Queryable, Query
 
 
@@ -29,9 +29,10 @@ class Publisher:
     def __init__(self, p: _Publisher):
         self._inner_ = p
 
-    def put(self, value: IntoValue, encoding: Encoding = None):
-        "An optimised version of ``session.put(self.key_expr, value, encoding=encoding)``"
-        self._inner_.put(Value(value, encoding))
+    def put(self, value: IntoValue, encoding: Encoding = None, attachment: IntoAttachment = None):
+        "An optimised version of ``session.put(self.key_expr, value, encoding=encoding, attachment=attachment)``"
+        attachment = Attachment(attachment) if attachment is not None else attachment
+        self._inner_.put(Value(value, encoding), attachment)
 
     def delete(self):
         "An optimised version of ``session.delete(self.key_expr)``"
@@ -100,6 +101,7 @@ class Session(_Session):
 
     Note that most applications will only need a single instance of ``Session``. You should _never_ construct one session per publisher/subscriber, as this will significantly increase the size of your Zenoh network, while preventing potential locality-based optimizations.
     """
+
     def __new__(cls, config: Union[Config, Any] = None):
         if config is None:
             return super().__new__(cls)
@@ -110,7 +112,7 @@ class Session(_Session):
 
     def put(self, keyexpr: IntoKeyExpr, value: IntoValue, encoding=None,
             priority: Priority = None, congestion_control: CongestionControl = None,
-            sample_kind: SampleKind = None):
+            sample_kind: SampleKind = None, attachment: IntoAttachment = None):
         """
         Sends a value over Zenoh.
 
@@ -122,6 +124,7 @@ class Session(_Session):
         :param priority: The priority to use when routing the published data
         :param congestion_control: The congestion control to use when routing the published data
         :param sample_kind: The kind of sample to send
+        :param attachment: The attachment to attach to the value sent
 
         :Examples:
 
@@ -138,6 +141,8 @@ class Session(_Session):
             kwargs['congestion_control'] = congestion_control
         if sample_kind is not None:
             kwargs['sample_kind'] = sample_kind
+        if attachment is not None:
+            kwargs['attachment'] = Attachment(attachment)
         return super().put(keyexpr, value, **kwargs)
 
     def config(self) -> Config:
@@ -149,7 +154,8 @@ class Session(_Session):
         return super().config()
 
     def delete(self, keyexpr: IntoKeyExpr,
-               priority: Priority = None, congestion_control: CongestionControl = None):
+               priority: Priority = None, congestion_control: CongestionControl = None,
+               attachment: IntoAttachment = None):
         """
         Deletes the values associated with the keys included in ``keyexpr``.
         
@@ -159,6 +165,7 @@ class Session(_Session):
         :param keyexpr: The key expression to publish
         :param priority: The priority to use when routing the delete
         :param congestion_control: The congestion control to use when routing the delete
+        :param attachment: The attachment to attach to the request
 
         :Examples:
 
@@ -172,9 +179,13 @@ class Session(_Session):
             kwargs['priority'] = priority
         if congestion_control is not None:
             kwargs['congestion_control'] = congestion_control
+        if attachment is not None:
+            kwargs['attachment'] = Attachment(attachment)
         return super().delete(keyexpr, **kwargs)
 
-    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver], consolidation: QueryConsolidation = None, target: QueryTarget = None, value: IntoValue = None) -> Receiver:
+    def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver],
+            consolidation: QueryConsolidation = None, target: QueryTarget = None, value: IntoValue = None,
+            attachment: IntoAttachment = None) -> Receiver:
         """
         Emits a query, which queryables with intersecting selectors will be able to reply to.
 
@@ -187,6 +198,7 @@ class Session(_Session):
         :param consolidation: The consolidation to apply to replies
         :param target: The queryables that should be target to this query
         :param value: An optional value to attach to this query
+        :param attachment: An optional attachment to attach to this query
         :return: The receiver of the handler
         :rtype: Receiver
 
@@ -225,6 +237,8 @@ class Session(_Session):
             kwargs["target"] = target
         if value is not None:
             kwargs["value"] = Value(value)
+        if attachment is not None:
+            kwargs["attachment"] = Attachment(attachment)
         super().get(Selector(selector), handler.closure, **kwargs)
         return handler.receiver
 
@@ -276,7 +290,8 @@ class Session(_Session):
         inner = super().declare_queryable(KeyExpr(keyexpr), handler.closure, **kwargs)
         return Queryable(inner, handler.receiver)
 
-    def declare_publisher(self, keyexpr: IntoKeyExpr, priority: Priority = None, congestion_control: CongestionControl = None):
+    def declare_publisher(self, keyexpr: IntoKeyExpr, priority: Priority = None,
+                          congestion_control: CongestionControl = None):
         """
         Declares a publisher, which may be used to send values repeatedly onto a same key expression.
 
@@ -302,7 +317,8 @@ class Session(_Session):
             kwargs['congestion_control'] = congestion_control
         return Publisher(super().declare_publisher(KeyExpr(keyexpr), **kwargs))
 
-    def declare_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None) -> Subscriber:
+    def declare_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any],
+                           reliability: Reliability = None) -> Subscriber:
         """
         Declares a subscriber, which will receive any published sample with a key expression intersecting ``keyexpr``.
 
@@ -342,7 +358,8 @@ class Session(_Session):
         s = super().declare_subscriber(KeyExpr(keyexpr), handler.closure, **kwargs)
         return Subscriber(s, handler.receiver)
 
-    def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any], reliability: Reliability = None) -> PullSubscriber:
+    def declare_pull_subscriber(self, keyexpr: IntoKeyExpr, handler: IntoHandler[Sample, Any, Any],
+                                reliability: Reliability = None) -> PullSubscriber:
         """
         Declares a pull-mode subscriber, which will receive a single published sample with a key expression intersecting ``keyexpr`` any time its ``pull`` method is called.
 

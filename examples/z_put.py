@@ -61,6 +61,7 @@ if args.listen is not None:
 key = args.key
 value = args.value
 
+
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
     # initiate logging
@@ -70,7 +71,7 @@ def main():
     session = zenoh.open(conf)
 
     print("Putting Data ('{}': '{}')...".format(key, value))
-    session.put(key, value)
+    session.put(key, value, attachment={'key': b'value'})
 
     # --- Examples of put with other types:
 
@@ -102,5 +103,6 @@ def main():
     #             encoding=zenoh.Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16'))
 
     session.close()
+
 
 main()

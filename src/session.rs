@@ -34,7 +34,7 @@ use crate::enums::{
 };
 use crate::keyexpr::{_KeyExpr, _Selector};
 use crate::queryable::{_Query, _Queryable};
-use crate::value::{_Hello, _Reply, _Sample, _Value, _ZenohId};
+use crate::value::{_Attachment, _Hello, _Reply, _Sample, _Value, _ZenohId};
 use crate::{PyAnyToValue, PyExtract, ToPyErr};
 
 #[pyclass(subclass)]
@@ -88,6 +88,11 @@ impl _Session {
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
+            match kwargs.extract_item::<_Attachment>("attachment") {
+                Ok(attachment) => builder = builder.with_attachment(attachment.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
         }
         builder.res_sync().map_err(|e| e.to_pyerr())
     }
@@ -112,6 +117,11 @@ impl _Session {
             }
             match kwargs.extract_item::<_Priority>("priority") {
                 Ok(priority) => builder = builder.priority(priority.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_Attachment>("attachment") {
+                Ok(attachment) => builder = builder.with_attachment(attachment.0),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -141,6 +151,11 @@ impl _Session {
             }
             match kwargs.extract_item::<_Value>("value") {
                 Ok(value) => builder = builder.with_value(value),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<_Attachment>("attachment") {
+                Ok(attachment) => builder = builder.with_attachment(attachment.0),
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
@@ -275,8 +290,12 @@ impl _Publisher {
     pub fn key_expr(&self) -> _KeyExpr {
         _KeyExpr(self.0.key_expr().clone())
     }
-    pub fn put(&self, value: _Value) -> PyResult<()> {
-        self.0.put(value).res_sync().map_err(|e| e.to_pyerr())
+    pub fn put(&self, value: _Value, attachment: Option<_Attachment>) -> PyResult<()> {
+        let mut builder = self.0.put(value);
+        if let Some(attachment) = attachment {
+            builder = builder.with_attachment(attachment.0);
+        }
+        builder.res_sync().map_err(|e| e.to_pyerr())
     }
     pub fn delete(&self) -> PyResult<()> {
         self.0.delete().res_sync().map_err(|e| e.to_pyerr())

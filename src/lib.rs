@@ -74,6 +74,7 @@ fn zenoh(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<queryable::_Query>()?;
     m.add_class::<queryable::_Queryable>()?;
     m.add_class::<value::_Value>()?;
+    m.add_class::<value::_Attachment>()?;
     m.add_class::<value::_Sample>()?;
     m.add_class::<value::_QoS>()?;
     m.add_class::<value::_Reply>()?;
