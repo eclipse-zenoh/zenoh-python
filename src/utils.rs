@@ -387,6 +387,12 @@ macro_rules! opt_wrapper {
             type Into = $ty;
             fn into_python(self) -> Self::Into { self.into() }
         }
+
+        impl Drop for $ty {
+            fn drop(&mut self) {
+                Python::with_gil(|gil| gil.allow_threads(|| drop(self.0.take())))
+            }
+        }
     };
 }
 pub(crate) use opt_wrapper;
