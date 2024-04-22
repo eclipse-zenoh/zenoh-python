@@ -147,7 +147,7 @@ impl _Priority {
         }
     }
 }
-impl std::cmp::PartialOrd for _Priority {
+impl PartialOrd for _Priority {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         (self.0 as u8).partial_cmp(&(other.0 as u8))
     }
