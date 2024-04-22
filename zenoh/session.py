@@ -165,7 +165,7 @@ class Session(_Session):
         :param keyexpr: The key expression to publish
         :param priority: The priority to use when routing the delete
         :param congestion_control: The congestion control to use when routing the delete
-        :param attachment: The attachment to attach to the request
+        :param attachment: The attachment to send along with the delete
 
         :Examples:
 
@@ -198,7 +198,7 @@ class Session(_Session):
         :param consolidation: The consolidation to apply to replies
         :param target: The queryables that should be target to this query
         :param value: An optional value to attach to this query
-        :param attachment: An optional attachment to attach to this query
+        :param attachment: An optional attachment to send along with this query
         :return: The receiver of the handler
         :rtype: Receiver
 
