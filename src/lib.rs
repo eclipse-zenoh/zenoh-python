@@ -99,7 +99,7 @@ fn zenoh(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 ///
 ///    $ RUST_LOG=debug python
 ///
-/// More details on the RUST_LOG configuration on 
+/// More details on the RUST_LOG configuration on
 /// https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#method.try_from_env
 ///
 #[pyfunction]
