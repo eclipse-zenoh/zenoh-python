@@ -49,7 +49,7 @@ class Encoding:
     A set of associated constants are provided to cover the most common encodings for user convenience. This is parcticular useful in helping Zenoh to perform additional network optimizations.
     """
 
-    def __new__(cls, arg: IntoEncoding) -> Self: ...
+    def __new__(cls, encoding: str | None = None) -> Self: ...
 
     ZENOH_BYTES: Self
     """Just some bytes.

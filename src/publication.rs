@@ -21,9 +21,8 @@ use crate::{
     encoding::Encoding,
     key_expr::KeyExpr,
     payload::into_payload,
-    utils::{
-        allow_threads, build, opt_wrapper, r#enum, try_downcast, MapInto, PySyncResolve, ToPyResult,
-    },
+    resolve::{resolve, Resolve},
+    utils::{build, opt_wrapper, r#enum},
 };
 
 r#enum!(zenoh::publication::Priority: u8 {
@@ -38,17 +37,6 @@ r#enum!(zenoh::publication::Priority: u8 {
 
 #[pymethods]
 impl Priority {
-    #[new]
-    pub(crate) fn new(priority: Option<&Bound<PyAny>>) -> PyResult<Self> {
-        if let Some(obj) = priority {
-            try_downcast!(obj);
-            return zenoh::publication::Priority::try_from(u8::extract_bound(obj)?)
-                .to_pyres()
-                .map_into();
-        }
-        Ok(Self::DEFAULT)
-    }
-
     #[classattr]
     const DEFAULT: Self = Self::Data;
     #[classattr]
@@ -87,8 +75,8 @@ impl Publisher {
         py: Python,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
-    ) -> PyResult<()> {
-        self.undeclare(py)
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?.wait(py)
     }
 
     #[getter]
@@ -116,19 +104,18 @@ impl Publisher {
         py: Python,
         #[pyo3(from_py_with = "into_payload")] payload: Payload,
         #[pyo3(from_py_with = "Encoding::opt")] encoding: Option<Encoding>,
-    ) -> PyResult<()> {
-        allow_threads(py, || {
-            let mut builder = self.get_ref()?.put(payload);
-            build!(builder, encoding);
-            builder.py_res_sync()
-        })
+    ) -> PyResult<Resolve> {
+        let this = self.get_ref()?;
+        resolve(py, build!(this.put(payload), encoding))
     }
 
-    fn delete(&self, py: Python) -> PyResult<()> {
-        allow_threads(py, || self.get_ref()?.delete().py_res_sync())
+    fn delete(&self, py: Python) -> PyResult<Resolve> {
+        let this = self.get_ref()?;
+        resolve(py, || this.delete())
     }
 
-    fn undeclare(&mut self, py: Python) -> PyResult<()> {
-        allow_threads(py, || self.take()?.undeclare().py_res_sync())
+    fn undeclare(&mut self, py: Python) -> PyResult<Resolve> {
+        let this = self.take()?;
+        resolve(py, || this.undeclare())
     }
 }

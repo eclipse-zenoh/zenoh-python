@@ -17,8 +17,9 @@ use pyo3::types::{PyDict, PyIterator, PyTuple, PyType};
 use crate::{
     handlers::HandlerImpl,
     key_expr::KeyExpr,
+    resolve::{resolve, Resolve},
     sample::Sample,
-    utils::{allow_threads, generic, opt_wrapper, r#enum, PySyncResolve},
+    utils::{generic, opt_wrapper, r#enum},
 };
 
 r#enum!(zenoh::subscriber::Reliability: u8 {BestEffort, Reliable});
@@ -56,8 +57,8 @@ impl Subscriber {
         py: Python,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
-    ) -> PyResult<()> {
-        self.undeclare(py)
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?.wait(py)
     }
 
     #[getter]
@@ -78,8 +79,9 @@ impl Subscriber {
         self.get_ref()?.handler().recv(py)
     }
 
-    fn undeclare(&mut self, py: Python) -> PyResult<()> {
-        allow_threads(py, || self.take()?.undeclare().py_res_sync())
+    fn undeclare(&mut self, py: Python) -> PyResult<Resolve> {
+        let this = self.take()?;
+        resolve(py, || this.undeclare())
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {

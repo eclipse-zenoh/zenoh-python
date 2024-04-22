@@ -11,23 +11,24 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-pub(crate) mod config;
-pub(crate) mod encoding;
-pub(crate) mod handlers;
-pub(crate) mod info;
-pub(crate) mod key_expr;
-pub(crate) mod payload;
-pub(crate) mod publication;
-pub(crate) mod query;
-pub(crate) mod queryable;
-pub(crate) mod sample;
-pub(crate) mod scouting;
-pub(crate) mod selector;
-pub(crate) mod session;
-pub(crate) mod subscriber;
-pub(crate) mod time;
-pub(crate) mod utils;
-pub(crate) mod value;
+mod config;
+mod encoding;
+mod handlers;
+mod info;
+mod key_expr;
+mod payload;
+mod publication;
+mod query;
+mod queryable;
+mod resolve;
+mod sample;
+mod scouting;
+mod selector;
+mod session;
+mod subscriber;
+mod time;
+mod utils;
+mod value;
 
 use pyo3::prelude::*;
 

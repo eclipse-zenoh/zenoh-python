@@ -23,7 +23,8 @@ pub(crate) use crate::config::WhatAmI;
 use crate::{
     config::{Config, WhatAmIMatcher, ZenohId},
     handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
-    utils::{allow_threads, generic, opt_wrapper, wrapper, PySyncResolve},
+    resolve::{resolve, Resolve},
+    utils::{generic, opt_wrapper, wrapper},
 };
 
 wrapper!(zenoh::scouting::Hello);
@@ -108,10 +109,7 @@ pub(crate) fn scout(
     #[pyo3(from_py_with = "WhatAmIMatcher::new")] what: WhatAmIMatcher,
     config: Config,
     #[pyo3(from_py_with = "into_handler::<Hello>")] handler: Option<IntoHandlerImpl<Hello>>,
-) -> PyResult<Scout> {
+) -> PyResult<Resolve<Scout>> {
     let handler = handler_or_default(py, handler);
-    allow_threads(py, || {
-        let builder = zenoh::scout(what, config).with(handler);
-        builder.py_res_sync()
-    })
+    resolve(py, || zenoh::scout(what, config).with(handler))
 }

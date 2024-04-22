@@ -16,7 +16,7 @@ use std::marker::PhantomData;
 use pyo3::{exceptions::PyAttributeError, prelude::*};
 use zenoh::handlers::{Callback, Dyn, IntoHandler};
 
-use crate::utils::{allow_threads, bail, IntoPython, IntoRust, MapIntoPy, ToPyResult};
+use crate::utils::{bail, IntoPyErr, IntoPyResult, IntoPython, IntoRust};
 
 #[pyclass]
 #[derive(Clone)]
@@ -199,10 +199,15 @@ pub(crate) enum HandlerImpl<T> {
     Python(PyObject),
 }
 
-impl<T: IntoRust> IntoPy<PyObject> for HandlerImpl<T>
-where
-    T::Into: IntoPython<Into = T>,
-{
+impl<T: Send + Sync + 'static> IntoPython for HandlerImpl<T> {
+    type Into = Self;
+
+    fn into_python(self) -> Self::Into {
+        self
+    }
+}
+
+impl<T> IntoPy<PyObject> for HandlerImpl<T> {
     fn into_py(self, _: Python<'_>) -> PyObject {
         match self {
             Self::Rust(obj, _) => obj.into_any(),
@@ -211,10 +216,7 @@ where
     }
 }
 
-impl<T: IntoRust> ToPyObject for HandlerImpl<T>
-where
-    T::Into: IntoPython,
-{
+impl<T> ToPyObject for HandlerImpl<T> {
     fn to_object(&self, py: Python<'_>) -> PyObject {
         match self {
             Self::Rust(obj, _) => obj.clone_ref(py).into_any(),
@@ -272,17 +274,23 @@ where
     _phantom: PhantomData<T>,
 }
 
+fn exec_recv<T: IntoPython, E: IntoPyErr + Send>(
+    py: Python,
+    f: impl FnOnce() -> Result<T, E> + Send,
+) -> PyResult<PyObject> {
+    Ok(py.allow_threads(f).into_pyres()?.into_pyobject(py))
+}
+
 impl<T: IntoRust> Receiver for RustHandler<DefaultHandler, T>
 where
     T::Into: IntoPython,
 {
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        let res = py.allow_threads(|| self.handler.try_recv());
-        Ok(res.ok().into_pyobject(py))
+        exec_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
-        allow_threads(py, || self.handler.recv().to_pyres()).map_into_py(py)
+        exec_recv(py, || self.handler.recv())
     }
 }
 
@@ -291,12 +299,11 @@ where
     T::Into: IntoPython,
 {
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        let res = py.allow_threads(|| self.handler.try_recv());
-        Ok(res.ok().into_pyobject(py))
+        exec_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
-        allow_threads(py, || self.handler.recv().to_pyres()).map_into_py(py)
+        exec_recv(py, || self.handler.recv())
     }
 }
 
@@ -305,11 +312,11 @@ where
     T::Into: IntoPython,
 {
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        allow_threads(py, || self.handler.try_recv().to_pyres()).map_into_py(py)
+        exec_recv(py, || self.handler.try_recv())
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
-        allow_threads(py, || self.handler.recv().to_pyres()).map_into_py(py)
+        exec_recv(py, || self.handler.recv())
     }
 }
 

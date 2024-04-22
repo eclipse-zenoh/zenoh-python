@@ -34,13 +34,22 @@ use crate::{
     publication::{CongestionControl, Priority, Publisher},
     query::{ConsolidationMode, QueryTarget, Reply},
     queryable::{Query, Queryable},
+    resolve::{resolve, Resolve},
     sample::Sample,
     selector::Selector,
     subscriber::{Reliability, Subscriber},
-    utils::{allow_threads, bail, build, opt_wrapper, PySyncResolve},
+    utils::{bail, build, build_with, opt_wrapper, IntoPython},
 };
 
 opt_wrapper!(Session, Arc<zenoh::Session>, "Closed session");
+
+impl IntoPython for zenoh::Session {
+    type Into = Session;
+
+    fn into_python(self) -> Self::Into {
+        self.into_arc().into()
+    }
+}
 
 #[pymethods]
 impl Session {
@@ -54,8 +63,8 @@ impl Session {
         py: Python,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
-    ) -> PyResult<()> {
-        self.close(py)
+    ) -> PyResult<PyObject> {
+        self.close(py)?.wait(py)
     }
 
     fn zid(&self) -> PyResult<ZenohId> {
@@ -64,9 +73,9 @@ impl Session {
 
     // TODO HLC
 
-    fn close(&mut self, py: Python) -> PyResult<()> {
+    fn close(&mut self, py: Python) -> PyResult<Resolve> {
         match Arc::try_unwrap(self.take()?) {
-            Ok(session) => allow_threads(py, || session.close().py_res_sync()),
+            Ok(session) => resolve(py, || session.close()),
             Err(session) => {
                 self.0 = Some(session);
                 bail!("Cannot close session because it is still borrowed");
@@ -74,11 +83,10 @@ impl Session {
         }
     }
 
-    fn undeclare(&self, obj: &Bound<PyAny>) -> PyResult<()> {
+    fn undeclare(&self, obj: &Bound<PyAny>) -> PyResult<Resolve> {
         if let Ok(key_expr) = KeyExpr::new(obj) {
-            return allow_threads(obj.py(), || {
-                self.get_ref()?.undeclare(key_expr.0).py_res_sync()
-            });
+            let this = self.get_ref()?;
+            return resolve(obj.py(), || this.undeclare(key_expr.0));
         }
         bail!("Cannot undeclare {}", obj.get_type().name()?);
     }
@@ -93,10 +101,9 @@ impl Session {
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
-    ) -> PyResult<KeyExpr> {
-        allow_threads(py, || {
-            self.get_ref()?.declare_keyexpr(key_expr).py_res_sync()
-        })
+    ) -> PyResult<Resolve<KeyExpr>> {
+        let this = self.get_ref()?;
+        resolve(py, || this.declare_keyexpr(key_expr))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -110,12 +117,16 @@ impl Session {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-    ) -> PyResult<()> {
-        allow_threads(py, || {
-            let mut builder = self.get_ref()?.put(key_expr, payload);
-            build!(builder, encoding, congestion_control, priority, express);
-            builder.py_res_sync()
-        })
+    ) -> PyResult<Resolve> {
+        let this = self.get_ref()?;
+        let build = build!(
+            this.put(key_expr, payload),
+            encoding,
+            congestion_control,
+            priority,
+            express
+        );
+        resolve(py, build)
     }
 
     #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
@@ -126,12 +137,10 @@ impl Session {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-    ) -> PyResult<()> {
-        allow_threads(py, || {
-            let mut builder = self.get_ref()?.delete(key_expr);
-            build!(builder, congestion_control, priority, express);
-            builder.py_res_sync()
-        })
+    ) -> PyResult<Resolve> {
+        let this = self.get_ref()?;
+        let build = build!(this.delete(key_expr), congestion_control, priority, express);
+        resolve(py, build)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -149,23 +158,21 @@ impl Session {
         #[pyo3(from_py_with = "into_payload_opt")] payload: Option<Payload>,
         #[pyo3(from_py_with = "Encoding::opt")] encoding: Option<Encoding>,
         #[pyo3(from_py_with = "into_handler::<Reply>")] handler: Option<IntoHandlerImpl<Reply>>,
-    ) -> PyResult<HandlerImpl<Reply>> {
-        let handler = handler_or_default(py, handler);
-        py.allow_threads(move || {
-            let mut builder = self.get_ref()?.get(selector);
-            build!(
-                builder,
-                target,
-                consolidation,
-                timeout,
-                congestion_control,
-                priority,
-                express,
-                payload,
-                encoding,
-            );
-            builder.with(handler).py_res_sync()
-        })
+    ) -> PyResult<Resolve<HandlerImpl<Reply>>> {
+        let this = self.get_ref()?;
+        let build = build_with!(
+            handler_or_default(py, handler),
+            this.get(selector),
+            target,
+            consolidation,
+            timeout,
+            congestion_control,
+            priority,
+            express,
+            payload,
+            encoding,
+        );
+        resolve(py, build)
     }
 
     #[getter]
@@ -179,13 +186,14 @@ impl Session {
         #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
         reliability: Option<Reliability>,
         #[pyo3(from_py_with = "into_handler::<Sample>")] handler: Option<IntoHandlerImpl<Sample>>,
-    ) -> PyResult<Subscriber> {
-        let handler = handler_or_default(py, handler);
-        allow_threads(py, || {
-            let mut builder = self.get_ref()?.declare_subscriber(key_expr);
-            build!(builder, reliability);
-            builder.with(handler).py_res_sync()
-        })
+    ) -> PyResult<Resolve<Subscriber>> {
+        let this = self.get_ref()?;
+        let build = build_with!(
+            handler_or_default(py, handler),
+            this.declare_subscriber(key_expr),
+            reliability
+        );
+        resolve(py, build)
     }
 
     fn declare_queryable(
@@ -194,13 +202,14 @@ impl Session {
         #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
         complete: Option<bool>,
         #[pyo3(from_py_with = "into_handler::<Query>")] handler: Option<IntoHandlerImpl<Query>>,
-    ) -> PyResult<Queryable> {
-        let handler = handler_or_default(py, handler);
-        allow_threads(py, || {
-            let mut builder = self.get_ref()?.declare_queryable(key_expr);
-            build!(builder, complete);
-            builder.with(handler).py_res_sync()
-        })
+    ) -> PyResult<Resolve<Queryable>> {
+        let this = self.get_ref()?;
+        let build = build_with!(
+            handler_or_default(py, handler),
+            this.declare_queryable(key_expr),
+            complete
+        );
+        resolve(py, build)
     }
 
     #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
@@ -211,18 +220,21 @@ impl Session {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-    ) -> PyResult<Publisher> {
-        allow_threads(py, || {
-            let mut builder = self.get_ref()?.declare_publisher(key_expr);
-            build!(builder, congestion_control, priority, express);
-            builder.py_res_sync()
-        })
+    ) -> PyResult<Resolve<Publisher>> {
+        let this = self.get_ref()?;
+        let build = build!(
+            this.declare_publisher(key_expr),
+            congestion_control,
+            priority,
+            express
+        );
+        resolve(py, build)
     }
 }
 
 #[pyfunction]
-pub(crate) fn open(py: Python, config: Config) -> PyResult<Session> {
-    allow_threads(py, || Ok(zenoh::open(config).py_res_sync()?.into_arc()))
+pub(crate) fn open(py: Python, config: Config) -> PyResult<Resolve<Session>> {
+    resolve(py, || zenoh::open(config))
 }
 
 pub(crate) fn timeout(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {

@@ -24,7 +24,7 @@ use pyo3::{
 use zenoh::payload::Payload;
 use zenoh_buffers::{buffer::SplitBuffer, ZBuf};
 
-use crate::utils::{bail, into_rust, MapIntoPy, ToPyResult};
+use crate::utils::{bail, into_rust, IntoPyResult};
 
 into_rust!(Payload);
 
@@ -130,62 +130,52 @@ pub(crate) fn deserializer<'py, 'a>(arg: &'a Bound<'py, PyAny>) -> PyResult<&'a 
 }
 
 pub(crate) fn into_payload(obj: &Bound<PyAny>) -> PyResult<Payload> {
-    if let Ok(b) = obj.downcast::<PyBytes>() {
-        return Ok(Payload::new(b.as_bytes().to_vec()));
-    }
-    if let Ok(s) = String::extract_bound(obj) {
-        return Ok(Payload::serialize(s));
-    }
-    if let Ok(i) = i64::extract_bound(obj) {
-        return Ok(Payload::serialize(i));
-    }
-    if let Ok(f) = f64::extract_bound(obj) {
-        return Ok(Payload::serialize(f));
-    }
-    if let Ok(b) = bool::extract_bound(obj) {
-        return Ok(Payload::serialize(b));
-    }
     let py = obj.py();
-    if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyDict>() {
+    Ok(if let Ok(b) = obj.downcast::<PyBytes>() {
+        Payload::new(b.as_bytes().to_vec())
+    } else if let Ok(s) = String::extract_bound(obj) {
+        Payload::serialize(s)
+    } else if let Ok(i) = i64::extract_bound(obj) {
+        Payload::serialize(i)
+    } else if let Ok(f) = f64::extract_bound(obj) {
+        Payload::serialize(f)
+    } else if let Ok(b) = bool::extract_bound(obj) {
+        Payload::serialize(b)
+    } else if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyDict>() {
         let s = String::extract_bound(&dumps(py).bind(py).call1((obj,))?)?;
-        return Ok(Payload::serialize(s));
-    }
-    if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
-        if let Ok(b) = ser.call1((obj,))?.downcast::<PyBytes>() {
-            return Ok(Payload::new(b.as_bytes().to_vec()));
+        Payload::serialize(s)
+    } else if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
+        match ser.call1((obj,))?.downcast::<PyBytes>() {
+            Ok(b) => Payload::new(b.as_bytes().to_vec()),
+            _ => bail!("serializer {} didn't return bytes", ser.str()?),
         }
-        bail!("serializer {} didn't return bytes", ser.str()?);
-    }
-    bail!("No serializer registered for type {type}", type = obj.get_type().name()?);
+    } else {
+        bail!("No serializer registered for type {type}", type = obj.get_type().name()?);
+    })
 }
 
 pub(crate) fn from_payload(tp: &Bound<PyType>, payload: &Payload) -> PyResult<PyObject> {
     let py = tp.py();
-    if tp.eq(PyBytes::type_object_bound(py))? {
-        return Ok(payload_to_bytes(py, payload).into_any().unbind());
-    }
-    if tp.eq(PyString::type_object_bound(py))? {
-        return payload.deserialize::<Cow<str>>().to_pyres().map_into_py(py);
-    }
-    if tp.eq(PyInt::type_object_bound(py))? {
-        return payload.deserialize::<i64>().to_pyres().map_into_py(py);
-    }
-    if tp.eq(PyFloat::type_object_bound(py))? {
-        return payload.deserialize::<f64>().to_pyres().map_into_py(py);
-    }
-    if tp.eq(PyBool::type_object_bound(py))? {
-        return payload.deserialize::<bool>().to_pyres().map_into_py(py);
-    }
-    if tp.eq(PyList::type_object_bound(py))? || tp.eq(PyDict::type_object_bound(py))? {
-        return Ok(loads(py)
+    Ok(if tp.eq(PyBytes::type_object_bound(py))? {
+        payload_to_bytes(py, payload).into_any().unbind()
+    } else if tp.eq(PyString::type_object_bound(py))? {
+        payload.deserialize::<Cow<str>>().into_pyres()?.into_py(py)
+    } else if tp.eq(PyInt::type_object_bound(py))? {
+        payload.deserialize::<i64>().into_pyres()?.into_py(py)
+    } else if tp.eq(PyFloat::type_object_bound(py))? {
+        payload.deserialize::<f64>().into_pyres()?.into_py(py)
+    } else if tp.eq(PyBool::type_object_bound(py))? {
+        payload.deserialize::<bool>().into_pyres()?.into_py(py)
+    } else if tp.eq(PyList::type_object_bound(py))? || tp.eq(PyDict::type_object_bound(py))? {
+        loads(py)
             .bind(py)
             .call1((payload_to_bytes(py, payload),))?
-            .unbind());
-    }
-    if let Ok(Some(de)) = deserializers(py).bind(py).get_item(tp) {
-        return Ok(de.call1((payload_to_bytes(py, payload),))?.unbind());
-    }
-    bail!("No deserializer registered for type {type}", type = tp.name()?);
+            .unbind()
+    } else if let Ok(Some(de)) = deserializers(py).bind(py).get_item(tp) {
+        de.call1((payload_to_bytes(py, payload),))?.unbind()
+    } else {
+        bail!("No deserializer registered for type {type}", type = tp.name()?);
+    })
 }
 
 pub(crate) fn into_payload_opt(obj: &Bound<PyAny>) -> PyResult<Option<Payload>> {

@@ -11,64 +11,26 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::{
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
-    time::Duration,
-};
+use std::time::Duration;
 
 use pyo3::{prelude::*, sync::GILOnceCell, types::PyType};
-use zenoh_core::{AsyncResolve, SyncResolve};
 
 use crate::ZError;
 
-pub(crate) trait ToPyErr {
-    fn to_pyerr(self) -> PyErr;
+pub(crate) trait IntoPyErr {
+    fn into_pyerr(self) -> PyErr;
 }
-impl<E: ToString> ToPyErr for E {
-    fn to_pyerr(self) -> PyErr {
+impl<E: ToString> IntoPyErr for E {
+    fn into_pyerr(self) -> PyErr {
         PyErr::new::<ZError, _>(self.to_string())
     }
 }
-pub(crate) trait ToPyResult<T> {
-    fn to_pyres(self) -> Result<T, PyErr>;
+pub(crate) trait IntoPyResult<T> {
+    fn into_pyres(self) -> Result<T, PyErr>;
 }
-impl<T, E: ToPyErr> ToPyResult<T> for Result<T, E> {
-    fn to_pyres(self) -> Result<T, PyErr> {
-        self.map_err(ToPyErr::to_pyerr)
-    }
-}
-pub(crate) trait PySyncResolve {
-    type To;
-    fn py_res_sync(self) -> Self::To;
-}
-impl<R: SyncResolve<To = Result<T, E>>, T, E: ToPyErr> PySyncResolve for R {
-    type To = PyResult<T>;
-
-    fn py_res_sync(self) -> Self::To {
-        self.res_sync().to_pyres()
-    }
-}
-pub(crate) struct PyFuture<F>(F);
-impl<F: Future<Output = Result<T, E>>, T, E: ToPyErr> Future for PyFuture<F> {
-    type Output = PyResult<T>;
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // SAFETY: field is pinned
-        unsafe { self.map_unchecked_mut(|fut| &mut fut.0) }
-            .poll(cx)
-            .map(ToPyResult::to_pyres)
-    }
-}
-pub(crate) trait PyAsyncResolve {
-    type Future;
-    fn py_res_async(self) -> Self::Future;
-}
-impl<R: AsyncResolve<To = Result<T, E>>, T, E: ToPyErr> PyAsyncResolve for R {
-    type Future = PyFuture<R::Future>;
-
-    fn py_res_async(self) -> Self::Future {
-        PyFuture(self.res_async())
+impl<T, E: IntoPyErr> IntoPyResult<T> for Result<T, E> {
+    fn into_pyres(self) -> Result<T, PyErr> {
+        self.map_err(IntoPyErr::into_pyerr)
     }
 }
 
@@ -117,23 +79,6 @@ impl<T: Into<U>, U, E> MapInto<Result<U, E>> for Result<T, E> {
     fn map_into(self) -> Result<U, E> {
         self.map(Into::into)
     }
-}
-
-pub(crate) trait MapIntoPy<T> {
-    fn map_into_py(self, py: Python) -> PyResult<T>;
-}
-
-impl<T: IntoPy<U>, U> MapIntoPy<U> for PyResult<T> {
-    fn map_into_py(self, py: Python) -> PyResult<U> {
-        Ok(self?.into_py(py))
-    }
-}
-
-pub(crate) fn allow_threads<T: IntoPython + Send>(
-    py: Python,
-    f: impl FnOnce() -> PyResult<T> + Send,
-) -> PyResult<T::Into> {
-    Ok(py.allow_threads(f)?.into_python())
 }
 
 pub(crate) struct TryProcessIter<'a, I, E> {
@@ -210,7 +155,7 @@ pub(crate) use into_rust;
 into_rust!(bool, Duration);
 
 macro_rules! zerror {
-    ($($tt:tt)*) => { $crate::utils::ToPyErr::to_pyerr(zenoh_core::zerror!($($tt)*)) };
+    ($($tt:tt)*) => { $crate::utils::IntoPyErr::into_pyerr(zenoh_core::zerror!($($tt)*)) };
 }
 pub(crate) use zerror;
 
@@ -233,13 +178,13 @@ pub(crate) use try_downcast;
 macro_rules! try_downcast_or_parse {
     (from<$ty:ty> $obj:expr) => {{
         $crate::utils::try_downcast!($obj);
-        Ok(Self::from($crate::utils::ToPyResult::to_pyres(
+        Ok(Self::from($crate::utils::IntoPyResult::into_pyres(
             String::extract_bound($obj)?.parse::<$ty>(),
         )?))
     }};
     ($obj:expr) => {{
         $crate::utils::try_downcast!($obj);
-        Ok(Self($crate::utils::ToPyResult::to_pyres(
+        Ok(Self($crate::utils::IntoPyResult::into_pyres(
             String::extract_bound($obj)?.parse(),
         )?))
     }};
@@ -257,7 +202,7 @@ macro_rules! r#enum {
         #[pyo3::pyclass]
         #[repr($repr)]
         #[derive(Copy, Clone)]
-        pub(crate) enum $ty {$(
+        pub enum $ty {$(
             #[pyo3(name = $variant:snake:upper)]
             $variant $(= $discriminator)?,
         )*}
@@ -310,7 +255,7 @@ macro_rules! wrapper {
     (@ $ty:ident, $path:path $(:$($derive:ty),*)?) => {
         #[pyo3::pyclass]
         #[derive($($($derive),*)?)]
-        pub(crate) struct $ty(pub(crate) $path);
+        pub struct $ty(pub(crate) $path);
 
         impl From<$ty> for $path {
             fn from(value: $ty) -> Self {
@@ -355,7 +300,7 @@ macro_rules! opt_wrapper {
     };
     (@ $ty:ident, $path:ty, $error:literal) => {
         #[pyclass]
-        pub(crate) struct $ty(pub(crate) Option<$path>);
+        pub struct $ty(pub(crate) Option<$path>);
 
         #[allow(unused)]
         impl $ty {
@@ -398,10 +343,23 @@ macro_rules! opt_wrapper {
 pub(crate) use opt_wrapper;
 
 macro_rules! build {
-    ($builder:ident, $($value:ident),* $(,)?) => {$(
-        if let Some(value) = $value.map($crate::utils::IntoRust::into_rust) {
-            $builder = $builder.$value(value);
-        }
-    )*};
+    ($builder:expr, $($value:ident),* $(,)?) => {|| {
+        let mut builder = $builder;
+        $(
+            if let Some(value) = $value.map($crate::utils::IntoRust::into_rust) {
+                builder = builder.$value(value);
+            }
+        )*
+        builder
+    }};
 }
 pub(crate) use build;
+
+macro_rules! build_with {
+    ($handler:expr, $builder:expr, $($value:ident),* $(,)?) => {{
+        let handler = $handler;
+        #[allow(clippy::redundant_closure_call)]
+        || $crate::utils::build!($builder, $($value),*)().with(handler)
+    }};
+}
+pub(crate) use build_with;

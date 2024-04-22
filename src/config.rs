@@ -22,8 +22,8 @@ use zenoh::config::Notifier;
 use crate::{
     key_expr::KeyExpr,
     utils::{
-        bail, r#enum, try_downcast, try_downcast_or_parse, try_process, wrapper, ToPyErr,
-        ToPyResult,
+        bail, r#enum, try_downcast, try_downcast_or_parse, try_process, wrapper, IntoPyErr,
+        IntoPyResult,
     },
 };
 
@@ -94,40 +94,40 @@ impl Config {
     #[staticmethod]
     fn from_env() -> PyResult<Self> {
         Ok(Self(ConfigInner::Init(
-            zenoh::config::Config::from_env().to_pyres()?,
+            zenoh::config::Config::from_env().into_pyres()?,
         )))
     }
 
     #[staticmethod]
     fn from_file(path: &str) -> PyResult<Self> {
         Ok(Self(ConfigInner::Init(
-            zenoh::config::Config::from_file(path).to_pyres()?,
+            zenoh::config::Config::from_file(path).into_pyres()?,
         )))
     }
 
     #[staticmethod]
     fn from_json5(obj: &Bound<PyAny>) -> PyResult<Self> {
         let json = string_or_dumps(obj)?;
-        let mut deserializer = json5::Deserializer::from_str(&json).to_pyres()?;
+        let mut deserializer = json5::Deserializer::from_str(&json).into_pyres()?;
         match zenoh::config::Config::from_deserializer(&mut deserializer) {
             Ok(cfg) => Ok(Self(ConfigInner::Init(cfg))),
             Err(Ok(_)) => bail!("{json} did parse into a config, but invalid values were found",),
-            Err(Err(err)) => Err(err.to_pyerr()),
+            Err(Err(err)) => Err(err.into_pyerr()),
         }
     }
 
     fn get_json(&self, key: &str) -> PyResult<String> {
         match &self.0 {
-            ConfigInner::Init(cfg) => cfg.get_json(key).to_pyres(),
-            ConfigInner::Notifier(cfg) => cfg.get_json(key).to_pyres(),
+            ConfigInner::Init(cfg) => cfg.get_json(key).into_pyres(),
+            ConfigInner::Notifier(cfg) => cfg.get_json(key).into_pyres(),
         }
     }
 
     fn insert_json5(&mut self, key: &str, value: &Bound<PyAny>) -> PyResult<()> {
         match &mut self.0 {
-            ConfigInner::Init(cfg) => cfg.insert_json5(key, &string_or_dumps(value)?).to_pyres(),
+            ConfigInner::Init(cfg) => cfg.insert_json5(key, &string_or_dumps(value)?).into_pyres(),
             ConfigInner::Notifier(cfg) => {
-                cfg.insert_json5(key, &string_or_dumps(value)?).to_pyres()
+                cfg.insert_json5(key, &string_or_dumps(value)?).into_pyres()
             }
         }
     }
@@ -229,8 +229,9 @@ impl ZenohId {
 #[pyfunction]
 pub(crate) fn client(peers: Bound<PyIterator>) -> PyResult<Config> {
     let config = try_process(
-        peers
-            .map(|obj| zenoh::config::EndPoint::try_from(String::extract_bound(&obj?)?).to_pyres()),
+        peers.map(|obj| {
+            zenoh::config::EndPoint::try_from(String::extract_bound(&obj?)?).into_pyres()
+        }),
         |peers| zenoh::config::client(peers),
     )?;
     Ok(config.into())

@@ -15,7 +15,7 @@ use std::collections::hash_map::DefaultHasher;
 
 use pyo3::prelude::*;
 
-use crate::utils::{r#enum, try_downcast_or_parse, wrapper, MapInto, ToPyResult};
+use crate::utils::{r#enum, try_downcast_or_parse, wrapper, IntoPyResult, MapInto};
 
 r#enum!(zenoh::key_expr::SetIntersectionLevel: u8 {
     Disjoint,
@@ -59,7 +59,7 @@ impl KeyExpr {
     #[staticmethod]
     fn autocanonize(key_expr: String) -> PyResult<Self> {
         zenoh::key_expr::KeyExpr::autocanonize(key_expr)
-            .to_pyres()
+            .into_pyres()
             .map_into()
     }
 
@@ -82,14 +82,14 @@ impl KeyExpr {
         &self,
         #[pyo3(from_py_with = "KeyExprOrString::new")] other: KeyExprOrString,
     ) -> PyResult<Self> {
-        self.0.join(&other).to_pyres().map_into()
+        self.0.join(&other).into_pyres().map_into()
     }
 
     fn concat(
         &self,
         #[pyo3(from_py_with = "KeyExprOrString::new")] other: KeyExprOrString,
     ) -> PyResult<Self> {
-        self.0.concat(&other).to_pyres().map_into()
+        self.0.concat(&other).into_pyres().map_into()
     }
 
     // TODO paremeters

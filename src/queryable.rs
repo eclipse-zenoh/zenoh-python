@@ -26,8 +26,9 @@ use crate::{
     key_expr::KeyExpr,
     payload::{from_payload, into_payload, payload_to_bytes},
     publication::{CongestionControl, Priority},
+    resolve::{resolve, Resolve},
     selector::Selector,
-    utils::{allow_threads, build, generic, opt_wrapper, wrapper, MapInto, PySyncResolve},
+    utils::{build, generic, opt_wrapper, wrapper, MapInto},
     value::Value,
 };
 
@@ -84,12 +85,15 @@ impl Query {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-    ) -> PyResult<()> {
-        allow_threads(py, || {
-            let mut builder = self.0.reply(key_expr, payload);
-            build!(builder, encoding, congestion_control, priority, express);
-            builder.py_res_sync()
-        })
+    ) -> PyResult<Resolve> {
+        let build = build!(
+            self.0.reply(key_expr, payload),
+            encoding,
+            congestion_control,
+            priority,
+            express
+        );
+        resolve(py, build)
     }
 
     #[pyo3(signature = (payload, *, encoding = None))]
@@ -98,9 +102,9 @@ impl Query {
         py: Python,
         payload: &Bound<PyAny>,
         encoding: Option<&Bound<PyAny>>,
-    ) -> PyResult<()> {
+    ) -> PyResult<Resolve> {
         let value = Value::new(payload, encoding)?.0;
-        allow_threads(py, || self.0.reply_err(value).py_res_sync())
+        resolve(py, || self.0.reply_err(value))
     }
 
     #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
@@ -111,12 +115,14 @@ impl Query {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-    ) -> PyResult<()> {
-        allow_threads(py, || {
-            let mut builder = self.0.reply_del(key_expr);
-            build!(builder, congestion_control, priority, express);
-            builder.py_res_sync()
-        })
+    ) -> PyResult<Resolve> {
+        let build = build!(
+            self.0.reply_del(key_expr),
+            congestion_control,
+            priority,
+            express
+        );
+        resolve(py, build)
     }
 
     fn __repr__(&self) -> String {
@@ -146,8 +152,8 @@ impl Queryable {
         py: Python,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
-    ) -> PyResult<()> {
-        self.undeclare(py)
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?.wait(py)
     }
 
     #[getter]
@@ -163,8 +169,9 @@ impl Queryable {
         self.get_ref()?.handler().recv(py)
     }
 
-    fn undeclare(&mut self, py: Python) -> PyResult<()> {
-        allow_threads(py, || self.take()?.undeclare().py_res_sync())
+    fn undeclare(&mut self, py: Python) -> PyResult<Resolve> {
+        let this = self.take()?;
+        resolve(py, || this.undeclare())
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {

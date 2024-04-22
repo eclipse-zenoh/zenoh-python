@@ -34,9 +34,13 @@ impl QoS {
         congestion_control: Option<CongestionControl>,
         express: Option<bool>,
     ) -> Self {
-        let mut builder = QoSBuilder::from(zenoh::sample::QoS::default());
-        build!(builder, priority, congestion_control, express);
-        Self(builder.into())
+        let build = build!(
+            QoSBuilder::from(zenoh::sample::QoS::default()),
+            priority,
+            congestion_control,
+            express
+        );
+        Self(build().into())
     }
 
     #[getter]
