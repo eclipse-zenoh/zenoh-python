@@ -58,6 +58,7 @@ if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 key = args.key
 
+
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
     # initiate logging
@@ -68,10 +69,8 @@ def main():
 
     print("Declaring Subscriber on '{}'...".format(key))
 
-
     def listener(sample: Sample):
         print(f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')")
-        
 
     # WARNING, you MUST store the return value in order for the subscription to work!!
     # This is because if you don't, the reference counter will reach 0 and the subscription
@@ -86,4 +85,6 @@ def main():
     # the reference counter reaches 0
     # sub.undeclare()
     # session.close()
+
+
 main()

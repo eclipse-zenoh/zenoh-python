@@ -1,7 +1,7 @@
 import zenoh
 import json
 from zenoh import Session, Query, Sample, Priority, CongestionControl
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import time
 
 SLEEP = 1
@@ -92,9 +92,9 @@ def run_session_pubsub(peer01: Session, peer02: Session):
         nonlocal num_received
         nonlocal num_errors
         if sample.key_expr != keyexpr \
-            or sample.qos.priority != Priority.DATA_HIGH() \
-            or sample.qos.congestion_control != CongestionControl.BLOCK() \
-            or sample.payload != msg:
+                or sample.qos.priority != Priority.DATA_HIGH() \
+                or sample.qos.congestion_control != CongestionControl.BLOCK() \
+                or sample.payload != msg:
             num_errors += 1
         num_received += 1
 
@@ -124,9 +124,43 @@ def run_session_pubsub(peer01: Session, peer02: Session):
     subscriber.undeclare()
 
 
+def run_session_attachment(peer01, peer02):
+    keyexpr = "test_attachment/session"
+
+    last_sample: Optional[Sample] = None
+
+    def callback(sample: Sample):
+        nonlocal last_sample
+        last_sample = sample
+
+    print("[A][01d] Publisher on peer01 session");
+    publisher = peer01.declare_publisher(keyexpr)
+    time.sleep(SLEEP)
+
+    print("[A][02d] Publisher on peer01 session");
+    subscriber = peer02.declare_subscriber(keyexpr, callback)
+    time.sleep(SLEEP)
+
+    publisher.put("no attachment")
+    time.sleep(SLEEP)
+    assert last_sample is not None
+    assert last_sample.attachment is None
+
+    publisher.put("attachment", attachment={"key1": "value1", b"key2": b"value2"})
+    time.sleep(SLEEP)
+    assert last_sample.attachment is not None
+    assert last_sample.attachment.items() == {b"key1": b"value1", b"key2": b"value2"}
+
+    print("[A][03d] Undeclare publisher on peer01 session");
+    publisher.undeclare()
+    print("[A][04d] Undeclare subscriber on peer02 session");
+    subscriber.undeclare()
+
+
 def test_session():
     zenoh.init_logger()
     (peer01, peer02) = open_session(["tcp/127.0.0.1:17447"])
     run_session_qryrep(peer01, peer02)
     run_session_pubsub(peer01, peer02)
+    run_session_attachment(peer01, peer02)
     close_session(peer01, peer02)

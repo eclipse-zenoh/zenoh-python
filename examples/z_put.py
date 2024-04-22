@@ -44,6 +44,9 @@ parser.add_argument('--value', '-v', dest='value',
                     default='Put from Python!',
                     type=str,
                     help='The value to write.')
+parser.add_argument('--attach', '-a', dest='attach',
+                    type=str,
+                    help='The key-values to attach')
 parser.add_argument('--config', '-c', dest='config',
                     metavar='FILE',
                     type=str,
@@ -60,6 +63,14 @@ if args.listen is not None:
     conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
 key = args.key
 value = args.value
+attachment = args.attach
+if attachment is not None:
+    attachment = {
+        k: v
+        for pair in attachment.split("&")
+        for (k, v) in [pair.split("=")]
+    }
+
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
@@ -70,7 +81,7 @@ def main():
     session = zenoh.open(conf)
 
     print("Putting Data ('{}': '{}')...".format(key, value))
-    session.put(key, value)
+    session.put(key, value, attachment=attachment)
 
     # --- Examples of put with other types:
 
@@ -102,5 +113,6 @@ def main():
     #             encoding=zenoh.Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16'))
 
     session.close()
+
 
 main()

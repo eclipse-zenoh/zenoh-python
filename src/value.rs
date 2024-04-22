@@ -10,8 +10,13 @@
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 
-use pyo3::{prelude::*, types::PyBytes};
+use pyo3::{
+    prelude::*,
+    types::{PyBytes, PyDict},
+};
+use std::collections::HashMap;
 use uhlc::Timestamp;
+use zenoh::sample::{Attachment, AttachmentBuilder};
 use zenoh::{
     prelude::{Encoding, KeyExpr, Sample, Value, ZenohId},
     query::Reply,
@@ -190,12 +195,67 @@ impl _QoS {
 
 #[pyclass(subclass)]
 #[derive(Clone, Debug)]
+pub struct _Attachment(pub Attachment);
+
+#[pymethods]
+impl _Attachment {
+    #[new]
+    pub fn pynew(this: Self) -> Self {
+        this
+    }
+
+    #[staticmethod]
+    fn new(attachment: HashMap<Vec<u8>, Vec<u8>>) -> Self {
+        Self(attachment.iter().map(|(k, v)| (&k[..], &v[..])).collect())
+    }
+
+    fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    fn items<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let items = PyDict::new_bound(py);
+        for (k, v) in self.0.iter() {
+            items.set_item(PyBytes::new_bound(py, &k), PyBytes::new_bound(py, &v))?;
+        }
+        Ok(items)
+    }
+
+    fn get(&self, key: Vec<u8>) -> Option<Vec<u8>> {
+        self.0.get(&key).map(|v| v.to_vec())
+    }
+
+    fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) {
+        self.0.insert(&key, &value)
+    }
+
+    fn extend(mut this: PyRefMut<Self>, attachment: HashMap<Vec<u8>, Vec<u8>>) -> PyRefMut<Self> {
+        this.0.extend(
+            attachment
+                .iter()
+                .map(|(k, v)| (&k[..], &v[..]))
+                .collect::<AttachmentBuilder>(),
+        );
+        this
+    }
+    fn as_str(&self) -> String {
+        format!("{:?}", self.0)
+    }
+}
+
+#[pyclass(subclass)]
+#[derive(Clone, Debug)]
 pub struct _Sample {
     key_expr: KeyExpr<'static>,
     value: _Value,
     kind: _SampleKind,
     timestamp: Option<_Timestamp>,
     qos: _QoS,
+    attachment: Option<_Attachment>,
 }
 impl From<Sample> for _Sample {
     fn from(sample: Sample) -> Self {
@@ -205,6 +265,7 @@ impl From<Sample> for _Sample {
             kind,
             timestamp,
             qos,
+            attachment,
             ..
         } = sample;
         _Sample {
@@ -213,6 +274,7 @@ impl From<Sample> for _Sample {
             kind: _SampleKind(kind),
             timestamp: timestamp.map(_Timestamp),
             qos: _QoS(qos),
+            attachment: attachment.map(_Attachment),
         }
     }
 }
@@ -310,6 +372,10 @@ impl _Sample {
     pub fn timestamp(&self) -> Option<_Timestamp> {
         self.timestamp
     }
+    #[getter]
+    pub fn attachment(&self) -> Option<_Attachment> {
+        self.attachment.clone()
+    }
     #[staticmethod]
     pub fn new(
         key_expr: _KeyExpr,
@@ -317,6 +383,7 @@ impl _Sample {
         qos: _QoS,
         kind: _SampleKind,
         timestamp: Option<_Timestamp>,
+        attachment: Option<_Attachment>,
     ) -> Self {
         _Sample {
             key_expr: key_expr.0,
@@ -324,6 +391,7 @@ impl _Sample {
             qos,
             kind,
             timestamp,
+            attachment,
         }
     }
     fn __str__(&self) -> String {
@@ -339,11 +407,13 @@ impl From<_Sample> for Sample {
             kind,
             timestamp,
             qos,
+            attachment,
         } = sample;
         let mut sample = Sample::new(key_expr, value);
         sample.kind = kind.0;
         sample.timestamp = timestamp.map(|t| t.0);
         sample.qos = qos.0;
+        sample.attachment = attachment.map(|a| a.0);
         sample
     }
 }
