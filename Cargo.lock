@@ -35,6 +35,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77c3a9648d43b9cd48db467b3f87fdd6e146bcc88ab0180006cef2179fe11d01"
 dependencies = [
  "cfg-if",
+ "getrandom",
  "once_cell",
  "version_check",
  "zerocopy",
@@ -54,54 +55,6 @@ name = "allocator-api2"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
-
-[[package]]
-name = "anstream"
-version = "0.6.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96b09b5178381e0874812a9b157f7fe84982617e48f71f4e3235482775e5b540"
-dependencies = [
- "anstyle",
- "anstyle-parse",
- "anstyle-query",
- "anstyle-wincon",
- "colorchoice",
- "utf8parse",
-]
-
-[[package]]
-name = "anstyle"
-version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8901269c6307e8d93993578286ac0edf7f195079ffff5ebdeea6a59ffb7e36bc"
-
-[[package]]
-name = "anstyle-parse"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "938874ff5980b03a87c5524b3ae5b59cf99b1d6bc836848df7bc5ada9643c333"
-dependencies = [
- "utf8parse",
-]
-
-[[package]]
-name = "anstyle-query"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ca11d4be1bab0c8bc8734a9aa7bf4ee8316d462a08c6ac5052f888fef5b494b"
-dependencies = [
- "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "anstyle-wincon"
-version = "3.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cd54b81ec8d6180e24654d0b371ad22fc3dd083b6ff8ba325b72e00c87660a7"
-dependencies = [
- "anstyle",
- "windows-sys 0.52.0",
-]
 
 [[package]]
 name = "anyhow"
@@ -294,9 +247,12 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.4.0"
+version = "2.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
+checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "block-buffer"
@@ -370,12 +326,6 @@ dependencies = [
  "crypto-common",
  "inout",
 ]
-
-[[package]]
-name = "colorchoice"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "concurrent-queue"
@@ -513,29 +463,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbfc4744c1b8f2a09adc0e55242f60b1af195d88596bd8700be74418c056c555"
 
 [[package]]
-name = "env_filter"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
-dependencies = [
- "log",
- "regex",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38b35839ba51819680ba087cd351788c9a3c476841207e0b8cee0b04722343b9"
-dependencies = [
- "anstream",
- "anstyle",
- "env_filter",
- "humantime",
- "log",
-]
-
-[[package]]
 name = "equivalent"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -543,23 +470,12 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "errno"
-version = "0.3.3"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "136526188508e25c6fef639d7927dfb3e0e3084488bf202267829cf7fc23dbdd"
+checksum = "a258e46cdc063eb8519c00b9fc845fc47bcfca4130e2f08e88665ceda8474245"
 dependencies = [
- "errno-dragonfly",
  "libc",
- "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "errno-dragonfly"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
-dependencies = [
- "cc",
- "libc",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1026,9 +942,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.21"
+version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
+checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 dependencies = [
  "value-bag",
 ]
@@ -1043,6 +959,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "matchers"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
+dependencies = [
+ "regex-automata 0.1.10",
+]
+
+[[package]]
 name = "memchr"
 version = "2.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1050,9 +975,9 @@ checksum = "8f232d6ef707e1956a43342693d2a31e72989554d58299d7a88738cc95b0d35c"
 
 [[package]]
 name = "memoffset"
-version = "0.9.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
+checksum = "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
 dependencies = [
  "autocfg",
 ]
@@ -1092,7 +1017,7 @@ version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
 dependencies = [
- "bitflags 2.4.0",
+ "bitflags 2.4.2",
  "cfg-if",
  "libc",
 ]
@@ -1102,6 +1027,16 @@ name = "no-std-net"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43794a0ace135be66a25d3ae77d41b91615fb68ae937f904090203e81f755b65"
+
+[[package]]
+name = "nu-ansi-term"
+version = "0.46.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77a8165726e8236064dbb45459242600304b42a5ea24ee2948e18e023bf7ba84"
+dependencies = [
+ "overload",
+ "winapi",
+]
 
 [[package]]
 name = "num-bigint-dig"
@@ -1196,6 +1131,12 @@ checksum = "536900a8093134cf9ccf00a27deb3532421099e958d9dd431135d0c7543ca1e8"
 dependencies = [
  "num-traits",
 ]
+
+[[package]]
+name = "overload"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "parking"
@@ -1412,9 +1353,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7a8b1990bd018761768d5e608a13df8bd1ac5f678456e0f301bb93e5f3ea16b"
+checksum = "a5e00b96a521718e08e03b1a622f01c8a8deb50719335de3f60b3b3950f069d8"
 dependencies = [
  "cfg-if",
  "indoc",
@@ -1430,9 +1371,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "650dca34d463b6cdbdb02b1d71bfd6eb6b6816afc708faebb3bac1380ff4aef7"
+checksum = "7883df5835fafdad87c0d888b266c8ec0f4c9ca48a5bed6bbb592e8dedee1b50"
 dependencies = [
  "once_cell",
  "target-lexicon",
@@ -1440,9 +1381,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09a7da8fc04a8a2084909b59f29e1b8474decac98b951d77b80b26dc45f046ad"
+checksum = "01be5843dc60b916ab4dad1dca6d20b9b4e6ddc8e15f50c47fe6d85f1fb97403"
 dependencies = [
  "libc",
  "pyo3-build-config",
@@ -1450,9 +1391,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b8a199fce11ebb28e3569387228836ea98110e43a804a530a9fd83ade36d513"
+checksum = "77b34069fc0682e11b31dbd10321cbf94808394c56fd996796ce45217dfac53c"
 dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
@@ -1462,9 +1403,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93fbbfd7eb553d10036513cb122b888dcd362a945a00b06c165f2ab480d4cc3b"
+checksum = "08260721f32db5e1a5beae69a55553f56b99bd0e1c3e6e0a5e8851a9d0f5a85c"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -1597,8 +1538,17 @@ checksum = "697061221ea1b4a94a624f67d0ae2bfe4e22b8a17b6a192afb11046542cc8c47"
 dependencies = [
  "aho-corasick",
  "memchr",
- "regex-automata",
- "regex-syntax",
+ "regex-automata 0.3.8",
+ "regex-syntax 0.7.5",
+]
+
+[[package]]
+name = "regex-automata"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
+dependencies = [
+ "regex-syntax 0.6.29",
 ]
 
 [[package]]
@@ -1609,8 +1559,14 @@ checksum = "c2f401f4955220693b56f8ec66ee9c78abffd8d1c4f23dc41a23839eb88f0795"
 dependencies = [
  "aho-corasick",
  "memchr",
- "regex-syntax",
+ "regex-syntax 0.7.5",
 ]
+
+[[package]]
+name = "regex-syntax"
+version = "0.6.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
 name = "regex-syntax"
@@ -1655,6 +1611,18 @@ checksum = "2fd1938faa63a2362ee1747afb2d10567d0fb1413b9cbd6198a8541485c4f773"
 dependencies = [
  "array-init",
  "cache-padded",
+]
+
+[[package]]
+name = "ron"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
+dependencies = [
+ "base64",
+ "bitflags 2.4.2",
+ "serde",
+ "serde_derive",
 ]
 
 [[package]]
@@ -1993,6 +1961,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sharded-slab"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
 name = "shellexpand"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2163,6 +2140,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "thread_local"
+version = "1.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
+dependencies = [
+ "cfg-if",
+ "once_cell",
+]
+
+[[package]]
 name = "tinyvec"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2293,6 +2280,49 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0955b8137a1df6f1a2e9a37d8a6656291ff0297c1a97c24e0d8425fe2312f79a"
 dependencies = [
  "once_cell",
+ "valuable",
+]
+
+[[package]]
+name = "tracing-log"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
+dependencies = [
+ "log",
+ "once_cell",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-serde"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc6b213177105856957181934e4920de57730fc69bf42c37ee5bb664d406d9e1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-subscriber"
+version = "0.3.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad0f048c97dbd9faa9b7df56362b8ebcaa52adb06b498c050d2f4e32f90a7a8b"
+dependencies = [
+ "matchers",
+ "nu-ansi-term",
+ "once_cell",
+ "regex",
+ "serde",
+ "serde_json",
+ "sharded-slab",
+ "smallvec",
+ "thread_local",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]
@@ -2430,12 +2460,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
-name = "utf8parse"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
-
-[[package]]
 name = "uuid"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2469,10 +2493,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "value-bag"
-version = "1.8.1"
+name = "valuable"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74797339c3b98616c009c7c3eb53a0ce41e85c8ec66bd3db96ed132d20cfdee8"
+checksum = "830b7e5d4d90034032940e4ace0d9a9a057e7a45cd94e6c007832e39edb82f6d"
+
+[[package]]
+name = "value-bag"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d92ccd67fb88503048c01b59152a04effd0782d035a83a6d256ce6085f08f4a3"
 
 [[package]]
 name = "vec_map"
@@ -2740,19 +2770,18 @@ checksum = "dff9641d1cd4be8d1a070daf9e3773c5f67e78b4d9d42263020c057706765c04"
 [[package]]
 name = "zenoh"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
+ "ahash",
  "async-trait",
  "base64",
  "const_format",
- "env_logger",
  "event-listener 4.0.0",
  "flume",
  "form_urlencoded",
  "futures",
  "git-version",
  "lazy_static",
- "log",
  "ordered-float",
  "paste",
  "petgraph",
@@ -2765,6 +2794,7 @@ dependencies = [
  "stop-token",
  "tokio",
  "tokio-util",
+ "tracing",
  "uhlc",
  "uuid",
  "vec_map",
@@ -2790,7 +2820,7 @@ dependencies = [
 [[package]]
 name = "zenoh-buffers"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "zenoh-collections",
 ]
@@ -2798,10 +2828,10 @@ dependencies = [
 [[package]]
 name = "zenoh-codec"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
- "log",
  "serde",
+ "tracing",
  "uhlc",
  "zenoh-buffers",
  "zenoh-protocol",
@@ -2810,21 +2840,21 @@ dependencies = [
 [[package]]
 name = "zenoh-collections"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 
 [[package]]
 name = "zenoh-config"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "flume",
  "json5",
- "log",
  "num_cpus",
  "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
+ "tracing",
  "validated_struct",
  "zenoh-core",
  "zenoh-protocol",
@@ -2835,7 +2865,7 @@ dependencies = [
 [[package]]
 name = "zenoh-core"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-global-executor",
  "lazy_static",
@@ -2847,7 +2877,7 @@ dependencies = [
 [[package]]
 name = "zenoh-crypto"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "aes",
  "hmac",
@@ -2860,7 +2890,7 @@ dependencies = [
 [[package]]
 name = "zenoh-keyexpr"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "hashbrown 0.14.0",
  "keyed-set",
@@ -2874,7 +2904,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
  "zenoh-config",
@@ -2892,17 +2922,17 @@ dependencies = [
 [[package]]
 name = "zenoh-link-commons"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
  "flume",
  "futures",
- "log",
  "rustls 0.22.2",
  "rustls-webpki 0.102.2",
  "serde",
  "tokio",
  "tokio-util",
+ "tracing",
  "zenoh-buffers",
  "zenoh-codec",
  "zenoh-core",
@@ -2915,12 +2945,11 @@ dependencies = [
 [[package]]
 name = "zenoh-link-quic"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
  "base64",
  "futures",
- "log",
  "quinn",
  "rustls 0.21.7",
  "rustls-native-certs 0.7.0",
@@ -2930,6 +2959,7 @@ dependencies = [
  "tokio",
  "tokio-rustls 0.24.1",
  "tokio-util",
+ "tracing",
  "zenoh-config",
  "zenoh-core",
  "zenoh-link-commons",
@@ -2943,12 +2973,12 @@ dependencies = [
 [[package]]
 name = "zenoh-link-tcp"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
- "log",
  "tokio",
  "tokio-util",
+ "tracing",
  "zenoh-core",
  "zenoh-link-commons",
  "zenoh-protocol",
@@ -2961,12 +2991,11 @@ dependencies = [
 [[package]]
 name = "zenoh-link-tls"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
  "base64",
  "futures",
- "log",
  "rustls 0.22.2",
  "rustls-pemfile 2.0.0",
  "rustls-pki-types",
@@ -2975,6 +3004,7 @@ dependencies = [
  "tokio",
  "tokio-rustls 0.25.0",
  "tokio-util",
+ "tracing",
  "webpki-roots",
  "zenoh-config",
  "zenoh-core",
@@ -2989,13 +3019,13 @@ dependencies = [
 [[package]]
 name = "zenoh-link-udp"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
- "log",
  "socket2 0.5.6",
  "tokio",
  "tokio-util",
+ "tracing",
  "zenoh-buffers",
  "zenoh-collections",
  "zenoh-core",
@@ -3010,14 +3040,14 @@ dependencies = [
 [[package]]
 name = "zenoh-link-unixsock_stream"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
  "futures",
- "log",
  "nix",
  "tokio",
  "tokio-util",
+ "tracing",
  "uuid",
  "zenoh-core",
  "zenoh-link-commons",
@@ -3030,14 +3060,14 @@ dependencies = [
 [[package]]
 name = "zenoh-link-ws"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
  "futures-util",
- "log",
  "tokio",
  "tokio-tungstenite",
  "tokio-util",
+ "tracing",
  "url",
  "zenoh-core",
  "zenoh-link-commons",
@@ -3051,7 +3081,7 @@ dependencies = [
 [[package]]
 name = "zenoh-macros"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3062,13 +3092,13 @@ dependencies = [
 [[package]]
 name = "zenoh-plugin-trait"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "const_format",
  "libloading",
- "log",
  "serde",
  "serde_json",
+ "tracing",
  "zenoh-keyexpr",
  "zenoh-macros",
  "zenoh-result",
@@ -3078,7 +3108,7 @@ dependencies = [
 [[package]]
 name = "zenoh-protocol"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "const_format",
  "rand",
@@ -3093,7 +3123,6 @@ dependencies = [
 name = "zenoh-python"
 version = "0.11.0-dev"
 dependencies = [
- "env_logger",
  "flume",
  "json5",
  "pyo3",
@@ -3102,12 +3131,13 @@ dependencies = [
  "zenoh",
  "zenoh-buffers",
  "zenoh-core",
+ "zenoh-util",
 ]
 
 [[package]]
 name = "zenoh-result"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "anyhow",
 ]
@@ -3115,19 +3145,23 @@ dependencies = [
 [[package]]
 name = "zenoh-runtime"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "futures",
  "lazy_static",
+ "libc",
+ "ron",
+ "serde",
  "tokio",
  "zenoh-collections",
+ "zenoh-macros",
  "zenoh-result",
 ]
 
 [[package]]
 name = "zenoh-sync"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "event-listener 4.0.0",
  "futures",
@@ -3141,12 +3175,12 @@ dependencies = [
 [[package]]
 name = "zenoh-task"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "futures",
- "log",
  "tokio",
  "tokio-util",
+ "tracing",
  "zenoh-core",
  "zenoh-runtime",
 ]
@@ -3154,11 +3188,10 @@ dependencies = [
 [[package]]
 name = "zenoh-transport"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-trait",
  "flume",
- "log",
  "lz4_flex",
  "paste",
  "rand",
@@ -3168,6 +3201,7 @@ dependencies = [
  "sha3",
  "tokio",
  "tokio-util",
+ "tracing",
  "zenoh-buffers",
  "zenoh-codec",
  "zenoh-collections",
@@ -3186,7 +3220,7 @@ dependencies = [
 [[package]]
 name = "zenoh-util"
 version = "0.11.0-dev"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#6799a92f427396c91a0eb437cc9bf1fdcf3ae872"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#51875761bc20c112ca1afc571b02ff7ff3e798ff"
 dependencies = [
  "async-std",
  "async-trait",
@@ -3196,10 +3230,11 @@ dependencies = [
  "lazy_static",
  "libc",
  "libloading",
- "log",
  "pnet_datalink",
  "shellexpand",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "winapi",
  "zenoh-core",
  "zenoh-result",
