@@ -124,7 +124,7 @@ class Session(_Session):
         :param priority: The priority to use when routing the published data
         :param congestion_control: The congestion control to use when routing the published data
         :param sample_kind: The kind of sample to send
-        :param attachment: The attachment to attach to the value sent
+        :param attachment: The attachment to send along with the put
 
         :Examples:
 
