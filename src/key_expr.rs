@@ -15,7 +15,7 @@ use std::collections::hash_map::DefaultHasher;
 
 use pyo3::prelude::*;
 
-use crate::utils::{r#enum, try_downcast_or_parse, wrapper, IntoPyResult, MapInto};
+use crate::utils::{downcast_or_parse, r#enum, wrapper, IntoPyResult, MapInto};
 
 r#enum!(zenoh::key_expr::SetIntersectionLevel: u8 {
     Disjoint,
@@ -25,35 +25,13 @@ r#enum!(zenoh::key_expr::SetIntersectionLevel: u8 {
 });
 
 wrapper!(zenoh::key_expr::KeyExpr<'static>: Clone);
-
-enum KeyExprOrString {
-    KeyExpr(KeyExpr),
-    String(String),
-}
-
-impl KeyExprOrString {
-    fn new(obj: &Bound<PyAny>) -> PyResult<Self> {
-        Ok(match KeyExpr::extract_bound(obj) {
-            Ok(obj) => Self::KeyExpr(obj),
-            _ => Self::String(String::extract_bound(obj)?),
-        })
-    }
-}
-
-impl AsRef<str> for KeyExprOrString {
-    fn as_ref(&self) -> &str {
-        match self {
-            Self::KeyExpr(s) => &s.0,
-            Self::String(s) => s,
-        }
-    }
-}
+downcast_or_parse!(KeyExpr);
 
 #[pymethods]
 impl KeyExpr {
     #[new]
-    pub(crate) fn new(key_expr: &Bound<PyAny>) -> PyResult<Self> {
-        try_downcast_or_parse!(key_expr)
+    pub(crate) fn new(s: String) -> PyResult<Self> {
+        Ok(Self(s.parse().into_pyres()?))
     }
 
     #[staticmethod]
@@ -63,32 +41,26 @@ impl KeyExpr {
             .map_into()
     }
 
-    fn intersects(&self, #[pyo3(from_py_with = "KeyExpr::new")] other: KeyExpr) -> bool {
+    fn intersects(&self, #[pyo3(from_py_with = "KeyExpr::from_py")] other: KeyExpr) -> bool {
         self.0.intersects(&other.0)
     }
 
-    fn includes(&self, #[pyo3(from_py_with = "KeyExpr::new")] other: KeyExpr) -> bool {
+    fn includes(&self, #[pyo3(from_py_with = "KeyExpr::from_py")] other: KeyExpr) -> bool {
         self.0.includes(&other.0)
     }
 
     fn relation_to(
         &self,
-        #[pyo3(from_py_with = "KeyExpr::new")] other: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] other: KeyExpr,
     ) -> SetIntersectionLevel {
         self.0.relation_to(&other.0).into()
     }
 
-    fn join(
-        &self,
-        #[pyo3(from_py_with = "KeyExprOrString::new")] other: KeyExprOrString,
-    ) -> PyResult<Self> {
+    fn join(&self, other: String) -> PyResult<Self> {
         self.0.join(&other).into_pyres().map_into()
     }
 
-    fn concat(
-        &self,
-        #[pyo3(from_py_with = "KeyExprOrString::new")] other: KeyExprOrString,
-    ) -> PyResult<Self> {
+    fn concat(&self, other: String) -> PyResult<Self> {
         self.0.concat(&other).into_pyres().map_into()
     }
 
@@ -98,7 +70,7 @@ impl KeyExpr {
     //     self.0.clone().with_owned_parameters(parameters).into()
     // }
 
-    fn __eq__(&self, #[pyo3(from_py_with = "KeyExpr::new")] other: KeyExpr) -> PyResult<bool> {
+    fn __eq__(&self, #[pyo3(from_py_with = "KeyExpr::from_py")] other: KeyExpr) -> PyResult<bool> {
         Ok(self.0 == other.0)
     }
 

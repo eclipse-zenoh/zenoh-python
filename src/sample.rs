@@ -64,14 +64,6 @@ r#enum!(zenoh::sample::SampleKind: u8 {
     Delete = 1,
 });
 
-#[pymethods]
-impl SampleKind {
-    #[new]
-    fn new() -> Self {
-        zenoh::sample::SampleKind::default().into()
-    }
-}
-
 wrapper!(zenoh::sample::Sample);
 
 #[pymethods]

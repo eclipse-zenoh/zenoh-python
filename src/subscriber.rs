@@ -26,11 +26,6 @@ r#enum!(zenoh::subscriber::Reliability: u8 {BestEffort, Reliable});
 
 #[pymethods]
 impl Reliability {
-    #[new]
-    fn new() -> Self {
-        Self::DEFAULT
-    }
-
     #[classattr]
     const DEFAULT: Self = Self::BestEffort;
 }

@@ -19,7 +19,7 @@ use pyo3::{
 use crate::{
     encoding::Encoding,
     payload::{from_payload, into_payload, payload_to_bytes},
-    utils::{try_downcast, wrapper},
+    utils::wrapper,
 };
 
 wrapper!(zenoh::value::Value: Clone);
@@ -28,10 +28,9 @@ wrapper!(zenoh::value::Value: Clone);
 impl Value {
     #[new]
     pub(crate) fn new(payload: &Bound<PyAny>, encoding: Option<&Bound<PyAny>>) -> PyResult<Self> {
-        try_downcast!(payload);
         Ok(Self(zenoh::value::Value::new(
             into_payload(payload)?,
-            Encoding::new(encoding)?.0,
+            encoding.map(Encoding::from_py).transpose()?.unwrap().0,
         )))
     }
 

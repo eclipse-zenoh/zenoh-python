@@ -13,27 +13,16 @@
 //
 use pyo3::prelude::*;
 
-use crate::utils::{try_downcast_or_parse, wrapper};
+use crate::utils::{downcast_or_parse, wrapper};
 
-wrapper!(zenoh::prelude::Encoding: Clone);
-
-impl Encoding {
-    pub(crate) fn opt(obj: &Bound<PyAny>) -> PyResult<Option<Self>> {
-        if obj.is_none() {
-            return Ok(None);
-        }
-        Self::new(Some(obj)).map(Some)
-    }
-}
+wrapper!(zenoh::prelude::Encoding: Clone, Default);
+downcast_or_parse!(Encoding);
 
 #[pymethods]
 impl Encoding {
     #[new]
-    pub(crate) fn new(encoding: Option<&Bound<PyAny>>) -> PyResult<Self> {
-        if let Some(obj) = encoding {
-            return try_downcast_or_parse!(obj);
-        }
-        Ok(Self(Default::default()))
+    pub(crate) fn new(s: String) -> PyResult<Self> {
+        Ok(Self(s.parse()?))
     }
 
     fn with_schema(&self, schema: String) -> Self {

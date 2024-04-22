@@ -166,30 +166,26 @@ macro_rules! bail {
 }
 pub(crate) use bail;
 
-macro_rules! try_downcast {
-    ($obj:expr) => {
-        if let Ok(obj) = <Self as pyo3::FromPyObject>::extract_bound($obj) {
-            return Ok(obj);
+macro_rules! downcast_or_parse {
+    ($ty:ty) => {
+        #[allow(unused)]
+        impl $ty {
+            pub(crate) fn from_py(obj: &Bound<PyAny>) -> PyResult<Self> {
+                if let Ok(obj) = <Self as pyo3::FromPyObject>::extract_bound(obj) {
+                    return Ok(obj);
+                }
+                Self::new(String::extract_bound(obj)?)
+            }
+            pub(crate) fn from_py_opt(obj: &Bound<PyAny>) -> PyResult<Option<Self>> {
+                if obj.is_none() {
+                    return Ok(None);
+                }
+                Self::from_py(obj).map(Some)
+            }
         }
     };
 }
-pub(crate) use try_downcast;
-
-macro_rules! try_downcast_or_parse {
-    (from<$ty:ty> $obj:expr) => {{
-        $crate::utils::try_downcast!($obj);
-        Ok(Self::from($crate::utils::IntoPyResult::into_pyres(
-            String::extract_bound($obj)?.parse::<$ty>(),
-        )?))
-    }};
-    ($obj:expr) => {{
-        $crate::utils::try_downcast!($obj);
-        Ok(Self($crate::utils::IntoPyResult::into_pyres(
-            String::extract_bound($obj)?.parse(),
-        )?))
-    }};
-}
-pub(crate) use try_downcast_or_parse;
+pub(crate) use downcast_or_parse;
 
 macro_rules! r#enum {
     ($($path:ident)::*: $repr:ty { $($variant:ident $(= $discriminator:literal)?),* $(,)? }) => {

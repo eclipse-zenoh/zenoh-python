@@ -15,16 +15,17 @@ use pyo3::prelude::*;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{try_downcast_or_parse, wrapper},
+    utils::{downcast_or_parse, wrapper, IntoPyResult},
 };
 
 wrapper!(zenoh::selector::Selector<'static>: Clone);
+downcast_or_parse!(Selector);
 
 #[pymethods]
 impl Selector {
     #[new]
-    pub(crate) fn new(selector: &Bound<PyAny>) -> PyResult<Self> {
-        try_downcast_or_parse!(selector)
+    pub(crate) fn new(s: String) -> PyResult<Self> {
+        Ok(Self(s.parse().into_pyres()?))
     }
 
     #[getter]

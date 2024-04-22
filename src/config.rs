@@ -21,10 +21,7 @@ use zenoh::config::Notifier;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{
-        bail, r#enum, try_downcast, try_downcast_or_parse, try_process, wrapper, IntoPyErr,
-        IntoPyResult,
-    },
+    utils::{bail, downcast_or_parse, r#enum, try_process, wrapper, IntoPyErr, IntoPyResult},
 };
 
 fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {
@@ -145,12 +142,13 @@ r#enum!(zenoh::config::WhatAmI: u8 {
     Peer = 0b010,
     Client = 0b100,
 });
+downcast_or_parse!(WhatAmI);
 
 #[pymethods]
 impl WhatAmI {
     #[new]
-    fn new(whatami: &Bound<PyAny>) -> PyResult<Self> {
-        try_downcast_or_parse!(from<zenoh::config::WhatAmI> whatami)
+    fn new(s: String) -> PyResult<Self> {
+        Ok(s.parse::<zenoh::config::WhatAmI>().into_pyres()?.into())
     }
 
     fn __str__(&self) -> &str {
@@ -159,23 +157,14 @@ impl WhatAmI {
 }
 
 wrapper!(zenoh::config::WhatAmIMatcher: Clone, Copy);
+downcast_or_parse!(WhatAmIMatcher);
 
 #[pymethods]
 impl WhatAmIMatcher {
     #[new]
-    pub(crate) fn new(obj: &Bound<PyAny>) -> PyResult<Self> {
-        try_downcast!(obj);
-        if let Ok(i) = u8::extract_bound(obj) {
-            if let Ok(i) = i.try_into() {
-                return Ok(Self(i));
-            }
-        }
-        if let Ok(s) = String::extract_bound(obj) {
-            if let Ok(s) = s.parse() {
-                return Ok(Self(s));
-            }
-        }
-        bail!("Invalid WhatAmIMatcher");
+    pub(crate) fn new(s: String) -> PyResult<Self> {
+        let res = s.parse().map_err(|_| "invalid WhatAmI matcher");
+        Ok(Self(res.into_pyres()?))
     }
 
     #[staticmethod]
@@ -199,11 +188,11 @@ impl WhatAmIMatcher {
         self.0.is_empty()
     }
 
-    fn matches(&self, #[pyo3(from_py_with = "WhatAmI::new")] whatami: WhatAmI) -> bool {
+    fn matches(&self, #[pyo3(from_py_with = "WhatAmI::from_py")] whatami: WhatAmI) -> bool {
         self.0.matches(whatami.into())
     }
 
-    fn __contains__(&self, #[pyo3(from_py_with = "WhatAmI::new")] whatami: WhatAmI) -> bool {
+    fn __contains__(&self, #[pyo3(from_py_with = "WhatAmI::from_py")] whatami: WhatAmI) -> bool {
         self.0.matches(whatami.into())
     }
 

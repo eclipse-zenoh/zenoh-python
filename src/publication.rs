@@ -103,7 +103,7 @@ impl Publisher {
         &self,
         py: Python,
         #[pyo3(from_py_with = "into_payload")] payload: Payload,
-        #[pyo3(from_py_with = "Encoding::opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
     ) -> PyResult<Resolve> {
         let this = self.get_ref()?;
         resolve(py, build!(this.put(payload), encoding))

@@ -14,11 +14,13 @@
 from enum import Enum, auto
 from typing import Self
 
+
 class SetIntersectionLevel(Enum):
     DISJOINT = auto()
     INTERSECTS = auto()
     INCLUDES = auto()
     EQUALS = auto()
+
 
 class KeyExpr:
     """A possibly-owned version of keyexpr that may carry optimisations for use with a Session that may have declared it.
@@ -26,6 +28,7 @@ class KeyExpr:
     """
 
     def __new__(cls, key_expr: IntoKeyExpr) -> Self: ...
+
     def autocanonize(self, key_expr: str) -> Self:
         """Canonizes the passed value before returning it as a KeyExpr.
         Will return Err if the passed value isn't a valid key expression despite canonization.
@@ -42,13 +45,14 @@ class KeyExpr:
         Note that this is slower than keyexpr::intersects and keyexpr::includes, so you should favor these methods for most applications.
         """
 
-    def join(self, key_expr: IntoKeyExpr) -> KeyExpr:
+    def join(self, other: str) -> KeyExpr:
         """Joins both sides, inserting a / in between them.
         This should be your prefered method when concatenating path segments."""
 
-    def concat(self, key_expr: IntoKeyExpr) -> KeyExpr:
+    def concat(self, other: str) -> KeyExpr:
         """Performs string concatenation and returns the result as a KeyExpr if possible.
         You should probably prefer KeyExpr::join as Zenoh may then take advantage of the hierachical separation it ins  erts.
         """
+
 
 IntoKeyExpr = KeyExpr | str

@@ -106,7 +106,7 @@ impl Scout {
 #[pyo3(signature = (what, config, *, handler = None))]
 pub(crate) fn scout(
     py: Python,
-    #[pyo3(from_py_with = "WhatAmIMatcher::new")] what: WhatAmIMatcher,
+    #[pyo3(from_py_with = "WhatAmIMatcher::from_py")] what: WhatAmIMatcher,
     config: Config,
     #[pyo3(from_py_with = "into_handler::<Hello>")] handler: Option<IntoHandlerImpl<Hello>>,
 ) -> PyResult<Resolve<Scout>> {

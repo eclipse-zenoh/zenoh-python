@@ -84,7 +84,7 @@ impl Session {
     }
 
     fn undeclare(&self, obj: &Bound<PyAny>) -> PyResult<Resolve> {
-        if let Ok(key_expr) = KeyExpr::new(obj) {
+        if let Ok(key_expr) = KeyExpr::from_py(obj) {
             let this = self.get_ref()?;
             return resolve(obj.py(), || this.undeclare(key_expr.0));
         }
@@ -100,7 +100,7 @@ impl Session {
     fn declare_keyexpr(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
     ) -> PyResult<Resolve<KeyExpr>> {
         let this = self.get_ref()?;
         resolve(py, || this.declare_keyexpr(key_expr))
@@ -111,9 +111,9 @@ impl Session {
     fn put(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         #[pyo3(from_py_with = "into_payload")] payload: Payload,
-        #[pyo3(from_py_with = "Encoding::opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
@@ -133,7 +133,7 @@ impl Session {
     fn delete(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
@@ -148,7 +148,7 @@ impl Session {
     fn get(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "Selector::new")] selector: Selector,
+        #[pyo3(from_py_with = "Selector::from_py")] selector: Selector,
         target: Option<QueryTarget>,
         consolidation: Option<ConsolidationMode>,
         #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
@@ -156,7 +156,7 @@ impl Session {
         priority: Option<Priority>,
         express: Option<bool>,
         #[pyo3(from_py_with = "into_payload_opt")] payload: Option<Payload>,
-        #[pyo3(from_py_with = "Encoding::opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         #[pyo3(from_py_with = "into_handler::<Reply>")] handler: Option<IntoHandlerImpl<Reply>>,
     ) -> PyResult<Resolve<HandlerImpl<Reply>>> {
         let this = self.get_ref()?;
@@ -183,7 +183,7 @@ impl Session {
     fn declare_subscriber(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         reliability: Option<Reliability>,
         #[pyo3(from_py_with = "into_handler::<Sample>")] handler: Option<IntoHandlerImpl<Sample>>,
     ) -> PyResult<Resolve<Subscriber>> {
@@ -199,7 +199,7 @@ impl Session {
     fn declare_queryable(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         complete: Option<bool>,
         #[pyo3(from_py_with = "into_handler::<Query>")] handler: Option<IntoHandlerImpl<Query>>,
     ) -> PyResult<Resolve<Queryable>> {
@@ -216,7 +216,7 @@ impl Session {
     fn declare_publisher(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,

@@ -79,9 +79,9 @@ impl Query {
     fn reply(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         #[pyo3(from_py_with = "into_payload")] payload: Payload,
-        #[pyo3(from_py_with = "Encoding::opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
@@ -103,7 +103,10 @@ impl Query {
         payload: &Bound<PyAny>,
         encoding: Option<&Bound<PyAny>>,
     ) -> PyResult<Resolve> {
-        let value = Value::new(payload, encoding)?.0;
+        let value = match <Value as pyo3::FromPyObject>::extract_bound(payload) {
+            Ok(v) => v,
+            _ => Value::new(payload, encoding)?,
+        };
         resolve(py, || self.0.reply_err(value))
     }
 
@@ -111,7 +114,7 @@ impl Query {
     fn reply_del(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::new")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
