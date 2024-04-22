@@ -10,7 +10,10 @@
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 
-use pyo3::{prelude::*, types::PyBytes};
+use pyo3::{
+    prelude::*,
+    types::{PyBytes, PyDict},
+};
 use std::collections::HashMap;
 use uhlc::Timestamp;
 use zenoh::sample::{Attachment, AttachmentBuilder};
@@ -214,11 +217,12 @@ impl _Attachment {
         self.0.len()
     }
 
-    fn items(&self) -> HashMap<Vec<u8>, Vec<u8>> {
-        self.0
-            .iter()
-            .map(|(k, v)| (k.to_vec(), v.to_vec()))
-            .collect()
+    fn items<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let items = PyDict::new_bound(py);
+        for (k, v) in self.0.iter() {
+            items.set_item(PyBytes::new_bound(py, &k), PyBytes::new_bound(py, &v))?;
+        }
+        Ok(items)
     }
 
     fn get(&self, key: Vec<u8>) -> Option<Vec<u8>> {

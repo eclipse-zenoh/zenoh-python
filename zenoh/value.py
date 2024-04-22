@@ -260,7 +260,7 @@ class Sample(_Sample):
         return QoS._upgrade_(super().qos)
 
     @property
-    def attachment(self) -> Attachment:
+    def attachment(self) -> Optional[Attachment]:
         """The sample attachment"""
         attachment = super().attachment
         return Attachment._upgrade_(attachment) if attachment is not None else None
