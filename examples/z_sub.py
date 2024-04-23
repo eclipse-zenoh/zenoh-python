@@ -94,7 +94,7 @@ def main():
     # This is because if you don't, the reference counter will reach 0 and the subscription
     # will be immediately undeclared.
     sub = session.declare_subscriber(
-        key, handler=listener, reliability=zenoh.Reliability.RELIABLE
+        key, listener, reliability=zenoh.Reliability.RELIABLE
     )
 
     print("Press CTRL-C to quit...")

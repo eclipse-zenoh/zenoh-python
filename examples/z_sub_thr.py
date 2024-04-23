@@ -122,7 +122,7 @@ def main():
     # Only do this if your callback runs faster than the minimum expected delay between two samples.
     sub = session.declare_subscriber(
         "test/thr",
-        handler=zenoh.handlers.CallbackDrop(listener, report),
+        zenoh.handlers.CallbackDrop(listener, report),
         reliability=zenoh.Reliability.RELIABLE,
     )
 

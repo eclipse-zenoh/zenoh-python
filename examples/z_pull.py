@@ -99,8 +99,8 @@ def main():
     # The oldest message is overwritten by the latest one.
     sub = session.declare_subscriber(
         key,
+        zenoh.handlers.RingChannel(args.size),
         reliability=zenoh.Reliability.RELIABLE,
-        handler=zenoh.handlers.RingChannel(args.size),
     )
 
     print("Press CTRL-C to quit...")

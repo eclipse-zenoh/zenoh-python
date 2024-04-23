@@ -144,11 +144,12 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (selector, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, handler = None))]
+    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None))]
     fn get(
         &self,
         py: Python,
         #[pyo3(from_py_with = "Selector::from_py")] selector: Selector,
+        #[pyo3(from_py_with = "into_handler::<Reply>")] handler: Option<IntoHandlerImpl<Reply>>,
         target: Option<QueryTarget>,
         consolidation: Option<ConsolidationMode>,
         #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
@@ -157,7 +158,6 @@ impl Session {
         express: Option<bool>,
         #[pyo3(from_py_with = "into_payload_opt")] payload: Option<Payload>,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
-        #[pyo3(from_py_with = "into_handler::<Reply>")] handler: Option<IntoHandlerImpl<Reply>>,
     ) -> PyResult<Resolve<HandlerImpl<Reply>>> {
         let this = self.get_ref()?;
         let build = build_with!(
@@ -180,12 +180,13 @@ impl Session {
         Ok(self.get_ref()?.info().into())
     }
 
+    #[pyo3(signature = (key_expr, handler = None, reliability = None))]
     fn declare_subscriber(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        reliability: Option<Reliability>,
         #[pyo3(from_py_with = "into_handler::<Sample>")] handler: Option<IntoHandlerImpl<Sample>>,
+        reliability: Option<Reliability>,
     ) -> PyResult<Resolve<Subscriber>> {
         let this = self.get_ref()?;
         let build = build_with!(
@@ -196,12 +197,13 @@ impl Session {
         resolve(py, build)
     }
 
+    #[pyo3(signature = (key_expr, handler = None, complete = None))]
     fn declare_queryable(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        complete: Option<bool>,
         #[pyo3(from_py_with = "into_handler::<Query>")] handler: Option<IntoHandlerImpl<Query>>,
+        complete: Option<bool>,
     ) -> PyResult<Resolve<Queryable>> {
         let this = self.get_ref()?;
         let build = build_with!(

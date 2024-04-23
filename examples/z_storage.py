@@ -123,11 +123,11 @@ def main():
 
     print("Declaring Subscriber on '{}'...".format(key))
     sub = session.declare_subscriber(
-        key, handler=listener, reliability=zenoh.Reliability.RELIABLE
+        key, listener, reliability=zenoh.Reliability.RELIABLE
     )
 
     print("Declaring Queryable on '{}'...".format(key))
-    queryable = session.declare_queryable(key, handler=query_handler, complete=complete)
+    queryable = session.declare_queryable(key, query_handler, complete=complete)
 
     print("Press CTRL-C to quit...")
     while True:

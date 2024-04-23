@@ -112,9 +112,7 @@ def main():
     session = zenoh.open(conf)
 
     print("Declaring Queryable on '{}'...".format(key))
-    queryable = session.declare_queryable(
-        key, handler=queryable_callback, complete=complete
-    )
+    queryable = session.declare_queryable(key, queryable_callback, complete=complete)
 
     print("Press CTRL-C to quit...")
     while True:

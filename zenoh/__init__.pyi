@@ -646,6 +646,7 @@ class Session:
     def get(
         self,
         selector: _IntoSelector,
+        handler: _RustHandler[Reply] | None = None,
         *,
         target: QueryTarget | None = None,
         consolidation: ConsolidationMode | None = None,
@@ -655,7 +656,6 @@ class Session:
         express: bool | None = None,
         payload: Any = None,
         encoding: _IntoEncoding | None = None,
-        handler: _RustHandler[Reply] | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -665,6 +665,7 @@ class Session:
     def get(
         self,
         selector: _IntoSelector,
+        handler: _PythonHandler[Reply, _H],
         *,
         target: QueryTarget | None = None,
         consolidation: ConsolidationMode | None = None,
@@ -674,7 +675,6 @@ class Session:
         express: bool | None = None,
         payload: Any = None,
         encoding: _IntoEncoding | None = None,
-        handler: _PythonHandler[Reply, _H],
     ) -> _H:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -684,6 +684,7 @@ class Session:
     def get(
         self,
         selector: _IntoSelector,
+        handler: _PythonCallback[Reply],
         *,
         target: QueryTarget | None = None,
         consolidation: ConsolidationMode | None = None,
@@ -693,7 +694,6 @@ class Session:
         express: bool | None = None,
         payload: Any = None,
         encoding: _IntoEncoding | None = None,
-        handler: _PythonCallback[Reply],
     ) -> None:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -703,9 +703,9 @@ class Session:
     def declare_subscriber(
         self,
         key_expr: _IntoKeyExpr,
+        handler: _RustHandler[Sample] | None = None,
         *,
         reliability: Reliability | None = None,
-        handler: _RustHandler[Sample] | None = None,
     ) -> Subscriber[Handler[Sample]]:
         """Create a Subscriber for the given key expression."""
 
@@ -713,9 +713,9 @@ class Session:
     def declare_subscriber(
         self,
         key_expr: _IntoKeyExpr,
+        handler: _PythonHandler[Sample, _H],
         *,
         reliability: Reliability | None = None,
-        handler: _PythonHandler[Sample, _H],
     ) -> Subscriber[_H]:
         """Create a Subscriber for the given key expression."""
 
@@ -723,9 +723,9 @@ class Session:
     def declare_subscriber(
         self,
         key_expr: _IntoKeyExpr,
+        handler: _PythonCallback[Sample],
         *,
         reliability: Reliability | None = None,
-        handler: _PythonCallback[Sample],
     ) -> Subscriber[None]:
         """Create a Subscriber for the given key expression."""
 
@@ -733,9 +733,9 @@ class Session:
     def declare_queryable(
         self,
         key_expr: _IntoKeyExpr,
+        handler: _RustHandler[Query] | None = None,
         *,
         complete: bool | None = None,
-        handler: _RustHandler[Query] | None = None,
     ) -> Queryable[Handler[Query]]:
         """Create a Queryable for the given key expression."""
 
@@ -743,9 +743,9 @@ class Session:
     def declare_queryable(
         self,
         key_expr: _IntoKeyExpr,
+        handler: _PythonHandler[Query, _H],
         *,
         complete: bool | None = None,
-        handler: _PythonHandler[Query, _H],
     ) -> Queryable[_H]:
         """Create a Queryable for the given key expression."""
 
@@ -753,9 +753,9 @@ class Session:
     def declare_queryable(
         self,
         key_expr: _IntoKeyExpr,
+        handler: _PythonCallback[Query],
         *,
         complete: bool | None = None,
-        handler: _PythonCallback[Query],
     ) -> Queryable[None]:
         """Create a Queryable for the given key expression."""
 
@@ -867,9 +867,9 @@ def open(config: Config | None = None) -> Session:
 
 @overload
 def scout(
+    handler: _RustHandler[Hello] | None = None,
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
-    handler: _RustHandler[Hello] | None = None,
 ) -> Scout[Handler[Hello]]:
     """Scout for routers and/or peers.
 
@@ -878,10 +878,9 @@ def scout(
 
 @overload
 def scout(
+    handler: _PythonHandler[Hello, _H],
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
-    *,
-    handler: _PythonHandler[Hello, _H],
 ) -> Scout[_H]:
     """Scout for routers and/or peers.
 
@@ -890,10 +889,9 @@ def scout(
 
 @overload
 def scout(
+    handler: _PythonCallback[Hello],
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
-    *,
-    handler: _PythonCallback[Hello],
 ) -> Scout[None]:
     """Scout for routers and/or peers.
 

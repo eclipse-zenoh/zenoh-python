@@ -101,12 +101,12 @@ impl Scout {
 }
 
 #[pyfunction]
-#[pyo3(signature = (what = None, config = None, handler = None))]
+#[pyo3(signature = (handler = None, what = None, config = None))]
 pub(crate) fn scout(
     py: Python,
+    #[pyo3(from_py_with = "into_handler::<Hello>")] handler: Option<IntoHandlerImpl<Hello>>,
     #[pyo3(from_py_with = "WhatAmIMatcher::from_py_opt")] what: Option<WhatAmIMatcher>,
     config: Option<Config>,
-    #[pyo3(from_py_with = "into_handler::<Hello>")] handler: Option<IntoHandlerImpl<Hello>>,
 ) -> PyResult<Resolve<Scout>> {
     let what = what.unwrap_or_default();
     let config = config.unwrap_or_default();
