@@ -187,6 +187,8 @@ jobs:
           export AR_arm_unknown_linux_gnueabihf=arm-unknown-linux-gnueabihf-ar
           export CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-unknown-linux-gnueabihf-gcc
 
+          python3 -m venv venv
+          source venv/bin/activate
           pip3 install -r requirements-dev.txt
           maturin build --release --target arm-unknown-linux-gnueabihf --out dist
 
