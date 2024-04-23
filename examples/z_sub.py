@@ -16,8 +16,6 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh.sample import Sample
-from zenoh.subscriber import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(prog="z_sub", description="zenoh sub example")
@@ -66,9 +64,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 conf = (
-    zenoh.config.Config.from_file(args.config)
-    if args.config is not None
-    else zenoh.config.default()
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 )
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))
@@ -89,7 +85,7 @@ def main():
 
     print("Declaring Subscriber on '{}'...".format(key))
 
-    def listener(sample: Sample):
+    def listener(sample: zenoh.Sample):
         print(
             f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')"
         )
@@ -98,7 +94,7 @@ def main():
     # This is because if you don't, the reference counter will reach 0 and the subscription
     # will be immediately undeclared.
     sub = session.declare_subscriber(
-        key, handler=listener, reliability=Reliability.RELIABLE
+        key, handler=listener, reliability=zenoh.Reliability.RELIABLE
     )
 
     print("Press CTRL-C to quit...")

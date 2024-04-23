@@ -12,14 +12,10 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import sys
 import time
 import argparse
 import json
 import zenoh
-import zenoh.prelude
-from zenoh.handlers import CallbackDrop
-from zenoh.subscriber import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -126,8 +122,8 @@ def main():
     # Only do this if your callback runs faster than the minimum expected delay between two samples.
     sub = session.declare_subscriber(
         "test/thr",
-        handler=CallbackDrop(listener, report),
-        reliability=Reliability.RELIABLE,
+        handler=zenoh.handlers.CallbackDrop(listener, report),
+        reliability=zenoh.Reliability.RELIABLE,
     )
 
     print("Press CTRL-C to quit...")

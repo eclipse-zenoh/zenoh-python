@@ -12,12 +12,13 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 from collections.abc import Callable
-from typing import Any, Generic, Protocol, Self, TypeVar
+from typing import Any, Generic, Protocol, Self, TypeVar, final
 
 _T = TypeVar("_T", contravariant=True)
 _T2 = TypeVar("_T2", covariant=True)
 _H = TypeVar("_H")
 
+@final
 class Handler(Generic[_T2]):
     """Handler for `DefaultHandler`/`FifoHandler`/`RingHandler`."""
 
@@ -26,16 +27,19 @@ class Handler(Generic[_T2]):
     def __iter__(self) -> Self: ...
     def __next__(self) -> _T2: ...
 
+@final
 class DefaultHandler(Generic[_T]):
     """The default handler in Zenoh is a FIFO queue."""
 
     ...
 
+@final
 class FifoChannel(Generic[_T]):
     """The default handler in Zenoh is a FIFO queue."""
 
     def __new__(cls, capacity: int) -> Self: ...
 
+@final
 class RingChannel(Generic[_T]):
     """A synchrounous ring channel with a limited size that allows users to keep the last N data."""
 
@@ -43,6 +47,7 @@ class RingChannel(Generic[_T]):
 
 RustHandler = DefaultHandler[_T] | FifoChannel[_T] | RingChannel[_T]
 
+@final
 class CallbackDrop(Generic[_T]):
     def __new__(
         cls, callback: Callable[[_T], Any], drop: Callable[[], Any]

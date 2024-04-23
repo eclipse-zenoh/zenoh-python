@@ -71,9 +71,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 conf = (
-    zenoh.config.Config.from_file(args.config)
-    if args.config is not None
-    else zenoh.config.default()
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 )
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))
@@ -110,10 +108,10 @@ def main():
     # - Json (str format)
     # session.put('demo/example/Json',
     #             ['foo', {'bar': ('baz', None, 1.0, 2)}],
-    #             encoding=zenoh.prelude.Encoding.TEXT_JSON)
+    #             encoding=zenoh.Encoding.TEXT_JSON)
     # session.put('demo/example/Json',
     #             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]).encode(),
-    #             encoding=zenoh.Encoding.TEXT_JSON())
+    #             encoding=zenoh.Encoding.TEXT_JSON))
 
     # - Raw ('application/octet-stream' encoding by default)
     # session.put('demo/example/Raw', b'\x48\x69\x21')
@@ -126,7 +124,7 @@ def main():
     # - UTF-16 String specifying the charset as Encoding schema
     # session.put('demo/example/UTF-16',
     #             'hello'.encode('utf-16'),
-    #             encoding=zenoh.prelude.Encoding.TEXT_PLAIN.with_schema(';charset=utf-16'))
+    #             encoding=zenoh.Encoding.TEXT_PLAIN.with_schema(';charset=utf-16'))
 
     session.close()
 

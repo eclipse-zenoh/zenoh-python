@@ -1,3 +1,5 @@
+use std::ops::BitOr;
+
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -14,14 +16,16 @@
 use pyo3::{
     prelude::*,
     sync::GILOnceCell,
-    types::{PyIterator, PyString},
+    types::{PyIterator, PyString, PyType},
 };
 use validated_struct::ValidatedMap;
 use zenoh::config::Notifier;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{bail, downcast_or_parse, r#enum, try_process, wrapper, IntoPyErr, IntoPyResult},
+    utils::{
+        bail, downcast_or_parse, r#enum, try_process, wrapper, IntoPyErr, IntoPyResult, IntoRust,
+    },
 };
 
 fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {
@@ -50,6 +54,12 @@ pub(crate) enum ConfigInner {
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct Config(pub(crate) ConfigInner);
+
+impl Default for Config {
+    fn default() -> Self {
+        zenoh::config::default().into()
+    }
+}
 
 impl From<zenoh::config::Config> for Config {
     fn from(value: zenoh::config::Config) -> Self {
@@ -88,22 +98,43 @@ impl Config {
         .into()
     }
 
-    #[staticmethod]
-    fn from_env() -> PyResult<Self> {
+    #[classmethod]
+    pub(crate) fn client(_cls: &Bound<PyType>, peers: Bound<PyIterator>) -> PyResult<Config> {
+        let config = try_process(
+            peers.map(|obj| {
+                zenoh::config::EndPoint::try_from(String::extract_bound(&obj?)?).into_pyres()
+            }),
+            |peers| zenoh::config::client(peers),
+        )?;
+        Ok(config.into())
+    }
+
+    #[classmethod]
+    pub(crate) fn empty(_cls: &Bound<PyType>) -> Self {
+        Config::new()
+    }
+
+    #[classmethod]
+    pub(crate) fn peer(_cls: &Bound<PyType>) -> Self {
+        zenoh::config::peer().into()
+    }
+
+    #[classmethod]
+    fn from_env(_cls: &Bound<PyType>) -> PyResult<Self> {
         Ok(Self(ConfigInner::Init(
             zenoh::config::Config::from_env().into_pyres()?,
         )))
     }
 
-    #[staticmethod]
-    fn from_file(path: &str) -> PyResult<Self> {
+    #[classmethod]
+    fn from_file(_cls: &Bound<PyType>, path: &str) -> PyResult<Self> {
         Ok(Self(ConfigInner::Init(
             zenoh::config::Config::from_file(path).into_pyres()?,
         )))
     }
 
-    #[staticmethod]
-    fn from_json5(obj: &Bound<PyAny>) -> PyResult<Self> {
+    #[classmethod]
+    fn from_json5(_cls: &Bound<PyType>, obj: &Bound<PyAny>) -> PyResult<Self> {
         let json = string_or_dumps(obj)?;
         let mut deserializer = json5::Deserializer::from_str(&json).into_pyres()?;
         match zenoh::config::Config::from_deserializer(&mut deserializer) {
@@ -151,13 +182,27 @@ impl WhatAmI {
         Ok(s.parse::<zenoh::config::WhatAmI>().into_pyres()?.into())
     }
 
+    fn __or__(&self, #[pyo3(from_py_with = "WhatAmI::from_py")] other: WhatAmI) -> WhatAmIMatcher {
+        (self.into_rust() | other.into_rust()).into()
+    }
+
     fn __str__(&self) -> &str {
-        zenoh::config::WhatAmI::to_str((*self).into())
+        (*self).into_rust().to_str()
     }
 }
 
 wrapper!(zenoh::config::WhatAmIMatcher: Clone, Copy);
 downcast_or_parse!(WhatAmIMatcher);
+
+impl Default for WhatAmIMatcher {
+    fn default() -> Self {
+        zenoh::config::WhatAmIMatcher::empty()
+            .router()
+            .peer()
+            .client()
+            .into()
+    }
+}
 
 #[pymethods]
 impl WhatAmIMatcher {
@@ -167,8 +212,8 @@ impl WhatAmIMatcher {
         Ok(Self(res.into_pyres()?))
     }
 
-    #[staticmethod]
-    fn empty() -> Self {
+    #[classmethod]
+    fn empty(_cls: &Bound<PyType>) -> Self {
         Self(zenoh::config::WhatAmIMatcher::empty())
     }
 
@@ -213,30 +258,4 @@ impl ZenohId {
     fn __str__(&self) -> String {
         self.0.to_string()
     }
-}
-
-#[pyfunction]
-pub(crate) fn client(peers: Bound<PyIterator>) -> PyResult<Config> {
-    let config = try_process(
-        peers.map(|obj| {
-            zenoh::config::EndPoint::try_from(String::extract_bound(&obj?)?).into_pyres()
-        }),
-        |peers| zenoh::config::client(peers),
-    )?;
-    Ok(config.into())
-}
-
-#[pyfunction]
-pub(crate) fn default() -> Config {
-    peer()
-}
-
-#[pyfunction]
-pub(crate) fn empty() -> Config {
-    Config::new()
-}
-
-#[pyfunction]
-pub(crate) fn peer() -> Config {
-    zenoh::config::peer().into()
 }

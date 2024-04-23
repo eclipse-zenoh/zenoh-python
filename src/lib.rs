@@ -34,155 +34,40 @@ use pyo3::prelude::*;
 
 pyo3::create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
-#[pyclass]
-struct _Annotation;
-
-#[pymethods]
-impl _Annotation {
-    fn __getitem__<'py>(this: &Bound<'py, Self>, _key: &Bound<'py, PyAny>) -> Bound<'py, Self> {
-        this.clone()
-    }
-}
-
 #[pymodule]
 pub(crate) mod zenoh {
     use pyo3::prelude::*;
 
-    #[pymodule_export]
-    use crate::{scouting::scout, session::open, session::Session, ZError};
-
-    #[pymodule]
-    mod config {
-        use pyo3::prelude::*;
-
-        use crate::_Annotation;
-        #[pymodule_export]
-        use crate::config::{client, default, empty, peer, Config, WhatAmI, ZenohId};
-
-        #[pymodule_init]
-        fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
-            m.add("IntoWhatAmIMatcher", _Annotation)?;
-            Ok(())
-        }
-    }
-
     #[pymodule]
     mod handlers {
-        use pyo3::prelude::*;
-
-        use crate::_Annotation;
         #[pymodule_export]
         use crate::handlers::{CallbackDrop, DefaultHandler, FifoChannel, Handler, RingChannel};
-
-        #[pymodule_init]
-        fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
-            m.add("RustHandler", _Annotation)?;
-            m.add("PythonHandler", _Annotation)?;
-            Ok(())
-        }
     }
 
-    #[pymodule]
-    mod info {
-        #[pymodule_export]
-        use crate::info::SessionInfo;
-    }
-
-    #[pymodule]
-    mod key_expr {
-        use pyo3::prelude::*;
-
-        use crate::_Annotation;
-        #[pymodule_export]
-        use crate::key_expr::{KeyExpr, SetIntersectionLevel};
-
-        #[pymodule_init]
-        fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
-            m.add("IntoKeyExpr", _Annotation)?;
-            Ok(())
-        }
-    }
-
-    #[pymodule]
-    mod payload {
-        #[pymodule_export]
-        use crate::payload::{deserializer, serializer};
-    }
-
-    #[pymodule]
-    mod prelude {
-        use pyo3::prelude::*;
-
-        use crate::_Annotation;
-        // TODO add config module
-        #[pymodule_export]
-        use crate::{
-            config::{Config, WhatAmI, ZenohId},
-            encoding::Encoding,
-            key_expr::KeyExpr,
-            publication::{CongestionControl, Priority},
-            query::{ConsolidationMode, QueryTarget},
-            sample::{Sample, SampleKind},
-            selector::Selector,
-            session::Session,
-            subscriber::Reliability,
-            value::Value,
-        };
-
-        #[pymodule_init]
-        fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
-            m.add("IntoEncoding", _Annotation)?;
-            Ok(())
-        }
-    }
-
-    #[pymodule]
-    mod publication {
-        #[pymodule_export]
-        use crate::publication::{CongestionControl, Priority, Publisher};
-    }
-
-    #[pymodule]
-    mod query {
-        #[pymodule_export]
-        use crate::query::{ConsolidationMode, QueryTarget, Reply};
-    }
-
-    #[pymodule]
-    mod queryable {
-        #[pymodule_export]
-        use crate::queryable::{Query, Queryable};
-    }
-
-    #[pymodule]
-    mod sample {
-        #[pymodule_export]
-        use crate::sample::{QoS, Sample, SampleKind};
-    }
-
-    #[pymodule]
-    mod scouting {
-        #[pymodule_export]
-        use crate::scouting::{Hello, Scout, WhatAmI};
-    }
-
-    #[pymodule]
-    mod subscriber {
-        #[pymodule_export]
-        use crate::subscriber::{Reliability, Subscriber};
-    }
-
-    #[pymodule]
-    mod time {
-        #[pymodule_export]
-        use crate::time::Timestamp;
-    }
-
-    #[pymodule]
-    mod value {
-        #[pymodule_export]
-        use crate::value::Value;
-    }
+    #[pymodule_export]
+    use crate::{
+        config::{Config, WhatAmI, ZenohId},
+        encoding::Encoding,
+        handlers::Handler,
+        info::SessionInfo,
+        key_expr::KeyExpr,
+        key_expr::SetIntersectionLevel,
+        payload::{deserializer, serializer},
+        publication::{CongestionControl, Priority, Publisher},
+        query::{ConsolidationMode, QueryTarget, Reply},
+        queryable::Query,
+        queryable::Queryable,
+        sample::{QoS, Sample, SampleKind},
+        scouting::scout,
+        scouting::Scout,
+        selector::Selector,
+        session::{open, Session},
+        subscriber::Reliability,
+        subscriber::Subscriber,
+        time::Timestamp,
+        value::Value,
+        ZError,
+    };
 
     #[pyfunction]
     pub(crate) fn init_logger() {
@@ -192,25 +77,7 @@ pub(crate) mod zenoh {
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let sys_modules = m.py().import_bound("sys")?.getattr("modules")?;
-        for module in [
-            "config",
-            "handlers",
-            "info",
-            "key_expr",
-            "payload",
-            "prelude",
-            "publication",
-            "query",
-            "queryable",
-            "sample",
-            "scouting",
-            "subscriber",
-            "time",
-            "value",
-        ] {
-            sys_modules.set_item(format!("zenoh.{module}"), m.getattr(module)?)?;
-        }
-
+        sys_modules.set_item("zenoh.handlers", m.getattr("handlers")?)?;
         Ok(())
     }
 }

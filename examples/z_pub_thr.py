@@ -15,8 +15,6 @@
 import argparse
 import json
 import zenoh
-import zenoh.prelude
-from zenoh.publication import CongestionControl
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
@@ -62,9 +60,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 conf = (
-    zenoh.prelude.Config.from_file(args.config)
-    if args.config is not None
-    else zenoh.prelude.Config()
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 )
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))
@@ -83,7 +79,7 @@ def main():
     data = bytearray()
     for i in range(0, size):
         data.append(i % 10)
-    congestion_control = CongestionControl.BLOCK
+    congestion_control = zenoh.CongestionControl.BLOCK
 
     session = zenoh.open(conf)
     pub = session.declare_publisher("test/thr", congestion_control=congestion_control)

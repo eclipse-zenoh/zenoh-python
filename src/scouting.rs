@@ -18,10 +18,8 @@ use pyo3::{
     types::{PyDict, PyIterator, PyList, PyTuple, PyType},
 };
 
-#[doc(inline)]
-pub(crate) use crate::config::WhatAmI;
 use crate::{
-    config::{Config, WhatAmIMatcher, ZenohId},
+    config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
     handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
     resolve::{resolve, Resolve},
     utils::{generic, opt_wrapper, wrapper},
@@ -103,13 +101,15 @@ impl Scout {
 }
 
 #[pyfunction]
-#[pyo3(signature = (what, config, *, handler = None))]
+#[pyo3(signature = (what = None, config = None, handler = None))]
 pub(crate) fn scout(
     py: Python,
-    #[pyo3(from_py_with = "WhatAmIMatcher::from_py")] what: WhatAmIMatcher,
-    config: Config,
+    #[pyo3(from_py_with = "WhatAmIMatcher::from_py_opt")] what: Option<WhatAmIMatcher>,
+    config: Option<Config>,
     #[pyo3(from_py_with = "into_handler::<Hello>")] handler: Option<IntoHandlerImpl<Hello>>,
 ) -> PyResult<Resolve<Scout>> {
+    let what = what.unwrap_or_default();
+    let config = config.unwrap_or_default();
     let handler = handler_or_default(py, handler);
     resolve(py, || zenoh::scout(what, config).with(handler))
 }

@@ -55,9 +55,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 conf = (
-    zenoh.config.Config.from_file(args.config)
-    if args.config is not None
-    else zenoh.config.default()
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 )
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))

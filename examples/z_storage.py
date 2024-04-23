@@ -16,8 +16,6 @@ import time
 import argparse
 import json
 import zenoh
-from zenoh.prelude import *
-from zenoh.queryable import Query
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(prog="z_storage", description="zenoh storage example")
@@ -73,9 +71,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 conf = (
-    zenoh.config.Config.from_file(args.config)
-    if args.config is not None
-    else zenoh.config.default()
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 )
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))
@@ -91,19 +87,19 @@ complete = args.complete
 store = {}
 
 
-def listener(sample: Sample):
+def listener(sample: zenoh.Sample):
     print(
         ">> [Subscriber] Received {} ('{}': '{}')".format(
             sample.kind, sample.key_expr, sample.payload_as(str)
         )
     )
-    if sample.kind == SampleKind.DELETE:
+    if sample.kind == zenoh.SampleKind.DELETE:
         store.pop(sample.key_expr, None)
     else:
         store[sample.key_expr] = sample
 
 
-def query_handler(query: Query):
+def query_handler(query: zenoh.Query):
     print(">> [Queryable ] Received Query '{}'".format(query.selector))
     replies = []
     for stored_name, sample in store.items():
@@ -127,7 +123,7 @@ def main():
 
     print("Declaring Subscriber on '{}'...".format(key))
     sub = session.declare_subscriber(
-        key, handler=listener, reliability=Reliability.RELIABLE
+        key, handler=listener, reliability=zenoh.Reliability.RELIABLE
     )
 
     print("Declaring Queryable on '{}'...".format(key))

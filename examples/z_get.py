@@ -15,7 +15,6 @@
 import argparse
 import json
 import zenoh
-from zenoh.query import QueryTarget
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(prog="z_get", description="zenoh get example")
@@ -80,9 +79,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 conf = (
-    zenoh.config.Config.from_file(args.config)
-    if args.config is not None
-    else zenoh.config.default()
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 )
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))
@@ -92,9 +89,9 @@ if args.listen is not None:
     conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 selector = args.selector
 target = {
-    "ALL": QueryTarget.ALL,
-    "BEST_MATCHING": QueryTarget.BEST_MATCHING,
-    "ALL_COMPLETE": QueryTarget.ALL_COMPLETE,
+    "ALL": zenoh.QueryTarget.ALL,
+    "BEST_MATCHING": zenoh.QueryTarget.BEST_MATCHING,
+    "ALL_COMPLETE": zenoh.QueryTarget.ALL_COMPLETE,
 }.get(args.target)
 
 
@@ -111,7 +108,7 @@ def main():
         selector,
         target=target,
         payload=args.value,
-        consolidation=zenoh.query.ConsolidationMode.NONE,
+        consolidation=zenoh.ConsolidationMode.NONE,
     )
     for reply in replies:
         try:

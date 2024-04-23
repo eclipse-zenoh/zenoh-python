@@ -233,8 +233,8 @@ impl Session {
 }
 
 #[pyfunction]
-pub(crate) fn open(py: Python, config: Config) -> PyResult<Resolve<Session>> {
-    resolve(py, || zenoh::open(config))
+pub(crate) fn open(py: Python, config: Option<Config>) -> PyResult<Resolve<Session>> {
+    resolve(py, || zenoh::open(config.unwrap_or_default()))
 }
 
 pub(crate) fn timeout(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {

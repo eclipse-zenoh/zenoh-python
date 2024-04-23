@@ -12,15 +12,11 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import sys
 import time
-from datetime import datetime
 import argparse
 import json
 import zenoh
 from threading import Thread
-
-from zenoh.subscriber import Reliability
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(prog="z_sub", description="zenoh sub example")
@@ -69,9 +65,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 conf = (
-    zenoh.config.Config.from_file(args.config)
-    if args.config is not None
-    else zenoh.config.default()
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
 )
 if args.mode is not None:
     conf.insert_json5("mode", json.dumps(args.mode))
@@ -96,7 +90,7 @@ def main():
     # WARNING, you MUST store the return value in order for the subscription to work!!
     # This is because if you don't, the reference counter will reach 0 and the subscription
     # will be immediately undeclared.
-    sub = session.declare_subscriber(key, reliability=Reliability.RELIABLE)
+    sub = session.declare_subscriber(key, reliability=zenoh.Reliability.RELIABLE)
 
     def consumer():
         for sample in sub:  # zenoh.Queue's receiver (the queue itself) is an iterator

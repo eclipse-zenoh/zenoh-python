@@ -94,6 +94,7 @@ fn get_first_parameter<'py>(func: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyS
 }
 
 #[pyfunction]
+#[pyo3(signature = (arg, /))]
 pub(crate) fn serializer<'py, 'a>(arg: &'a Bound<'py, PyAny>) -> PyResult<&'a Bound<'py, PyAny>> {
     let tp = if arg.is_callable() {
         match get_first_parameter(arg).and_then(|param| get_type(arg, param)) {
@@ -112,6 +113,7 @@ pub(crate) fn serializer<'py, 'a>(arg: &'a Bound<'py, PyAny>) -> PyResult<&'a Bo
 }
 
 #[pyfunction]
+#[pyo3(signature = (arg, /))]
 pub(crate) fn deserializer<'py, 'a>(arg: &'a Bound<'py, PyAny>) -> PyResult<&'a Bound<'py, PyAny>> {
     let tp = if arg.is_callable() {
         match get_type(arg, "return") {

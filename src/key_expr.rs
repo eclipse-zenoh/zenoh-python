@@ -13,7 +13,7 @@
 //
 use std::collections::hash_map::DefaultHasher;
 
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyType};
 
 use crate::utils::{downcast_or_parse, r#enum, wrapper, IntoPyResult, MapInto};
 
@@ -34,8 +34,8 @@ impl KeyExpr {
         Ok(Self(s.parse().into_pyres()?))
     }
 
-    #[staticmethod]
-    fn autocanonize(key_expr: String) -> PyResult<Self> {
+    #[classmethod]
+    fn autocanonize(_cls: &Bound<PyType>, key_expr: String) -> PyResult<Self> {
         zenoh::key_expr::KeyExpr::autocanonize(key_expr)
             .into_pyres()
             .map_into()
