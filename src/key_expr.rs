@@ -70,8 +70,9 @@ impl KeyExpr {
     //     self.0.clone().with_owned_parameters(parameters).into()
     // }
 
-    fn __eq__(&self, #[pyo3(from_py_with = "KeyExpr::from_py")] other: KeyExpr) -> PyResult<bool> {
-        Ok(self.0 == other.0)
+    // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113
+    fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
+        Ok(self.0 == Self::from_py(other)?.0)
     }
 
     fn __repr__(&self) -> String {

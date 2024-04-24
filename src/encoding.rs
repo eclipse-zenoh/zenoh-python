@@ -33,8 +33,9 @@ impl Encoding {
         self.0.to_string()
     }
 
-    fn __eq__(&self, #[pyo3(from_py_with = "encoding")] other: Encoding) -> bool {
-        self.0 == other.0
+    // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113
+    fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
+        Ok(self.0 == Self::from_py(other)?.0)
     }
 
     #[classattr]
