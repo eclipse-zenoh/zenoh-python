@@ -119,8 +119,12 @@ impl Parameters {
         !self.0.is_empty()
     }
 
-    fn __get_item__(&self, key: String) -> Option<&str> {
-        self.0.get(key)
+    fn __contains__(&self, key: String) -> bool {
+        self.contains_key(key)
+    }
+
+    fn __getitem__(&self, key: String) -> Option<&str> {
+        self.get(key)
     }
 
     fn __iter__(&self) -> Vec<(&str, &str)> {

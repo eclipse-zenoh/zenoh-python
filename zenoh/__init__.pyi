@@ -371,7 +371,43 @@ class KeyExpr:
         You should probably prefer KeyExpr::join as Zenoh may then take advantage of the hierachical separation it ins  erts.
         """
 
+    def with_parameters(self, parameters: str) -> Selector: ...
+
 _IntoKeyExpr = KeyExpr | str
+
+@final
+class Parameters:
+    def __new__(cls, parameters: _IntoParameters): ...
+    def is_empty(self) -> bool:
+        """Returns true if properties does not contain anything."""
+
+    def contains_key(self, key: str) -> bool:
+        """Returns true if properties contains the specified key."""
+
+    def get(self, key: str) -> str | None:
+        """Returns the value corresponding to the key."""
+
+    def values(self, key: str) -> list[str]:
+        """Returns the list of values corresponding to the key."""
+
+    def insert(self, key: str, value: str):
+        """Inserts a key-value pair into the map. If the map did not have this key present, None` is returned. If the map did have this key present, the value is updated, and the old value is returned."""
+
+    def remove(self, key: str):
+        """Removes a key from the map, returning the value at the key if the key was previously in the properties."""
+
+    def extends(self, parameters: _IntoParameters):
+        """Extend these properties with other properties."""
+
+    def is_ordered(self) -> bool:
+        """Returns `true` if all keys are sorted in alphabetical order."""
+
+    def __bool__(self) -> bool: ...
+    def __contains__(self, item: str) -> bool: ...
+    def __getitem__(self, item: str) -> str | None: ...
+    def __iter__(self) -> list[tuple[str, str]]: ...
+
+_IntoParameters = dict[str, str] | str
 
 @final
 class Priority(Enum):
@@ -590,6 +626,16 @@ class Selector:
     """
 
     def __new__(cls, arg: str): ...
+    @property
+    def key_expr(self) -> KeyExpr:
+        """Gets the key-expression."""
+
+    @property
+    def parameters(self) -> Parameters: ...
+    @parameters.setter
+    def parameters(self, parameters: _IntoParameters): ...
+    def split(self) -> tuple[KeyExpr, Parameters]:
+        """Returns this selector components as a tuple."""
 
 _IntoSelector = Selector | str
 
