@@ -20,13 +20,12 @@ use pyo3::{
     types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyType},
     PyTypeInfo,
 };
-#[doc(inline)]
-use zenoh::payload::Payload;
+use zenoh::bytes::ZBytes;
 use zenoh_buffers::{buffer::SplitBuffer, ZBuf};
 
 use crate::utils::{bail, into_rust, IntoPyResult};
 
-into_rust!(Payload);
+into_rust!(ZBytes);
 
 macro_rules! import {
     ($module:ident, $attr:ident) => {
@@ -49,7 +48,7 @@ import!(json, loads);
 import!(inspect, signature);
 import!(typing, get_type_hints);
 
-pub(crate) fn payload_to_bytes<'py>(py: Python<'py>, payload: &Payload) -> Bound<'py, PyBytes> {
+pub(crate) fn payload_to_bytes<'py>(py: Python<'py>, payload: &ZBytes) -> Bound<'py, PyBytes> {
     PyBytes::new_bound_with(py, payload.len(), |mut bytes| {
         for slice in ZBuf::from(payload).slices() {
             let len = slice.len();
@@ -131,24 +130,24 @@ pub(crate) fn deserializer<'py, 'a>(arg: &'a Bound<'py, PyAny>) -> PyResult<&'a 
     Ok(arg)
 }
 
-pub(crate) fn into_payload(obj: &Bound<PyAny>) -> PyResult<Payload> {
+pub(crate) fn into_payload(obj: &Bound<PyAny>) -> PyResult<ZBytes> {
     let py = obj.py();
     Ok(if let Ok(b) = obj.downcast::<PyBytes>() {
-        Payload::new(b.as_bytes().to_vec())
+        ZBytes::new(b.as_bytes().to_vec())
     } else if let Ok(s) = String::extract_bound(obj) {
-        Payload::serialize(s)
+        ZBytes::serialize(s)
     } else if let Ok(i) = i64::extract_bound(obj) {
-        Payload::serialize(i)
+        ZBytes::serialize(i)
     } else if let Ok(f) = f64::extract_bound(obj) {
-        Payload::serialize(f)
+        ZBytes::serialize(f)
     } else if let Ok(b) = bool::extract_bound(obj) {
-        Payload::serialize(b)
+        ZBytes::serialize(b)
     } else if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyDict>() {
         let s = String::extract_bound(&dumps(py).bind(py).call1((obj,))?)?;
-        Payload::serialize(s)
+        ZBytes::serialize(s)
     } else if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
         match ser.call1((obj,))?.downcast::<PyBytes>() {
-            Ok(b) => Payload::new(b.as_bytes().to_vec()),
+            Ok(b) => ZBytes::new(b.as_bytes().to_vec()),
             _ => bail!("serializer {} didn't return bytes", ser.str()?),
         }
     } else {
@@ -156,7 +155,7 @@ pub(crate) fn into_payload(obj: &Bound<PyAny>) -> PyResult<Payload> {
     })
 }
 
-pub(crate) fn from_payload(tp: &Bound<PyType>, payload: &Payload) -> PyResult<PyObject> {
+pub(crate) fn from_payload(tp: &Bound<PyType>, payload: &ZBytes) -> PyResult<PyObject> {
     let py = tp.py();
     Ok(if tp.eq(PyBytes::type_object_bound(py))? {
         payload_to_bytes(py, payload).into_any().unbind()
@@ -180,7 +179,7 @@ pub(crate) fn from_payload(tp: &Bound<PyType>, payload: &Payload) -> PyResult<Py
     })
 }
 
-pub(crate) fn into_payload_opt(obj: &Bound<PyAny>) -> PyResult<Option<Payload>> {
+pub(crate) fn into_payload_opt(obj: &Bound<PyAny>) -> PyResult<Option<ZBytes>> {
     if obj.is_none() {
         return Ok(None);
     }

@@ -16,7 +16,7 @@ use pyo3::{
     types::{PyBytes, PyDict, PyIterator, PyTuple, PyType},
 };
 use zenoh::{
-    payload::Payload,
+    bytes::ZBytes,
     prelude::{QoSBuilderTrait, ValueBuilderTrait},
 };
 
@@ -80,7 +80,7 @@ impl Query {
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        #[pyo3(from_py_with = "into_payload")] payload: Payload,
+        #[pyo3(from_py_with = "into_payload")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
