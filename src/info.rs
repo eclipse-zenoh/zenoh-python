@@ -42,4 +42,6 @@ impl SessionInfo {
         }
         Ok(list)
     }
+
+    // TODO __repr__
 }

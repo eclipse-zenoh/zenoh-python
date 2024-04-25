@@ -1,3 +1,4 @@
+use std::fmt;
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -16,7 +17,7 @@ use std::marker::PhantomData;
 use pyo3::{exceptions::PyAttributeError, prelude::*};
 use zenoh::handlers::{Callback, Dyn, IntoHandler};
 
-use crate::utils::{bail, IntoPyErr, IntoPyResult, IntoPython, IntoRust};
+use crate::utils::{bail, IntoPyErr, IntoPyResult, IntoPython, IntoRust, Named};
 
 #[pyclass]
 #[derive(Clone)]
@@ -79,6 +80,7 @@ impl RingChannel {
 }
 
 pub(crate) trait Receiver {
+    fn type_name(&self) -> &'static str;
     fn try_recv(&self, py: Python) -> PyResult<PyObject>;
     fn recv(&self, py: Python) -> PyResult<PyObject>;
 }
@@ -103,10 +105,14 @@ impl Handler {
     fn __next__(&self, py: Python) -> Option<PyObject> {
         self.0.recv(py).ok()
     }
+
+    fn __repr__(&self) -> String {
+        format!("Handler[{}]", self.0.type_name())
+    }
 }
 
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct CallbackDrop {
     callback: PyObject,
     drop: PyObject,
@@ -125,6 +131,10 @@ impl CallbackDrop {
 
     fn drop(&self, py: Python) -> PyResult<PyObject> {
         self.drop.call0(py)
+    }
+    
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
     }
 }
 
@@ -197,6 +207,15 @@ pub(crate) enum HandlerImpl<T> {
     // PhantomData just for documentation, until pyo3 accepts generic classes
     Rust(Py<Handler>, PhantomData<T>),
     Python(PyObject),
+}
+
+impl<T: Named> fmt::Debug for HandlerImpl<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Rust(..) =>  write!(f, "Handler[{}]", T::NAME),
+            Self::Python(obj) => write!(f, "{obj:?}"),
+        }
+    }
 }
 
 impl<T: Send + Sync + 'static> IntoPython for HandlerImpl<T> {
@@ -281,10 +300,13 @@ fn exec_recv<T: IntoPython, E: IntoPyErr + Send>(
     Ok(py.allow_threads(f).into_pyres()?.into_pyobject(py))
 }
 
-impl<T: IntoRust> Receiver for RustHandler<DefaultHandler, T>
+impl<T: IntoRust + Named> Receiver for RustHandler<DefaultHandler, T>
 where
     T::Into: IntoPython,
 {
+    fn type_name(&self) -> &'static str {
+        T::NAME
+    }
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         exec_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
     }
@@ -294,10 +316,13 @@ where
     }
 }
 
-impl<T: IntoRust> Receiver for RustHandler<FifoChannel, T>
+impl<T: IntoRust + Named> Receiver for RustHandler<FifoChannel, T>
 where
     T::Into: IntoPython,
 {
+    fn type_name(&self) -> &'static str {
+        T::NAME
+    }
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         exec_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
     }
@@ -307,10 +332,13 @@ where
     }
 }
 
-impl<T: IntoRust> Receiver for RustHandler<RingChannel, T>
+impl<T: IntoRust + Named> Receiver for RustHandler<RingChannel, T>
 where
     T::Into: IntoPython,
 {
+    fn type_name(&self) -> &'static str {
+        T::NAME
+    }
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         exec_recv(py, || self.handler.try_recv())
     }
@@ -320,7 +348,7 @@ where
     }
 }
 
-pub(crate) fn into_handler<T: IntoRust>(obj: &Bound<PyAny>) -> PyResult<Option<IntoHandlerImpl<T>>>
+pub(crate) fn into_handler<T: IntoRust + Named>(obj: &Bound<PyAny>) -> PyResult<Option<IntoHandlerImpl<T>>>
 where
     T::Into: IntoPython,
 {
@@ -353,7 +381,7 @@ where
     bail!("Invalid handler {}", obj.get_type().name()?);
 }
 
-pub(crate) fn handler_or_default<T: IntoRust>(
+pub(crate) fn handler_or_default<T: IntoRust + Named>(
     py: Python,
     into_handler: Option<IntoHandlerImpl<T>>,
 ) -> IntoHandlerImpl<T>

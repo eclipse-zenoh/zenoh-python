@@ -29,13 +29,17 @@ impl Encoding {
         Self(self.0.clone().with_schema(schema))
     }
 
-    fn __str__(&self) -> String {
-        self.0.to_string()
-    }
-
     // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113
     fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
         Ok(self.0 == Self::from_py(other)?.0)
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+
+    fn __str__(&self) -> String {
+        format!("{}", self.0)
     }
 
     #[classattr]

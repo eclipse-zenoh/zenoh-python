@@ -57,6 +57,10 @@ impl QoS {
     fn express(&self) -> bool {
         self.0.express()
     }
+    
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }
 
 r#enum!(zenoh::sample::SampleKind: u8 {
@@ -100,5 +104,9 @@ impl Sample {
     #[getter]
     pub(crate) fn qos(&self) -> QoS {
         (*self.0.qos()).into()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
     }
 }

@@ -47,4 +47,8 @@ impl Value {
     fn encoding(&self) -> Encoding {
         self.0.encoding().clone().into()
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }

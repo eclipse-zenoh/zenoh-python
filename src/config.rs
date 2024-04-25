@@ -1,3 +1,4 @@
+use std::ops::Deref;
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -160,10 +161,18 @@ impl Config {
 
     fn __repr__(&self) -> String {
         match &self.0 {
-            ConfigInner::Init(cfg) => cfg.to_string(),
+            ConfigInner::Init(cfg) => format!("{cfg:?}"),
+            ConfigInner::Notifier(cfg) => format!("Notifier({:?})", cfg.lock().deref())
+        }
+    }
+
+    fn __str__(&self) -> String {
+        match &self.0 {
+            ConfigInner::Init(cfg) => format!("{cfg}"),
             ConfigInner::Notifier(cfg) => cfg.lock().to_string(),
         }
     }
+
 }
 
 r#enum!(zenoh::config::WhatAmI: u8 {
@@ -182,6 +191,10 @@ impl WhatAmI {
 
     fn __or__(&self, #[pyo3(from_py_with = "WhatAmI::from_py")] other: WhatAmI) -> WhatAmIMatcher {
         (self.into_rust() | other.into_rust()).into()
+    }
+    
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.into_rust())
     }
 
     fn __str__(&self) -> &str {
@@ -239,6 +252,10 @@ impl WhatAmIMatcher {
         self.0.matches(whatami.into())
     }
 
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+
     fn __str__(&self) -> &'static str {
         self.0.to_str()
     }
@@ -253,7 +270,11 @@ impl ZenohId {
         KeyExpr(self.0.into_keyexpr().into())
     }
 
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+
     fn __str__(&self) -> String {
-        self.0.to_string()
+        format!("{}", self.0)
     }
 }

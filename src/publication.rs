@@ -118,4 +118,8 @@ impl Publisher {
         let this = self.take()?;
         resolve(py, || this.undeclare())
     }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.get_ref()?))
+    }
 }

@@ -53,6 +53,14 @@ impl Hello {
     fn __eq__(&self, other: &Hello) -> bool {
         self.0 == other.0
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+
+    fn __str__(&self) -> String {
+        format!("{}", self.0)
+    }
 }
 
 opt_wrapper!(zenoh::scouting::Scout<HandlerImpl<Hello>>, "Stopped scout");
@@ -97,6 +105,10 @@ impl Scout {
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
         self.handler(py)?.bind(py).iter()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
     }
 }
 

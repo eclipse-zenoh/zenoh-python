@@ -65,6 +65,10 @@ where
     }
 }
 
+pub(crate) trait Named {
+    const NAME: &'static str; 
+}
+
 pub(crate) trait MapInto<T> {
     fn map_into(self) -> T;
 }
@@ -273,6 +277,10 @@ macro_rules! wrapper {
         impl $crate::utils::IntoPython for $path {
             type Into = $ty;
             fn into_python(self) -> Self::Into { self.into() }
+        }
+        
+        impl $crate::utils::Named for $ty {
+            const NAME: &'static str = stringify!($ty);
         }
     };
 }

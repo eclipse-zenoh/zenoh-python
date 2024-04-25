@@ -129,7 +129,11 @@ impl Query {
     }
 
     fn __repr__(&self) -> String {
-        self.0.to_string()
+        format!("{:?}", self.0)
+    }
+
+    fn __str__(&self) -> String {
+        format!("{}", self.0)
     }
 }
 
@@ -179,5 +183,9 @@ impl Queryable {
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
         self.handler(py)?.bind(py).iter()
+    }
+    
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
     }
 }

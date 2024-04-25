@@ -232,6 +232,10 @@ impl Session {
         );
         resolve(py, build)
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }
 
 #[pyfunction]

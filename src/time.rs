@@ -35,4 +35,12 @@ impl Timestamp {
             pyo3::pyclass::CompareOp::Ge => self >= other,
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+
+    fn __str__(&self) -> String {
+        format!("{}", self.0)
+    }
 }
