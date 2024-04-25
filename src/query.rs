@@ -75,7 +75,7 @@ impl Reply {
     fn replier_id(&self) -> ZenohId {
         self.0.replier_id().into()
     }
-    
+
     fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }

@@ -57,7 +57,7 @@ impl QoS {
     fn express(&self) -> bool {
         self.0.express()
     }
-    
+
     fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }

@@ -21,7 +21,7 @@ def main():
     zenoh.init_logger()
 
     print("Scouting...")
-    scout = zenoh.scout("peer|router", zenoh.Config())
+    scout = zenoh.scout(what="peer|router")
     threading.Timer(1.0, lambda: scout.stop()).start()
 
     for hello in scout:

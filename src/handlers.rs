@@ -132,7 +132,7 @@ impl CallbackDrop {
     fn drop(&self, py: Python) -> PyResult<PyObject> {
         self.drop.call0(py)
     }
-    
+
     fn __repr__(&self) -> String {
         format!("{self:?}")
     }
@@ -212,7 +212,7 @@ pub(crate) enum HandlerImpl<T> {
 impl<T: Named> fmt::Debug for HandlerImpl<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Rust(..) =>  write!(f, "Handler[{}]", T::NAME),
+            Self::Rust(..) => write!(f, "Handler[{}]", T::NAME),
             Self::Python(obj) => write!(f, "{obj:?}"),
         }
     }
@@ -348,7 +348,9 @@ where
     }
 }
 
-pub(crate) fn into_handler<T: IntoRust + Named>(obj: &Bound<PyAny>) -> PyResult<Option<IntoHandlerImpl<T>>>
+pub(crate) fn into_handler<T: IntoRust + Named>(
+    obj: &Bound<PyAny>,
+) -> PyResult<Option<IntoHandlerImpl<T>>>
 where
     T::Into: IntoPython,
 {

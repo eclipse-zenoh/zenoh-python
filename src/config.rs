@@ -1,4 +1,5 @@
 use std::ops::Deref;
+
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -162,7 +163,7 @@ impl Config {
     fn __repr__(&self) -> String {
         match &self.0 {
             ConfigInner::Init(cfg) => format!("{cfg:?}"),
-            ConfigInner::Notifier(cfg) => format!("Notifier({:?})", cfg.lock().deref())
+            ConfigInner::Notifier(cfg) => format!("Notifier({:?})", cfg.lock().deref()),
         }
     }
 
@@ -172,7 +173,6 @@ impl Config {
             ConfigInner::Notifier(cfg) => cfg.lock().to_string(),
         }
     }
-
 }
 
 r#enum!(zenoh::config::WhatAmI: u8 {
@@ -192,7 +192,7 @@ impl WhatAmI {
     fn __or__(&self, #[pyo3(from_py_with = "WhatAmI::from_py")] other: WhatAmI) -> WhatAmIMatcher {
         (self.into_rust() | other.into_rust()).into()
     }
-    
+
     fn __repr__(&self) -> String {
         format!("{:?}", self.into_rust())
     }
