@@ -177,7 +177,7 @@ impl Session {
 
     #[getter]
     fn info(&self) -> PyResult<SessionInfo> {
-        Ok(self.get_ref()?.info().into())
+        Ok(SessionInfo(Arc::downgrade(self.get_ref()?)))
     }
 
     #[pyo3(signature = (key_expr, handler = None, reliability = None))]

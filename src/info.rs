@@ -11,33 +11,50 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
+use std::sync::Weak;
+
 use pyo3::{prelude::*, types::PyList};
+use zenoh::SessionDeclarations;
 use zenoh_core::SyncResolve;
 
 use crate::{
     config::ZenohId,
-    utils::{wrapper, IntoPython},
+    utils::{zerror, IntoPython},
 };
 
-wrapper!(zenoh::info::SessionInfo<'static>);
+#[pyclass]
+pub(crate) struct SessionInfo(pub(crate) Weak<zenoh::Session>);
+
+impl SessionInfo {
+    fn get_info(&self) -> PyResult<zenoh::info::SessionInfo<'static>> {
+        Ok(self
+            .0
+            .upgrade()
+            .ok_or_else(|| zerror!("Closed session"))?
+            .info())
+    }
+}
 
 #[pymethods]
 impl SessionInfo {
-    fn zid(&self, py: Python) -> ZenohId {
-        py.allow_threads(|| self.0.zid().res_sync()).into()
+    fn zid(&self, py: Python) -> PyResult<ZenohId> {
+        let info = self.get_info()?;
+        Ok(py.allow_threads(|| info.zid().res_sync()).into())
     }
 
     fn routers_zid<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let info = self.get_info()?;
         let list = PyList::empty_bound(py);
-        for zid in py.allow_threads(|| self.0.routers_zid().res_sync()) {
+        for zid in py.allow_threads(|| info.routers_zid().res_sync()) {
             list.append(zid.into_pyobject(py))?;
         }
         Ok(list)
     }
 
     fn peers_zid<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let info = self.get_info()?;
         let list = PyList::empty_bound(py);
-        for zid in py.allow_threads(|| self.0.peers_zid().res_sync()) {
+        for zid in py.allow_threads(|| info.peers_zid().res_sync()) {
             list.append(zid.into_pyobject(py))?;
         }
         Ok(list)
