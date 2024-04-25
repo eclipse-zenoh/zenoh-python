@@ -71,7 +71,7 @@ pub(crate) mod zenoh {
 
     #[pyfunction]
     pub(crate) fn init_logger() {
-        let _ = env_logger::try_init();
+        zenoh_util::try_init_log_from_env();
     }
 
     #[pymodule_init]

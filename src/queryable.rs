@@ -27,7 +27,7 @@ use crate::{
     payload::{from_payload, into_payload, payload_to_bytes},
     publication::{CongestionControl, Priority},
     resolve::{resolve, Resolve},
-    selector::Selector,
+    selector::{Parameters, Selector},
     utils::{build, generic, opt_wrapper, wrapper, MapInto},
     value::Value,
 };
@@ -46,10 +46,10 @@ impl Query {
         self.0.key_expr().clone().into_owned().into()
     }
 
-    // #[getter]
-    // fn parameters(&self) -> &str {
-    //     self.0.parameters()
-    // }
+    #[getter]
+    fn parameters(&self) -> Parameters {
+        self.0.parameters().clone().into_owned().into()
+    }
 
     #[getter]
     fn value(&self) -> Option<Value> {
@@ -184,7 +184,7 @@ impl Queryable {
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
         self.handler(py)?.bind(py).iter()
     }
-    
+
     fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }

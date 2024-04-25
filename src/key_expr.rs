@@ -14,6 +14,7 @@
 use std::collections::hash_map::DefaultHasher;
 
 use pyo3::{prelude::*, types::PyType};
+use crate::selector::Selector;
 
 use crate::utils::{downcast_or_parse, r#enum, wrapper, IntoPyResult, MapInto};
 
@@ -64,11 +65,9 @@ impl KeyExpr {
         self.0.concat(&other).into_pyres().map_into()
     }
 
-    // TODO paremeters
-
-    // fn with_parameters(&self, parameters: String) -> Selector {
-    //     self.0.clone().with_owned_parameters(parameters).into()
-    // }
+    fn with_parameters(&self, parameters: String) -> Selector {
+        self.0.clone().with_owned_parameters(parameters).into()
+    }
 
     // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113
     fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
