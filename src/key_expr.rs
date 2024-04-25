@@ -15,10 +15,7 @@ use std::collections::hash_map::DefaultHasher;
 
 use pyo3::{prelude::*, types::PyType};
 
-use crate::{
-    selector::Selector,
-    utils::{downcast_or_parse, r#enum, wrapper, IntoPyResult, MapInto},
-};
+use crate::utils::{downcast_or_parse, r#enum, wrapper, IntoPyResult, MapInto};
 
 r#enum!(zenoh::key_expr::SetIntersectionLevel: u8 {
     Disjoint,
@@ -65,11 +62,6 @@ impl KeyExpr {
 
     fn concat(&self, other: String) -> PyResult<Self> {
         self.0.concat(&other).into_pyres().map_into()
-    }
-
-    // TODO https://github.com/eclipse-zenoh/zenoh/pull/974
-    fn with_parameters(&self, parameters: String) -> Selector {
-        self.0.clone().with_owned_parameters(parameters).into()
     }
 
     // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113

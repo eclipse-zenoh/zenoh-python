@@ -371,8 +371,6 @@ class KeyExpr:
         You should probably prefer KeyExpr::join as Zenoh may then take advantage of the hierachical separation it ins  erts.
         """
 
-    def with_parameters(self, parameters: str) -> Selector: ...
-
 _IntoKeyExpr = KeyExpr | str
 
 @final
