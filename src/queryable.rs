@@ -28,7 +28,7 @@ use crate::{
     publication::{CongestionControl, Priority},
     resolve::{resolve, Resolve},
     selector::{Parameters, Selector},
-    utils::{build, generic, opt_wrapper, wrapper, MapInto},
+    utils::{build, droppable_wrapper, generic, wrapper, MapInto},
     value::Value,
 };
 
@@ -137,7 +137,7 @@ impl Query {
     }
 }
 
-opt_wrapper!(
+droppable_wrapper!(
     zenoh::queryable::Queryable<'static, HandlerImpl<Query>>,
     "Undeclared queryable"
 );

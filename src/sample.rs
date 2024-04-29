@@ -21,7 +21,7 @@ use crate::{
     payload::{from_payload, payload_to_bytes},
     publication::{CongestionControl, Priority},
     time::Timestamp,
-    utils::{build, r#enum, wrapper, MapInto},
+    utils::{build, enum_mapper, wrapper, MapInto},
 };
 
 wrapper!(zenoh::sample::QoS);
@@ -63,7 +63,7 @@ impl QoS {
     }
 }
 
-r#enum!(zenoh::sample::SampleKind: u8 {
+enum_mapper!(zenoh::sample::SampleKind: u8 {
     Put = 0,
     Delete = 1,
 });

@@ -15,10 +15,10 @@ use pyo3::prelude::*;
 
 use crate::{
     config::ZenohId,
-    utils::{r#enum, wrapper, IntoPython},
+    utils::{enum_mapper, wrapper, IntoPython},
 };
 
-r#enum!(zenoh::query::QueryTarget: u8 {
+enum_mapper!(zenoh::query::QueryTarget: u8 {
     BestMatching,
     All,
     AllComplete,
@@ -30,7 +30,7 @@ impl QueryTarget {
     const DEFAULT: Self = Self::BestMatching;
 }
 
-r#enum!(zenoh::query::ConsolidationMode: u8 {
+enum_mapper!(zenoh::query::ConsolidationMode: u8 {
     Auto,
     None,
     Monotonic,

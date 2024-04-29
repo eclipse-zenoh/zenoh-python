@@ -22,10 +22,10 @@ use crate::{
     key_expr::KeyExpr,
     payload::into_payload,
     resolve::{resolve, Resolve},
-    utils::{build, opt_wrapper, r#enum},
+    utils::{build, droppable_wrapper, enum_mapper},
 };
 
-r#enum!(zenoh::publication::Priority: u8 {
+enum_mapper!(zenoh::publication::Priority: u8 {
     RealTime = 1,
     InteractiveHigh = 2,
     InteractiveLow = 3,
@@ -47,7 +47,7 @@ impl Priority {
     const NUM: usize = 1 + Self::MIN as usize - Self::MAX as usize;
 }
 
-r#enum!(zenoh::publication::CongestionControl: u8 {
+enum_mapper!(zenoh::publication::CongestionControl: u8 {
     Drop = 0,
     Block = 1,
 });
@@ -58,7 +58,7 @@ impl CongestionControl {
     const DEFAULT: Self = Self::Drop;
 }
 
-opt_wrapper!(
+droppable_wrapper!(
     zenoh::publication::Publisher<'static>,
     "Undeclared publisher"
 );

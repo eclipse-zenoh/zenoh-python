@@ -15,9 +15,9 @@ use std::collections::hash_map::DefaultHasher;
 
 use pyo3::{prelude::*, types::PyType};
 
-use crate::utils::{downcast_or_parse, r#enum, wrapper, IntoPyResult, MapInto};
+use crate::utils::{downcast_or_parse, enum_mapper, wrapper, IntoPyResult, MapInto};
 
-r#enum!(zenoh::key_expr::SetIntersectionLevel: u8 {
+enum_mapper!(zenoh::key_expr::SetIntersectionLevel: u8 {
     Disjoint,
     Intersects,
     Includes,

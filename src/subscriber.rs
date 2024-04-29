@@ -19,10 +19,10 @@ use crate::{
     key_expr::KeyExpr,
     resolve::{resolve, Resolve},
     sample::Sample,
-    utils::{generic, opt_wrapper, r#enum},
+    utils::{droppable_wrapper, enum_mapper, generic},
 };
 
-r#enum!(zenoh::subscriber::Reliability: u8 {BestEffort, Reliable});
+enum_mapper!(zenoh::subscriber::Reliability: u8 {BestEffort, Reliable});
 
 #[pymethods]
 impl Reliability {
@@ -30,7 +30,7 @@ impl Reliability {
     const DEFAULT: Self = Self::BestEffort;
 }
 
-opt_wrapper!(
+droppable_wrapper!(
     zenoh::subscriber::Subscriber<'static, HandlerImpl<Sample>>,
     "Undeclared subscriber"
 );

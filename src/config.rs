@@ -24,7 +24,7 @@ use zenoh_protocol::core::EndPoint;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{bail, downcast_or_parse, r#enum, wrapper, IntoPyErr, IntoPyResult, IntoRust},
+    utils::{bail, downcast_or_parse, enum_mapper, wrapper, IntoPyErr, IntoPyResult, IntoRust},
 };
 
 fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {
@@ -173,7 +173,7 @@ impl Config {
     }
 }
 
-r#enum!(zenoh::config::WhatAmI: u8 {
+enum_mapper!(zenoh::config::WhatAmI: u8 {
     Router = 0b001,
     Peer = 0b010,
     Client = 0b100,

@@ -145,12 +145,12 @@ macro_rules! downcast_or_parse {
 }
 pub(crate) use downcast_or_parse;
 
-macro_rules! r#enum {
+macro_rules! enum_mapper {
     ($($path:ident)::*: $repr:ty { $($variant:ident $(= $discriminator:literal)?),* $(,)? }) => {
-        $crate::utils::r#enum!(@ $($path)::*, $($path)::*: $repr { $($variant $(= $discriminator)?,)* });
+        $crate::utils::enum_mapper!(@ $($path)::*, $($path)::*: $repr { $($variant $(= $discriminator)?,)* });
     };
     (@ $ty:ident::$($tt:ident)::*, $path:path: $repr:ty { $($variant:ident $(= $discriminator:literal)?,)* }) => {
-           $crate::utils::r#enum!(@ $($tt)::*, $path: $repr { $($variant $(= $discriminator)?,)* });
+           $crate::utils::enum_mapper!(@ $($tt)::*, $path: $repr { $($variant $(= $discriminator)?,)* });
     };
     (@ $ty:ident, $path:path: $repr:ty { $($variant:ident $(= $discriminator:literal)?,)* }) => {paste::paste!{
         #[pyo3::pyclass]
@@ -197,7 +197,7 @@ macro_rules! r#enum {
         }
     }};
 }
-pub(crate) use r#enum;
+pub(crate) use enum_mapper;
 
 macro_rules! wrapper {
     ($($path:ident)::* $(<$($args:tt),*>)? $(:$($derive:ty),*)?) => {
@@ -236,21 +236,21 @@ macro_rules! wrapper {
 }
 pub(crate) use wrapper;
 
-macro_rules! opt_wrapper {
+macro_rules! droppable_wrapper {
     ($($path:ident)::* $(<$lf:lifetime, $arg:ty>)?, $error:literal) => {
-        $crate::utils::opt_wrapper!(@ $($path)::*, $($path)::* $(<$lf, $arg>)?, $error);
+        $crate::utils::droppable_wrapper!(@ $($path)::*, $($path)::* $(<$lf, $arg>)?, $error);
     };
     ($($path:ident)::* $(<$lf:lifetime>)?, $error:literal) => {
-        $crate::utils::opt_wrapper!(@ $($path)::*, $($path)::* $(<$lf>)?, $error);
+        $crate::utils::droppable_wrapper!(@ $($path)::*, $($path)::* $(<$lf>)?, $error);
     };
     ($($path:ident)::* $(<$arg:ty>)?, $error:literal) => {
-        $crate::utils::opt_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
+        $crate::utils::droppable_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
     };
     ($ty:ident, $path:ty, $error:literal) => {
-        $crate::utils::opt_wrapper!(@ $ty, $path, $error);
+        $crate::utils::droppable_wrapper!(@ $ty, $path, $error);
     };
     (@ $ty:ident::$($tt:ident)::*, $path:path, $error:literal) => {
-        $crate::utils::opt_wrapper!(@ $($tt)::*, $path, $error);
+        $crate::utils::droppable_wrapper!(@ $($tt)::*, $path, $error);
     };
     (@ $ty:ident, $path:ty, $error:literal) => {
         #[pyclass]
@@ -294,7 +294,7 @@ macro_rules! opt_wrapper {
         }
     };
 }
-pub(crate) use opt_wrapper;
+pub(crate) use droppable_wrapper;
 
 macro_rules! build {
     ($builder:expr, $($value:ident),* $(,)?) => {|| {

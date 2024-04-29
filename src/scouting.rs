@@ -22,7 +22,7 @@ use crate::{
     config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
     handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
     resolve::{resolve, Resolve},
-    utils::{generic, opt_wrapper, wrapper},
+    utils::{droppable_wrapper, generic, wrapper},
 };
 
 wrapper!(zenoh::scouting::Hello);
@@ -63,7 +63,7 @@ impl Hello {
     }
 }
 
-opt_wrapper!(zenoh::scouting::Scout<HandlerImpl<Hello>>, "Stopped scout");
+droppable_wrapper!(zenoh::scouting::Scout<HandlerImpl<Hello>>, "Stopped scout");
 
 #[pymethods]
 impl Scout {

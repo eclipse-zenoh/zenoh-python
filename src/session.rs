@@ -38,10 +38,10 @@ use crate::{
     sample::Sample,
     selector::Selector,
     subscriber::{Reliability, Subscriber},
-    utils::{bail, build, build_with, opt_wrapper, IntoPython},
+    utils::{bail, build, build_with, droppable_wrapper, IntoPython},
 };
 
-opt_wrapper!(Session, Arc<zenoh::Session>, "Closed session");
+droppable_wrapper!(Session, Arc<zenoh::Session>, "Closed session");
 
 impl IntoPython for zenoh::Session {
     type Into = Session;
