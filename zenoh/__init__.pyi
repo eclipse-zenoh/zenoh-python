@@ -493,19 +493,20 @@ class Query:
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
         """
 
-        def reply_err(payload: Any, *, encoding: _IntoEncoding | None = None):
-            """ "Sends a error reply to this Query."""
+    def reply_err(self, payload: Any, *, encoding: _IntoEncoding | None = None):
+        """Sends a error reply to this Query."""
 
-        def reply_del(
-            key_expr: _IntoKeyExpr,
-            *,
-            congestion_control: CongestionControl | None = None,
-            priority: Priority | None = None,
-            express: bool | None = None,
-        ):
-            """Sends a delete reply to this Query.
-            By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
-            """
+    def reply_del(
+        self,
+        key_expr: _IntoKeyExpr,
+        *,
+        congestion_control: CongestionControl | None = None,
+        priority: Priority | None = None,
+        express: bool | None = None,
+    ):
+        """Sends a delete reply to this Query.
+        By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
+        """
 
 @final
 class Queryable(Generic[_H]):
