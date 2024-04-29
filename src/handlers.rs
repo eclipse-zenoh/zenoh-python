@@ -13,10 +13,10 @@
 //
 use std::{fmt, marker::PhantomData};
 
-use pyo3::{exceptions::PyAttributeError, prelude::*};
+use pyo3::{exceptions::PyAttributeError, prelude::*, types::PyType};
 use zenoh::handlers::{Callback, Dyn, IntoHandler};
 
-use crate::utils::{bail, IntoPyErr, IntoPyResult, IntoPython, IntoRust, Named};
+use crate::utils::{bail, generic, IntoPyErr, IntoPyResult, IntoPython, IntoRust, Named};
 
 #[pyclass]
 #[derive(Clone)]
@@ -89,12 +89,17 @@ pub(crate) struct Handler(Box<dyn Receiver + Send + Sync>);
 
 #[pymethods]
 impl Handler {
+    #[classmethod]
+    fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
+        generic(cls, args)
+    }
+
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         self.0.try_recv(py)
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
-        dbg!(self.0.recv(py))
+        self.0.recv(py)
     }
 
     fn __iter__(this: Py<Self>) -> Py<Self> {
