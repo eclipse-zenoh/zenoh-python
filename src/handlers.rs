@@ -1,4 +1,3 @@
-use std::fmt;
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -12,7 +11,7 @@ use std::fmt;
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::marker::PhantomData;
+use std::{fmt, marker::PhantomData};
 
 use pyo3::{exceptions::PyAttributeError, prelude::*};
 use zenoh::handlers::{Callback, Dyn, IntoHandler};

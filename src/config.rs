@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -13,6 +11,8 @@ use std::ops::Deref;
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
+use std::ops::Deref;
+
 use pyo3::{
     prelude::*,
     sync::GILOnceCell,
