@@ -16,16 +16,15 @@ use std::ops::Deref;
 use pyo3::{
     prelude::*,
     sync::GILOnceCell,
-    types::{PyIterator, PyString, PyType},
+    types::{PyString, PyType},
 };
 use validated_struct::ValidatedMap;
 use zenoh::config::Notifier;
+use zenoh_protocol::core::EndPoint;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{
-        bail, downcast_or_parse, r#enum, try_process, wrapper, IntoPyErr, IntoPyResult, IntoRust,
-    },
+    utils::{bail, downcast_or_parse, r#enum, wrapper, IntoPyErr, IntoPyResult, IntoRust},
 };
 
 fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {
@@ -99,14 +98,13 @@ impl Config {
     }
 
     #[classmethod]
-    pub(crate) fn client(_cls: &Bound<PyType>, peers: Bound<PyIterator>) -> PyResult<Config> {
-        let config = try_process(
-            peers.map(|obj| {
-                zenoh::config::EndPoint::try_from(String::extract_bound(&obj?)?).into_pyres()
-            }),
-            |peers| zenoh::config::client(peers),
-        )?;
-        Ok(config.into())
+    pub(crate) fn client(_cls: &Bound<PyType>, peers: Vec<String>) -> PyResult<Config> {
+        let endpoints = peers
+            .into_iter()
+            .map(EndPoint::try_from)
+            .collect::<Result<Vec<_>, _>>()
+            .into_pyres()?;
+        Ok(zenoh::config::client(endpoints).into())
     }
 
     #[classmethod]

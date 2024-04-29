@@ -34,13 +34,17 @@ impl<T, E: IntoPyErr> IntoPyResult<T> for Result<T, E> {
     }
 }
 
+pub(crate) trait Named {
+    const NAME: &'static str;
+}
+
 pub(crate) trait IntoRust: Send + Sync + 'static {
-    type Into: Send + 'static;
+    type Into;
     fn into_rust(self) -> Self::Into;
 }
 
-pub(crate) trait IntoPython: Sized + Send + Sync + 'static {
-    type Into: IntoPy<PyObject> + Send + 'static;
+pub(crate) trait IntoPython: Sized + Send {
+    type Into: IntoPy<PyObject>;
     fn into_python(self) -> Self::Into;
     fn into_pyobject(self, py: Python) -> PyObject {
         self.into_python().into_py(py)
@@ -65,10 +69,6 @@ where
     }
 }
 
-pub(crate) trait Named {
-    const NAME: &'static str;
-}
-
 pub(crate) trait MapInto<T> {
     fn map_into(self) -> T;
 }
@@ -83,53 +83,6 @@ impl<T: Into<U>, U, E> MapInto<Result<U, E>> for Result<T, E> {
     fn map_into(self) -> Result<U, E> {
         self.map(Into::into)
     }
-}
-
-pub(crate) struct TryProcessIter<'a, I, E> {
-    iter: I,
-    error: &'a mut Option<E>,
-}
-
-impl<I: Iterator<Item = Result<T, E>>, T, E> Iterator for TryProcessIter<'_, I, E> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.iter.next() {
-            Some(Ok(x)) => Some(x),
-            Some(Err(err)) => {
-                *self.error = Some(err);
-                None
-            }
-            None => None,
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.error.is_some() {
-            (0, Some(0))
-        } else {
-            self.iter.size_hint()
-        }
-    }
-}
-
-pub(crate) fn try_process<I, T, E, R>(
-    iter: I,
-    process: impl FnOnce(TryProcessIter<'_, I::IntoIter, E>) -> R,
-) -> Result<R, E>
-where
-    I: IntoIterator<Item = Result<T, E>>,
-{
-    let mut error = None;
-    let iter = TryProcessIter {
-        iter: iter.into_iter(),
-        error: &mut error,
-    };
-    let res = process(iter);
-    if let Some(err) = error {
-        return Err(err);
-    }
-    Ok(res)
 }
 
 pub(crate) fn generic(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
