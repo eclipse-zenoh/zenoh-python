@@ -1,3 +1,13 @@
+"""Transform Python stubs into Python code.
+
+Rename `*.pyi` to `*.py`. Also, because overloaded functions doesn't render nicely,
+overloaded functions are rewritten in a non-overloaded form. Handler parameter types
+are merged, and return type is unspecialized, while handler delegated methods are
+kept without the `Never` overload. `serializer`/`deserializer` are kept untouched,
+because it's ok.
+Moreover, all function parameters annotations are stringified in order to allow
+referencing a type not declared yet (i.e. forward reference)."""
+
 import ast
 from collections import defaultdict
 from pathlib import Path
@@ -9,9 +19,12 @@ __INIT__ = PACKAGE / "__init__.py"
 class RemoveOverload(ast.NodeTransformer):
     def __init__(self):
         self.current_cls = None
-        self.overloaded: defaultdict[str | None, set[str]] = defaultdict(set)
+        # only the first overloaded signature is modified, others are removed
+        # modified functions are stored here
+        self.overloaded_by_class: defaultdict[str | None, set[str]] = defaultdict(set)
 
     def visit_ClassDef(self, node: ast.ClassDef):
+        # register the current class for method name disambiguation
         self.current_cls = node.name
         res = self.generic_visit(node)
         self.current_cls = None
@@ -20,31 +33,39 @@ class RemoveOverload(ast.NodeTransformer):
     def visit_FunctionDef(self, node: ast.FunctionDef):
         for decorator in node.decorator_list:
             if isinstance(decorator, ast.Name) and decorator.id == "overload":
-                if node.name in self.overloaded[self.current_cls]:
+                if node.name in self.overloaded_by_class[self.current_cls]:
+                    # there is no implementation in stub, so one has to be added
+                    # for (de)serializer
                     if node.name in ("serializer", "deserializer"):
                         func = ast.parse(
                             f"def {node.name}(arg, /): {ast.unparse(node.body[0])}"
                         )
                         return [node, func]
+                    # remove already modified overloaded signature
                     return None
-                self.overloaded[self.current_cls].add(node.name)
+                self.overloaded_by_class[self.current_cls].add(node.name)
+                # (de)serializer is kept overloaded
                 if node.name in ("serializer", "deserializer"):
                     return node
+                # remove overloaded decorator
                 node.decorator_list.clear()
-                if node.name in ("recv", "try_recv", "__iter__"):
-                    node.decorator_list.clear()
-                else:
+                if node.name not in ("recv", "try_recv", "__iter__"):
+                    # retrieve the handled type (Scout/Reply/etc.) from the return type
                     assert isinstance(node.returns, ast.Subscript)
                     if isinstance(node.returns.slice, ast.Subscript):
+                        # `Subscriber[Handler[Sample]]` case
                         tp = node.returns.slice.slice
                     else:
+                        # `Handler[Reply]` case
                         tp = node.returns.slice
                     assert isinstance(tp, ast.Name)
+                    # replace `handler` parameter annotation
                     annotation = f"_RustHandler[{tp.id}] | tuple[Callable[[{tp.id}], Any], Any] | Callable[[{tp.id}], Any] | None"
                     for arg in (*node.args.args, *node.args.kwonlyargs):
                         if arg.arg == "handler":
                             arg.annotation = ast.parse(annotation)
                     node.returns = node.returns.value
+        # stringify all parameters and return annotation
         for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
             if ann := arg.annotation:
                 arg.annotation = ast.Constant(f"{ast.unparse(ann)}")
@@ -54,14 +75,17 @@ class RemoveOverload(ast.NodeTransformer):
 
 
 def main():
+    # remove __init__.pyi
     __INIT__.unlink()
+    # rename stubs
     for entry in PACKAGE.glob("*.pyi"):
         entry.rename(PACKAGE / f"{entry.stem}.py")
+    # read stub code
     with open(__INIT__) as f:
-        code = ast.parse(f.read())
+        stub = ast.parse(f.read())
+    # write modified code
     with open(__INIT__, "w") as f:
-        f.write(ast.unparse(RemoveOverload().visit(code)))
-    # open(PACKAGE / "plop.py", "w").write(ast.unparse(RemoveOverload().visit(ast.parse(open(PACKAGE/ "__init__.pyi").read()))))
+        f.write(ast.unparse(RemoveOverload().visit(stub)))
 
 
 if __name__ == "__main__":
