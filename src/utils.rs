@@ -34,10 +34,6 @@ impl<T, E: IntoPyErr> IntoPyResult<T> for Result<T, E> {
     }
 }
 
-pub(crate) trait Named {
-    const NAME: &'static str;
-}
-
 pub(crate) trait IntoRust: Send + Sync + 'static {
     type Into;
     fn into_rust(self) -> Self::Into;
@@ -95,6 +91,11 @@ pub(crate) fn generic(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
         .unwrap()
         .call1(py, (cls, args))
         .unwrap()
+}
+
+pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
+    let name = std::any::type_name::<T>();
+    name.rsplit_once("::").map_or(name, |(_, name)| name)
 }
 
 macro_rules! into_rust {
@@ -230,10 +231,6 @@ macro_rules! wrapper {
         impl $crate::utils::IntoPython for $path {
             type Into = $ty;
             fn into_python(self) -> Self::Into { self.into() }
-        }
-
-        impl $crate::utils::Named for $ty {
-            const NAME: &'static str = stringify!($ty);
         }
     };
 }

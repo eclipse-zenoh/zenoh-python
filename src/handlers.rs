@@ -16,7 +16,7 @@ use std::{fmt, marker::PhantomData};
 use pyo3::{exceptions::PyAttributeError, prelude::*, types::PyType};
 use zenoh::handlers::{Callback, Dyn, IntoHandler};
 
-use crate::utils::{bail, generic, IntoPyErr, IntoPyResult, IntoPython, IntoRust, Named};
+use crate::utils::{bail, generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust};
 
 #[pyclass]
 #[derive(Clone)]
@@ -213,10 +213,10 @@ pub(crate) enum HandlerImpl<T> {
     Python(PyObject),
 }
 
-impl<T: Named> fmt::Debug for HandlerImpl<T> {
+impl<T> fmt::Debug for HandlerImpl<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Rust(..) => write!(f, "Handler[{}]", T::NAME),
+            Self::Rust(..) => write!(f, "Handler[{}]", short_type_name::<T>()),
             Self::Python(obj) => write!(f, "{obj:?}"),
         }
     }
@@ -304,12 +304,12 @@ fn exec_recv<T: IntoPython, E: IntoPyErr + Send>(
     Ok(py.allow_threads(f).into_pyres()?.into_pyobject(py))
 }
 
-impl<T: IntoRust + Named> Receiver for RustHandler<DefaultHandler, T>
+impl<T: IntoRust> Receiver for RustHandler<DefaultHandler, T>
 where
     T::Into: IntoPython,
 {
     fn type_name(&self) -> &'static str {
-        T::NAME
+        short_type_name::<T>()
     }
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         exec_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
@@ -320,12 +320,12 @@ where
     }
 }
 
-impl<T: IntoRust + Named> Receiver for RustHandler<FifoChannel, T>
+impl<T: IntoRust> Receiver for RustHandler<FifoChannel, T>
 where
     T::Into: IntoPython,
 {
     fn type_name(&self) -> &'static str {
-        T::NAME
+        short_type_name::<T>()
     }
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         exec_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
@@ -336,12 +336,12 @@ where
     }
 }
 
-impl<T: IntoRust + Named> Receiver for RustHandler<RingChannel, T>
+impl<T: IntoRust> Receiver for RustHandler<RingChannel, T>
 where
     T::Into: IntoPython,
 {
     fn type_name(&self) -> &'static str {
-        T::NAME
+        short_type_name::<T>()
     }
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         exec_recv(py, || self.handler.try_recv())
@@ -352,9 +352,7 @@ where
     }
 }
 
-pub(crate) fn into_handler<T: IntoRust + Named>(
-    obj: &Bound<PyAny>,
-) -> PyResult<Option<IntoHandlerImpl<T>>>
+pub(crate) fn into_handler<T: IntoRust>(obj: &Bound<PyAny>) -> PyResult<Option<IntoHandlerImpl<T>>>
 where
     T::Into: IntoPython,
 {
@@ -387,7 +385,7 @@ where
     bail!("Invalid handler {}", obj.get_type().name()?);
 }
 
-pub(crate) fn handler_or_default<T: IntoRust + Named>(
+pub(crate) fn handler_or_default<T: IntoRust>(
     py: Python,
     into_handler: Option<IntoHandlerImpl<T>>,
 ) -> IntoHandlerImpl<T>
