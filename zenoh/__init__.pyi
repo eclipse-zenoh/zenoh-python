@@ -63,6 +63,7 @@ class Config:
     def from_json5(cls) -> Self: ...
     def get_json(self, key: str) -> Any: ...
     def insert_json5(self, key: str, value: Any): ...
+    def __str__(self) -> str: ...
 
 @final
 class CongestionControl(Enum):
@@ -93,6 +94,10 @@ class Encoding:
     """
 
     def __new__(cls, encoding: str | None = None) -> Self: ...
+    def with_schema(self, schema: str) -> Self:
+        """Set a schema to this encoding. Zenoh does not define what a schema is and its semantichs is left to the implementer. E.g. a common schema for text/plain encoding is utf-8."""
+
+    def __str__(self) -> str: ...
 
     ZENOH_BYTES: Self
     """Just some bytes.
@@ -323,9 +328,6 @@ class Encoding:
 
     Constant alias for string: "video/vp9"."""
 
-    def with_schema(self, schema: str) -> Self:
-        """Set a schema to this encoding. Zenoh does not define what a schema is and its semantichs is left to the implementer. E.g. a common schema for text/plain encoding is utf-8."""
-
 _IntoEncoding = Encoding | str
 
 @final
@@ -338,6 +340,7 @@ class Hello:
     def zid(self) -> ZenohId: ...
     @property
     def locators(self) -> list[str]: ...
+    def __str__(self) -> str: ...
 
 @final
 class KeyExpr:
@@ -370,6 +373,8 @@ class KeyExpr:
         """Performs string concatenation and returns the result as a KeyExpr if possible.
         You should probably prefer KeyExpr::join as Zenoh may then take advantage of the hierachical separation it ins  erts.
         """
+
+    def __str__(self) -> str: ...
 
 _IntoKeyExpr = KeyExpr | str
 
@@ -404,6 +409,7 @@ class Parameters:
     def __contains__(self, item: str) -> bool: ...
     def __getitem__(self, item: str) -> str | None: ...
     def __iter__(self) -> list[tuple[str, str]]: ...
+    def __str__(self) -> str: ...
 
 _IntoParameters = dict[str, str] | str
 
@@ -506,6 +512,8 @@ class Query:
         """Sends a delete reply to this Query.
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
         """
+
+    def __str__(self) -> str: ...
 
 @final
 class Queryable(Generic[_H]):
@@ -633,6 +641,8 @@ class Selector:
     def parameters(self, parameters: _IntoParameters): ...
     def split(self) -> tuple[KeyExpr, Parameters]:
         """Returns this selector components as a tuple."""
+
+    def __str__(self) -> str: ...
 
 _IntoSelector = Selector | str
 
@@ -863,6 +873,7 @@ class Subscriber(Generic[_H]):
 @final
 class Timestamp:
     def get_time(self) -> datetime: ...
+    def __str__(self) -> str: ...
 
 @final
 class Value:
@@ -885,6 +896,8 @@ class WhatAmI(Enum):
     PEER = auto()
     CLIENT = auto()
 
+    def __str__(self) -> str: ...
+
 @final
 class WhatAmIMatcher:
     @classmethod
@@ -894,6 +907,7 @@ class WhatAmIMatcher:
     def client(self) -> Self: ...
     def is_empty(self) -> bool: ...
     def matches(self, whatami: WhatAmI) -> bool: ...
+    def __str__(self) -> str: ...
 
 _IntoWhatAmIMatcher = WhatAmIMatcher | str
 
@@ -913,6 +927,7 @@ class ZenohId:
     """The global unique id of a zenoh peer."""
 
     def into_keyexpr(self) -> KeyExpr: ...
+    def __str__(self) -> str: ...
 
 def init_logger(): ...
 def open(config: Config | None = None) -> Session:
