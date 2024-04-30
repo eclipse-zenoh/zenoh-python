@@ -11,12 +11,12 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
+mod bytes;
 mod config;
 mod encoding;
 mod handlers;
 mod info;
 mod key_expr;
-mod payload;
 mod publication;
 mod query;
 mod queryable;
@@ -46,13 +46,13 @@ pub(crate) mod zenoh {
 
     #[pymodule_export]
     use crate::{
+        bytes::{deserializer, serializer},
         config::{Config, WhatAmI, ZenohId},
         encoding::Encoding,
         handlers::Handler,
         info::SessionInfo,
         key_expr::KeyExpr,
         key_expr::SetIntersectionLevel,
-        payload::{deserializer, serializer},
         publication::{CongestionControl, Priority, Publisher},
         query::{ConsolidationMode, QueryTarget, Reply},
         queryable::Query,

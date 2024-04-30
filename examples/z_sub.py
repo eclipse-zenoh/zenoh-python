@@ -87,7 +87,7 @@ def main():
 
     def listener(sample: zenoh.Sample):
         print(
-            f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')"
+            f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
         )
 
     # WARNING, you MUST store the return value in order for the subscription to work!!

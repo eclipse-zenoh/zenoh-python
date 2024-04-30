@@ -95,7 +95,7 @@ def main():
     def consumer():
         for sample in sub:  # zenoh.Queue's receiver (the queue itself) is an iterator
             print(
-                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.deserialize_payload(str)}')"
+                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
             )
 
     t = Thread(target=consumer)

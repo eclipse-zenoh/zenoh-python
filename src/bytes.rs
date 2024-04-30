@@ -14,18 +14,15 @@
 use std::borrow::Cow;
 
 use pyo3::{
-    exceptions::PyValueError,
+    exceptions::{PyTypeError, PyValueError},
     prelude::*,
     sync::GILOnceCell,
     types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyType},
     PyTypeInfo,
 };
-use zenoh::bytes::ZBytes;
 use zenoh_buffers::{buffer::SplitBuffer, ZBuf};
 
-use crate::utils::{bail, into_rust, IntoPyResult};
-
-into_rust!(ZBytes);
+use crate::utils::{bail, downcast_or_new, wrapper, IntoPyResult};
 
 macro_rules! import {
     ($module:ident, $attr:ident) => {
@@ -47,18 +44,6 @@ import!(json, dumps);
 import!(json, loads);
 import!(inspect, signature);
 import!(typing, get_type_hints);
-
-pub(crate) fn payload_to_bytes<'py>(py: Python<'py>, payload: &ZBytes) -> Bound<'py, PyBytes> {
-    PyBytes::new_bound_with(py, payload.len(), |mut bytes| {
-        for slice in ZBuf::from(payload).slices() {
-            let len = slice.len();
-            bytes[..len].copy_from_slice(slice);
-            bytes = &mut bytes[len..];
-        }
-        Ok(())
-    })
-    .unwrap()
-}
 
 fn serializers(py: Python) -> &'static Py<PyDict> {
     static SERIALIZERS: GILOnceCell<Py<PyDict>> = GILOnceCell::new();
@@ -130,58 +115,74 @@ pub(crate) fn deserializer<'py, 'a>(arg: &'a Bound<'py, PyAny>) -> PyResult<&'a 
     Ok(arg)
 }
 
-pub(crate) fn into_payload(obj: &Bound<PyAny>) -> PyResult<ZBytes> {
-    let py = obj.py();
-    Ok(if let Ok(b) = obj.downcast::<PyBytes>() {
-        ZBytes::new(b.as_bytes().to_vec())
-    } else if let Ok(s) = String::extract_bound(obj) {
-        ZBytes::serialize(s)
-    } else if let Ok(i) = i64::extract_bound(obj) {
-        ZBytes::serialize(i)
-    } else if let Ok(f) = f64::extract_bound(obj) {
-        ZBytes::serialize(f)
-    } else if let Ok(b) = bool::extract_bound(obj) {
-        ZBytes::serialize(b)
-    } else if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyDict>() {
-        let s = String::extract_bound(&dumps(py).bind(py).call1((obj,))?)?;
-        ZBytes::serialize(s)
-    } else if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
-        match ser.call1((obj,))?.downcast::<PyBytes>() {
-            Ok(b) => ZBytes::new(b.as_bytes().to_vec()),
-            _ => bail!("serializer {} didn't return bytes", ser.str()?),
-        }
-    } else {
-        bail!("No serializer registered for type {type}", type = obj.get_type().name()?);
-    })
-}
+wrapper!(zenoh::bytes::ZBytes: Clone);
+downcast_or_new!(ZBytes);
 
-pub(crate) fn from_payload(tp: &Bound<PyType>, payload: &ZBytes) -> PyResult<PyObject> {
-    let py = tp.py();
-    Ok(if tp.eq(PyBytes::type_object_bound(py))? {
-        payload_to_bytes(py, payload).into_any().unbind()
-    } else if tp.eq(PyString::type_object_bound(py))? {
-        payload.deserialize::<Cow<str>>().into_pyres()?.into_py(py)
-    } else if tp.eq(PyInt::type_object_bound(py))? {
-        payload.deserialize::<i64>().into_pyres()?.into_py(py)
-    } else if tp.eq(PyFloat::type_object_bound(py))? {
-        payload.deserialize::<f64>().into_pyres()?.into_py(py)
-    } else if tp.eq(PyBool::type_object_bound(py))? {
-        payload.deserialize::<bool>().into_pyres()?.into_py(py)
-    } else if tp.eq(PyList::type_object_bound(py))? || tp.eq(PyDict::type_object_bound(py))? {
-        loads(py)
-            .bind(py)
-            .call1((payload_to_bytes(py, payload),))?
-            .unbind()
-    } else if let Ok(Some(de)) = deserializers(py).bind(py).get_item(tp) {
-        de.call1((payload_to_bytes(py, payload),))?.unbind()
-    } else {
-        bail!("No deserializer registered for type {type}", type = tp.name()?);
-    })
-}
-
-pub(crate) fn into_payload_opt(obj: &Bound<PyAny>) -> PyResult<Option<ZBytes>> {
-    if obj.is_none() {
-        return Ok(None);
+#[pymethods]
+impl ZBytes {
+    #[new]
+    fn new(obj: &Bound<PyAny>) -> PyResult<ZBytes> {
+        let py = obj.py();
+        Ok(Self(if let Ok(b) = obj.downcast::<PyBytes>() {
+            zenoh::bytes::ZBytes::new(b.as_bytes().to_vec())
+        } else if let Ok(s) = String::extract_bound(obj) {
+            zenoh::bytes::ZBytes::serialize(s)
+        } else if let Ok(i) = i64::extract_bound(obj) {
+            zenoh::bytes::ZBytes::serialize(i)
+        } else if let Ok(f) = f64::extract_bound(obj) {
+            zenoh::bytes::ZBytes::serialize(f)
+        } else if let Ok(b) = bool::extract_bound(obj) {
+            zenoh::bytes::ZBytes::serialize(b)
+        } else if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyDict>() {
+            let s = String::extract_bound(&dumps(py).bind(py).call1((obj,))?)?;
+            zenoh::bytes::ZBytes::serialize(s)
+        } else if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
+            return match ZBytes::extract_bound(&ser.call1((obj,))?) {
+                Ok(b) => Ok(b),
+                _ => Err(PyTypeError::new_err(format!(
+                    "serializer {} didn't return ZBytes",
+                    ser.repr()?
+                ))),
+            };
+        } else {
+            bail!("No serializer registered for type {type}", type = obj.get_type().name()?);
+        }))
     }
-    into_payload(obj).map(Some)
+
+    fn deserialize(this: PyRef<Self>, tp: &Bound<PyType>) -> PyResult<PyObject> {
+        let py = tp.py();
+        Ok(if tp.eq(PyBytes::type_object_bound(py))? {
+            this.__bytes__(py).into_any().unbind()
+        } else if tp.eq(PyString::type_object_bound(py))? {
+            this.0.deserialize::<Cow<str>>().into_pyres()?.into_py(py)
+        } else if tp.eq(PyInt::type_object_bound(py))? {
+            this.0.deserialize::<i64>().into_pyres()?.into_py(py)
+        } else if tp.eq(PyFloat::type_object_bound(py))? {
+            this.0.deserialize::<f64>().into_pyres()?.into_py(py)
+        } else if tp.eq(PyBool::type_object_bound(py))? {
+            this.0.deserialize::<bool>().into_pyres()?.into_py(py)
+        } else if tp.eq(PyList::type_object_bound(py))? || tp.eq(PyDict::type_object_bound(py))? {
+            loads(py).bind(py).call1((this.__bytes__(py),))?.unbind()
+        } else if let Ok(Some(de)) = deserializers(py).bind(py).get_item(tp) {
+            de.call1((this,))?.unbind()
+        } else {
+            bail!("No deserializer registered for type {type}", type = tp.name()?);
+        })
+    }
+
+    fn __bytes__<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new_bound_with(py, self.0.len(), |mut bytes| {
+            for slice in ZBuf::from(&self.0).slices() {
+                let len = slice.len();
+                bytes[..len].copy_from_slice(slice);
+                bytes = &mut bytes[len..];
+            }
+            Ok(())
+        })
+        .unwrap()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }

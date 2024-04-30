@@ -19,18 +19,17 @@ use pyo3::{
     types::{PyDict, PyTuple},
 };
 use zenoh::{
-    bytes::ZBytes,
     prelude::{QoSBuilderTrait, ValueBuilderTrait},
     SessionDeclarations,
 };
 
 use crate::{
+    bytes::ZBytes,
     config::{Config, ConfigInner, ZenohId},
     encoding::Encoding,
     handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
     info::SessionInfo,
     key_expr::KeyExpr,
-    payload::{into_payload, into_payload_opt},
     publication::{CongestionControl, Priority, Publisher},
     query::{ConsolidationMode, QueryTarget, Reply},
     queryable::{Query, Queryable},
@@ -112,7 +111,7 @@ impl Session {
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        #[pyo3(from_py_with = "into_payload")] payload: ZBytes,
+        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
@@ -156,7 +155,7 @@ impl Session {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-        #[pyo3(from_py_with = "into_payload_opt")] payload: Option<ZBytes>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] payload: Option<ZBytes>,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
     ) -> PyResult<Resolve<HandlerImpl<Reply>>> {
         let this = self.get_ref()?;

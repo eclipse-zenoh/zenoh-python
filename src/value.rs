@@ -11,36 +11,30 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use pyo3::{
-    prelude::*,
-    types::{PyBytes, PyType},
-};
+use pyo3::prelude::*;
 
 use crate::{
+    bytes::ZBytes,
     encoding::Encoding,
-    payload::{from_payload, into_payload, payload_to_bytes},
-    utils::wrapper,
+    utils::{downcast_or_new, wrapper},
 };
 
 wrapper!(zenoh::value::Value: Clone);
+downcast_or_new!(Value => ZBytes, Encoding::default());
 
 #[pymethods]
 impl Value {
     #[new]
-    pub(crate) fn new(payload: &Bound<PyAny>, encoding: Option<&Bound<PyAny>>) -> PyResult<Self> {
-        Ok(Self(zenoh::value::Value::new(
-            into_payload(payload)?,
-            encoding.map(Encoding::from_py).transpose()?.unwrap().0,
-        )))
+    pub(crate) fn new(
+        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
+        #[pyo3(from_py_with = "Encoding::from_py")] encoding: Encoding,
+    ) -> PyResult<Self> {
+        Ok(Self(zenoh::value::Value::new(payload.0, encoding.0)))
     }
 
     #[getter]
-    fn payload<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        payload_to_bytes(py, self.0.payload())
-    }
-
-    fn deserialize_payload(&self, r#type: &Bound<PyType>) -> PyResult<PyObject> {
-        from_payload(r#type, self.0.payload())
+    fn payload(&self) -> ZBytes {
+        self.0.payload().clone().into()
     }
 
     #[getter]

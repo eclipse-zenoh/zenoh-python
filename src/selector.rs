@@ -17,17 +17,22 @@ use pyo3::prelude::*;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{downcast_or_parse, wrapper, IntoPyResult},
+    utils::{downcast_or_new, wrapper, IntoPyResult},
 };
 
 wrapper!(zenoh::selector::Selector<'static>: Clone);
-downcast_or_parse!(Selector);
+downcast_or_new!(Selector, None);
 
 #[pymethods]
 impl Selector {
     #[new]
-    pub(crate) fn new(s: String) -> PyResult<Self> {
-        Ok(Self(s.parse().into_pyres()?))
+    #[pyo3(signature = (arg, /, parameters = None))]
+    pub(crate) fn new(arg: &Bound<PyAny>, parameters: Option<Parameters>) -> PyResult<Self> {
+        Ok(Self(if let Some(params) = parameters {
+            zenoh::selector::Selector::new(KeyExpr::from_py(arg)?.0, params.0)
+        } else {
+            String::extract_bound(arg)?.parse().into_pyres()?
+        }))
     }
 
     #[getter]

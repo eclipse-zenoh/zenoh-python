@@ -111,7 +111,7 @@ def main():
             if sample is None:
                 break
             print(
-                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.decode('utf-8')}')"
+                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
             )
 
     # Cleanup: note that even if you forget it, cleanup will happen automatically when

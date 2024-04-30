@@ -24,7 +24,7 @@ use zenoh_protocol::core::EndPoint;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{bail, downcast_or_parse, enum_mapper, wrapper, IntoPyErr, IntoPyResult, IntoRust},
+    utils::{bail, downcast_or_new, enum_mapper, wrapper, IntoPyErr, IntoPyResult, IntoRust},
 };
 
 fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {
@@ -178,7 +178,7 @@ enum_mapper!(zenoh::config::WhatAmI: u8 {
     Peer = 0b010,
     Client = 0b100,
 });
-downcast_or_parse!(WhatAmI);
+downcast_or_new!(WhatAmI => String);
 
 #[pymethods]
 impl WhatAmI {
@@ -201,7 +201,7 @@ impl WhatAmI {
 }
 
 wrapper!(zenoh::config::WhatAmIMatcher: Clone, Copy);
-downcast_or_parse!(WhatAmIMatcher);
+downcast_or_new!(WhatAmIMatcher => String);
 
 impl Default for WhatAmIMatcher {
     fn default() -> Self {

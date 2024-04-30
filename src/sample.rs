@@ -12,13 +12,12 @@
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
 pub(crate) use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyType};
 use zenoh::{prelude::QoSBuilderTrait, sample::QoSBuilder};
 
 use crate::{
+    bytes::ZBytes,
     encoding::Encoding,
     key_expr::KeyExpr,
-    payload::{from_payload, payload_to_bytes},
     publication::{CongestionControl, Priority},
     time::Timestamp,
     utils::{build, enum_mapper, wrapper, MapInto},
@@ -78,12 +77,8 @@ impl Sample {
     }
 
     #[getter]
-    pub(crate) fn payload<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
-        payload_to_bytes(py, self.0.payload())
-    }
-
-    fn deserialize_payload(&self, r#type: &Bound<PyType>) -> PyResult<PyObject> {
-        from_payload(r#type, self.0.payload())
+    pub(crate) fn payload(&self) -> ZBytes {
+        self.0.payload().clone().into()
     }
 
     #[getter]

@@ -13,18 +13,15 @@
 //
 use pyo3::{
     prelude::*,
-    types::{PyBytes, PyDict, PyIterator, PyTuple, PyType},
+    types::{PyDict, PyIterator, PyTuple, PyType},
 };
-use zenoh::{
-    bytes::ZBytes,
-    prelude::{QoSBuilderTrait, ValueBuilderTrait},
-};
+use zenoh::prelude::{QoSBuilderTrait, ValueBuilderTrait};
 
 use crate::{
+    bytes::ZBytes,
     encoding::Encoding,
     handlers::HandlerImpl,
     key_expr::KeyExpr,
-    payload::{from_payload, into_payload, payload_to_bytes},
     publication::{CongestionControl, Priority},
     resolve::{resolve, Resolve},
     selector::{Parameters, Selector},
@@ -57,15 +54,8 @@ impl Query {
     }
 
     #[getter]
-    fn payload<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
-        self.0.payload().map(|p| payload_to_bytes(py, p))
-    }
-
-    fn deserialize_payload(&self, r#type: &Bound<PyType>) -> PyResult<Option<PyObject>> {
-        self.0
-            .payload()
-            .map(|p| from_payload(r#type, p))
-            .transpose()
+    fn payload(&self) -> Option<ZBytes> {
+        self.0.payload().cloned().map_into()
     }
 
     #[getter]
@@ -80,7 +70,7 @@ impl Query {
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        #[pyo3(from_py_with = "into_payload")] payload: ZBytes,
+        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
@@ -96,18 +86,12 @@ impl Query {
         resolve(py, build)
     }
 
-    #[pyo3(signature = (payload, *, encoding = None))]
     fn reply_err(
         &self,
         py: Python,
-        payload: &Bound<PyAny>,
-        encoding: Option<&Bound<PyAny>>,
+        #[pyo3(from_py_with = "Value::from_py")] value: Value,
     ) -> PyResult<Resolve> {
-        let value = match <Value as pyo3::FromPyObject>::extract_bound(payload) {
-            Ok(v) => v,
-            _ => Value::new(payload, encoding)?,
-        };
-        resolve(py, || self.0.reply_err(value))
+        resolve(py, || self.0.reply_err(value.0))
     }
 
     #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]

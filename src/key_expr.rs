@@ -15,7 +15,7 @@ use std::collections::hash_map::DefaultHasher;
 
 use pyo3::{prelude::*, types::PyType};
 
-use crate::utils::{downcast_or_parse, enum_mapper, wrapper, IntoPyResult, MapInto};
+use crate::utils::{downcast_or_new, enum_mapper, wrapper, IntoPyResult, MapInto};
 
 enum_mapper!(zenoh::key_expr::SetIntersectionLevel: u8 {
     Disjoint,
@@ -25,7 +25,7 @@ enum_mapper!(zenoh::key_expr::SetIntersectionLevel: u8 {
 });
 
 wrapper!(zenoh::key_expr::KeyExpr<'static>: Clone);
-downcast_or_parse!(KeyExpr);
+downcast_or_new!(KeyExpr => String);
 
 #[pymethods]
 impl KeyExpr {

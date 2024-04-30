@@ -15,12 +15,12 @@ use pyo3::{
     prelude::*,
     types::{PyDict, PyTuple},
 };
-use zenoh::{bytes::ZBytes, prelude::ValueBuilderTrait};
+use zenoh::prelude::ValueBuilderTrait;
 
 use crate::{
+    bytes::ZBytes,
     encoding::Encoding,
     key_expr::KeyExpr,
-    payload::into_payload,
     resolve::{resolve, Resolve},
     utils::{build, droppable_wrapper, enum_mapper},
 };
@@ -102,7 +102,7 @@ impl Publisher {
     fn put(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "into_payload")] payload: ZBytes,
+        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
     ) -> PyResult<Resolve> {
         let this = self.get_ref()?;

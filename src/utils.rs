@@ -124,15 +124,15 @@ macro_rules! bail {
 }
 pub(crate) use bail;
 
-macro_rules! downcast_or_parse {
-    ($ty:ty) => {
+macro_rules! downcast_or_new {
+    ($ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
         #[allow(unused)]
         impl $ty {
             pub(crate) fn from_py(obj: &Bound<PyAny>) -> PyResult<Self> {
                 if let Ok(obj) = <Self as pyo3::FromPyObject>::extract_bound(obj) {
                     return Ok(obj);
                 }
-                Self::new(String::extract_bound(obj)?)
+                Self::new(PyResult::Ok(obj)$(.and_then(<$new>::extract_bound))??, $($other)?)
             }
             pub(crate) fn from_py_opt(obj: &Bound<PyAny>) -> PyResult<Option<Self>> {
                 if obj.is_none() {
@@ -143,7 +143,7 @@ macro_rules! downcast_or_parse {
         }
     };
 }
-pub(crate) use downcast_or_parse;
+pub(crate) use downcast_or_new;
 
 macro_rules! enum_mapper {
     ($($path:ident)::*: $repr:ty { $($variant:ident $(= $discriminator:literal)?),* $(,)? }) => {
