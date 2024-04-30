@@ -90,7 +90,7 @@ store = {}
 def listener(sample: zenoh.Sample):
     print(
         ">> [Subscriber] Received {} ('{}': '{}')".format(
-            sample.kind, sample.key_expr, sample.payload_as(str)
+            sample.kind, sample.key_expr, sample.deserialize_payload(str)
         )
     )
     if sample.kind == zenoh.SampleKind.DELETE:

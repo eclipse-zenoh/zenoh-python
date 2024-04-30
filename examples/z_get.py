@@ -114,11 +114,13 @@ def main():
         try:
             print(
                 ">> Received ('{}': '{}')".format(
-                    reply.ok.key_expr, reply.ok.payload_as(str)
+                    reply.ok.key_expr, reply.ok.deserialize_payload(str)
                 )
             )
         except:
-            print(">> Received (ERROR: '{}')".format(reply.err.payload_as(str)))
+            print(
+                ">> Received (ERROR: '{}')".format(reply.err.deserialize_payload(str))
+            )
 
     session.close()
 

@@ -61,7 +61,7 @@ impl Query {
         self.0.payload().map(|p| payload_to_bytes(py, p))
     }
 
-    fn payload_as(&self, r#type: &Bound<PyType>) -> PyResult<Option<PyObject>> {
+    fn deserialize_payload(&self, r#type: &Bound<PyType>) -> PyResult<Option<PyObject>> {
         self.0
             .payload()
             .map(|p| from_payload(r#type, p))

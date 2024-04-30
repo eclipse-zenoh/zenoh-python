@@ -39,7 +39,7 @@ impl Value {
         payload_to_bytes(py, self.0.payload())
     }
 
-    fn payload_as(&self, r#type: &Bound<PyType>) -> PyResult<PyObject> {
+    fn deserialize_payload(&self, r#type: &Bound<PyType>) -> PyResult<PyObject> {
         from_payload(r#type, self.0.payload())
     }
 
