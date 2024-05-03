@@ -10,7 +10,10 @@
 // Contributors:
 //   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 
-use pyo3::{prelude::*, types::{PyBytes, PyList}};
+use pyo3::{
+    prelude::*,
+    types::{PyBytes, PyList},
+};
 use uhlc::Timestamp;
 use zenoh::sample::{Attachment, AttachmentBuilder};
 use zenoh::{
