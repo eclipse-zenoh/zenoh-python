@@ -25,6 +25,7 @@ use crate::{
     value::{_Sample, _Value},
     ToPyErr,
 };
+use crate::value::_Attachment;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -70,6 +71,10 @@ impl _Query {
     #[getter]
     pub fn value(&self) -> Option<_Value> {
         self.0.value().map(|v| v.clone().into())
+    }
+    #[getter]
+    pub fn attachment(&self) -> Option<_Attachment> {
+        self.0.attachment().map(|a| a.clone().into())
     }
     pub fn reply(&self, sample: _Sample) -> PyResult<()> {
         self.0

@@ -15,7 +15,8 @@ from typing import Dict, Optional
 
 from .zenoh import _Query, _Queryable
 from .keyexpr import KeyExpr, Selector
-from .value import Sample, Value, IntoValue, IntoSample
+from .value import Sample, Value, IntoValue, IntoSample, Attachment
+
 
 class Queryable:
     """
@@ -68,6 +69,12 @@ class Query(_Query):
         The query's value.
         """
         return Value._upgrade_(super().value)
+    @property
+    def attachment(self) -> Optional[Attachment]:
+        """
+        The query's attachment
+        """
+        return Attachment._upgrade_(super().attachment)
     def reply(self, sample: Sample):
         """
         Allows you to reply to a query.

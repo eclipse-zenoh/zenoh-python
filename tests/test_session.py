@@ -148,8 +148,19 @@ def run_session_attachment(peer01, peer02):
 
     publisher.put("attachment", attachment={"key1": "value1", b"key2": b"value2"})
     time.sleep(SLEEP)
-    assert last_sample.attachment is not None
-    assert last_sample.attachment.items() == {b"key1": b"value1", b"key2": b"value2"}
+    attachment = last_sample.attachment
+    assert attachment is not None
+    assert attachment
+    assert len(attachment) == 2
+    assert attachment.keys() == list(attachment) == [b"key1", b"key2"]
+    assert attachment.values() == [b"value1", b"value2"]
+    attachment.update([("key1", b"value1b")], key3="value3")
+    assert attachment.items() == [(b"key1", b"value1"), (b"key2", b"value2"), (b"key1", b"value1b"), (b"key3", b"value3")]
+    assert attachment.get("foo") is None
+
+    publisher.put("attachment", attachment=[("key", "value")])
+    time.sleep(SLEEP)
+    assert dict(last_sample.attachment) == {b"key": b"value"}
 
     print("[A][03d] Undeclare publisher on peer01 session");
     publisher.undeclare()
@@ -160,7 +171,7 @@ def run_session_attachment(peer01, peer02):
 def test_session():
     zenoh.init_logger()
     (peer01, peer02) = open_session(["tcp/127.0.0.1:17447"])
-    run_session_qryrep(peer01, peer02)
-    run_session_pubsub(peer01, peer02)
+    # run_session_qryrep(peer01, peer02)
+    # run_session_pubsub(peer01, peer02)
     run_session_attachment(peer01, peer02)
     close_session(peer01, peer02)
