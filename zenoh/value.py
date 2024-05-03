@@ -177,10 +177,10 @@ class QoS(_QoS):
 
 QoS.DEFAULT = QoS()
 
-IntoAttachment = (
-    Dict[Union[str, bytes], Union[str, bytes]]
-    | Iterable[Tuple[Union[str, bytes], Union[str, bytes]]]
-)
+IntoAttachment = Union[
+    Dict[Union[str, bytes], Union[str, bytes]],
+    Iterable[Tuple[Union[str, bytes], Union[str, bytes]]]
+]
 
 
 def _into_bytes(v: Union[str, bytes]) -> bytes:
