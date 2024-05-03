@@ -22,10 +22,9 @@ use zenoh::{
 
 use crate::{
     keyexpr::{_KeyExpr, _Selector},
-    value::{_Sample, _Value},
+    value::{_Attachment, _Sample, _Value},
     ToPyErr,
 };
-use crate::value::_Attachment;
 
 #[pyclass(subclass)]
 #[derive(Clone)]

@@ -240,7 +240,9 @@ impl _Attachment {
     fn items<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
         let items = PyList::empty_bound(py);
         for (k, v) in self.0.iter() {
-            items.append((PyBytes::new_bound(py, &k), PyBytes::new_bound(py, &v))).unwrap();
+            items
+                .append((PyBytes::new_bound(py, &k), PyBytes::new_bound(py, &v)))
+                .unwrap();
         }
         items
     }
