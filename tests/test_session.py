@@ -171,7 +171,7 @@ def run_session_attachment(peer01, peer02):
 def test_session():
     zenoh.init_logger()
     (peer01, peer02) = open_session(["tcp/127.0.0.1:17447"])
-    # run_session_qryrep(peer01, peer02)
-    # run_session_pubsub(peer01, peer02)
+    run_session_qryrep(peer01, peer02)
+    run_session_pubsub(peer01, peer02)
     run_session_attachment(peer01, peer02)
     close_session(peer01, peer02)
