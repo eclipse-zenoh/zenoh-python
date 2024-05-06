@@ -19,10 +19,11 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
+          - "3.11"
+          - "3.12"
 
     steps:
       - name: Clone this repository
@@ -49,7 +50,7 @@ jobs:
 
       - name: Run isort
         uses: isort/isort-action@v1
-        
+
       - name: Run black
         uses: psf/black@stable
 

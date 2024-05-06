@@ -22,16 +22,17 @@ build-backend = "maturin"
 name = "eclipse-zenoh"
 version = "0.11.0-dev"
 description = "The python API for Eclipse zenoh"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [
     { name = "ZettaScale Zenoh team", email = "zenoh@zettascale.tech" }
 ]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Rust",
     "Intended Audience :: Developers",
     "Development Status :: 4 - Beta",
