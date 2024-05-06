@@ -188,6 +188,9 @@ def _into_bytes(v: Union[str, bytes]) -> bytes:
 
 
 class Attachment(_Attachment):
+    """A dict-like collection of bytes key-values.
+
+    Contrary to dict, keys can be duplicated."""
     def __new__(cls, into: IntoAttachment, **kw):
         self = Attachment._upgrade_(super().new())
         self.update(into, **kw)
