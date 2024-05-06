@@ -12,11 +12,12 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import time
 import argparse
 import json
-import zenoh
+import time
 from threading import Thread
+
+import zenoh
 
 # --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(prog="z_sub", description="zenoh sub example")

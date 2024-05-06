@@ -15,6 +15,7 @@
 import argparse
 import json
 import time
+
 import zenoh
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -82,7 +83,11 @@ def main():
     print("Opening session...")
     session = zenoh.open(conf)
 
-    pub = session.declare_publisher("test/pong", congestion_control=zenoh.CongestionControl.BLOCK, express=args.express)
+    pub = session.declare_publisher(
+        "test/pong",
+        congestion_control=zenoh.CongestionControl.BLOCK,
+        express=args.express,
+    )
     sub = session.declare_subscriber("test/ping", lambda s: pub.put(s.payload))
 
     print("Press CTRL-C to quit...")

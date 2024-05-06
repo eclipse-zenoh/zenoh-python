@@ -12,9 +12,10 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import time
 import argparse
 import json
+import time
+
 import zenoh
 
 # --- Command line argument parsing --- --- --- --- --- ---

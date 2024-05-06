@@ -47,6 +47,12 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --check -- --config "unstable_features=true,imports_granularity=Crate,group_imports=StdExternalCrate"
 
+      - name: Run isort
+        uses: isort/isort-action@v1
+        
+      - name: Run black
+        uses: psf/black@stable
+
       - name: Check for feature leaks
         run: cargo test --no-default-features
 

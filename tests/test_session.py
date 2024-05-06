@@ -1,8 +1,9 @@
-import zenoh
 import json
-from zenoh import Session, Query, Sample, Priority, CongestionControl
-from typing import List, Tuple
 import time
+from typing import List, Tuple
+
+import zenoh
+from zenoh import CongestionControl, Priority, Query, Sample, Session
 
 SLEEP = 1
 MSG_COUNT = 1_000

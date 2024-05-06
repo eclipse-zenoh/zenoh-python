@@ -10,10 +10,10 @@
 # Contributors:
 #   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 #
-from os import path, getpgid, killpg
-from signal import SIGINT
-from subprocess import Popen, PIPE
 import time
+from os import getpgid, killpg, path
+from signal import SIGINT
+from subprocess import PIPE, Popen
 
 examples = path.realpath(__file__).split("/tests")[0] + "/examples/"
 tab = "\t"
