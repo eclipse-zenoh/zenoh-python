@@ -12,9 +12,8 @@
 
 use pyo3::{
     prelude::*,
-    types::{PyBytes, PyDict},
+    types::{PyBytes, PyList},
 };
-use std::collections::HashMap;
 use uhlc::Timestamp;
 use zenoh::sample::{Attachment, AttachmentBuilder};
 use zenoh::{
@@ -205,45 +204,68 @@ impl _Attachment {
     }
 
     #[staticmethod]
-    fn new(attachment: HashMap<Vec<u8>, Vec<u8>>) -> Self {
-        Self(attachment.iter().map(|(k, v)| (&k[..], &v[..])).collect())
+    fn new() -> Self {
+        Self(Attachment::new())
     }
 
-    fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    fn items<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let items = PyDict::new_bound(py);
-        for (k, v) in self.0.iter() {
-            items.set_item(PyBytes::new_bound(py, &k), PyBytes::new_bound(py, &v))?;
-        }
-        Ok(items)
-    }
-
-    fn get(&self, key: Vec<u8>) -> Option<Vec<u8>> {
-        self.0.get(&key).map(|v| v.to_vec())
+    fn get<'py>(&self, key: Vec<u8>, py: Python<'py>) -> Option<Bound<'py, PyBytes>> {
+        self.0.get(&key).map(|v| PyBytes::new_bound(py, &v))
     }
 
     fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) {
-        self.0.insert(&key, &value)
+        self.0.insert(&key, &value);
     }
 
-    fn extend(mut this: PyRefMut<Self>, attachment: HashMap<Vec<u8>, Vec<u8>>) -> PyRefMut<Self> {
-        this.0.extend(
-            attachment
-                .iter()
-                .map(|(k, v)| (&k[..], &v[..]))
-                .collect::<AttachmentBuilder>(),
-        );
-        this
+    fn update(&mut self, attachment: Vec<(Vec<u8>, Vec<u8>)>) {
+        let builder = attachment
+            .iter()
+            .map(|(k, v)| (&k[..], &v[..]))
+            .collect::<AttachmentBuilder>();
+        self.0.extend(builder);
     }
-    fn as_str(&self) -> String {
+
+    fn keys<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
+        let items = PyList::empty_bound(py);
+        for (k, _) in self.0.iter() {
+            items.append(PyBytes::new_bound(py, &k)).unwrap();
+        }
+        items
+    }
+
+    fn values<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
+        let items = PyList::empty_bound(py);
+        for (_, v) in self.0.iter() {
+            items.append(PyBytes::new_bound(py, &v)).unwrap();
+        }
+        items
+    }
+
+    fn items<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
+        let items = PyList::empty_bound(py);
+        for (k, v) in self.0.iter() {
+            items
+                .append((PyBytes::new_bound(py, &k), PyBytes::new_bound(py, &v)))
+                .unwrap();
+        }
+        items
+    }
+
+    fn __bool__(&self) -> bool {
+        !self.0.is_empty()
+    }
+
+    fn __len__(&self) -> usize {
+        self.0.len()
+    }
+
+    fn __repr__(&self) -> String {
         format!("{:?}", self.0)
+    }
+}
+
+impl From<Attachment> for _Attachment {
+    fn from(value: Attachment) -> Self {
+        Self(value)
     }
 }
 

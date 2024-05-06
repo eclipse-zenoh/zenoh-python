@@ -22,7 +22,7 @@ use zenoh::{
 
 use crate::{
     keyexpr::{_KeyExpr, _Selector},
-    value::{_Sample, _Value},
+    value::{_Attachment, _Sample, _Value},
     ToPyErr,
 };
 
@@ -70,6 +70,10 @@ impl _Query {
     #[getter]
     pub fn value(&self) -> Option<_Value> {
         self.0.value().map(|v| v.clone().into())
+    }
+    #[getter]
+    pub fn attachment(&self) -> Option<_Attachment> {
+        self.0.attachment().map(|a| a.clone().into())
     }
     pub fn reply(&self, sample: _Sample) -> PyResult<()> {
         self.0

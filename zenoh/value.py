@@ -12,12 +12,14 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 import abc
-from typing import Union, Tuple, Optional, List, Dict
+from typing import Union, Tuple, Optional, List, Dict, TypeVar, Iterable, Iterator, overload
 import json
 
 from .enums import Encoding, SampleKind, Priority, CongestionControl
 from .zenoh import _Value, _Encoding, _Sample, _SampleKind, _Reply, _ZenohId, _Timestamp, _Hello, _QoS, _Attachment
 from .keyexpr import KeyExpr, IntoKeyExpr
+
+T = TypeVar("T")
 
 
 class IValue:
@@ -42,7 +44,7 @@ IntoValue = Union[IValue, bytes, str, int, float, object]
 class Value(_Value, IValue):
     """
     A Value is a pair of a binary payload, and a mime-type-like encoding string.
-    
+
     When constructed with ``encoding==None``, the encoding will be selected depending on the payload's type.
     """
 
@@ -175,7 +177,10 @@ class QoS(_QoS):
 
 QoS.DEFAULT = QoS()
 
-IntoAttachment = Dict[Union[str, bytes], Union[str, bytes]]
+IntoAttachment = Union[
+    Dict[Union[str, bytes], Union[str, bytes]],
+    Iterable[Tuple[Union[str, bytes], Union[str, bytes]]]
+]
 
 
 def _into_bytes(v: Union[str, bytes]) -> bytes:
@@ -183,26 +188,62 @@ def _into_bytes(v: Union[str, bytes]) -> bytes:
 
 
 class Attachment(_Attachment):
-    def __new__(cls, into: IntoAttachment):
-        return Attachment._upgrade_(super().new({_into_bytes(k): _into_bytes(v) for k, v in into.items()}))
+    """A dict-like collection of bytes key-values.
 
-    def get(self, key: Union[str, bytes]) -> Optional[bytes]:
-        return super().get(_into_bytes(key))
+    Contrary to dict, keys can be duplicated."""
+    def __new__(cls, into: IntoAttachment, **kw):
+        self = Attachment._upgrade_(super().new())
+        self.update(into, **kw)
+        return self
+
+    @overload
+    def get(self, key: Union[str, bytes], default: T) -> Union[bytes, T]: ...
+    @overload
+    def get(self, key: Union[str, bytes]) -> Optional[bytes]: ...
+
+    def get(self, key: Union[str, bytes], default=None):
+        value = super().get(_into_bytes(key))
+        return value if value is not None else default
 
     def insert(self, key: Union[str, bytes], value: Union[str, bytes]):
         return super().insert(_into_bytes(key), _into_bytes(value))
 
-    def extend(self, into: IntoAttachment) -> 'Attachment':
-        return super().extend({_into_bytes(k): _into_bytes(v) for k, v in into.items()})
+    def update(self, into: IntoAttachment, **kw):
+        if isinstance(into, dict):
+            into = into.items()
+        super().update([(_into_bytes(k), _into_bytes(v)) for k, v in into])
+        if kw:
+            self.update(kw)
 
-    def items(self) -> Dict[bytes, bytes]:
+    def keys(self) -> List[bytes]:
+        return super().keys()
+
+    def values(self) -> List[bytes]:
+        return super().values()
+
+    def items(self) -> List[Tuple[bytes, bytes]]:
         return super().items()
 
-    def __str__(self) -> str:
-        return super().as_str()
+    def __len__(self) -> int:
+        return super().__len__()
+
+    def __bool__(self) -> bool:
+        return super().__bool__()
+
+    def __getitem__(self, key: Union[str, bytes]) -> bytes:
+        value = self.get(key)
+        if value is None:
+            raise KeyError(key)
+        return value
+
+    def __setitem__(self, key: Union[str, bytes], value: Union[str, bytes]):
+        self.insert(key, value)
+
+    def __iter__(self) -> Iterator[bytes]:
+        return iter(self.keys())
 
     @staticmethod
-    def _upgrade_(inner: _Attachment) -> 'Attachment':
+    def _upgrade_(inner: _Attachment) -> "Attachment":
         if isinstance(inner, Attachment):
             return inner
         return _Attachment.__new__(Attachment, inner)
