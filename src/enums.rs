@@ -92,6 +92,14 @@ impl _Encoding {
             .map(Self)
             .map_err(|e| e.to_pyerr())
     }
+    #[getter]
+    pub fn prefix(&self) -> Self {
+        Self(self.0.prefix().into())
+    }
+    #[getter]
+    pub fn suffix(&self) -> String {
+        self.0.suffix().into()
+    }
     pub fn equals(&self, other: &Self) -> bool {
         self == other
     }
