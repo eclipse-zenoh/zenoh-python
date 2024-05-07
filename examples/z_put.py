@@ -110,7 +110,7 @@ def main():
     # - UTF-16 String specifying the charset as Encoding suffix
     # session.put('demo/example/UTF-16',
     #             'hello'.encode('utf-16'),
-    #             encoding=zenoh.Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16'))
+    #             encoding=zenoh.Encoding.TEXT_PLAIN().with_suffix(';charset=utf-16'))
 
     session.close()
 
