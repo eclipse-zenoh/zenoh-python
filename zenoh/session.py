@@ -199,7 +199,7 @@ class Session(_Session):
         :param target: The queryables that should be target to this query
         :param value: An optional value to attach to this query
         :param attachment: An optional attachment to send along with this query
-        :param timeout: An optional value to the timeout of this query
+        :param timeout: An optional value to the timeout in seconds of this query
         :return: The receiver of the handler
         :rtype: Receiver
 

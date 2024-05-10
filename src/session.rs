@@ -162,9 +162,12 @@ impl _Session {
             }
             match kwargs.extract_item::<f64>("timeout") {
                 Ok(timeout) => {
-                    builder = builder.timeout(Duration::try_from_secs_f64(timeout).or(Err(
-                        pyo3::exceptions::PyTypeError::new_err("Wrong timeout value"),
-                    ))?)
+                    builder =
+                        builder.timeout(Duration::try_from_secs_f64(timeout).or_else(|_| {
+                            Err(pyo3::exceptions::PyTypeError::new_err(
+                                "Wrong timeout value",
+                            ))
+                        })?)
                 }
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
