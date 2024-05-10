@@ -164,7 +164,7 @@ impl _Session {
                 Ok(timeout) => {
                     builder =
                         builder.timeout(Duration::try_from_secs_f64(timeout).map_err(|_| {
-                            pyo3::exceptions::PyTypeError::new_err("Wrong timeout value")
+                            pyo3::exceptions::PyValueError::new_err("Wrong timeout value")
                         })?)
                 }
                 Err(crate::ExtractError::Other(e)) => return Err(e),
