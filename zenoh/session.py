@@ -185,7 +185,7 @@ class Session(_Session):
 
     def get(self, selector: IntoSelector, handler: IntoHandler[Reply, Any, Receiver],
             consolidation: QueryConsolidation = None, target: QueryTarget = None, value: IntoValue = None,
-            attachment: IntoAttachment = None) -> Receiver:
+            attachment: IntoAttachment = None, timeout: float = None) -> Receiver:
         """
         Emits a query, which queryables with intersecting selectors will be able to reply to.
 
@@ -199,6 +199,7 @@ class Session(_Session):
         :param target: The queryables that should be target to this query
         :param value: An optional value to attach to this query
         :param attachment: An optional attachment to send along with this query
+        :param timeout: An optional value to the timeout in seconds of this query
         :return: The receiver of the handler
         :rtype: Receiver
 
@@ -239,6 +240,8 @@ class Session(_Session):
             kwargs["value"] = Value(value)
         if attachment is not None:
             kwargs["attachment"] = Attachment(attachment)
+        if timeout is not None:
+            kwargs["timeout"] = timeout
         super().get(Selector(selector), handler.closure, **kwargs)
         return handler.receiver
 

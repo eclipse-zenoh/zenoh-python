@@ -36,6 +36,7 @@ use crate::keyexpr::{_KeyExpr, _Selector};
 use crate::queryable::{_Query, _Queryable};
 use crate::value::{_Attachment, _Hello, _Reply, _Sample, _Value, _ZenohId};
 use crate::{PyAnyToValue, PyExtract, ToPyErr};
+use std::time::Duration;
 
 #[pyclass(subclass)]
 #[derive(Clone)]
@@ -156,6 +157,16 @@ impl _Session {
             }
             match kwargs.extract_item::<_Attachment>("attachment") {
                 Ok(attachment) => builder = builder.with_attachment(attachment.0),
+                Err(crate::ExtractError::Other(e)) => return Err(e),
+                _ => {}
+            }
+            match kwargs.extract_item::<f64>("timeout") {
+                Ok(timeout) => {
+                    builder =
+                        builder.timeout(Duration::try_from_secs_f64(timeout).map_err(|_| {
+                            pyo3::exceptions::PyValueError::new_err("Wrong timeout value")
+                        })?)
+                }
                 Err(crate::ExtractError::Other(e)) => return Err(e),
                 _ => {}
             }
