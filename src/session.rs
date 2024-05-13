@@ -14,7 +14,7 @@
 use std::{sync::Arc, time::Duration};
 
 use pyo3::{
-    exceptions::PyTypeError,
+    exceptions::PyValueError,
     prelude::*,
     types::{PyDict, PyTuple},
 };
@@ -243,11 +243,10 @@ pub(crate) fn open(py: Python, config: Option<Config>) -> PyResult<Resolve<Sessi
 }
 
 pub(crate) fn timeout(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
-    if let Ok(d) = u64::extract_bound(obj) {
-        Ok(Some(Duration::new(d, 0)))
-    } else if let Ok(d) = f64::extract_bound(obj) {
-        Ok(Some(Duration::from_secs_f64(d)))
-    } else {
-        Err(PyTypeError::new_err("invalid timeout"))
+    if obj.is_none() {
+        return Ok(None);
     }
+    Duration::try_from_secs_f64(f64::extract_bound(obj)?)
+        .map(Some)
+        .map_err(|_| PyValueError::new_err("negative timeout"))
 }
