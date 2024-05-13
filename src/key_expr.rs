@@ -83,4 +83,9 @@ impl KeyExpr {
         self.0.hash(&mut hasher);
         hasher.finish() as isize
     }
+
+    // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113
+    fn __truediv__(&self, other: &Bound<PyAny>) -> PyResult<Self> {
+        Ok(Self(&self.0 / &Self::from_py(other)?.0))
+    }
 }
