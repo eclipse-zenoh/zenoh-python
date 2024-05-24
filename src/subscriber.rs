@@ -22,7 +22,10 @@ use crate::{
     utils::{droppable_wrapper, enum_mapper, generic},
 };
 
-enum_mapper!(zenoh::subscriber::Reliability: u8 {BestEffort, Reliable});
+enum_mapper!(zenoh::subscriber::Reliability: u8 {
+    BestEffort,
+    Reliable
+});
 
 #[pymethods]
 impl Reliability {
