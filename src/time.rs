@@ -15,7 +15,7 @@ use std::time::SystemTime;
 
 use pyo3::prelude::*;
 
-use crate::utils::wrapper;
+use crate::macros::wrapper;
 
 wrapper!(zenoh::time::Timestamp: Clone, PartialEq, PartialOrd);
 

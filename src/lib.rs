@@ -17,6 +17,7 @@ mod encoding;
 mod handlers;
 mod info;
 mod key_expr;
+mod macros;
 mod publication;
 mod query;
 mod queryable;

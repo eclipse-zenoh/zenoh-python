@@ -16,7 +16,7 @@ use pyo3::{prelude::*, types::PyType};
 use crate::{
     bytes::ZBytes,
     encoding::Encoding,
-    utils::{downcast_or_new, wrapper},
+    macros::{downcast_or_new, wrapper},
 };
 
 wrapper!(zenoh::value::Value: Clone);

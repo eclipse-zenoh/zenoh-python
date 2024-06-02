@@ -108,9 +108,6 @@ def main():
 
     # - Json (str format)
     # session.put('demo/example/Json',
-    #             ['foo', {'bar': ('baz', None, 1.0, 2)}],
-    #             encoding=zenoh.Encoding.TEXT_JSON)
-    # session.put('demo/example/Json',
     #             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]).encode(),
     #             encoding=zenoh.Encoding.TEXT_JSON))
 

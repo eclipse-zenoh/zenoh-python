@@ -30,6 +30,7 @@ use crate::{
     handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
     info::SessionInfo,
     key_expr::KeyExpr,
+    macros::{bail, build, build_with, droppable_wrapper},
     publication::{CongestionControl, Priority, Publisher},
     query::{ConsolidationMode, QueryTarget, Reply},
     queryable::{Query, Queryable},
@@ -37,7 +38,7 @@ use crate::{
     sample::Sample,
     selector::Selector,
     subscriber::{Reliability, Subscriber},
-    utils::{bail, build, build_with, droppable_wrapper, IntoPython},
+    utils::IntoPython,
 };
 
 droppable_wrapper!(Session, Arc<zenoh::Session>, "Closed session");

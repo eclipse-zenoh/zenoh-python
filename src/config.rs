@@ -24,7 +24,8 @@ use zenoh_protocol::core::EndPoint;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{bail, downcast_or_new, enum_mapper, wrapper, IntoPyErr, IntoPyResult, IntoRust},
+    macros::{bail, downcast_or_new, enum_mapper, wrapper},
+    utils::{IntoPyErr, IntoPyResult, IntoRust},
 };
 
 fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {

@@ -13,7 +13,10 @@
 //
 use pyo3::prelude::*;
 
-use crate::utils::{downcast_or_new, wrapper, MapInto};
+use crate::{
+    macros::{downcast_or_new, wrapper},
+    utils::MapInto,
+};
 
 wrapper!(zenoh::prelude::Encoding: Clone, Default);
 downcast_or_new!(Encoding => Option<String>);

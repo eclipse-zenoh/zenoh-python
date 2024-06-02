@@ -17,7 +17,8 @@ use pyo3::prelude::*;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{downcast_or_new, wrapper, IntoPyResult, MapInto},
+    macros::{downcast_or_new, wrapper},
+    utils::{IntoPyResult, MapInto},
 };
 
 wrapper!(zenoh::selector::Selector<'static>: Clone);

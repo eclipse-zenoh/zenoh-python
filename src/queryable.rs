@@ -22,10 +22,11 @@ use crate::{
     encoding::Encoding,
     handlers::HandlerImpl,
     key_expr::KeyExpr,
+    macros::{build, droppable_wrapper, wrapper},
     publication::{CongestionControl, Priority},
     resolve::{resolve, Resolve},
     selector::{Parameters, Selector},
-    utils::{build, droppable_wrapper, generic, wrapper, MapInto},
+    utils::{generic, MapInto},
     value::Value,
 };
 

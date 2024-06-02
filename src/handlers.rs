@@ -13,10 +13,14 @@
 //
 use std::{fmt, marker::PhantomData};
 
-use pyo3::{exceptions::PyAttributeError, prelude::*, types::PyType};
+use pyo3::{
+    exceptions::{PyAttributeError, PyValueError},
+    prelude::*,
+    types::PyType,
+};
 use zenoh::handlers::{Callback, Dyn, IntoHandler};
 
-use crate::utils::{bail, generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust};
+use crate::utils::{generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust};
 
 #[pyclass]
 #[derive(Clone)]
@@ -382,7 +386,10 @@ where
             }));
         }
     }
-    bail!("Invalid handler {}", obj.get_type().name()?);
+    Err(PyValueError::new_err(format!(
+        "Invalid handler {}",
+        obj.get_type().name()?
+    )))
 }
 
 pub(crate) fn handler_or_default<T: IntoRust>(

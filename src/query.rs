@@ -15,7 +15,8 @@ use pyo3::prelude::*;
 
 use crate::{
     config::ZenohId,
-    utils::{enum_mapper, wrapper, IntoPython},
+    macros::{enum_mapper, wrapper},
+    utils::IntoPython,
 };
 
 enum_mapper!(zenoh::query::QueryTarget: u8 {

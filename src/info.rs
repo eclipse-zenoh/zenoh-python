@@ -17,10 +17,7 @@ use pyo3::{prelude::*, types::PyList};
 use zenoh::SessionDeclarations;
 use zenoh_core::SyncResolve;
 
-use crate::{
-    config::ZenohId,
-    utils::{zerror, IntoPython},
-};
+use crate::{config::ZenohId, macros::zerror, utils::IntoPython};
 
 #[pyclass]
 pub(crate) struct SessionInfo(pub(crate) Weak<zenoh::Session>);

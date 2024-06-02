@@ -18,9 +18,10 @@ use crate::{
     bytes::ZBytes,
     encoding::Encoding,
     key_expr::KeyExpr,
+    macros::{build, enum_mapper, wrapper},
     publication::{CongestionControl, Priority},
     time::Timestamp,
-    utils::{build, enum_mapper, wrapper, MapInto},
+    utils::MapInto,
 };
 
 wrapper!(zenoh::sample::QoS);

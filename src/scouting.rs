@@ -21,8 +21,9 @@ use pyo3::{
 use crate::{
     config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
     handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
+    macros::{droppable_wrapper, wrapper},
     resolve::{resolve, Resolve},
-    utils::{droppable_wrapper, generic, wrapper},
+    utils::generic,
 };
 
 wrapper!(zenoh::scouting::Hello);

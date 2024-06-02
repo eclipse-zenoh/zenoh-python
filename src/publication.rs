@@ -21,8 +21,8 @@ use crate::{
     bytes::ZBytes,
     encoding::Encoding,
     key_expr::KeyExpr,
+    macros::{build, droppable_wrapper, enum_mapper},
     resolve::{resolve, Resolve},
-    utils::{build, droppable_wrapper, enum_mapper},
 };
 
 enum_mapper!(zenoh::publication::Priority: u8 {

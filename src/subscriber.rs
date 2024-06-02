@@ -17,9 +17,10 @@ use pyo3::types::{PyDict, PyIterator, PyTuple, PyType};
 use crate::{
     handlers::HandlerImpl,
     key_expr::KeyExpr,
+    macros::{droppable_wrapper, enum_mapper},
     resolve::{resolve, Resolve},
     sample::Sample,
-    utils::{droppable_wrapper, enum_mapper, generic},
+    utils::generic,
 };
 
 enum_mapper!(zenoh::subscriber::Reliability: u8 {
