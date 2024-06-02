@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 
 use crate::{
     key_expr::KeyExpr,
-    utils::{downcast_or_new, wrapper, IntoPyResult},
+    utils::{downcast_or_new, wrapper, IntoPyResult, MapInto},
 };
 
 wrapper!(zenoh::selector::Selector<'static>: Clone);
@@ -27,7 +27,10 @@ downcast_or_new!(Selector, None);
 impl Selector {
     #[new]
     #[pyo3(signature = (arg, /, parameters = None))]
-    pub(crate) fn new(arg: &Bound<PyAny>, parameters: Option<Parameters>) -> PyResult<Self> {
+    pub(crate) fn new(
+        arg: &Bound<PyAny>,
+        #[pyo3(from_py_with = "Parameters::from_py_opt")] parameters: Option<Parameters>,
+    ) -> PyResult<Self> {
         Ok(Self(if let Some(params) = parameters {
             zenoh::selector::Selector::new(KeyExpr::from_py(arg)?.0, params.0)
         } else {
@@ -68,15 +71,7 @@ impl Selector {
 }
 
 wrapper!(zenoh::selector::Parameters<'static>: Clone);
-
-impl Parameters {
-    pub(crate) fn from_py(obj: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(this) = Self::extract_bound(obj) {
-            return Ok(this);
-        }
-        Self::new(obj)
-    }
-}
+downcast_or_new!(Parameters);
 
 #[pymethods]
 impl Parameters {
@@ -96,8 +91,9 @@ impl Parameters {
         self.0.contains_key(key)
     }
 
-    fn get(&self, key: String) -> Option<&str> {
-        self.0.get(key)
+    #[pyo3(signature = (key, default = None))]
+    fn get(&self, key: String, default: Option<String>) -> Option<String> {
+        self.0.get(key).map_into().or(default)
     }
 
     fn values(&self, key: String) -> Vec<&str> {
@@ -128,8 +124,8 @@ impl Parameters {
         self.contains_key(key)
     }
 
-    fn __getitem__(&self, key: String) -> Option<&str> {
-        self.get(key)
+    fn __getitem__(&self, key: String) -> Option<String> {
+        self.get(key, None)
     }
 
     fn __iter__(&self) -> Vec<(&str, &str)> {

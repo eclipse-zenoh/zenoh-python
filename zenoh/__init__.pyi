@@ -38,13 +38,13 @@ class _CallableDrop(Protocol[_T]):
 _PythonCallback = Callable[[_T], Any] | _CallableDrop[_T]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
+@final
 class ZError(Exception): ...
 
 @final
 class Config:
     """The main configuration structure for Zenoh."""
 
-    def __new__(cls) -> Self: ...
     @property
     def id(self) -> ZenohId:
         """The Zenoh ID of the instance. This ID MUST be unique throughout your Zenoh infrastructure and cannot exceed 16 bytes of length. If left unset, a random u128 will be generated."""
@@ -159,7 +159,7 @@ class Encoding:
     """YAML data intended to be human readable.
 
     Constant alias for string: "text/yaml"."""
-    TEST_JSON5: Self
+    TEXT_JSON5: Self
     """JSON5 encoded data that are human readable.
 
     Constant alias for string: "text/json5"."""
@@ -380,14 +380,14 @@ _IntoKeyExpr = KeyExpr | str
 
 @final
 class Parameters:
-    def __new__(cls, parameters: _IntoParameters): ...
+    def __new__(cls, parameters: dict[str, str] | str): ...
     def is_empty(self) -> bool:
         """Returns true if properties does not contain anything."""
 
     def contains_key(self, key: str) -> bool:
         """Returns true if properties contains the specified key."""
 
-    def get(self, key: str) -> str | None:
+    def get(self, key: str, default: str | None = None) -> str | None:
         """Returns the value corresponding to the key."""
 
     def values(self, key: str) -> list[str]:
@@ -399,7 +399,7 @@ class Parameters:
     def remove(self, key: str):
         """Removes a key from the map, returning the value at the key if the key was previously in the properties."""
 
-    def extends(self, parameters: _IntoParameters):
+    def extend(self, parameters: _IntoParameters):
         """Extend these properties with other properties."""
 
     def is_ordered(self) -> bool:
@@ -411,7 +411,7 @@ class Parameters:
     def __iter__(self) -> list[tuple[str, str]]: ...
     def __str__(self) -> str: ...
 
-_IntoParameters = dict[str, str] | str
+_IntoParameters = Parameters | dict[str, str] | str
 
 @final
 class Priority(Enum):
@@ -662,7 +662,7 @@ class Session:
         Sessions are automatically closed when dropped, but you may want to use this function to handle errors or close the Session asynchronously.
         """
 
-    def undeclare(self, obj): ...
+    def undeclare(self, obj: KeyExpr): ...
     def config(self) -> Config:
         """Get the current configuration of the zenoh Session.
         The returned configuration Notifier can be used to read the current zenoh configuration through the get function or modify the zenoh configuration through the insert, or insert_json5 funtion.
@@ -915,7 +915,7 @@ _IntoWhatAmIMatcher = WhatAmIMatcher | str
 class ZBytes:
     """ZBytes contains the serialized bytes of user data."""
 
-    def __new__(cls, arg: Any) -> Self: ...
+    def __new__(cls, obj: Any = None) -> Self: ...
     def deserialize(self, tp: type[_T]) -> _T:
         """Deserialize payload to the given types,
         using default or registered deserializer"""

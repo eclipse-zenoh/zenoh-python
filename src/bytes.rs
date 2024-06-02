@@ -115,13 +115,16 @@ pub(crate) fn deserializer<'py, 'a>(arg: &'a Bound<'py, PyAny>) -> PyResult<&'a 
     Ok(arg)
 }
 
-wrapper!(zenoh::bytes::ZBytes: Clone);
+wrapper!(zenoh::bytes::ZBytes: Clone, Default);
 downcast_or_new!(ZBytes);
 
 #[pymethods]
 impl ZBytes {
     #[new]
-    fn new(obj: &Bound<PyAny>) -> PyResult<ZBytes> {
+    fn new(obj: Option<&Bound<PyAny>>) -> PyResult<Self> {
+        let Some(obj) = obj else {
+            return Ok(Self::default());
+        };
         let py = obj.py();
         Ok(Self(if let Ok(b) = obj.downcast::<PyBytes>() {
             zenoh::bytes::ZBytes::new(b.as_bytes().to_vec())

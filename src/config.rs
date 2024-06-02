@@ -201,7 +201,7 @@ impl WhatAmI {
 }
 
 wrapper!(zenoh::config::WhatAmIMatcher: Clone, Copy);
-downcast_or_new!(WhatAmIMatcher => String);
+downcast_or_new!(WhatAmIMatcher => Option<String>);
 
 impl Default for WhatAmIMatcher {
     fn default() -> Self {
@@ -216,7 +216,10 @@ impl Default for WhatAmIMatcher {
 #[pymethods]
 impl WhatAmIMatcher {
     #[new]
-    pub(crate) fn new(s: String) -> PyResult<Self> {
+    pub(crate) fn new(s: Option<String>) -> PyResult<Self> {
+        let Some(s) = s else {
+            return Ok(Self(zenoh::config::WhatAmIMatcher::empty()));
+        };
         let res = s.parse().map_err(|_| "invalid WhatAmI matcher");
         Ok(Self(res.into_pyres()?))
     }

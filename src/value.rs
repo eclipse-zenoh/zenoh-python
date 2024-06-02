@@ -11,7 +11,7 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyType};
 
 use crate::{
     bytes::ZBytes,
@@ -30,6 +30,15 @@ impl Value {
         #[pyo3(from_py_with = "Encoding::from_py")] encoding: Encoding,
     ) -> PyResult<Self> {
         Ok(Self(zenoh::value::Value::new(payload.0, encoding.0)))
+    }
+
+    #[classmethod]
+    fn empty(_cls: &Bound<PyType>) -> Self {
+        Self(zenoh::value::Value::empty())
+    }
+
+    fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     #[getter]

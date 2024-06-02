@@ -13,16 +13,16 @@
 //
 use pyo3::prelude::*;
 
-use crate::utils::{downcast_or_new, wrapper};
+use crate::utils::{downcast_or_new, wrapper, MapInto};
 
 wrapper!(zenoh::prelude::Encoding: Clone, Default);
-downcast_or_new!(Encoding => String);
+downcast_or_new!(Encoding => Option<String>);
 
 #[pymethods]
 impl Encoding {
     #[new]
-    pub(crate) fn new(s: String) -> PyResult<Self> {
-        Ok(Self(s.into()))
+    pub(crate) fn new(s: Option<String>) -> PyResult<Self> {
+        Ok(s.map_into().map(Self).unwrap_or_default())
     }
 
     fn with_schema(&self, schema: String) -> Self {
