@@ -11,7 +11,11 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::{fmt, marker::PhantomData};
+use std::{
+    fmt,
+    marker::PhantomData,
+    time::{Duration, Instant},
+};
 
 use pyo3::{
     exceptions::{PyAttributeError, PyValueError},
@@ -20,7 +24,15 @@ use pyo3::{
 };
 use zenoh::handlers::{Callback, Dyn, IntoHandler};
 
-use crate::utils::{generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust};
+use crate::{
+    utils::{generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust},
+    ZError,
+};
+
+const CHECK_SIGNALS_INTERVAL: Duration = Duration::from_millis(100);
+fn check_signals_deadline() -> Instant {
+    Instant::now() + CHECK_SIGNALS_INTERVAL
+}
 
 #[pyclass]
 #[derive(Clone)]
@@ -110,8 +122,12 @@ impl Handler {
         this
     }
 
-    fn __next__(&self, py: Python) -> Option<PyObject> {
-        self.0.recv(py).ok()
+    fn __next__(&self, py: Python) -> PyResult<Option<PyObject>> {
+        match self.0.recv(py) {
+            Ok(obj) => Ok(Some(obj)),
+            Err(err) if err.is_instance_of::<ZError>(py) => Ok(None),
+            Err(err) => Err(err),
+        }
     }
 
     fn __repr__(&self) -> String {
@@ -226,14 +242,6 @@ impl<T> fmt::Debug for HandlerImpl<T> {
     }
 }
 
-impl<T: Send + Sync + 'static> IntoPython for HandlerImpl<T> {
-    type Into = Self;
-
-    fn into_python(self) -> Self::Into {
-        self
-    }
-}
-
 impl<T> IntoPy<PyObject> for HandlerImpl<T> {
     fn into_py(self, _: Python<'_>) -> PyObject {
         match self {
@@ -301,11 +309,25 @@ where
     _phantom: PhantomData<T>,
 }
 
-fn exec_recv<T: IntoPython, E: IntoPyErr + Send>(
+fn try_recv<T: IntoPython, E: IntoPyErr + Send>(
     py: Python,
     f: impl FnOnce() -> Result<T, E> + Send,
 ) -> PyResult<PyObject> {
     Ok(py.allow_threads(f).into_pyres()?.into_pyobject(py))
+}
+
+fn recv<T: IntoPython, E: IntoPyErr + Send>(
+    py: Python,
+    f: impl Fn() -> Result<T, E> + Sync,
+    is_timeout: impl Fn(&E) -> bool,
+) -> PyResult<PyObject> {
+    loop {
+        match py.allow_threads(&f) {
+            Ok(obj) => return Ok(obj.into_pyobject(py)),
+            Err(err) if is_timeout(&err) => py.check_signals()?,
+            Err(err) => return Err(err.into_pyerr()),
+        }
+    }
 }
 
 impl<T: IntoRust> Receiver for RustHandler<DefaultHandler, T>
@@ -315,12 +337,17 @@ where
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
+
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        exec_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
+        try_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
-        exec_recv(py, || self.handler.recv())
+        recv(
+            py,
+            || self.handler.recv_deadline(check_signals_deadline()),
+            |err| matches!(err, flume::RecvTimeoutError::Timeout),
+        )
     }
 }
 
@@ -331,12 +358,17 @@ where
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
+
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        exec_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
+        try_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
-        exec_recv(py, || self.handler.recv())
+        recv(
+            py,
+            || self.handler.recv_deadline(check_signals_deadline()),
+            |err| matches!(err, flume::RecvTimeoutError::Timeout),
+        )
     }
 }
 
@@ -347,12 +379,14 @@ where
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
+
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        exec_recv(py, || self.handler.try_recv())
+        try_recv(py, || self.handler.try_recv())
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
-        exec_recv(py, || self.handler.recv())
+        // TODO use recv_deadline
+        try_recv(py, || self.handler.recv())
     }
 }
 

@@ -110,19 +110,14 @@ def main():
     zenoh.init_logger()
 
     print("Opening session...")
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
+        print("Declaring Queryable on '{}'...".format(key))
+        session.declare_queryable(key, queryable_callback, complete=complete)
 
-    print("Declaring Queryable on '{}'...".format(key))
-    queryable = session.declare_queryable(key, queryable_callback, complete=complete)
-
-    print("Press CTRL-C to quit...")
-    while True:
-        time.sleep(1)
-
-    # Cleanup: note that even if you forget it, cleanup will happen automatically when
-    # the reference counter reaches 0
-    # queryable.undeclare()
-    # session.close()
+        print("Press CTRL-C to quit...")
+        while True:
+            time.sleep(1)
 
 
-main()
+if __name__ == "__main__":
+    main()

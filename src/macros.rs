@@ -154,30 +154,17 @@ macro_rules! wrapper {
             type Into = $ty;
             fn into_python(self) -> Self::Into { self.into() }
         }
+
+        impl $crate::utils::IntoPython for $ty {
+            type Into = $ty;
+            fn into_python(self) -> Self::Into { self }
+        }
     };
 }
 pub(crate) use wrapper;
 
-macro_rules! droppable_wrapper {
-    ($($path:ident)::* $(<$lf:lifetime, $arg:ty>)?, $error:literal) => {
-        $crate::macros::droppable_wrapper!(@ $($path)::*, $($path)::* $(<$lf, $arg>)?, $error);
-    };
-    ($($path:ident)::* $(<$lf:lifetime>)?, $error:literal) => {
-        $crate::macros::droppable_wrapper!(@ $($path)::*, $($path)::* $(<$lf>)?, $error);
-    };
-    ($($path:ident)::* $(<$arg:ty>)?, $error:literal) => {
-        $crate::macros::droppable_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
-    };
-    ($ty:ident, $path:ty, $error:literal) => {
-        $crate::macros::droppable_wrapper!(@ $ty, $path, $error);
-    };
-    (@ $ty:ident::$($tt:ident)::*, $path:path, $error:literal) => {
-        $crate::macros::droppable_wrapper!(@ $($tt)::*, $path, $error);
-    };
-    (@ $ty:ident, $path:ty, $error:literal) => {
-        #[pyclass]
-        pub struct $ty(pub(crate) Option<$path>);
-
+macro_rules! option_wrapper {
+    ($ty:ident.$attr:tt: $path:ty, $error:literal) => {
         #[allow(unused)]
         impl $ty {
             fn none() -> PyErr {
@@ -188,35 +175,26 @@ macro_rules! droppable_wrapper {
                 Ok(this)
             }
             fn get_ref(&self) -> PyResult<&$path> {
-                self.0.as_ref().ok_or_else(Self::none)
+                self.$attr.as_ref().ok_or_else(Self::none)
             }
             fn get_mut(&mut self) -> PyResult<&mut $path> {
-                self.0.as_mut().ok_or_else(Self::none)
+                self.$attr.as_mut().ok_or_else(Self::none)
             }
             fn take(&mut self) -> PyResult<$path> {
-                self.0.take().ok_or_else(Self::none)
+                self.$attr.take().ok_or_else(Self::none)
+            }
+            fn wait_drop(&mut self) {
+                Python::with_gil(|gil| gil.allow_threads(|| drop(self.$attr.take())))
             }
         }
 
-        impl From<$path> for $ty {
-            fn from(value: $path) -> Self {
-                Self(Some(value))
-            }
-        }
-
-        impl $crate::utils::IntoPython for $path {
+        impl $crate::utils::IntoPython for $ty {
             type Into = $ty;
-            fn into_python(self) -> Self::Into { self.into() }
-        }
-
-        impl Drop for $ty {
-            fn drop(&mut self) {
-                Python::with_gil(|gil| gil.allow_threads(|| drop(self.0.take())))
-            }
+            fn into_python(self) -> Self::Into { self }
         }
     };
 }
-pub(crate) use droppable_wrapper;
+pub(crate) use option_wrapper;
 
 macro_rules! build {
     ($builder:expr, $($value:ident),* $(,)?) => {|| {

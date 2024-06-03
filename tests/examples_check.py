@@ -1,11 +1,5 @@
 # Copyright (c) 2017, 2022 ZettaScale Technology Inc.
-
-# This program and the accompanying materials are made available under the
-# terms of the Eclipse Public License 2.0 which is available at
-# http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
-# which is available at https://www.apache.org/licenses/LICENSE-2.0.
-
-# SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+import threading
 
 # Contributors:
 #   ZettaScale Zenoh team, <zenoh@zettascale.tech>
@@ -15,10 +9,17 @@ from os import getpgid, killpg, path
 from signal import SIGINT
 from subprocess import PIPE, Popen
 
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+
+# SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+
+
 examples = path.realpath(__file__).split("/tests")[0] + "/examples/"
 tab = "\t"
 ret = "\r\n"
-KILL = -9
 
 
 class Pyrun:
@@ -46,14 +47,13 @@ class Pyrun:
         print(f"{self.name} stderr:")
         print(f"{tab}{tab.join(self.stderr)}")
 
-    def status(self, expecting=0, do_print=True):
+    def status(self, expecting=0):
         status = self.wait()
         formatted = (
-            f"{self.name}: returned {status} (expected {expecting}) - {self.time:.2}s"
+            f"{self.name}: returned {status} (expected {-expecting}) - {self.time:.2}s"
         )
-        if do_print:
-            print(formatted)
-        return formatted if status != expecting else None
+        print(formatted)
+        return formatted if status != -expecting else None
 
     def wait(self):
         try:
@@ -69,6 +69,7 @@ class Pyrun:
         # send SIGINT to process group
         pgid = getpgid(self.process.pid)
         killpg(pgid, SIGINT)
+        return self.status(SIGINT)
 
     @property
     def stdout(self):
@@ -94,13 +95,13 @@ errors = []
 # Test z_info & z_scout
 print("=> Test z_info & z_scout")
 info = Pyrun("z_info.py")
-if info.status():
+if error := info.status():
     info.dbg()
-    errors.append(info.status())
+    errors.append(error)
 scout = Pyrun("z_scout.py")
-if scout.status():
+if error := scout.status():
     scout.dbg()
-    errors.append(scout.status())
+    errors.append(error)
 
 # Test z_get & z_queryable
 print("=> Test z_get & z_queryable")
@@ -109,9 +110,9 @@ queryable = Pyrun("z_queryable.py", ["-k=demo/example/zenoh-python-queryable"])
 time.sleep(1)
 ## z_get: Able to get reply from queryable
 get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-queryable"])
-if get.status():
+if error := get.status():
     get.dbg()
-    errors.append(get.status())
+    errors.append(error)
 if not (
     "Received ('demo/example/zenoh-python-queryable': 'Queryable from Python!')"
     in "".join(get.stdout)
@@ -120,10 +121,9 @@ if not (
     queryable.dbg()
     errors.append("z_get didn't get a response from z_queryable")
 ## Stop z_queryable
-queryable.interrupt()
-if queryable.status(KILL):
+if error := queryable.interrupt():
     queryable.dbg()
-    errors.append(queryable.status(KILL))
+    errors.append(error)
 queryableout = "".join(queryable.stdout)
 if not ("Received Query 'demo/example/zenoh-python-queryable'" in queryableout):
     errors.append("z_queryable didn't catch query")
@@ -137,18 +137,18 @@ sub = Pyrun("z_sub.py")
 time.sleep(1)
 ## z_put: Put one message (to storage & sub)
 put = Pyrun("z_put.py")
-if put.status():
+if error := put.status():
     put.dbg()
-    errors.append(put.status())
+    errors.append(error)
 time.sleep(1)
 ## z_pub: Put two messages (to storage & sub)
 pub = Pyrun("z_pub.py", ["--iter=2"])
 time.sleep(4)
 ## z_get: Able to get put from storage
 get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-put"])
-if get.status():
+if error := get.status():
     get.dbg()
-    errors.append(get.status())
+    errors.append(error)
 if not (
     "Received ('demo/example/zenoh-python-put': 'Put from Python!')"
     in "".join(get.stdout)
@@ -160,15 +160,15 @@ if any(("z_get" in error) for error in errors):
 time.sleep(1)
 ## z_delete: Delete put in storage
 delete = Pyrun("z_delete.py")
-if delete.status():
+if error := delete.status():
     delete.dbg()
-    errors.append(delete.status())
+    errors.append(error)
 time.sleep(1)
 ## z_get: Unable to get put from storage
 get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-put"])
-if get.status():
+if error := get.status():
     get.dbg()
-    errors.append(get.status())
+    errors.append(error)
 if "Received ('demo/example/zenoh-python-put': 'Put from Python!')" in "".join(
     get.stdout
 ):
@@ -178,10 +178,9 @@ if any(("z_get" in error) for error in errors):
     get.dbg()
 time.sleep(1)
 ## z_sub: Should receive put, pub and delete
-sub.interrupt()
-if sub.status(KILL):
+if error := sub.interrupt():
     sub.dbg()
-    errors.append(sub.status(KILL))
+    errors.append(error)
 subout = "".join(sub.stdout)
 if not (
     "Received SampleKind.PUT ('demo/example/zenoh-python-put': 'Put from Python!')"
@@ -198,10 +197,9 @@ if not ("Received SampleKind.DELETE ('demo/example/zenoh-python-put': '')" in su
 if any(("z_sub" in error) for error in errors):
     sub.dbg()
 ## z_storage: Should receive put, pub, delete, and query
-storage.interrupt()
-if storage.status(KILL):
+if error := storage.interrupt():
     storage.dbg()
-    errors.append(storage.status(KILL))
+    errors.append(error)
 storageout = "".join(storage.stdout)
 if not (
     "Received SampleKind.PUT ('demo/example/zenoh-python-put': 'Put from Python!')"
@@ -227,16 +225,17 @@ print("=> Test z_pull & z_sub_queued")
 ## Run z_pull and z_sub_queued
 sub_queued = Pyrun("z_sub_queued.py")
 time.sleep(1)
-pull = Pyrun("z_pull.py", ["--size=1", "--interval=5"])
+pull = Pyrun("z_pull.py", ["--size=1", "--interval=1"])
 time.sleep(1)
 ## z_pub: Put two messages (to storage & sub)
-pub = Pyrun("z_pub.py", ["--iter=2"])
-time.sleep(4)
+pub = Pyrun("z_pub.py", ["--iter=2", "--interval=0"])
+if error := pub.status():
+    pub.dbg()
+    errors.append(error)
 ## z_sub_queued: Should receive two messages
-sub_queued.interrupt()
-if sub_queued.status(KILL):
+if error := sub_queued.interrupt():
     sub_queued.dbg()
-    errors.append(sub_queued.status(KILL))
+    errors.append(error)
 sub_queued_out = "".join(sub_queued.stdout)
 if not (
     "Received SampleKind.PUT ('demo/example/zenoh-python-pub': '[   0] Pub from Python!')"
@@ -251,7 +250,10 @@ if not (
 if any(("z_sub_queued" in error) for error in errors):
     sub_queued.dbg()
 ## z_pull: Should only receive the last messages
-pull.interrupt()
+time.sleep(1)
+if error := pull.interrupt():
+    pull.dbg()
+    errors.append(error)
 pullout = "".join(pull.stdout)
 if (
     "Received SampleKind.PUT ('demo/example/zenoh-python-pub': '[   0] Pub from Python!')"
@@ -271,14 +273,12 @@ print("=> Test z_sub_thr & z_pub_thr")
 sub_thr = Pyrun("z_sub_thr.py")
 pub_thr = Pyrun("z_pub_thr.py", ["128"])
 time.sleep(5)
-sub_thr.process.kill()
-pub_thr.process.kill()
-if sub_thr.status(KILL):
+if error := sub_thr.interrupt():
     sub_thr.dbg()
-    errors.append(sub_thr.status(KILL))
-if pub_thr.status(KILL):
+    errors.append(error)
+if error := pub_thr.interrupt():
     pub_thr.dbg()
-    errors.append(pub_thr.status(KILL))
+    errors.append(error)
 
 
 if len(errors):

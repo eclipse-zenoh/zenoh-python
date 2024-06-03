@@ -82,12 +82,15 @@ def main():
         data.append(i % 10)
     congestion_control = zenoh.CongestionControl.BLOCK
 
-    session = zenoh.open(conf)
-    pub = session.declare_publisher("test/thr", congestion_control=congestion_control)
+    with zenoh.open(conf) as session:
+        pub = session.declare_publisher(
+            "test/thr", congestion_control=congestion_control
+        )
 
-    print("Press CTRL-C to quit...")
-    while True:
-        pub.put(bytes(data))
+        print("Press CTRL-C to quit...")
+        while True:
+            pub.put(bytes(data))
 
 
-main()
+if __name__ == "__main__":
+    main()

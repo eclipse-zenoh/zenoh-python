@@ -21,7 +21,6 @@ mod macros;
 mod publication;
 mod query;
 mod queryable;
-mod resolve;
 mod sample;
 mod scouting;
 mod selector;

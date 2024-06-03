@@ -12,15 +12,14 @@
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
 pub(crate) use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyIterator, PyTuple, PyType};
+use pyo3::types::{PyDict, PyIterator, PySet, PyTuple, PyType};
 
 use crate::{
     handlers::HandlerImpl,
     key_expr::KeyExpr,
-    macros::{droppable_wrapper, enum_mapper},
-    resolve::{resolve, Resolve},
+    macros::{enum_mapper, option_wrapper},
     sample::Sample,
-    utils::generic,
+    utils::{generic, wait},
 };
 
 enum_mapper!(zenoh::subscriber::Reliability: u8 {
@@ -34,13 +33,23 @@ impl Reliability {
     const DEFAULT: Self = Self::BestEffort;
 }
 
-droppable_wrapper!(
-    zenoh::subscriber::Subscriber<'static, HandlerImpl<Sample>>,
+#[pyclass]
+pub(crate) struct Subscriber {
+    pub(crate) subscriber: Option<zenoh::subscriber::Subscriber<'static, HandlerImpl<Sample>>>,
+    pub(crate) session_pool: Py<PySet>,
+}
+
+option_wrapper!(
+    Subscriber.subscriber: zenoh::subscriber::Subscriber<'static, HandlerImpl<Sample>>,
     "Undeclared subscriber"
 );
 
 #[pymethods]
 impl Subscriber {
+    fn _drop(&mut self) {
+        self.wait_drop();
+    }
+
     #[classmethod]
     fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
         generic(cls, args)
@@ -52,12 +61,12 @@ impl Subscriber {
 
     #[pyo3(signature = (*_args, **_kwargs))]
     fn __exit__(
-        &mut self,
-        py: Python,
+        this: &Bound<Self>,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<PyObject> {
-        self.undeclare(py)?.wait(py)
+        Self::undeclare(this)?;
+        Ok(this.py().None())
     }
 
     #[getter]
@@ -78,16 +87,20 @@ impl Subscriber {
         self.get_ref()?.handler().recv(py)
     }
 
-    fn undeclare(&mut self, py: Python) -> PyResult<Resolve> {
-        let this = self.take()?;
-        resolve(py, || this.undeclare())
+    fn undeclare(this: &Bound<Self>) -> PyResult<()> {
+        this.borrow()
+            .session_pool
+            .bind(this.py())
+            .discard(this.into_py(this.py()))?;
+        let subscriber = this.borrow_mut().take()?;
+        wait(this.py(), || subscriber.undeclare())
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
         self.handler(py)?.bind(py).iter()
     }
 
-    fn __repr__(&self) -> String {
-        format!("{:?}", self.0)
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.get_ref()?))
     }
 }

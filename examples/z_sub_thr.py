@@ -115,24 +115,17 @@ def main():
     # initiate logging
     zenoh.init_logger()
 
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
+        session.declare_subscriber(
+            "test/thr",
+            zenoh.handlers.CallbackDrop(listener, report),
+            reliability=zenoh.Reliability.RELIABLE,
+        )
 
-    # By explicitly constructing the `Closure`, the `Queue` that's normally inserted between the callback and zenoh is removed.
-    # Only do this if your callback runs faster than the minimum expected delay between two samples.
-    sub = session.declare_subscriber(
-        "test/thr",
-        zenoh.handlers.CallbackDrop(listener, report),
-        reliability=zenoh.Reliability.RELIABLE,
-    )
-
-    print("Press CTRL-C to quit...")
-    while True:
-        time.sleep(1)
-
-    sub.undeclare()
-    session.close()
-    # while `sub.undeclare()` only returns once the unsubscription is done (no more callbacks will be queued from that instant), already queued callbacks may still be running in threads that Python can't see.
-    time.sleep(0.1)
+        print("Press CTRL-C to quit...")
+        while True:
+            time.sleep(1)
 
 
-main()
+if __name__ == "__main__":
+    main()

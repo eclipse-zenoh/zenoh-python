@@ -144,3 +144,10 @@ pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
     let name = std::any::type_name::<T>();
     name.rsplit_once("::").map_or(name, |(_, name)| name)
 }
+
+pub(crate) fn wait<T: Send, R: zenoh_core::Resolve<zenoh::Result<T>>>(
+    py: Python,
+    resolve: impl FnOnce() -> R + Send,
+) -> PyResult<T> {
+    py.allow_threads(|| resolve().res_sync()).into_pyres()
+}

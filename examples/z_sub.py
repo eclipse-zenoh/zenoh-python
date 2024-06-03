@@ -82,30 +82,23 @@ def main():
     zenoh.init_logger()
 
     print("Opening session...")
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
 
-    print("Declaring Subscriber on '{}'...".format(key))
+        print("Declaring Subscriber on '{}'...".format(key))
 
-    def listener(sample: zenoh.Sample):
-        print(
-            f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
+        def listener(sample: zenoh.Sample):
+            print(
+                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
+            )
+
+        session.declare_subscriber(
+            key, listener, reliability=zenoh.Reliability.RELIABLE
         )
 
-    # WARNING, you MUST store the return value in order for the subscription to work!!
-    # This is because if you don't, the reference counter will reach 0 and the subscription
-    # will be immediately undeclared.
-    sub = session.declare_subscriber(
-        key, listener, reliability=zenoh.Reliability.RELIABLE
-    )
-
-    print("Press CTRL-C to quit...")
-    while True:
-        time.sleep(1)
-
-    # Cleanup: note that even if you forget it, cleanup will happen automatically when
-    # the reference counter reaches 0
-    # sub.undeclare()
-    # session.close()
+        print("Press CTRL-C to quit...")
+        while True:
+            time.sleep(1)
 
 
-main()
+if __name__ == "__main__":
+    main()

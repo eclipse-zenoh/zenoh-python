@@ -81,12 +81,10 @@ def main():
     zenoh.init_logger()
 
     print("Opening session...")
-    session = zenoh.open(conf)
-
-    print("Deleting resources matching '{}'...".format(key))
-    session.delete(key)
-
-    session.close()
+    with zenoh.open(conf) as session:
+        print("Deleting resources matching '{}'...".format(key))
+        session.delete(key)
 
 
-main()
+if __name__ == "__main__":
+    main()

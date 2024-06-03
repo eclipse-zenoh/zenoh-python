@@ -13,7 +13,7 @@
 //
 use pyo3::{
     prelude::*,
-    types::{PyDict, PyIterator, PyTuple, PyType},
+    types::{PyDict, PyIterator, PySet, PyTuple, PyType},
 };
 use zenoh::prelude::{QoSBuilderTrait, ValueBuilderTrait};
 
@@ -22,11 +22,10 @@ use crate::{
     encoding::Encoding,
     handlers::HandlerImpl,
     key_expr::KeyExpr,
-    macros::{build, droppable_wrapper, wrapper},
+    macros::{build, option_wrapper, wrapper},
     publication::{CongestionControl, Priority},
-    resolve::{resolve, Resolve},
     selector::{Parameters, Selector},
-    utils::{generic, MapInto},
+    utils::{generic, wait, MapInto},
     value::Value,
 };
 
@@ -76,7 +75,7 @@ impl Query {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-    ) -> PyResult<Resolve> {
+    ) -> PyResult<()> {
         let build = build!(
             self.0.reply(key_expr, payload),
             encoding,
@@ -84,15 +83,15 @@ impl Query {
             priority,
             express
         );
-        resolve(py, build)
+        wait(py, build)
     }
 
     fn reply_err(
         &self,
         py: Python,
         #[pyo3(from_py_with = "Value::from_py")] value: Value,
-    ) -> PyResult<Resolve> {
-        resolve(py, || self.0.reply_err(value.0))
+    ) -> PyResult<()> {
+        wait(py, || self.0.reply_err(value.0))
     }
 
     #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
@@ -103,14 +102,14 @@ impl Query {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-    ) -> PyResult<Resolve> {
+    ) -> PyResult<()> {
         let build = build!(
             self.0.reply_del(key_expr),
             congestion_control,
             priority,
             express
         );
-        resolve(py, build)
+        wait(py, build)
     }
 
     fn __repr__(&self) -> String {
@@ -122,13 +121,23 @@ impl Query {
     }
 }
 
-droppable_wrapper!(
-    zenoh::queryable::Queryable<'static, HandlerImpl<Query>>,
+#[pyclass]
+pub(crate) struct Queryable {
+    pub(crate) queryable: Option<zenoh::queryable::Queryable<'static, HandlerImpl<Query>>>,
+    pub(crate) session_pool: Py<PySet>,
+}
+
+option_wrapper!(
+    Queryable.queryable: zenoh::queryable::Queryable<'static, HandlerImpl<Query>>,
     "Undeclared queryable"
 );
 
 #[pymethods]
 impl Queryable {
+    fn _drop(&mut self) {
+        self.wait_drop();
+    }
+
     #[classmethod]
     fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
         generic(cls, args)
@@ -140,12 +149,12 @@ impl Queryable {
 
     #[pyo3(signature = (*_args, **_kwargs))]
     fn __exit__(
-        &mut self,
-        py: Python,
+        this: &Bound<Self>,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<PyObject> {
-        self.undeclare(py)?.wait(py)
+        Self::undeclare(this)?;
+        Ok(this.py().None())
     }
 
     #[getter]
@@ -161,16 +170,20 @@ impl Queryable {
         self.get_ref()?.handler().recv(py)
     }
 
-    fn undeclare(&mut self, py: Python) -> PyResult<Resolve> {
-        let this = self.take()?;
-        resolve(py, || this.undeclare())
+    fn undeclare(this: &Bound<Self>) -> PyResult<()> {
+        this.borrow()
+            .session_pool
+            .bind(this.py())
+            .discard(this.into_py(this.py()))?;
+        let queryable = this.borrow_mut().take()?;
+        wait(this.py(), || queryable.undeclare())
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
         self.handler(py)?.bind(py).iter()
     }
 
-    fn __repr__(&self) -> String {
-        format!("{:?}", self.0)
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.get_ref()?))
     }
 }

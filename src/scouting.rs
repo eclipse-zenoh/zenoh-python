@@ -21,9 +21,8 @@ use pyo3::{
 use crate::{
     config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
     handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
-    macros::{droppable_wrapper, wrapper},
-    resolve::{resolve, Resolve},
-    utils::generic,
+    macros::{option_wrapper, wrapper},
+    utils::{generic, wait},
 };
 
 wrapper!(zenoh::scouting::Hello);
@@ -64,7 +63,10 @@ impl Hello {
     }
 }
 
-droppable_wrapper!(zenoh::scouting::Scout<HandlerImpl<Hello>>, "Stopped scout");
+#[pyclass]
+pub(crate) struct Scout(Option<zenoh::scouting::Scout<HandlerImpl<Hello>>>);
+
+option_wrapper!(Scout.0: zenoh::scouting::Scout<HandlerImpl<Hello>>, "Stopped scout");
 
 #[pymethods]
 impl Scout {
@@ -120,9 +122,10 @@ pub(crate) fn scout(
     #[pyo3(from_py_with = "into_handler::<Hello>")] handler: Option<IntoHandlerImpl<Hello>>,
     #[pyo3(from_py_with = "WhatAmIMatcher::from_py_opt")] what: Option<WhatAmIMatcher>,
     config: Option<Config>,
-) -> PyResult<Resolve<Scout>> {
+) -> PyResult<Scout> {
     let what = what.unwrap_or_default();
     let config = config.unwrap_or_default();
     let handler = handler_or_default(py, handler);
-    resolve(py, || zenoh::scout(what, config).with(handler))
+    let scout = wait(py, || zenoh::scout(what, config).with(handler))?;
+    Ok(Scout(Some(scout)))
 }

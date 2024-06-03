@@ -68,7 +68,7 @@ parser.add_argument(
 parser.add_argument(
     "--interval",
     dest="interval",
-    default=5.0,
+    default=1.0,
     type=float,
     help="The interval for pulling the ringbuffer",
 )
@@ -93,32 +93,28 @@ def main():
     zenoh.init_logger()
 
     print("Opening session...")
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
 
-    print("Declaring Subscriber on '{}'...".format(key))
-    # Subscriber doesn't receive messages over the RingBuffer size.
-    # The oldest message is overwritten by the latest one.
-    sub = session.declare_subscriber(
-        key,
-        zenoh.handlers.RingChannel(args.size),
-        reliability=zenoh.Reliability.RELIABLE,
-    )
+        print("Declaring Subscriber on '{}'...".format(key))
+        # Subscriber doesn't receive messages over the RingBuffer size.
+        # The oldest message is overwritten by the latest one.
+        sub = session.declare_subscriber(
+            key,
+            zenoh.handlers.RingChannel(args.size),
+            reliability=zenoh.Reliability.RELIABLE,
+        )
 
-    print("Press CTRL-C to quit...")
-    while True:
-        time.sleep(args.interval)
+        print("Press CTRL-C to quit...")
         while True:
-            sample = sub.try_recv()
-            if sample is None:
-                break
-            print(
-                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
-            )
-
-    # Cleanup: note that even if you forget it, cleanup will happen automatically when
-    # the reference counter reaches 0
-    # sub.undeclare()
-    # session.close()
+            time.sleep(args.interval)
+            while True:
+                sample = sub.try_recv()
+                if sample is None:
+                    break
+                print(
+                    f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
+                )
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -120,25 +120,19 @@ def main():
     zenoh.init_logger()
 
     print("Opening session...")
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
+        print("Declaring Subscriber on '{}'...".format(key))
+        session.declare_subscriber(
+            key, listener, reliability=zenoh.Reliability.RELIABLE
+        )
 
-    print("Declaring Subscriber on '{}'...".format(key))
-    sub = session.declare_subscriber(
-        key, listener, reliability=zenoh.Reliability.RELIABLE
-    )
+        print("Declaring Queryable on '{}'...".format(key))
+        session.declare_queryable(key, query_handler, complete=complete)
 
-    print("Declaring Queryable on '{}'...".format(key))
-    queryable = session.declare_queryable(key, query_handler, complete=complete)
-
-    print("Press CTRL-C to quit...")
-    while True:
-        time.sleep(1)
-
-    # Cleanup: note that even if you forget it, cleanup will happen automatically when
-    # the reference counter reaches 0
-    # sub.undeclare()
-    # queryable.undeclare()
-    # session.close()
+        print("Press CTRL-C to quit...")
+        while True:
+            time.sleep(1)
 
 
-main()
+if __name__ == "__main__":
+    main()

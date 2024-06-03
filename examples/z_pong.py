@@ -81,18 +81,18 @@ def main():
     zenoh.init_logger()
 
     print("Opening session...")
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
+        pub = session.declare_publisher(
+            "test/pong",
+            congestion_control=zenoh.CongestionControl.BLOCK,
+            express=args.express,
+        )
+        session.declare_subscriber("test/ping", lambda s: pub.put(s.payload))
 
-    pub = session.declare_publisher(
-        "test/pong",
-        congestion_control=zenoh.CongestionControl.BLOCK,
-        express=args.express,
-    )
-    sub = session.declare_subscriber("test/ping", lambda s: pub.put(s.payload))
-
-    print("Press CTRL-C to quit...")
-    while True:
-        time.sleep(1)
+        print("Press CTRL-C to quit...")
+        while True:
+            time.sleep(1)
 
 
-main()
+if __name__ == "__main__":
+    main()

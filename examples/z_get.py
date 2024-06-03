@@ -102,28 +102,28 @@ def main():
     zenoh.init_logger()
 
     print("Opening session...")
-    session = zenoh.open(conf)
-
-    print("Sending Query '{}'...".format(selector))
-    replies = session.get(
-        selector,
-        target=target,
-        payload=args.value,
-        consolidation=zenoh.ConsolidationMode.NONE,
-    )
-    for reply in replies:
-        try:
-            print(
-                ">> Received ('{}': '{}')".format(
-                    reply.ok.key_expr, reply.ok.payload.deserialize(str)
+    with zenoh.open(conf) as session:
+        print("Sending Query '{}'...".format(selector))
+        replies = session.get(
+            selector,
+            target=target,
+            payload=args.value,
+            consolidation=zenoh.ConsolidationMode.NONE,
+        )
+        for reply in replies:
+            try:
+                print(
+                    ">> Received ('{}': '{}')".format(
+                        reply.ok.key_expr, reply.ok.payload.deserialize(str)
+                    )
                 )
-            )
-        except:
-            print(
-                ">> Received (ERROR: '{}')".format(reply.err.payload.deserialize(str))
-            )
+            except:
+                print(
+                    ">> Received (ERROR: '{}')".format(
+                        reply.err.payload.deserialize(str)
+                    )
+                )
 
-    session.close()
 
-
-main()
+if __name__ == "__main__":
+    main()

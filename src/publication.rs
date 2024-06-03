@@ -13,7 +13,7 @@
 //
 use pyo3::{
     prelude::*,
-    types::{PyDict, PyTuple},
+    types::{PyDict, PySet, PyTuple},
 };
 use zenoh::prelude::ValueBuilderTrait;
 
@@ -21,8 +21,8 @@ use crate::{
     bytes::ZBytes,
     encoding::Encoding,
     key_expr::KeyExpr,
-    macros::{build, droppable_wrapper, enum_mapper},
-    resolve::{resolve, Resolve},
+    macros::{build, enum_mapper, option_wrapper},
+    utils::wait,
 };
 
 enum_mapper!(zenoh::publication::Priority: u8 {
@@ -58,25 +58,35 @@ impl CongestionControl {
     const DEFAULT: Self = Self::Drop;
 }
 
-droppable_wrapper!(
-    zenoh::publication::Publisher<'static>,
+#[pyclass]
+pub(crate) struct Publisher {
+    pub(crate) publisher: Option<zenoh::publication::Publisher<'static>>,
+    pub(crate) session_pool: Py<PySet>,
+}
+
+option_wrapper!(
+    Publisher.publisher: zenoh::publication::Publisher<'static>,
     "Undeclared publisher"
 );
 
 #[pymethods]
 impl Publisher {
+    fn _drop(&mut self) {
+        self.wait_drop();
+    }
+
     fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> PyResult<&'a Bound<'py, Self>> {
         Self::check(this)
     }
 
     #[pyo3(signature = (*_args, **_kwargs))]
     fn __exit__(
-        &mut self,
-        py: Python,
+        this: &Bound<Self>,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<PyObject> {
-        self.undeclare(py)?.wait(py)
+        Self::undeclare(this)?;
+        Ok(this.py().None())
     }
 
     #[getter]
@@ -104,19 +114,23 @@ impl Publisher {
         py: Python,
         #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
-    ) -> PyResult<Resolve> {
+    ) -> PyResult<()> {
         let this = self.get_ref()?;
-        resolve(py, build!(this.put(payload), encoding))
+        wait(py, build!(this.put(payload), encoding))
     }
 
-    fn delete(&self, py: Python) -> PyResult<Resolve> {
+    fn delete(&self, py: Python) -> PyResult<()> {
         let this = self.get_ref()?;
-        resolve(py, || this.delete())
+        wait(py, || this.delete())
     }
 
-    fn undeclare(&mut self, py: Python) -> PyResult<Resolve> {
-        let this = self.take()?;
-        resolve(py, || this.undeclare())
+    fn undeclare(this: &Bound<Self>) -> PyResult<()> {
+        this.borrow()
+            .session_pool
+            .bind(this.py())
+            .discard(this.into_py(this.py()))?;
+        let publisher = this.borrow_mut().take()?;
+        wait(this.py(), || publisher.undeclare())
     }
 
     fn __repr__(&self) -> PyResult<String> {
