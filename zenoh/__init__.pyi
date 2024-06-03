@@ -456,21 +456,6 @@ class Publisher:
         """Undeclares the Publisher, informing the network that it needn't optimize publications for its key expression anymore."""
 
 @final
-class QoS:
-    def __new__(
-        cls,
-        priority: Priority | None = None,
-        congestion_control: CongestionControl | None = None,
-        express: bool | None = None,
-    ) -> Self: ...
-    @property
-    def priority(self) -> Priority: ...
-    @property
-    def congestion_control(self) -> CongestionControl: ...
-    @property
-    def express(self) -> bool: ...
-
-@final
 class Query:
     """Structs received by a Queryable."""
 

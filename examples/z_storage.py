@@ -109,9 +109,9 @@ def query_handler(query: zenoh.Query):
                 sample.key_expr,
                 sample.payload,
                 encoding=sample.encoding,
-                congestion_control=sample.qos.congestion_control,
-                priority=sample.qos.priority,
-                express=sample.qos.express,
+                congestion_control=sample.congestion_control,
+                priority=sample.priority,
+                express=sample.express,
             )
 
 

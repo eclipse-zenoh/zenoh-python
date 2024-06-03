@@ -92,9 +92,9 @@ def run_session_pubsub(peer01: Session, peer02: Session):
         nonlocal num_errors
         if (
             sample.key_expr != keyexpr
-            or sample.qos.priority != Priority.DATA_HIGH
-            or sample.qos.congestion_control != CongestionControl.BLOCK
-            or sample.payload != msg
+            or sample.priority != Priority.DATA_HIGH
+            or sample.congestion_control != CongestionControl.BLOCK
+            or bytes(sample.payload) != msg
         ):
             num_errors += 1
         num_received += 1

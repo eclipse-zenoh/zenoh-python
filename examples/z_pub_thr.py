@@ -89,7 +89,13 @@ def main():
 
         print("Press CTRL-C to quit...")
         while True:
-            pub.put(bytes(data))
+            try:
+                pub.put(bytes(data))
+            except BaseException:
+                print("Ctrl+C")
+                pub.undeclare()
+                print("Ctrl+C")
+                raise
 
 
 if __name__ == "__main__":
