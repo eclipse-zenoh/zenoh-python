@@ -221,6 +221,14 @@ impl ZBytes {
         })
     }
 
+    fn __len__(&self) -> usize {
+        self.0.len()
+    }
+
+    fn __bool__(&self) -> bool {
+        !self.0.is_empty()
+    }
+
     fn __bytes__<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
         PyBytes::new_bound_with(py, self.0.len(), |mut bytes| {
             for slice in ZBuf::from(&self.0).slices() {
