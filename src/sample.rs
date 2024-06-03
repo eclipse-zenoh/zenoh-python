@@ -11,57 +11,17 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-pub(crate) use pyo3::prelude::*;
-use zenoh::{prelude::QoSBuilderTrait, sample::QoSBuilder};
+use pyo3::prelude::*;
 
 use crate::{
     bytes::ZBytes,
     encoding::Encoding,
     key_expr::KeyExpr,
-    macros::{build, enum_mapper, wrapper},
-    publication::{CongestionControl, Priority},
+    macros::{enum_mapper, wrapper},
+    publisher::{CongestionControl, Priority},
     time::Timestamp,
     utils::MapInto,
 };
-
-wrapper!(zenoh::sample::QoS);
-
-#[pymethods]
-impl QoS {
-    #[new]
-    fn new(
-        priority: Option<Priority>,
-        congestion_control: Option<CongestionControl>,
-        express: Option<bool>,
-    ) -> Self {
-        let build = build!(
-            QoSBuilder::from(zenoh::sample::QoS::default()),
-            priority,
-            congestion_control,
-            express
-        );
-        Self(build().into())
-    }
-
-    #[getter]
-    fn priority(&self) -> Priority {
-        self.0.priority().into()
-    }
-
-    #[getter]
-    fn congestion_control(&self) -> CongestionControl {
-        self.0.congestion_control().into()
-    }
-
-    #[getter]
-    fn express(&self) -> bool {
-        self.0.express()
-    }
-
-    fn __repr__(&self) -> String {
-        format!("{:?}", self.0)
-    }
-}
 
 enum_mapper!(zenoh::sample::SampleKind: u8 {
     Put = 0,
@@ -98,8 +58,18 @@ impl Sample {
     }
 
     #[getter]
-    pub(crate) fn qos(&self) -> QoS {
-        (*self.0.qos()).into()
+    pub fn congestion_control(&self) -> CongestionControl {
+        self.0.congestion_control().into()
+    }
+
+    #[getter]
+    pub fn priority(&self) -> Priority {
+        self.0.priority().into()
+    }
+
+    #[getter]
+    pub fn express(&self) -> bool {
+        self.0.express()
     }
 
     fn __repr__(&self) -> String {

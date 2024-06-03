@@ -25,7 +25,7 @@ use crate::{
     utils::wait,
 };
 
-enum_mapper!(zenoh::publication::Priority: u8 {
+enum_mapper!(zenoh::publisher::Priority: u8 {
     RealTime = 1,
     InteractiveHigh = 2,
     InteractiveLow = 3,
@@ -47,7 +47,7 @@ impl Priority {
     const NUM: usize = 1 + Self::MIN as usize - Self::MAX as usize;
 }
 
-enum_mapper!(zenoh::publication::CongestionControl: u8 {
+enum_mapper!(zenoh::publisher::CongestionControl: u8 {
     Drop = 0,
     Block = 1,
 });
@@ -60,12 +60,12 @@ impl CongestionControl {
 
 #[pyclass]
 pub(crate) struct Publisher {
-    pub(crate) publisher: Option<zenoh::publication::Publisher<'static>>,
+    pub(crate) publisher: Option<zenoh::publisher::Publisher<'static>>,
     pub(crate) session_pool: Py<PySet>,
 }
 
 option_wrapper!(
-    Publisher.publisher: zenoh::publication::Publisher<'static>,
+    Publisher.publisher: zenoh::publisher::Publisher<'static>,
     "Undeclared publisher"
 );
 

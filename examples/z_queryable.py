@@ -107,7 +107,7 @@ def queryable_callback(query):
 
 def main():
     # initiate logging
-    zenoh.init_logger()
+    zenoh.init_logging()
 
     print("Opening session...")
     with zenoh.open(conf) as session:

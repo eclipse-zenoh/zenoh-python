@@ -15,7 +15,7 @@ use pyo3::{
     prelude::*,
     types::{PyDict, PyIterator, PySet, PyTuple, PyType},
 };
-use zenoh::prelude::{QoSBuilderTrait, ValueBuilderTrait};
+use zenoh::prelude::*;
 
 use crate::{
     bytes::ZBytes,
@@ -23,7 +23,7 @@ use crate::{
     handlers::HandlerImpl,
     key_expr::KeyExpr,
     macros::{build, option_wrapper, wrapper},
-    publication::{CongestionControl, Priority},
+    publisher::{CongestionControl, Priority},
     selector::{Parameters, Selector},
     utils::{generic, wait, MapInto},
     value::Value,
@@ -85,13 +85,15 @@ impl Query {
         );
         wait(py, build)
     }
-
+    #[pyo3(signature = (payload, *, encoding = None))]
     fn reply_err(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "Value::from_py")] value: Value,
+        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
     ) -> PyResult<()> {
-        wait(py, || self.0.reply_err(value.0))
+        let build = build!(self.0.reply_err(payload), encoding);
+        wait(py, build)
     }
 
     #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]

@@ -499,7 +499,7 @@ class Query:
         """
 
     def reply_err(self, payload: Any, *, encoding: _IntoEncoding | None = None):
-        """Sends a error reply to this Query."""
+        """Sends an error reply to this Query."""
 
     def reply_del(
         self,
@@ -575,17 +575,39 @@ class SampleKind(Enum):
 @final
 class Sample:
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr:
+        """Gets the key expression on which this Sample was published."""
+
     @property
-    def payload(self) -> ZBytes: ...
+    def payload(self) -> ZBytes:
+        """Gets the payload of this Sample."""
+
     @property
-    def kind(self) -> SampleKind: ...
+    def kind(self) -> SampleKind:
+        """Gets the kind of this Sample."""
+
     @property
-    def encoding(self) -> Encoding: ...
+    def encoding(self) -> Encoding:
+        """Gets the encoding of this sample."""
+
     @property
-    def timestamp(self) -> Timestamp: ...
+    def timestamp(self) -> Timestamp:
+        """Gets the timestamp of this Sample."""
+
     @property
-    def qos(self) -> QoS: ...
+    def congestion_control(self) -> CongestionControl:
+        """Gets the congestion control of this Sample."""
+
+    @property
+    def priority(self) -> Priority:
+        """Gets the priority of this Sample."""
+
+    @property
+    def express(self) -> bool:
+        """Gets the express flag value.
+
+        If true, the message is not batched during transmission, in order to reduce latency.
+        """
 
 @final
 class Scout(Generic[_H]):
@@ -931,7 +953,13 @@ class ZenohId:
     def into_keyexpr(self) -> KeyExpr: ...
     def __str__(self) -> str: ...
 
-def init_logger(): ...
+def init_logging(basic_config: bool = True, **kwargs):
+    """Start redirecting all zenoh logs to Python logger named `zenoh`.
+
+    If `basic_config=True`, which is the default, it also calls
+    `logging.basicConfig(**kwargs)` as a convenience.
+    """
+
 def open(config: Config | None = None) -> Session:
     """Open a zenoh Session."""
 

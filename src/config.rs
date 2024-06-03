@@ -15,16 +15,14 @@ use std::ops::Deref;
 
 use pyo3::{
     prelude::*,
-    sync::GILOnceCell,
     types::{PyString, PyType},
 };
 use validated_struct::ValidatedMap;
-use zenoh::config::Notifier;
-use zenoh_protocol::core::EndPoint;
+use zenoh::config::{EndPoint, Notifier};
 
 use crate::{
     key_expr::KeyExpr,
-    macros::{bail, downcast_or_new, enum_mapper, wrapper},
+    macros::{bail, downcast_or_new, enum_mapper, import, wrapper},
     utils::{IntoPyErr, IntoPyResult, IntoRust},
 };
 
@@ -32,14 +30,7 @@ fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {
     if let Ok(s) = obj.downcast::<PyString>() {
         return Ok(s.to_string());
     }
-    static DUMPS: GILOnceCell<PyObject> = GILOnceCell::new();
-    let import = || {
-        let module = obj.py().import_bound("json")?;
-        PyResult::Ok(module.getattr("dumps")?.into())
-    };
-    Ok(DUMPS
-        .get_or_try_init(obj.py(), import)?
-        .bind(obj.py())
+    Ok(import!(obj.py(), json.dumps)
         .call1((obj,))?
         .downcast_into::<PyString>()?
         .to_string())

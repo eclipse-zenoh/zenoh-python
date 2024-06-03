@@ -17,8 +17,9 @@ mod encoding;
 mod handlers;
 mod info;
 mod key_expr;
+mod logging;
 mod macros;
-mod publication;
+mod publisher;
 mod query;
 mod queryable;
 mod sample;
@@ -53,11 +54,12 @@ pub(crate) mod zenoh {
         info::SessionInfo,
         key_expr::KeyExpr,
         key_expr::SetIntersectionLevel,
-        publication::{CongestionControl, Priority, Publisher},
+        logging::init_logging,
+        publisher::{CongestionControl, Priority, Publisher},
         query::{ConsolidationMode, QueryTarget, Reply},
         queryable::Query,
         queryable::Queryable,
-        sample::{QoS, Sample, SampleKind},
+        sample::{Sample, SampleKind},
         scouting::scout,
         scouting::Scout,
         selector::Selector,
@@ -69,15 +71,11 @@ pub(crate) mod zenoh {
         ZError,
     };
 
-    #[pyfunction]
-    pub(crate) fn init_logger() {
-        zenoh_util::try_init_log_from_env();
-    }
-
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let sys_modules = m.py().import_bound("sys")?.getattr("modules")?;
         sys_modules.set_item("zenoh.handlers", m.getattr("handlers")?)?;
+        crate::logging::init_logger(m.py())?;
         Ok(())
     }
 }

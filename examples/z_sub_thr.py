@@ -113,7 +113,7 @@ def report():
 
 def main():
     # initiate logging
-    zenoh.init_logger()
+    zenoh.init_logging()
 
     with zenoh.open(conf) as session:
         session.declare_subscriber(

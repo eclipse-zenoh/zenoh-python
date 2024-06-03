@@ -13,7 +13,7 @@
 //
 use std::time::Duration;
 
-use pyo3::{prelude::*, sync::GILOnceCell, types::PyType};
+use pyo3::{prelude::*, types::PyType};
 
 use crate::{
     macros::{import, into_rust},
@@ -25,7 +25,7 @@ pub(crate) trait IntoPyErr {
 }
 impl<E: ToString> IntoPyErr for E {
     fn into_pyerr(self) -> PyErr {
-        PyErr::new::<ZError, _>(self.to_string())
+        ZError::new_err(self.to_string())
     }
 }
 pub(crate) trait IntoPyResult<T> {
@@ -145,9 +145,9 @@ pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
     name.rsplit_once("::").map_or(name, |(_, name)| name)
 }
 
-pub(crate) fn wait<T: Send, R: zenoh_core::Resolve<zenoh::Result<T>>>(
+pub(crate) fn wait<T: Send, R: zenoh::core::Resolve<zenoh::Result<T>>>(
     py: Python,
     resolve: impl FnOnce() -> R + Send,
 ) -> PyResult<T> {
-    py.allow_threads(|| resolve().res_sync()).into_pyres()
+    py.allow_threads(|| resolve().wait()).into_pyres()
 }

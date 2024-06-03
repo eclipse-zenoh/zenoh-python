@@ -14,8 +14,7 @@
 use std::sync::Weak;
 
 use pyo3::{prelude::*, types::PyList};
-use zenoh::SessionDeclarations;
-use zenoh_core::SyncResolve;
+use zenoh::prelude::*;
 
 use crate::{config::ZenohId, macros::zerror, utils::IntoPython};
 
@@ -36,13 +35,13 @@ impl SessionInfo {
 impl SessionInfo {
     fn zid(&self, py: Python) -> PyResult<ZenohId> {
         let info = self.get_info()?;
-        Ok(py.allow_threads(|| info.zid().res_sync()).into())
+        Ok(py.allow_threads(|| info.zid().wait()).into())
     }
 
     fn routers_zid<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let info = self.get_info()?;
         let list = PyList::empty_bound(py);
-        for zid in py.allow_threads(|| info.routers_zid().res_sync()) {
+        for zid in py.allow_threads(|| info.routers_zid().wait()) {
             list.append(zid.into_pyobject(py))?;
         }
         Ok(list)
@@ -51,7 +50,7 @@ impl SessionInfo {
     fn peers_zid<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let info = self.get_info()?;
         let list = PyList::empty_bound(py);
-        for zid in py.allow_threads(|| info.peers_zid().res_sync()) {
+        for zid in py.allow_threads(|| info.peers_zid().wait()) {
             list.append(zid.into_pyobject(py))?;
         }
         Ok(list)

@@ -20,7 +20,7 @@ use pyo3::{
     types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple, PyType},
     PyTypeInfo,
 };
-use zenoh_buffers::{buffer::SplitBuffer, ZBuf};
+use zenoh::buffers::{SplitBuffer, ZBuf};
 
 use crate::{
     macros::{downcast_or_new, import, try_import, wrapper},

@@ -18,10 +18,7 @@ use pyo3::{
     prelude::*,
     types::{PyDict, PySet, PyTuple},
 };
-use zenoh::{
-    prelude::{QoSBuilderTrait, ValueBuilderTrait},
-    SessionDeclarations,
-};
+use zenoh::prelude::*;
 
 use crate::{
     bytes::ZBytes,
@@ -31,7 +28,7 @@ use crate::{
     info::SessionInfo,
     key_expr::KeyExpr,
     macros::{bail, build, build_with, option_wrapper},
-    publication::{CongestionControl, Priority, Publisher},
+    publisher::{CongestionControl, Priority, Publisher},
     query::{ConsolidationMode, QueryTarget, Reply},
     queryable::{Query, Queryable},
     sample::Sample,

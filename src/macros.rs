@@ -1,6 +1,6 @@
 macro_rules! try_import {
     ($py:expr, $module:ident.$attr:ident) => {{
-        static IMPORTED: GILOnceCell<PyObject> = GILOnceCell::new();
+        static IMPORTED: pyo3::sync::GILOnceCell<PyObject> = pyo3::sync::GILOnceCell::new();
         let import = || {
             PyResult::Ok(
                 $py.import_bound(stringify!($module))?
@@ -35,7 +35,7 @@ macro_rules! into_rust {
 pub(crate) use into_rust;
 
 macro_rules! zerror {
-    ($($tt:tt)*) => { $crate::utils::IntoPyErr::into_pyerr(zenoh_core::zerror!($($tt)*)) };
+    ($($tt:tt)*) => { $crate::ZError::new_err(format!($($tt)*)) };
 }
 pub(crate) use zerror;
 

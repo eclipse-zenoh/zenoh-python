@@ -14,6 +14,7 @@
 use std::{
     fmt,
     marker::PhantomData,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -22,7 +23,7 @@ use pyo3::{
     prelude::*,
     types::PyType,
 };
-use zenoh::handlers::{Callback, Dyn, IntoHandler};
+use zenoh::handlers::{Callback, IntoHandler};
 
 use crate::{
     utils::{generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust},
@@ -220,7 +221,7 @@ where
         match self {
             Self::Rust { callback, handler } => (callback, HandlerImpl::Rust(handler, PhantomData)),
             Self::Python { callback, handler } => (
-                Dyn::new(move |t| callback.call(t)),
+                Arc::new(move |t| callback.call(t)),
                 HandlerImpl::Python(handler),
             ),
         }
