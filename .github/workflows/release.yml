@@ -77,7 +77,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-macos
           path: dist
 
   build-windows:
@@ -107,7 +107,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-windows-${{ matrix.target }}
           path: dist
 
   build-linux:
@@ -132,7 +132,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-linux-${{ matrix.target }}
           path: dist
 
   build-linux-aarch64:
@@ -160,7 +160,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-linux-aarch64
           path: dist
 
   build-linux-armv6:
@@ -195,7 +195,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-linux-armv6
           path: dist
 
   publish-pypi:
@@ -213,8 +213,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: wheels
           path: dist
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Check dist
         run: ls -al ./dist/*
