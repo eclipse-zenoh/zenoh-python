@@ -101,7 +101,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None))]
+    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None, attachment = None))]
     fn put(
         &self,
         py: Python,
@@ -111,6 +111,7 @@ impl Session {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
         let build = build!(
@@ -118,12 +119,13 @@ impl Session {
             encoding,
             congestion_control,
             priority,
-            express
+            express,
+            attachment,
         );
         wait(py, build)
     }
 
-    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
+    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None))]
     fn delete(
         &self,
         py: Python,
@@ -131,14 +133,21 @@ impl Session {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
-        let build = build!(this.delete(key_expr), congestion_control, priority, express);
+        let build = build!(
+            this.delete(key_expr),
+            congestion_control,
+            priority,
+            express,
+            attachment,
+        );
         wait(py, build)
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None))]
+    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None))]
     fn get(
         &self,
         py: Python,
@@ -152,6 +161,7 @@ impl Session {
         express: Option<bool>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] payload: Option<ZBytes>,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
         let build = build_with!(
@@ -165,6 +175,7 @@ impl Session {
             express,
             payload,
             encoding,
+            attachment,
         );
         wait(py, build).map_into()
     }
@@ -186,7 +197,7 @@ impl Session {
         let build = build_with!(
             handler_or_default(py, handler),
             this.declare_subscriber(key_expr),
-            reliability
+            reliability,
         );
         let subscriber = Subscriber {
             subscriber: Some(wait(py, build)?),
@@ -209,7 +220,7 @@ impl Session {
         let build = build_with!(
             handler_or_default(py, handler),
             this.declare_queryable(key_expr),
-            complete
+            complete,
         );
         let queryable = Queryable {
             queryable: Some(wait(py, build)?),
@@ -234,7 +245,7 @@ impl Session {
             this.declare_publisher(key_expr),
             congestion_control,
             priority,
-            express
+            express,
         );
         let publisher = Publisher {
             publisher: Some(wait(py, build)?),

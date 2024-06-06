@@ -63,9 +63,14 @@ impl Query {
         self.0.encoding().cloned().map_into()
     }
 
+    #[getter]
+    fn attachement(&self) -> Option<ZBytes> {
+        self.0.attachment().cloned().map_into()
+    }
+
     // TODO timestamp
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None))]
+    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None, attachment = None))]
     fn reply(
         &self,
         py: Python,
@@ -75,13 +80,15 @@ impl Query {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
         let build = build!(
             self.0.reply(key_expr, payload),
             encoding,
             congestion_control,
             priority,
-            express
+            express,
+            attachment,
         );
         wait(py, build)
     }
@@ -96,7 +103,7 @@ impl Query {
         wait(py, build)
     }
 
-    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
+    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None))]
     fn reply_del(
         &self,
         py: Python,
@@ -104,12 +111,14 @@ impl Query {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
         let build = build!(
             self.0.reply_del(key_expr),
             congestion_control,
             priority,
-            express
+            express,
+            attachment,
         );
         wait(py, build)
     }

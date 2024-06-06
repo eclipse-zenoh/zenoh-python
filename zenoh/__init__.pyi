@@ -446,11 +446,17 @@ class Publisher:
     def priority(self) -> Priority: ...
     @priority.setter
     def priority(self, priority: Priority): ...
-    def put(self, payload: Any, *, encoding: _IntoEncoding | None = None):
+    def put(
+        self,
+        payload: _IntoZBytes,
+        *,
+        encoding: _IntoEncoding | None = None,
+        attachment: _IntoZBytes | None = None,
+    ):
         """Put data."""
 
-    def delete(self):
-        """Put data."""
+    def delete(self, *, attachment: _IntoZBytes | None = None):
+        """Delete data."""
 
     def undeclare(self):
         """Undeclares the Publisher, informing the network that it needn't optimize publications for its key expression anymore."""
@@ -469,21 +475,24 @@ class Query:
     def payload(self) -> ZBytes: ...
     @property
     def encoding(self) -> Encoding: ...
+    @property
+    def attachment(self) -> ZBytes | None: ...
     def reply(
         self,
         key_expr: _IntoKeyExpr,
-        payload: Any,
+        payload: _IntoZBytes,
         *,
         encoding: _IntoEncoding | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
+        attachment: _IntoZBytes | None = None,
     ):
         """Sends a reply to this Query.
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
         """
 
-    def reply_err(self, payload: Any, *, encoding: _IntoEncoding | None = None):
+    def reply_err(self, payload: _IntoZBytes, *, encoding: _IntoEncoding | None = None):
         """Sends an error reply to this Query."""
 
     def reply_del(
@@ -493,6 +502,7 @@ class Query:
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
+        attachment: _IntoZBytes | None = None,
     ):
         """Sends a delete reply to this Query.
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
@@ -594,6 +604,9 @@ class Sample:
         If true, the message is not batched during transmission, in order to reduce latency.
         """
 
+    @property
+    def attachment(self) -> ZBytes | None: ...
+
 @final
 class Scout(Generic[_H]):
     def __enter__(self) -> Self: ...
@@ -683,12 +696,13 @@ class Session:
     def put(
         self,
         key_expr: _IntoKeyExpr,
-        payload: Any,
+        payload: _IntoZBytes,
         *,
         encoding: _IntoEncoding | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
+        attachment: _IntoZBytes | None = None,
     ):
         """Put data."""
 
@@ -699,6 +713,7 @@ class Session:
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
+        attachment: _IntoZBytes | None = None,
     ):
         """Delete data."""
 
@@ -714,8 +729,9 @@ class Session:
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
-        payload: Any = None,
+        payload: _IntoZBytes = None,
         encoding: _IntoEncoding | None = None,
+        attachment: _IntoZBytes | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -733,8 +749,9 @@ class Session:
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
-        payload: Any = None,
+        payload: _IntoZBytes = None,
         encoding: _IntoEncoding | None = None,
+        attachment: _IntoZBytes | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -752,8 +769,9 @@ class Session:
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
-        payload: Any = None,
+        payload: _IntoZBytes = None,
         encoding: _IntoEncoding | None = None,
+        attachment: _IntoZBytes | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -930,6 +948,8 @@ class ZBytes:
     def __bool__(self) -> bool: ...
     def __len__(self) -> int: ...
     def __bytes__(self) -> bytes: ...
+
+_IntoZBytes = Any
 
 @final
 class ZenohId:

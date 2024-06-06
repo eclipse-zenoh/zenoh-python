@@ -15,7 +15,7 @@ use pyo3::{
     prelude::*,
     types::{PyDict, PySet, PyTuple},
 };
-use zenoh::prelude::ValueBuilderTrait;
+use zenoh::prelude::*;
 
 use crate::{
     bytes::ZBytes,
@@ -108,20 +108,26 @@ impl Publisher {
     }
 
     // TODO add timestamp
-    #[pyo3(signature = (payload, *, encoding = None))]
+    #[pyo3(signature = (payload, *, encoding = None, attachment = None))]
     fn put(
         &self,
         py: Python,
         #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
-        wait(py, build!(this.put(payload), encoding))
+        wait(py, build!(this.put(payload), encoding, attachment))
     }
 
-    fn delete(&self, py: Python) -> PyResult<()> {
+    #[pyo3(signature = (*, attachment = None))]
+    fn delete(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+    ) -> PyResult<()> {
         let this = self.get_ref()?;
-        wait(py, || this.delete())
+        wait(py, build!(this.delete(), attachment))
     }
 
     fn undeclare(this: &Bound<Self>) -> PyResult<()> {

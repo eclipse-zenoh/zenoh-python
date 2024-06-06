@@ -72,6 +72,11 @@ impl Sample {
         self.0.express()
     }
 
+    #[getter]
+    pub fn attachment(&self) -> Option<ZBytes> {
+        self.0.attachment().cloned().map_into()
+    }
+
     fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }
