@@ -12,96 +12,118 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import sys
-import time
 import argparse
 import json
+
 import zenoh
-from zenoh import config, Value
 
 # --- Command line argument parsing --- --- --- --- --- ---
-parser = argparse.ArgumentParser(
-    prog='z_put',
-    description='zenoh put example')
-parser.add_argument('--mode', '-m', dest='mode',
-                    choices=['peer', 'client'],
-                    type=str,
-                    help='The zenoh session mode.')
-parser.add_argument('--connect', '-e', dest='connect',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to connect to.')
-parser.add_argument('--listen', '-l', dest='listen',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to listen on.')
-parser.add_argument('--key', '-k', dest='key',
-                    default='demo/example/zenoh-python-put',
-                    type=str,
-                    help='The key expression to write.')
-parser.add_argument('--value', '-v', dest='value',
-                    default='Put from Python!',
-                    type=str,
-                    help='The value to write.')
-parser.add_argument('--config', '-c', dest='config',
-                    metavar='FILE',
-                    type=str,
-                    help='A configuration file.')
+parser = argparse.ArgumentParser(prog="z_put", description="zenoh put example")
+parser.add_argument(
+    "--mode",
+    "-m",
+    dest="mode",
+    choices=["peer", "client"],
+    type=str,
+    help="The zenoh session mode.",
+)
+parser.add_argument(
+    "--connect",
+    "-e",
+    dest="connect",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to connect to.",
+)
+parser.add_argument(
+    "--listen",
+    "-l",
+    dest="listen",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to listen on.",
+)
+parser.add_argument(
+    "--key",
+    "-k",
+    dest="key",
+    default="demo/example/zenoh-python-put",
+    type=str,
+    help="The key expression to write.",
+)
+parser.add_argument(
+    "--value",
+    "-v",
+    dest="value",
+    default="Put from Python!",
+    type=str,
+    help="The value to write.",
+)
+parser.add_argument(
+    "--config",
+    "-c",
+    dest="config",
+    metavar="FILE",
+    type=str,
+    help="A configuration file.",
+)
 
 args = parser.parse_args()
-conf = zenoh.Config.from_file(
-    args.config) if args.config is not None else zenoh.Config()
+conf = (
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
+)
 if args.mode is not None:
-    conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
+    conf.insert_json5("mode", json.dumps(args.mode))
 if args.connect is not None:
-    conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
+    conf.insert_json5("connect/endpoints", json.dumps(args.connect))
 if args.listen is not None:
-    conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
+    conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
 value = args.value
+
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
     # initiate logging
-    zenoh.init_logger()
+    zenoh.init_logging()
 
     print("Opening session...")
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
 
-    print("Putting Data ('{}': '{}')...".format(key, value))
-    session.put(key, value)
+        print("Putting Data ('{}': '{}')...".format(key, value))
+        session.put(key, value)
 
-    # --- Examples of put with other types:
+        # --- Examples of put with other types:
 
-    # - Integer
-    # session.put('/demo/example/Integer', 3)
+        # - Integer
+        # session.put('demo/example/Integer', 3)
 
-    # - Float
-    # session.put('/demo/example/Float', 3.14)
+        # - Float
+        # session.put('demo/example/Float', 3.14)
 
-    # - Properties (as a Dictionary with str only)
-    # session.put('/demo/example/Properties', {'p1': 'v1', 'p2': 'v2'})
+        # - Properties (as a Dictionary with str only)
+        # session.put('demo/example/Properties', {'p1': 'v1', 'p2': 'v2'}
 
-    # - Json (str format)
-    # session.put('/demo/example/Json',
-    #             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]),
-    #             encoding=Encoding.TEXT_JSON)
+        # - Json (str format)
+        # session.put('demo/example/Json',
+        #             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]).encode(),
+        #             encoding=zenoh.Encoding.TEXT_JSON))
 
-    # - Raw ('application/octet-stream' encoding by default)
-    # session.put('/demo/example/Raw', b'\x48\x69\x21')
+        # - Raw ('zenoh/bytes' encoding by default)
+        # session.put('demo/example/Raw', b'\x48\x69\x21')
 
-    # - Custom encoding
-    # session.put('/demo/example/Custom',
-    #             b'\x48\x69\x21',
-    #             encoding='my_encoding')
+        # - Custom encoding
+        # session.put('demo/example/Custom',
+        #             b'\x48\x69\x21',
+        #             encoding='my_encoding')
 
-    # - UTF-16 String specifying the charset as Encoding suffix
-    # session.put('/demo/example/UTF-16',
-    #             'hello'.encode('utf-16'),
-    #             encoding=Encoding.TEXT_PLAIN.with_suffix(';charset=utf-16'))
+        # - UTF-16 String specifying the charset as Encoding schema
+        # session.put('demo/example/UTF-16',
+        #             'hello'.encode('utf-16'),
+        #             encoding=zenoh.Encoding.TEXT_PLAIN.with_schema(';charset=utf-16'))
 
-    session.close()
 
-main()
+if __name__ == "__main__":
+    main()

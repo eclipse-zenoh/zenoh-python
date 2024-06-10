@@ -26,11 +26,12 @@ sphinx:
 build:
   os: ubuntu-22.04
   tools:
-    python: "3.8"
+    python: "3.11"
     rust: "latest"
   jobs:
     pre_build:
       - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH maturin develop
+      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH python docs/stub_to_source.py
 
 # Optionally build your docs in additional formats such as PDF
 formats:

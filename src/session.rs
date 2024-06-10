@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017, 2022 ZettaScale Technology Inc.
+// Copyright (c) 2024 ZettaScale Technology
 //
 // This program and the accompanying materials are made available under the
 // terms of the Eclipse Public License 2.0 which is available at
@@ -9,280 +9,279 @@
 // SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 //
 // Contributors:
-//   ZettaScale Zenoh team, <zenoh@zettascale.tech>
+//   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
+use std::{sync::Arc, time::Duration};
 
-#![allow(clippy::borrow_deref_ref)] // false positives with pyo3 macros
+use pyo3::{
+    exceptions::PyValueError,
+    prelude::*,
+    types::{PyDict, PySet, PyTuple},
+};
+use zenoh::prelude::*;
 
-use std::convert::TryInto;
-use std::sync::Arc;
-
-use pyo3::{prelude::*, types::PyDict};
-use zenoh::{
-    config::{WhatAmI, WhatAmIMatcher},
-    prelude::{sync::SyncResolve, SessionDeclarations},
-    publication::Publisher,
-    scouting::Scout,
-    subscriber::Subscriber,
-    Session,
+use crate::{
+    bytes::ZBytes,
+    config::{Config, ConfigInner, ZenohId},
+    encoding::Encoding,
+    handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
+    info::SessionInfo,
+    key_expr::KeyExpr,
+    macros::{bail, build, build_with, option_wrapper},
+    publisher::{CongestionControl, Priority, Publisher},
+    query::{ConsolidationMode, QueryTarget, Reply},
+    queryable::{Query, Queryable},
+    sample::Sample,
+    selector::Selector,
+    subscriber::{Reliability, Subscriber},
+    utils::{wait, MapInto},
 };
 
-use crate::closures::PyClosure;
-use crate::config::{PyConfig, _Config};
-use crate::enums::{
-    _CongestionControl, _Priority, _QueryConsolidation, _QueryTarget, _Reliability, _SampleKind,
-};
-use crate::keyexpr::{_KeyExpr, _Selector};
-use crate::queryable::{_Query, _Queryable};
-use crate::value::{_Hello, _Reply, _Sample, _Value, _ZenohId};
-use crate::{PyAnyToValue, PyExtract, ToPyErr};
-
-#[pyclass(subclass)]
-#[derive(Clone)]
-pub struct _Session(pub(crate) Arc<Session>);
-
-#[pymethods]
-impl _Session {
-    #[new]
-    pub fn new(mut config: Option<&mut crate::config::_Config>) -> PyResult<Self> {
-        let c = match &mut config {
-            Some(c) => c.0.take().unwrap_or_default(),
-            None => Default::default(),
-        };
-        let session = zenoh::open(c).res_sync().map_err(|e| e.to_pyerr())?;
-        if let Some(config) = config {
-            *config = _Config(PyConfig::Notifier(session.config().clone()))
-        }
-        Ok(_Session(Arc::new(session)))
-    }
-    pub fn config(&self) -> _Config {
-        _Config(PyConfig::Notifier(self.0.config().clone()))
-    }
-
-    #[pyo3(signature = (key_expr, value, **kwargs))]
-    pub fn put(
-        &self,
-        key_expr: &crate::keyexpr::_KeyExpr,
-        value: &PyAny,
-        kwargs: Option<&PyDict>,
-    ) -> PyResult<()> {
-        let s = &self.0;
-        let k = &key_expr.0;
-        let v = value.to_value()?;
-        let mut builder = s.put(k, v);
-        if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_SampleKind>("kind") {
-                Ok(kind) => builder = builder.kind(kind.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-            match kwargs.extract_item::<_CongestionControl>("congestion_control") {
-                Ok(congestion_control) => {
-                    builder = builder.congestion_control(congestion_control.0)
-                }
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-            match kwargs.extract_item::<_Priority>("priority") {
-                Ok(priority) => builder = builder.priority(priority.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-        }
-        builder.res_sync().map_err(|e| e.to_pyerr())
-    }
-
-    #[pyo3(signature = (key_expr, **kwargs))]
-    pub fn delete(
-        &self,
-        key_expr: &crate::keyexpr::_KeyExpr,
-        kwargs: Option<&PyDict>,
-    ) -> PyResult<()> {
-        let s = &self.0;
-        let k = &key_expr.0;
-        let mut builder = s.delete(k);
-        if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_SampleKind>("kind") {
-                Ok(kind) => builder = builder.kind(kind.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-            match kwargs.extract_item::<_CongestionControl>("congestion_control") {
-                Ok(congestion_control) => {
-                    builder = builder.congestion_control(congestion_control.0)
-                }
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-            match kwargs.extract_item::<_Priority>("priority") {
-                Ok(priority) => builder = builder.priority(priority.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-        }
-        builder.res_sync().map_err(|e| e.to_pyerr())
-    }
-
-    #[pyo3(signature = (selector, callback, **kwargs))]
-    pub fn get(
-        &self,
-        selector: &_Selector,
-        callback: &PyAny,
-        kwargs: Option<&PyDict>,
-    ) -> PyResult<()> {
-        let callback: PyClosure<(_Reply,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self.0.get(&selector.0).with(callback);
-        if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_QueryConsolidation>("consolidation") {
-                Ok(_QueryConsolidation(Some(value))) => builder = builder.consolidation(value),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-            match kwargs.extract_item::<_QueryTarget>("target") {
-                Ok(value) => builder = builder.target(value.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-            match kwargs.extract_item::<_Value>("value") {
-                Ok(value) => builder = builder.with_value(value),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-        }
-        builder.res_sync().map_err(|e| e.to_pyerr())
-    }
-
-    pub fn declare_keyexpr(&self, key_expr: &_KeyExpr) -> PyResult<_KeyExpr> {
-        match self.0.declare_keyexpr(&key_expr.0).res_sync() {
-            Ok(k) => Ok(_KeyExpr(k.into_owned())),
-            Err(e) => Err(e.to_pyerr()),
-        }
-    }
-
-    #[pyo3(signature = (key_expr, callback, **kwargs))]
-    pub fn declare_queryable(
-        &self,
-        key_expr: _KeyExpr,
-        callback: &PyAny,
-        kwargs: Option<&PyDict>,
-    ) -> PyResult<_Queryable> {
-        let callback: PyClosure<(_Query,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self.0.declare_queryable(key_expr.0).with(callback);
-        if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<bool>("complete") {
-                Ok(value) => builder = builder.complete(value),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-        }
-        match builder.res_sync() {
-            Ok(o) => Ok(_Queryable(o)),
-            Err(e) => Err(e.to_pyerr()),
-        }
-    }
-
-    #[pyo3(signature = (key_expr, **kwargs))]
-    pub fn declare_publisher(
-        &self,
-        key_expr: _KeyExpr,
-        kwargs: Option<&PyDict>,
-    ) -> PyResult<_Publisher> {
-        let mut builder = self.0.declare_publisher(key_expr.0);
-        if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_Priority>("priority") {
-                Ok(value) => builder = builder.priority(value.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-            match kwargs.extract_item::<_CongestionControl>("congestion_control") {
-                Ok(value) => builder = builder.congestion_control(value.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-        }
-        match builder.res_sync() {
-            Ok(o) => Ok(_Publisher(o)),
-            Err(e) => Err(e.to_pyerr()),
-        }
-    }
-
-    #[pyo3(signature = (key_expr, callback, **kwargs))]
-    pub fn declare_subscriber(
-        &self,
-        key_expr: &_KeyExpr,
-        callback: &PyAny,
-        kwargs: Option<&PyDict>,
-    ) -> PyResult<_Subscriber> {
-        let callback: PyClosure<(_Sample,)> = <_ as TryInto<_>>::try_into(callback)?;
-        let mut builder = self.0.declare_subscriber(&key_expr.0).with(callback);
-        if let Some(kwargs) = kwargs {
-            match kwargs.extract_item::<_Reliability>("reliability") {
-                Ok(reliabilty) => builder = builder.reliability(reliabilty.0),
-                Err(crate::ExtractError::Other(e)) => return Err(e),
-                _ => {}
-            }
-        }
-        let subscriber = builder.res().map_err(|e| e.to_pyerr())?;
-        Ok(_Subscriber(subscriber))
-    }
-
-    pub fn zid(&self) -> _ZenohId {
-        _ZenohId(self.0.zid())
-    }
-    pub fn routers_zid(&self) -> Vec<_ZenohId> {
-        self.0
-            .info()
-            .routers_zid()
-            .res_sync()
-            .map(_ZenohId)
-            .collect()
-    }
-    pub fn peers_zid(&self) -> Vec<_ZenohId> {
-        self.0.info().peers_zid().res_sync().map(_ZenohId).collect()
-    }
+#[pyclass]
+pub(crate) struct Session {
+    session: Option<Arc<zenoh::Session>>,
+    pool: Py<PySet>,
 }
 
-#[pyclass(subclass)]
-#[derive(Clone)]
-pub struct _Publisher(Publisher<'static>);
+option_wrapper!(Session.session: Arc<zenoh::Session>, "Closed session");
+
 #[pymethods]
-impl _Publisher {
-    #[new]
-    pub fn pynew(this: Self) -> Self {
-        this
+impl Session {
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> PyResult<&'a Bound<'py, Self>> {
+        Self::check(this)
     }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        self.close(py)?;
+        Ok(py.None())
+    }
+
+    fn zid(&self) -> PyResult<ZenohId> {
+        Ok(self.get_ref()?.zid().into())
+    }
+
+    // TODO HLC
+
+    fn close(&mut self, py: Python) -> PyResult<()> {
+        for obj in self.pool.bind(py).iter() {
+            obj.call_method0("_drop")?;
+        }
+        // can unwrap because all references have been dropped above
+        let session = Arc::try_unwrap(self.take()?).unwrap();
+        wait(py, || session.close())
+    }
+
+    fn undeclare(&self, obj: &Bound<PyAny>) -> PyResult<()> {
+        if let Ok(key_expr) = KeyExpr::from_py(obj) {
+            let this = self.get_ref()?;
+            return wait(obj.py(), || this.undeclare(key_expr.0));
+        }
+        bail!("Cannot undeclare {}", obj.get_type().name()?);
+    }
+
+    fn config(&self) -> PyResult<Config> {
+        Ok(Config(ConfigInner::Notifier(
+            self.get_ref()?.config().clone(),
+        )))
+    }
+
+    fn declare_keyexpr(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+    ) -> PyResult<KeyExpr> {
+        let this = self.get_ref()?;
+        wait(py, || this.declare_keyexpr(key_expr)).map_into()
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None, attachment = None))]
+    fn put(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        congestion_control: Option<CongestionControl>,
+        priority: Option<Priority>,
+        express: Option<bool>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+    ) -> PyResult<()> {
+        let this = self.get_ref()?;
+        let build = build!(
+            this.put(key_expr, payload),
+            encoding,
+            congestion_control,
+            priority,
+            express,
+            attachment,
+        );
+        wait(py, build)
+    }
+
+    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None))]
+    fn delete(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        congestion_control: Option<CongestionControl>,
+        priority: Option<Priority>,
+        express: Option<bool>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+    ) -> PyResult<()> {
+        let this = self.get_ref()?;
+        let build = build!(
+            this.delete(key_expr),
+            congestion_control,
+            priority,
+            express,
+            attachment,
+        );
+        wait(py, build)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None))]
+    fn get(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "Selector::from_py")] selector: Selector,
+        #[pyo3(from_py_with = "into_handler::<Reply>")] handler: Option<IntoHandlerImpl<Reply>>,
+        target: Option<QueryTarget>,
+        consolidation: Option<ConsolidationMode>,
+        #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
+        congestion_control: Option<CongestionControl>,
+        priority: Option<Priority>,
+        express: Option<bool>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] payload: Option<ZBytes>,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+    ) -> PyResult<HandlerImpl<Reply>> {
+        let this = self.get_ref()?;
+        let build = build_with!(
+            handler_or_default(py, handler),
+            this.get(selector),
+            target,
+            consolidation,
+            timeout,
+            congestion_control,
+            priority,
+            express,
+            payload,
+            encoding,
+            attachment,
+        );
+        wait(py, build).map_into()
+    }
+
     #[getter]
-    pub fn key_expr(&self) -> _KeyExpr {
-        _KeyExpr(self.0.key_expr().clone())
+    fn info(&self) -> PyResult<SessionInfo> {
+        Ok(SessionInfo(Arc::downgrade(self.get_ref()?)))
     }
-    pub fn put(&self, value: _Value) -> PyResult<()> {
-        self.0.put(value).res_sync().map_err(|e| e.to_pyerr())
+
+    #[pyo3(signature = (key_expr, handler = None, reliability = None))]
+    fn declare_subscriber(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "into_handler::<Sample>")] handler: Option<IntoHandlerImpl<Sample>>,
+        reliability: Option<Reliability>,
+    ) -> PyResult<Py<Subscriber>> {
+        let this = self.get_ref()?;
+        let build = build_with!(
+            handler_or_default(py, handler),
+            this.declare_subscriber(key_expr),
+            reliability,
+        );
+        let subscriber = Subscriber {
+            subscriber: Some(wait(py, build)?),
+            session_pool: self.pool.clone_ref(py),
+        };
+        let subscriber = Py::new(py, subscriber).unwrap();
+        self.pool.bind(py).add(subscriber.clone_ref(py))?;
+        Ok(subscriber)
     }
-    pub fn delete(&self) -> PyResult<()> {
-        self.0.delete().res_sync().map_err(|e| e.to_pyerr())
+
+    #[pyo3(signature = (key_expr, handler = None, complete = None))]
+    fn declare_queryable(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "into_handler::<Query>")] handler: Option<IntoHandlerImpl<Query>>,
+        complete: Option<bool>,
+    ) -> PyResult<Py<Queryable>> {
+        let this = self.get_ref()?;
+        let build = build_with!(
+            handler_or_default(py, handler),
+            this.declare_queryable(key_expr),
+            complete,
+        );
+        let queryable = Queryable {
+            queryable: Some(wait(py, build)?),
+            session_pool: self.pool.clone_ref(py),
+        };
+        let queryable = Py::new(py, queryable).unwrap();
+        self.pool.bind(py).add(queryable.clone_ref(py))?;
+        Ok(queryable)
+    }
+
+    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
+    fn declare_publisher(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        congestion_control: Option<CongestionControl>,
+        priority: Option<Priority>,
+        express: Option<bool>,
+    ) -> PyResult<Py<Publisher>> {
+        let this = self.get_ref()?;
+        let build = build!(
+            this.declare_publisher(key_expr),
+            congestion_control,
+            priority,
+            express,
+        );
+        let publisher = Publisher {
+            publisher: Some(wait(py, build)?),
+            session_pool: self.pool.clone_ref(py),
+        };
+        let publisher = Py::new(py, publisher).unwrap();
+        self.pool.bind(py).add(publisher.clone_ref(py))?;
+        Ok(publisher)
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.get_ref()?))
     }
 }
 
-#[pyclass(subclass)]
-pub struct _Subscriber(Subscriber<'static, ()>);
-
-#[pyclass(subclass)]
-pub struct _Scout(Scout<()>);
+impl Drop for Session {
+    fn drop(&mut self) {
+        if self.get_ref().is_ok() {
+            Python::with_gil(|gil| self.close(gil)).unwrap();
+        }
+    }
+}
 
 #[pyfunction]
-pub fn scout(callback: &PyAny, config: Option<&_Config>, what: Option<&str>) -> PyResult<_Scout> {
-    let callback: PyClosure<(_Hello,)> = <_ as TryInto<_>>::try_into(callback)?;
-    let what: WhatAmIMatcher = match what {
-        None => WhatAmI::Client | WhatAmI::Peer | WhatAmI::Router,
-        Some(s) => match s.parse() {
-            Ok(w) => w,
-            Err(_) => return Err(zenoh_core::zerror!("Couldn't parse `{}` into a WhatAmiMatcher: must be a `|`-separated list of `peer`, `client` or `router`", s).to_pyerr())
-        },
-    };
-    let config = config.and_then(|c| c.0.clone().take()).unwrap_or_default();
-    let scout = zenoh::scout(what, config).with(callback).res_sync();
-    match scout {
-        Ok(scout) => Ok(_Scout(scout)),
-        Err(e) => Err(e.to_pyerr()),
+pub(crate) fn open(py: Python, config: Option<Config>) -> PyResult<Session> {
+    Ok(Session {
+        session: Some(wait(py, || zenoh::open(config.unwrap_or_default()))?.into_arc()),
+        pool: PySet::empty_bound(py)?.unbind(),
+    })
+}
+
+pub(crate) fn timeout(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
+    if obj.is_none() {
+        return Ok(None);
     }
+    Duration::try_from_secs_f64(f64::extract_bound(obj)?)
+        .map(Some)
+        .map_err(|_| PyValueError::new_err("negative timeout"))
 }

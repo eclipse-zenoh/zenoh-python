@@ -40,12 +40,13 @@ default = ["zenoh/default"]
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-env_logger = "0.10.0"
+env_logger = "0.11.3"
 flume = "0.11.0"
 json5 = "0.4.1"
-pyo3 = { version = "0.18.1", features = ["extension-module", "abi3-py37"] }
-uhlc = "0.6.0"
+paste = "1.0.14"
+pyo3 = { version = "0.21.2", features = ["extension-module", "abi3-py38", "experimental-async", "experimental-declarative-modules"] }
+tracing = "0.1.40"
+uhlc = "0.7.0"
 validated_struct = "2.1.0"
-zenoh = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "protocol_changes", features = ["unstable"], default-features = false }
-zenoh-buffers = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "protocol_changes" }
-zenoh-core = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "protocol_changes" }
+zenoh = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "dev/1.0.0", features = ["unstable"], default-features = false }
+zenoh-util = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "dev/1.0.0" }

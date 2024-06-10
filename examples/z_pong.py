@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022 ZettaScale Technology
+# Copyright (c) 2024 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -19,9 +19,7 @@ import time
 import zenoh
 
 # --- Command line argument parsing --- --- --- --- --- ---
-parser = argparse.ArgumentParser(
-    prog="z_queryable", description="zenoh queryable example"
-)
+parser = argparse.ArgumentParser(prog="z_get", description="zenoh get example")
 parser.add_argument(
     "--mode",
     "-m",
@@ -49,35 +47,20 @@ parser.add_argument(
     help="Endpoints to listen on.",
 )
 parser.add_argument(
-    "--key",
-    "-k",
-    dest="key",
-    default="demo/example/zenoh-python-queryable",
-    type=str,
-    help="The key expression matching queries to reply to.",
-)
-parser.add_argument(
-    "--value",
-    "-v",
-    dest="value",
-    default="Queryable from Python!",
-    type=str,
-    help="The value to reply to queries.",
-)
-parser.add_argument(
-    "--complete",
-    dest="complete",
-    default=False,
-    action="store_true",
-    help="Declare the queryable as complete w.r.t. the key expression.",
-)
-parser.add_argument(
     "--config",
     "-c",
     dest="config",
     metavar="FILE",
     type=str,
     help="A configuration file.",
+)
+parser.add_argument(
+    "--express",
+    dest="express",
+    metavar="EXPRESS",
+    type=bool,
+    default=False,
+    help="Express publishing",
 )
 
 args = parser.parse_args()
@@ -90,29 +73,21 @@ if args.connect is not None:
     conf.insert_json5("connect/endpoints", json.dumps(args.connect))
 if args.listen is not None:
     conf.insert_json5("listen/endpoints", json.dumps(args.listen))
-key = args.key
-value = args.value
-complete = args.complete
+
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
-
-
-def queryable_callback(query):
-    print(
-        f">> [Queryable ] Received Query '{query.selector}'"
-        + (f" with value: {query.value.payload}" if query.value is not None else "")
-    )
-    query.reply(key, value)
-
-
 def main():
     # initiate logging
     zenoh.init_logging()
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print("Declaring Queryable on '{}'...".format(key))
-        session.declare_queryable(key, queryable_callback, complete=complete)
+        pub = session.declare_publisher(
+            "test/pong",
+            congestion_control=zenoh.CongestionControl.BLOCK,
+            express=args.express,
+        )
+        session.declare_subscriber("test/ping", lambda s: pub.put(s.payload))
 
         print("Press CTRL-C to quit...")
         while True:

@@ -15,22 +15,24 @@
 #
 
 [build-system]
-requires = ["maturin>=0.13,<0.15"]
+requires = ["maturin>1"]
 build-backend = "maturin"
 
 [project]
 name = "eclipse-zenoh"
 version = "0.11.0-dev"
 description = "The python API for Eclipse zenoh"
-requires-python = ">=3.7"
-author = "ZettaScale Zenoh team"
-author_email = "zenoh@zettascale.tech"
+requires-python = ">=3.8"
+authors = [
+    { name = "ZettaScale Zenoh team", email = "zenoh@zettascale.tech" }
+]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Rust",
     "Intended Audience :: Developers",
     "Development Status :: 4 - Beta",
@@ -41,9 +43,11 @@ classifiers = [
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows",
 ]
-zip_safe = false
 
 [project.urls]
 "Bug Tracker" = "https://github.com/eclipse-zenoh/zenoh-python/issues"
 "Source Code" = "https://github.com/eclipse-zenoh/zenoh-python"
 "Documentation" = "https://readthedocs.org/projects/zenoh-python/"
+
+[tool.isort]
+profile = "black"
