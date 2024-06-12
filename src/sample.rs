@@ -33,47 +33,47 @@ wrapper!(zenoh::sample::Sample);
 #[pymethods]
 impl Sample {
     #[getter]
-    pub(crate) fn key_expr(&self) -> KeyExpr {
+    fn key_expr(&self) -> KeyExpr {
         self.0.key_expr().clone().into()
     }
 
     #[getter]
-    pub(crate) fn payload(&self) -> ZBytes {
+    fn payload(&self) -> ZBytes {
         self.0.payload().clone().into()
     }
 
     #[getter]
-    pub(crate) fn kind(&self) -> SampleKind {
+    fn kind(&self) -> SampleKind {
         self.0.kind().into()
     }
 
     #[getter]
-    pub(crate) fn encoding(&self) -> Encoding {
+    fn encoding(&self) -> Encoding {
         self.0.encoding().clone().into()
     }
 
     #[getter]
-    pub(crate) fn timestamp(&self) -> Option<Timestamp> {
+    fn timestamp(&self) -> Option<Timestamp> {
         self.0.timestamp().cloned().map_into()
     }
 
     #[getter]
-    pub fn congestion_control(&self) -> CongestionControl {
+    fn congestion_control(&self) -> CongestionControl {
         self.0.congestion_control().into()
     }
 
     #[getter]
-    pub fn priority(&self) -> Priority {
+    fn priority(&self) -> Priority {
         self.0.priority().into()
     }
 
     #[getter]
-    pub fn express(&self) -> bool {
+    fn express(&self) -> bool {
         self.0.express()
     }
 
     #[getter]
-    pub fn attachment(&self) -> Option<ZBytes> {
+    fn attachment(&self) -> Option<ZBytes> {
         self.0.attachment().cloned().map_into()
     }
 
