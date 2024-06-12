@@ -64,7 +64,7 @@ impl Query {
     }
 
     #[getter]
-    fn attachement(&self) -> Option<ZBytes> {
+    fn attachment(&self) -> Option<ZBytes> {
         self.0.attachment().cloned().map_into()
     }
 
