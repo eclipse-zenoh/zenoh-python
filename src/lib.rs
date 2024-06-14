@@ -29,7 +29,6 @@ mod session;
 mod subscriber;
 mod time;
 mod utils;
-mod value;
 
 use pyo3::prelude::*;
 
@@ -56,8 +55,7 @@ pub(crate) mod zenoh {
         key_expr::SetIntersectionLevel,
         logging::init_logging,
         publisher::{CongestionControl, Priority, Publisher},
-        query::{ConsolidationMode, QueryTarget, Reply},
-        queryable::Query,
+        query::{ConsolidationMode, Query, QueryTarget, Reply, ReplyError},
         queryable::Queryable,
         sample::{Sample, SampleKind},
         scouting::scout,
@@ -67,7 +65,6 @@ pub(crate) mod zenoh {
         subscriber::Reliability,
         subscriber::Subscriber,
         time::Timestamp,
-        value::Value,
         ZError,
     };
 

@@ -30,28 +30,23 @@ wrapper!(zenoh::scouting::Hello);
 #[pymethods]
 impl Hello {
     #[getter]
-    fn version(&self) -> u8 {
-        self.0.version
-    }
-
-    #[getter]
     fn whatami(&self) -> WhatAmI {
-        self.0.whatami.into()
+        self.0.whatami().into()
     }
 
     #[getter]
     fn zid(&self) -> ZenohId {
-        ZenohId(self.0.zid)
+        ZenohId(self.0.zid())
     }
 
     #[getter]
     fn locators<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
-        let locators = self.0.locators.iter().map(|loc| loc.as_str().to_object(py));
+        let locators = self
+            .0
+            .locators()
+            .iter()
+            .map(|loc| loc.as_str().to_object(py));
         PyList::new_bound(py, locators)
-    }
-
-    fn __eq__(&self, other: &Hello) -> bool {
-        self.0 == other.0
     }
 
     fn __repr__(&self) -> String {

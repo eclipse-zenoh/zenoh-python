@@ -86,13 +86,14 @@ def main():
     print("Opening session...")
     with zenoh.open(conf) as session:
         print("Declaring Subscriber on '{}'...".format(key))
-        sub = session.declare_subscriber(key, reliability=zenoh.Reliability.RELIABLE)
-
-        print("Press CTRL-C to quit...")
-        for sample in sub:
-            print(
-                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
-            )
+        with session.declare_subscriber(
+            key, reliability=zenoh.Reliability.RELIABLE
+        ) as sub:
+            print("Press CTRL-C to quit...")
+            for sample in sub:
+                print(
+                    f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
+                )
 
 
 if __name__ == "__main__":

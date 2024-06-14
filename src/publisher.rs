@@ -25,7 +25,7 @@ use crate::{
     utils::wait,
 };
 
-enum_mapper!(zenoh::publisher::Priority: u8 {
+enum_mapper!(zenoh::core::Priority: u8 {
     RealTime = 1,
     InteractiveHigh = 2,
     InteractiveLow = 3,
@@ -94,17 +94,14 @@ impl Publisher {
         Ok(self.get_ref()?.key_expr().clone().into())
     }
 
-    #[setter]
-    fn congestion_control(&mut self, congestion_control: CongestionControl) -> PyResult<()> {
-        self.get_mut()?
-            .set_congestion_control(congestion_control.into());
-        Ok(())
+    #[getter]
+    fn congestion_control(&self) -> PyResult<CongestionControl> {
+        Ok(self.get_ref()?.congestion_control().into())
     }
 
-    #[setter]
-    fn priority(&mut self, priority: Priority) -> PyResult<()> {
-        self.get_mut()?.set_priority(priority.into());
-        Ok(())
+    #[getter]
+    fn priority(&self) -> PyResult<Priority> {
+        Ok(self.get_ref()?.priority().into())
     }
 
     // TODO add timestamp
