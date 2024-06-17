@@ -54,12 +54,12 @@ parser.add_argument(
     help="The key expression to write.",
 )
 parser.add_argument(
-    "--value",
-    "-v",
-    dest="value",
+    "--payload",
+    "-p",
+    dest="payload",
     default="Put from Python!",
     type=str,
-    help="The value to write.",
+    help="The payload to write.",
 )
 parser.add_argument(
     "--config",
@@ -81,7 +81,7 @@ if args.connect is not None:
 if args.listen is not None:
     conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
-value = args.value
+payload = args.payload
 
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
@@ -92,8 +92,8 @@ def main():
     print("Opening session...")
     with zenoh.open(conf) as session:
 
-        print("Putting Data ('{}': '{}')...".format(key, value))
-        session.put(key, value)
+        print("Putting Data ('{}': '{}')...".format(key, payload))
+        session.put(key, payload)
 
         # --- Examples of put with other types:
 

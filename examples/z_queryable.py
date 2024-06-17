@@ -57,12 +57,12 @@ parser.add_argument(
     help="The key expression matching queries to reply to.",
 )
 parser.add_argument(
-    "--value",
-    "-v",
-    dest="value",
+    "--payload",
+    "-p",
+    dest="payload",
     default="Queryable from Python!",
     type=str,
-    help="The value to reply to queries.",
+    help="The payload to reply to queries.",
 )
 parser.add_argument(
     "--complete",
@@ -91,7 +91,7 @@ if args.connect is not None:
 if args.listen is not None:
     conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
-value = args.value
+payload = args.payload
 complete = args.complete
 
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
@@ -100,9 +100,13 @@ complete = args.complete
 def queryable_callback(query):
     print(
         f">> [Queryable ] Received Query '{query.selector}'"
-        + (f" with value: {query.value.payload}" if query.value is not None else "")
+        + (
+            f" with payload: {query.payload.deserialize(str)}"
+            if query.payload is not None
+            else ""
+        )
     )
-    query.reply(key, value)
+    query.reply(key, payload)
 
 
 def main():
