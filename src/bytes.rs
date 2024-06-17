@@ -20,11 +20,11 @@ use pyo3::{
     types::{PyBool, PyBytes, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple, PyType},
     PyTypeInfo,
 };
-use zenoh::buffers::{SplitBuffer, ZBuf};
+use zenoh::internal::buffers::{SplitBuffer, ZBuf};
 
 use crate::{
     macros::{downcast_or_new, import, try_import, wrapper},
-    utils::{try_process, IntoPyResult},
+    utils::{try_process, IntoPyResult, IntoPython},
 };
 
 fn serializers(py: Python) -> &'static Py<PyDict> {
@@ -118,20 +118,14 @@ impl ZBytes {
             zenoh::bytes::ZBytes::serialize(b)
         } else if let Ok(list) = obj.downcast::<PyList>() {
             try_process(
-                // TODO remove ZBuf
                 list.iter()
-                    .map(|elt| PyResult::Ok(ZBuf::from(Self::new(Some(&elt))?.0))),
+                    .map(|elt| PyResult::Ok(Self::new(Some(&elt))?.0)),
                 |iter| iter.collect(),
             )?
         } else if let Ok(dict) = obj.downcast::<PyDict>() {
             try_process(
-                // TODO remove ZBuf
-                dict.iter().map(|(k, v)| {
-                    PyResult::Ok((
-                        ZBuf::from(Self::new(Some(&k))?.0),
-                        ZBuf::from(Self::new(Some(&v))?.0),
-                    ))
-                }),
+                dict.iter()
+                    .map(|(k, v)| PyResult::Ok((Self::new(Some(&k))?.0, Self::new(Some(&v))?.0))),
                 |iter| iter.collect(),
             )?
         } else if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
@@ -163,16 +157,18 @@ impl ZBytes {
             this.0.deserialize::<bool>().into_pyres()?.into_py(py)
         } else if tp.eq(PyList::type_object_bound(py))? {
             let list = PyList::empty_bound(py);
-            // TODO use fallible iteration + remove ZBuf
-            for elt in this.0.iter::<ZBuf>() {
-                list.append(Self(elt.into()).into_py(py))?;
+            for elt in this.0.iter::<zenoh::bytes::ZBytes>() {
+                list.append(Self(elt.into_pyres()?).into_py(py))?;
             }
             list.into_py(py)
         } else if tp.eq(PyDict::type_object_bound(py))? {
             let dict = PyDict::new_bound(py);
-            // TODO use fallible iteration + remove ZBuf
-            for (k, v) in this.0.iter::<(ZBuf, ZBuf)>() {
-                dict.set_item(Self(k.into()).into_py(py), Self(v.into()).into_py(py))?;
+            for kv in this
+                .0
+                .iter::<(zenoh::bytes::ZBytes, zenoh::bytes::ZBytes)>()
+            {
+                let (k, v) = kv.into_pyres()?;
+                dict.set_item(k.into_pyobject(py), v.into_pyobject(py))?;
             }
             dict.into_py(py)
         } else if try_import!(py, types.GenericAlias).and_then(|alias| tp.eq(alias))? {
@@ -180,32 +176,39 @@ impl ZBytes {
             let args = import!(py, typing.get_args)
                 .call1((tp,))?
                 .downcast_into::<PyTuple>()?;
+            let deserialize =
+                |bytes, tp| Self::deserialize(Py::new(py, Self(bytes)).unwrap().borrow(py), tp);
             if origin.eq(PyList::type_object_bound(py))? {
                 let tp = args.get_item(0)?;
                 let list = PyList::empty_bound(py);
-                // TODO use fallible iteration + remove ZBuf
-                for elt in this.0.iter::<ZBuf>() {
-                    let elt = Py::new(py, Self(elt.into())).unwrap();
-                    list.append(Self::deserialize(elt.borrow(py), &tp)?)?;
+                for elt in this.0.iter::<zenoh::bytes::ZBytes>() {
+                    list.append(deserialize(elt.into_pyres()?, &tp)?)?;
                 }
                 list.into_py(py)
+            } else if origin.eq(PyTuple::type_object_bound(py))?
+                && args.len() == 2
+                && !args.get_item(1).is_ok_and(|item| !item.is(&py.Ellipsis()))
+            {
+                let tp_k = args.get_item(0)?;
+                let tp_v = args.get_item(1)?;
+                let (k, v): (zenoh::bytes::ZBytes, zenoh::bytes::ZBytes) =
+                    this.0.deserialize().into_pyres()?;
+                PyTuple::new_bound(py, [deserialize(k, &tp_k)?, deserialize(v, &tp_v)?]).into_py(py)
             } else if origin.eq(PyList::type_object_bound(py))? {
                 let tp_k = args.get_item(0)?;
                 let tp_v = args.get_item(1)?;
                 let dict = PyDict::new_bound(py);
-                // TODO use fallible iteration + remove ZBuf
-                for (k, v) in this.0.iter::<(ZBuf, ZBuf)>() {
-                    let k = Py::new(py, Self(k.into())).unwrap();
-                    let v = Py::new(py, Self(v.into())).unwrap();
-                    dict.set_item(
-                        Self::deserialize(k.borrow(py), &tp_k)?,
-                        Self::deserialize(v.borrow(py), &tp_v)?,
-                    )?;
+                for kv in this
+                    .0
+                    .iter::<(zenoh::bytes::ZBytes, zenoh::bytes::ZBytes)>()
+                {
+                    let (k, v) = kv.into_pyres()?;
+                    dict.set_item(deserialize(k, &tp_k)?, deserialize(v, &tp_v)?)?;
                 }
                 dict.into_py(py)
             } else {
                 return Err(PyValueError::new_err(
-                    "Only list or dict are supported as generic type",
+                    "Only list, dict or tuple[Any, Any] are supported as generic type",
                 ));
             }
         } else if let Ok(Some(de)) = deserializers(py).bind(py).get_item(tp) {

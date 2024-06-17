@@ -21,7 +21,6 @@ use validated_struct::ValidatedMap;
 use zenoh::config::{EndPoint, Notifier};
 
 use crate::{
-    key_expr::KeyExpr,
     macros::{bail, downcast_or_new, enum_mapper, import, wrapper},
     utils::{IntoPyErr, IntoPyResult, IntoRust},
 };
@@ -258,11 +257,6 @@ wrapper!(zenoh::config::ZenohId);
 
 #[pymethods]
 impl ZenohId {
-    #[allow(clippy::wrong_self_convention)]
-    fn into_keyexpr(&self) -> KeyExpr {
-        KeyExpr(self.0.into_keyexpr().into())
-    }
-
     fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }

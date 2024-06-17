@@ -63,11 +63,11 @@ parser.add_argument(
     help="The target queryables of the query.",
 )
 parser.add_argument(
-    "--value",
-    "-v",
-    dest="value",
+    "--payload",
+    "-p",
+    dest="payload",
     type=str,
-    help="An optional value to send in the query.",
+    help="An optional payload to send in the query.",
 )
 parser.add_argument(
     "--config",
@@ -107,7 +107,7 @@ def main():
         replies = session.get(
             selector,
             target=target,
-            payload=args.value,
+            payload=args.payload,
             consolidation=zenoh.ConsolidationMode.NONE,
         )
         for reply in replies:

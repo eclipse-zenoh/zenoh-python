@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -33,20 +34,29 @@ impl Selector {
         #[pyo3(from_py_with = "Parameters::from_py_opt")] parameters: Option<Parameters>,
     ) -> PyResult<Self> {
         Ok(Self(if let Some(params) = parameters {
-            zenoh::selector::Selector::new(KeyExpr::from_py(arg)?.0, params.0)
+            (KeyExpr::from_py(arg)?.0, params.0).into()
+        } else if let Ok(s) = String::extract_bound(arg) {
+            s.parse().into_pyres()?
+        } else if let Ok(k) = KeyExpr::extract_bound(arg) {
+            k.0.into()
         } else {
-            String::extract_bound(arg)?.parse().into_pyres()?
+            return Err(String::extract_bound(arg).unwrap_err());
         }))
     }
 
     #[getter]
-    fn key_expr(&self) -> KeyExpr {
-        self.0.key_expr().clone().into_owned().into()
+    fn get_key_expr(&self) -> KeyExpr {
+        self.0.key_expr.clone().into_owned().into()
+    }
+
+    #[setter]
+    fn set_key_expr(&mut self, #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr) {
+        self.0.key_expr = Cow::Owned(key_expr.0)
     }
 
     #[getter]
     fn get_parameters(&self) -> Parameters {
-        self.0.parameters().clone().into()
+        self.0.parameters.clone().into_owned().into()
     }
 
     #[setter]
@@ -54,12 +64,7 @@ impl Selector {
         &mut self,
         #[pyo3(from_py_with = "Parameters::from_py")] parameters: Parameters,
     ) {
-        self.0.set_parameters(parameters.0)
-    }
-
-    fn split(&self) -> (KeyExpr, Parameters) {
-        let (k, p) = self.0.clone().split();
-        (k.into(), p.into())
+        self.0.parameters = Cow::Owned(parameters.0)
     }
 
     fn __repr__(&self) -> String {

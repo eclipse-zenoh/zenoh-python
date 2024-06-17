@@ -11,9 +11,11 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::collections::hash_map::DefaultHasher;
 
-use pyo3::{prelude::*, types::PyType};
+use pyo3::{
+    prelude::*,
+    types::{PyString, PyType},
+};
 
 use crate::{
     macros::{downcast_or_new, enum_mapper, wrapper},
@@ -80,11 +82,8 @@ impl KeyExpr {
         format!("{}", self.0)
     }
 
-    fn __hash__(&self) -> isize {
-        use std::hash::*;
-        let mut hasher: DefaultHasher = BuildHasherDefault::default().build_hasher();
-        self.0.hash(&mut hasher);
-        hasher.finish() as isize
+    fn __hash__(&self, py: Python) -> PyResult<isize> {
+        PyString::new_bound(py, self.0.as_str()).hash()
     }
 
     // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113

@@ -56,12 +56,12 @@ parser.add_argument(
     help="The key expression to publish onto.",
 )
 parser.add_argument(
-    "--value",
-    "-v",
-    dest="value",
+    "--payload",
+    "-p",
+    dest="payload",
     default="Pub from Python!",
     type=str,
-    help="The value to publish.",
+    help="The payload to publish.",
 )
 parser.add_argument("--iter", dest="iter", type=int, help="How many puts to perform")
 parser.add_argument(
@@ -91,7 +91,7 @@ if args.connect is not None:
 if args.listen is not None:
     conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
-value = args.value
+payload = args.payload
 
 
 def main():
@@ -107,7 +107,7 @@ def main():
         print("Press CTRL-C to quit...")
         for idx in itertools.count() if args.iter is None else range(args.iter):
             time.sleep(args.interval)
-            buf = f"[{idx:4d}] {value}"
+            buf = f"[{idx:4d}] {payload}"
             print(f"Putting Data ('{key}': '{buf}')...")
             pub.put(buf)
 
