@@ -46,7 +46,7 @@ pub(crate) mod zenoh {
 
     #[pymodule_export]
     use crate::{
-        bytes::{deserializer, serializer},
+        bytes::{deserializer, serializer, ZBytes},
         config::{Config, WhatAmI, ZenohId},
         encoding::Encoding,
         handlers::Handler,

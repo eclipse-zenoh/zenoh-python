@@ -24,6 +24,7 @@ from . import handlers as handlers
 from .handlers import Handler as Handler
 
 _T = TypeVar("_T")
+_T_contra = TypeVar("_T_contra", contravariant=True)
 _H = TypeVar("_H")
 _F = TypeVar("_F", bound=Callable)
 
@@ -31,12 +32,12 @@ _RustHandler = (
     handlers.DefaultHandler[_T] | handlers.FifoChannel[_T] | handlers.RingChannel[_T]
 )
 
-class _CallableDrop(Protocol[_T]):
-    def __call__(self, arg: _T, /) -> Any: ...
+class _CallableDrop(Protocol[_T_contra]):
+    def __call__(self, arg: _T_contra, /) -> Any: ...
     def drop(self) -> Any: ...
 
-_PythonCallback = Callable[[_T], Any] | _CallableDrop[_T]
-_PythonHandler = tuple[_PythonCallback[_T], _H]
+_PythonCallback = Callable[[_T_contra], Any] | _CallableDrop[_T_contra]
+_PythonHandler = tuple[_PythonCallback[_T_contra], _H]
 
 @final
 class ZError(Exception): ...
@@ -97,6 +98,8 @@ class Encoding:
     def with_schema(self, schema: str) -> Self:
         """Set a schema to this encoding. Zenoh does not define what a schema is and its semantichs is left to the implementer. E.g. a common schema for text/plain encoding is utf-8."""
 
+    def __eq__(self, other: _IntoEncoding) -> bool: ...
+    def __hash__(self) -> int: ...
     def __str__(self) -> str: ...
 
     ZENOH_BYTES: Self
@@ -938,6 +941,8 @@ class ZBytes:
     def __bool__(self) -> bool: ...
     def __len__(self) -> int: ...
     def __bytes__(self) -> bytes: ...
+    def __eq__(self, other: Any) -> bool: ...
+    def __hash__(self) -> int: ...
 
 _IntoZBytes = Any
 
@@ -996,25 +1001,25 @@ def serializer(func: _F, /) -> _F:
     """Register a serializer for a given type, which will be used to serialize payloads.
 
     If the function is type-annotated, it will use the type of the first argument.
-    Otherwise, the type has to be passed."""
+    Otherwise, the type has to be passed with the 'target' parameter."""
 
 @overload
-def serializer(tp: type, /) -> Callable[[_F], _F]:
+def serializer(*, target: type) -> Callable[[_F], _F]:
     """Register a serializer for a given type, which will be used to serialize payloads.
 
     If the function is type-annotated, it will use the type of the first argument.
-    Otherwise, the type has to be passed."""
+    Otherwise, the type has to be passed with the 'target' parameter."""
 
 @overload
 def deserializer(func: _F, /) -> _F:
     """Register a deserializer for a given type, which will be used to deserialize payload.
 
     If the function is type-annotated, it will use the return type.
-    Otherwise, the type has to be passed."""
+    Otherwise, the type has to be passed with the 'target' parameter."""
 
 @overload
-def deserializer(tp: type, /) -> Callable[[_F], _F]:
+def deserializer(*, target: type) -> Callable[[_F], _F]:
     """Register a deserializer for a given type, which will be used to deserialize payload.
 
     If the function is type-annotated, it will use the return type.
-    Otherwise, the type has to be passed."""
+    Otherwise, the type has to be passed with the 'target' parameter."""
