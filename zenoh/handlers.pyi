@@ -42,3 +42,19 @@ class RingChannel(Generic[_T]):
     """A synchrounous ring channel with a limited size that allows users to keep the last N data."""
 
     def __new__(cls, capacity: int) -> Self: ...
+
+RustHandler = DefaultHandler[_T] | FifoChannel[_T] | RingChannel[_T]
+
+@final
+class Callback(Generic[_T]):
+    def __new__(
+        cls,
+        callback: Callable[[_T], Any],
+        drop: Callable[[], Any] | None = None,
+        *,
+        indirect: bool = True,
+    ) -> Self: ...
+    def __call__(self, arg: _T, /) -> Any: ...
+    def drop(self) -> Any: ...
+    @property
+    def indirect(self) -> bool: ...

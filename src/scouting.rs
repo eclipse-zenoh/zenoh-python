@@ -20,7 +20,7 @@ use pyo3::{
 
 use crate::{
     config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
-    handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
+    handlers::{into_handler, HandlerImpl},
     macros::{option_wrapper, wrapper},
     utils::{generic, wait},
 };
@@ -114,13 +114,13 @@ impl Scout {
 #[pyo3(signature = (handler = None, what = None, config = None))]
 pub(crate) fn scout(
     py: Python,
-    #[pyo3(from_py_with = "into_handler::<Hello>")] handler: Option<IntoHandlerImpl<Hello>>,
+    handler: Option<&Bound<PyAny>>,
     #[pyo3(from_py_with = "WhatAmIMatcher::from_py_opt")] what: Option<WhatAmIMatcher>,
     config: Option<Config>,
 ) -> PyResult<Scout> {
     let what = what.unwrap_or_default();
     let config = config.unwrap_or_default();
-    let handler = handler_or_default(py, handler);
+    let handler = into_handler(py, handler)?;
     let scout = wait(py, || zenoh::scout(what, config).with(handler))?;
     Ok(Scout(Some(scout)))
 }

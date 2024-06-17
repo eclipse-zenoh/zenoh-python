@@ -120,7 +120,11 @@ def main():
 
         print("Press CTRL-C to quit...")
         while True:
-            time.sleep(1)
+            try:
+                time.sleep(1)
+            except Exception as err:
+                print(err, flush=True)
+                raise
 
 
 if __name__ == "__main__":

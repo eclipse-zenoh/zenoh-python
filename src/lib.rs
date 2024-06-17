@@ -41,7 +41,7 @@ pub(crate) mod zenoh {
     #[pymodule]
     mod handlers {
         #[pymodule_export]
-        use crate::handlers::{CallbackDrop, DefaultHandler, FifoChannel, Handler, RingChannel};
+        use crate::handlers::{Callback, DefaultHandler, FifoChannel, Handler, RingChannel};
     }
 
     #[pymodule_export]

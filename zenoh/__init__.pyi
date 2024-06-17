@@ -24,7 +24,6 @@ from . import handlers as handlers
 from .handlers import Handler as Handler
 
 _T = TypeVar("_T")
-_T_contra = TypeVar("_T_contra", contravariant=True)
 _H = TypeVar("_H")
 _F = TypeVar("_F", bound=Callable)
 
@@ -32,12 +31,8 @@ _RustHandler = (
     handlers.DefaultHandler[_T] | handlers.FifoChannel[_T] | handlers.RingChannel[_T]
 )
 
-class _CallableDrop(Protocol[_T_contra]):
-    def __call__(self, arg: _T_contra, /) -> Any: ...
-    def drop(self) -> Any: ...
-
-_PythonCallback = Callable[[_T_contra], Any] | _CallableDrop[_T_contra]
-_PythonHandler = tuple[_PythonCallback[_T_contra], _H]
+_PythonCallback = Callable[[_T], Any]
+_PythonHandler = tuple[_PythonCallback[_T], _H]
 
 @final
 class ZError(Exception): ...
