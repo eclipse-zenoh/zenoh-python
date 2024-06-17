@@ -21,11 +21,12 @@ use std::{
 use pyo3::{
     exceptions::{PyAttributeError, PyValueError},
     prelude::*,
-    types::PyType,
+    types::{PyDict, PyType},
 };
 use zenoh::handlers::{Callback, IntoHandler};
 
 use crate::{
+    macros::{import, py_static},
     utils::{generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust},
     ZError,
 };
@@ -33,6 +34,24 @@ use crate::{
 const CHECK_SIGNALS_INTERVAL: Duration = Duration::from_millis(100);
 fn check_signals_deadline() -> Instant {
     Instant::now() + CHECK_SIGNALS_INTERVAL
+}
+
+fn exec_callback(callback: impl FnOnce(Python) -> PyResult<PyObject>) {
+    Python::with_gil(|gil| {
+        if let Err(err) = callback(gil) {
+            let kwargs = PyDict::new_bound(gil);
+            kwargs.set_item("exc_info", err.into_value(gil)).unwrap();
+            py_static!(gil, || PyResult::Ok(
+                import!(gil, logging.getLogger)
+                    .call1(("zenoh.handlers",))?
+                    .getattr("error")?
+                    .unbind()
+            ))
+            .unwrap()
+            .call(("callback error",), Some(&kwargs))
+            .ok();
+        }
+    })
 }
 
 #[pyclass]
@@ -188,14 +207,14 @@ impl PythonCallback {
             Self::Simple(cb) => cb,
             Self::WithDrop { callback, .. } => callback,
         };
-        let _ = Python::with_gil(|gil| PyResult::Ok(callback.call1(gil, (t.into_pyobject(gil),))));
+        exec_callback(|gil| callback.call1(gil, (t.into_pyobject(gil),)));
     }
 }
 
 impl Drop for PythonCallback {
     fn drop(&mut self) {
         if let Self::WithDrop { drop, .. } = self {
-            let _ = Python::with_gil(|gil| PyResult::Ok(drop.call0(gil)));
+            exec_callback(|gil| drop.call0(gil));
         }
     }
 }

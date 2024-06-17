@@ -1,16 +1,18 @@
+macro_rules! py_static {
+    ($py:expr, $expr:expr) => {{
+        static CELL: pyo3::sync::GILOnceCell<PyObject> = pyo3::sync::GILOnceCell::new();
+        CELL.get_or_try_init($py, $expr).map(|obj| obj.bind($py))
+    }};
+}
+pub(crate) use py_static;
+
 macro_rules! try_import {
     ($py:expr, $module:ident.$attr:ident) => {{
-        static IMPORTED: pyo3::sync::GILOnceCell<PyObject> = pyo3::sync::GILOnceCell::new();
-        let import = || {
-            PyResult::Ok(
-                $py.import_bound(stringify!($module))?
-                    .getattr(stringify!($attr))?
-                    .unbind(),
-            )
-        };
-        IMPORTED
-            .get_or_try_init($py, import)
-            .map(|obj| obj.bind($py))
+        $crate::macros::py_static!($py, || PyResult::Ok(
+            $py.import_bound(stringify!($module))?
+                .getattr(stringify!($attr))?
+                .unbind()
+        ))
     }};
 }
 pub(crate) use try_import;
