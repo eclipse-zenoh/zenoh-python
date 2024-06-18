@@ -17,7 +17,8 @@ mod encoding;
 mod handlers;
 mod info;
 mod key_expr;
-mod logging;
+#[allow(unused)]
+mod logging; // https://github.com/eclipse-zenoh/zenoh-python/pull/235#discussion_r1644498390
 mod macros;
 mod publisher;
 mod query;
@@ -44,6 +45,11 @@ pub(crate) mod zenoh {
         use crate::handlers::{Callback, DefaultHandler, FifoChannel, Handler, RingChannel};
     }
 
+    #[pyfunction]
+    fn try_init_log_from_env() {
+        zenoh::try_init_log_from_env();
+    }
+
     #[pymodule_export]
     use crate::{
         bytes::{deserializer, serializer, ZBytes},
@@ -53,7 +59,6 @@ pub(crate) mod zenoh {
         info::SessionInfo,
         key_expr::KeyExpr,
         key_expr::SetIntersectionLevel,
-        logging::init_logging,
         publisher::{CongestionControl, Priority, Publisher},
         query::{ConsolidationMode, Query, QueryTarget, Reply, ReplyError},
         queryable::Queryable,

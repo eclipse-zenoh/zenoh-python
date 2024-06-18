@@ -78,7 +78,7 @@ key = args.key
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
     # initiate logging
-    zenoh.init_logging()
+    zenoh.try_init_log_from_env()
 
     print("Opening session...")
     with zenoh.open(conf) as session:

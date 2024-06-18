@@ -18,7 +18,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Generic, Never, Protocol, Self, TypeVar, final, overload
+from typing import Any, Generic, Literal, Never, Self, TypeVar, final, overload
 
 from . import handlers as handlers
 from .handlers import Handler as Handler
@@ -948,12 +948,11 @@ class ZenohId:
     def into_keyexpr(self) -> KeyExpr: ...
     def __str__(self) -> str: ...
 
-def init_logging(basic_config: bool = True, **kwargs):
-    """Start redirecting all zenoh logs to Python logger named `zenoh`.
+def try_init_log_from_env():
+    """Redirect zenoh logs to stdout, according to the `RUST_LOG` environment variable.
 
-    If `basic_config=True`, which is the default, it also calls
-    `logging.basicConfig(**kwargs)` as a convenience.
-    """
+    For example, `RUST_LOG=debug` will set the log level to DEBUG.
+    If `RUST_LOG` is not set, then logging is not enabled."""
 
 def open(config: Config | None = None) -> Session:
     """Open a zenoh Session."""

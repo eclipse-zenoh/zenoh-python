@@ -75,7 +75,7 @@ size = args.payload_size
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
     # initiate logging
-    zenoh.init_logging()
+    zenoh.try_init_log_from_env()
 
     data = bytearray()
     for i in range(0, size):
@@ -89,13 +89,7 @@ def main():
 
         print("Press CTRL-C to quit...")
         while True:
-            try:
-                pub.put(bytes(data))
-            except BaseException:
-                print("Ctrl+C")
-                pub.undeclare()
-                print("Ctrl+C")
-                raise
+            pub.put(bytes(data))
 
 
 if __name__ == "__main__":
