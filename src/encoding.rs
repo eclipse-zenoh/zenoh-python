@@ -11,7 +11,7 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyString};
 
 use crate::{
     macros::{downcast_or_new, wrapper},
@@ -35,6 +35,10 @@ impl Encoding {
     // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113
     fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
         Ok(self.0 == Self::from_py(other)?.0)
+    }
+
+    fn __hash__(&self, py: Python) -> PyResult<isize> {
+        PyString::new_bound(py, &self.__str__()).hash()
     }
 
     fn __repr__(&self) -> String {
