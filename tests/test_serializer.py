@@ -1,27 +1,31 @@
+import sys
 from dataclasses import dataclass
 
 import pytest
 
 from zenoh import ZBytes, deserializer, serializer
 
-
-@pytest.mark.parametrize(
-    "tp, value",
-    [
-        (bytes, b"foo"),
-        (str, "foo"),
-        (int, 42),
-        (float, 0.5),
-        (bool, True),
+default_serializer_tests = [
+    (bytes, b"foo"),
+    (str, "foo"),
+    (int, 42),
+    (float, 0.5),
+    (bool, True),
+    (ZBytes, ZBytes(b"foo")),
+    (list, [ZBytes(0), ZBytes(1)]),
+    (dict, {ZBytes("foo"): ZBytes("bar")}),
+]
+if sys.version_info >= (3, 9):
+    default_serializer_tests = [
+        *default_serializer_tests,
         (list[int], [0, 1, 2]),
         (dict[str, str], {"foo": "bar"}),
         (tuple[int, int], (0, 1)),
         (list[tuple[int, int]], [(0, 1), (2, 3)]),
-        (ZBytes, ZBytes(b"foo")),
-        (list, [ZBytes(0), ZBytes(1)]),
-        (dict, {ZBytes("foo"): ZBytes("bar")}),
-    ],
-)
+    ]
+
+
+@pytest.mark.parametrize("tp, value", default_serializer_tests)
 def test_default_serializer(tp, value):
     assert ZBytes(value).deserialize(tp) == value
 
