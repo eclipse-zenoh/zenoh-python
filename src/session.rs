@@ -24,14 +24,13 @@ use crate::{
     bytes::ZBytes,
     config::{Config, ConfigInner, ZenohId},
     encoding::Encoding,
-    handlers::{handler_or_default, into_handler, HandlerImpl, IntoHandlerImpl},
+    handlers::{into_handler, HandlerImpl},
     info::SessionInfo,
     key_expr::KeyExpr,
     macros::{bail, build, build_with, option_wrapper},
     publisher::{CongestionControl, Priority, Publisher},
-    query::{ConsolidationMode, Query, QueryTarget, Reply},
+    query::{ConsolidationMode, QueryTarget, Reply},
     queryable::Queryable,
-    sample::Sample,
     selector::Selector,
     subscriber::{Reliability, Subscriber},
     utils::{wait, MapInto},
@@ -152,7 +151,7 @@ impl Session {
         &self,
         py: Python,
         #[pyo3(from_py_with = "Selector::from_py")] selector: Selector,
-        #[pyo3(from_py_with = "into_handler::<Reply>")] handler: Option<IntoHandlerImpl<Reply>>,
+        handler: Option<&Bound<PyAny>>,
         target: Option<QueryTarget>,
         consolidation: Option<ConsolidationMode>,
         #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
@@ -164,8 +163,9 @@ impl Session {
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
+        let handler = into_handler(py, handler)?;
         let build = build_with!(
-            handler_or_default(py, handler),
+            handler,
             this.get(selector),
             target,
             consolidation,
@@ -190,15 +190,12 @@ impl Session {
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        #[pyo3(from_py_with = "into_handler::<Sample>")] handler: Option<IntoHandlerImpl<Sample>>,
+        handler: Option<&Bound<PyAny>>,
         reliability: Option<Reliability>,
     ) -> PyResult<Py<Subscriber>> {
         let this = self.get_ref()?;
-        let build = build_with!(
-            handler_or_default(py, handler),
-            this.declare_subscriber(key_expr),
-            reliability,
-        );
+        let handler = into_handler(py, handler)?;
+        let build = build_with!(handler, this.declare_subscriber(key_expr), reliability,);
         let subscriber = Subscriber {
             subscriber: Some(wait(py, build)?),
             session_pool: self.pool.clone_ref(py),
@@ -213,15 +210,12 @@ impl Session {
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        #[pyo3(from_py_with = "into_handler::<Query>")] handler: Option<IntoHandlerImpl<Query>>,
+        handler: Option<&Bound<PyAny>>,
         complete: Option<bool>,
     ) -> PyResult<Py<Queryable>> {
         let this = self.get_ref()?;
-        let build = build_with!(
-            handler_or_default(py, handler),
-            this.declare_queryable(key_expr),
-            complete,
-        );
+        let handler = into_handler(py, handler)?;
+        let build = build_with!(handler, this.declare_queryable(key_expr), complete,);
         let queryable = Queryable {
             queryable: Some(wait(py, build)?),
             session_pool: self.pool.clone_ref(py),
