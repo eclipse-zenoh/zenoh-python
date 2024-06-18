@@ -467,7 +467,7 @@ where
         return Ok(rust_handler(py, handler));
     }
     if obj.is_callable() {
-        return python_handler(py, &obj, py.None());
+        return python_handler(py, obj, py.None());
     } else if let Ok((cb, handler)) = obj.extract::<(Bound<PyAny>, PyObject)>() {
         if cb.is_callable() {
             return python_handler(py, &cb, handler);
