@@ -18,7 +18,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Generic, Never, Protocol, Self, TypeVar, final, overload
+from typing import Any, Generic, Literal, Never, Self, TypeVar, final, overload
 
 from . import handlers as handlers
 from .handlers import Handler as Handler
@@ -948,11 +948,30 @@ class ZenohId:
     def into_keyexpr(self) -> KeyExpr: ...
     def __str__(self) -> str: ...
 
-def init_logging(basic_config: bool = True, **kwargs):
+@overload
+def init_logging(*, basic_config: bool = True, raw: Literal[False] = False, **kwargs):
     """Start redirecting all zenoh logs to Python logger named `zenoh`.
 
     If `basic_config=True`, which is the default, it also calls
     `logging.basicConfig(**kwargs)` as a convenience.
+
+    If the overloaded signature `init_logging(raw=True)` is called, then
+    zenoh logs are directly printed to stdout, bypassing the Python logger
+    (and its formatting). Raw log level can be controlled using `RUST_LOG`
+    environment variable.
+    """
+
+@overload
+def init_logging(*, raw: Literal[True]):
+    """Start redirecting all zenoh logs to Python logger named `zenoh`.
+
+    If `basic_config=True`, which is the default, it also calls
+    `logging.basicConfig(**kwargs)` as a convenience.
+
+    If the overloaded signature `init_logging(raw=True)` is called, then
+    zenoh logs are directly printed to stdout, bypassing the Python logger
+    (and its formatting). Raw log level can be controlled using `RUST_LOG`
+    environment variable.
     """
 
 def open(config: Config | None = None) -> Session:
