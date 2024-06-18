@@ -948,31 +948,11 @@ class ZenohId:
     def into_keyexpr(self) -> KeyExpr: ...
     def __str__(self) -> str: ...
 
-@overload
-def init_logging(*, basic_config: bool = True, raw: Literal[False] = False, **kwargs):
-    """Start redirecting all zenoh logs to Python logger named `zenoh`.
+def try_init_log_from_env():
+    """Redirect zenoh logs to stdout, according to the `RUST_LOG` environment variable.
 
-    If `basic_config=True`, which is the default, it also calls
-    `logging.basicConfig(**kwargs)` as a convenience.
-
-    If the overloaded signature `init_logging(raw=True)` is called, then
-    zenoh logs are directly printed to stdout, bypassing the Python logger
-    (and its formatting). Raw log level can be controlled using `RUST_LOG`
-    environment variable.
-    """
-
-@overload
-def init_logging(*, raw: Literal[True]):
-    """Start redirecting all zenoh logs to Python logger named `zenoh`.
-
-    If `basic_config=True`, which is the default, it also calls
-    `logging.basicConfig(**kwargs)` as a convenience.
-
-    If the overloaded signature `init_logging(raw=True)` is called, then
-    zenoh logs are directly printed to stdout, bypassing the Python logger
-    (and its formatting). Raw log level can be controlled using `RUST_LOG`
-    environment variable.
-    """
+    For example, `RUST_LOG=debug` will set the log level to DEBUG.
+    If `RUST_LOG` is not set, then logging is not enabled."""
 
 def open(config: Config | None = None) -> Session:
     """Open a zenoh Session."""

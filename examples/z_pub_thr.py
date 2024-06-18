@@ -75,7 +75,7 @@ size = args.payload_size
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
     # initiate logging
-    zenoh.init_logging()
+    zenoh.try_init_log_from_env()
 
     data = bytearray()
     for i in range(0, size):
