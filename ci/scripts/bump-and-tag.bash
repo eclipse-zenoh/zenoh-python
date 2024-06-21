@@ -50,7 +50,7 @@ if [[ "$bump_deps_pattern" != '' ]]; then
     fi
   done
   # Update lockfile
-  cargo check
+  cargo update zenoh && cargo check
 
   if [[ -n $bump_deps_version || -n $bump_deps_branch ]]; then
     git commit Cargo.toml Cargo.lock -m "chore: Bump $bump_deps_pattern version to $bump_deps_version"
