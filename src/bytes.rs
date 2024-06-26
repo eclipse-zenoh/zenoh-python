@@ -193,23 +193,11 @@ impl ZBytes {
         } else if tp.eq(PyString::type_object_bound(py))? {
             this.0.deserialize::<Cow<str>>().into_pyres()?.into_py(py)
         } else if tp.eq(PyInt::type_object_bound(py))? {
-            this.0
-                .deserialize::<i64>()
-                .map_err(|e| format!("{:?}", e))
-                .into_pyres()?
-                .into_py(py)
+            this.0.deserialize::<i64>().into_pyres()?.into_py(py)
         } else if tp.eq(PyFloat::type_object_bound(py))? {
-            this.0
-                .deserialize::<f64>()
-                .map_err(|e| format!("{:?}", e))
-                .into_pyres()?
-                .into_py(py)
+            this.0.deserialize::<f64>().into_pyres()?.into_py(py)
         } else if tp.eq(PyBool::type_object_bound(py))? {
-            this.0
-                .deserialize::<bool>()
-                .map_err(|e| format!("{:?}", e))
-                .into_pyres()?
-                .into_py(py)
+            this.0.deserialize::<bool>().into_pyres()?.into_py(py)
         } else if tp.eq(PyList::type_object_bound(py))? {
             let list = PyList::empty_bound(py);
             for elt in this.0.iter::<zenoh::bytes::ZBytes>() {
@@ -222,7 +210,7 @@ impl ZBytes {
                 .0
                 .iter::<(zenoh::bytes::ZBytes, zenoh::bytes::ZBytes)>()
             {
-                let (k, v) = kv.map_err(|e| format!("{:?}", e)).into_pyres()?;
+                let (k, v) = kv.into_pyres()?;
                 dict.set_item(k.into_pyobject(py), v.into_pyobject(py))?;
             }
             dict.into_py(py)
@@ -248,11 +236,8 @@ impl ZBytes {
             {
                 let tp_k = args.get_item(0)?;
                 let tp_v = args.get_item(1)?;
-                let (k, v): (zenoh::bytes::ZBytes, zenoh::bytes::ZBytes) = this
-                    .0
-                    .deserialize()
-                    .map_err(|e| format!("{:?}", e))
-                    .into_pyres()?;
+                let (k, v): (zenoh::bytes::ZBytes, zenoh::bytes::ZBytes) =
+                    this.0.deserialize().into_pyres()?;
                 PyTuple::new_bound(py, [deserialize(k, &tp_k)?, deserialize(v, &tp_v)?]).into_py(py)
             } else if origin.eq(PyDict::type_object_bound(py))? {
                 let tp_k = args.get_item(0)?;
@@ -262,7 +247,7 @@ impl ZBytes {
                     .0
                     .iter::<(zenoh::bytes::ZBytes, zenoh::bytes::ZBytes)>()
                 {
-                    let (k, v) = kv.map_err(|e| format!("{:?}", e)).into_pyres()?;
+                    let (k, v) = kv.into_pyres()?;
                     dict.set_item(deserialize(k, &tp_k)?, deserialize(v, &tp_v)?)?;
                 }
                 dict.into_py(py)
