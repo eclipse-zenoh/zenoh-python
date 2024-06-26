@@ -52,11 +52,29 @@ impl Encoding {
     #[classattr]
     const ZENOH_BYTES: Self = Self(zenoh::encoding::Encoding::ZENOH_BYTES);
     #[classattr]
-    const ZENOH_INT: Self = Self(zenoh::encoding::Encoding::ZENOH_INT);
+    const ZENOH_INT8: Self = Self(zenoh::encoding::Encoding::ZENOH_INT8);
     #[classattr]
-    const ZENOH_UINT: Self = Self(zenoh::encoding::Encoding::ZENOH_UINT);
+    const ZENOH_INT16: Self = Self(zenoh::encoding::Encoding::ZENOH_INT16);
     #[classattr]
-    const ZENOH_FLOAT: Self = Self(zenoh::encoding::Encoding::ZENOH_FLOAT);
+    const ZENOH_INT32: Self = Self(zenoh::encoding::Encoding::ZENOH_INT32);
+    #[classattr]
+    const ZENOH_INT64: Self = Self(zenoh::encoding::Encoding::ZENOH_INT64);
+    #[classattr]
+    const ZENOH_INT128: Self = Self(zenoh::encoding::Encoding::ZENOH_INT128);
+    #[classattr]
+    const ZENOH_UINT8: Self = Self(zenoh::encoding::Encoding::ZENOH_UINT8);
+    #[classattr]
+    const ZENOH_UINT16: Self = Self(zenoh::encoding::Encoding::ZENOH_UINT16);
+    #[classattr]
+    const ZENOH_UINT32: Self = Self(zenoh::encoding::Encoding::ZENOH_UINT32);
+    #[classattr]
+    const ZENOH_UINT64: Self = Self(zenoh::encoding::Encoding::ZENOH_UINT64);
+    #[classattr]
+    const ZENOH_UINT128: Self = Self(zenoh::encoding::Encoding::ZENOH_UINT128);
+    #[classattr]
+    const ZENOH_FLOAT32: Self = Self(zenoh::encoding::Encoding::ZENOH_FLOAT32);
+    #[classattr]
+    const ZENOH_FLOAT64: Self = Self(zenoh::encoding::Encoding::ZENOH_FLOAT64);
     #[classattr]
     const ZENOH_BOOL: Self = Self(zenoh::encoding::Encoding::ZENOH_BOOL);
     #[classattr]
