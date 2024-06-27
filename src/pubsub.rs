@@ -13,59 +13,28 @@
 //
 use pyo3::{
     prelude::*,
-    types::{PyDict, PySet, PyTuple},
+    types::{PyDict, PyIterator, PySet, PyTuple, PyType},
 };
 use zenoh::prelude::*;
 
 use crate::{
-    bytes::ZBytes,
-    encoding::Encoding,
+    bytes::{Encoding, ZBytes},
+    handlers::HandlerImpl,
     key_expr::KeyExpr,
     macros::{build, enum_mapper, option_wrapper},
-    utils::wait,
+    qos::{CongestionControl, Priority},
+    sample::Sample,
+    utils::{generic, wait},
 };
-
-enum_mapper!(zenoh::core::Priority: u8 {
-    RealTime = 1,
-    InteractiveHigh = 2,
-    InteractiveLow = 3,
-    DataHigh = 4,
-    Data = 5,
-    DataLow = 6,
-    Background = 7,
-});
-
-#[pymethods]
-impl Priority {
-    #[classattr]
-    const DEFAULT: Self = Self::Data;
-    #[classattr]
-    const MIN: Self = Self::Background;
-    #[classattr]
-    const MAX: Self = Self::RealTime;
-    #[classattr]
-    const NUM: usize = 1 + Self::MIN as usize - Self::MAX as usize;
-}
-
-enum_mapper!(zenoh::publisher::CongestionControl: u8 {
-    Drop = 0,
-    Block = 1,
-});
-
-#[pymethods]
-impl CongestionControl {
-    #[classattr]
-    const DEFAULT: Self = Self::Drop;
-}
 
 #[pyclass]
 pub(crate) struct Publisher {
-    pub(crate) publisher: Option<zenoh::publisher::Publisher<'static>>,
+    pub(crate) publisher: Option<zenoh::pubsub::Publisher<'static>>,
     pub(crate) session_pool: Py<PySet>,
 }
 
 option_wrapper!(
-    Publisher.publisher: zenoh::publisher::Publisher<'static>,
+    Publisher.publisher: zenoh::pubsub::Publisher<'static>,
     "Undeclared publisher"
 );
 
@@ -134,6 +103,89 @@ impl Publisher {
             .discard(this.into_py(this.py()))?;
         let publisher = this.borrow_mut().take()?;
         wait(this.py(), || publisher.undeclare())
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.get_ref()?))
+    }
+}
+
+enum_mapper!(zenoh::pubsub::Reliability: u8 {
+    BestEffort,
+    Reliable
+});
+
+#[pymethods]
+impl Reliability {
+    #[classattr]
+    const DEFAULT: Self = Self::BestEffort;
+}
+
+#[pyclass]
+pub(crate) struct Subscriber {
+    pub(crate) subscriber: Option<zenoh::pubsub::Subscriber<'static, HandlerImpl<Sample>>>,
+    pub(crate) session_pool: Py<PySet>,
+}
+
+option_wrapper!(
+    Subscriber.subscriber: zenoh::pubsub::Subscriber<'static, HandlerImpl<Sample>>,
+    "Undeclared subscriber"
+);
+
+#[pymethods]
+impl Subscriber {
+    fn _drop(&mut self) {
+        self.wait_drop();
+    }
+
+    #[classmethod]
+    fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
+        generic(cls, args)
+    }
+
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> PyResult<&'a Bound<'py, Self>> {
+        Self::check(this)
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        this: &Bound<Self>,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        Self::undeclare(this)?;
+        Ok(this.py().None())
+    }
+
+    #[getter]
+    fn key_expr(&self) -> PyResult<KeyExpr> {
+        Ok(self.get_ref()?.key_expr().clone().into())
+    }
+
+    #[getter]
+    fn handler(&self, py: Python) -> PyResult<PyObject> {
+        Ok(self.get_ref()?.handler().to_object(py))
+    }
+
+    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().try_recv(py)
+    }
+
+    fn recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().recv(py)
+    }
+
+    fn undeclare(this: &Bound<Self>) -> PyResult<()> {
+        this.borrow()
+            .session_pool
+            .bind(this.py())
+            .discard(this.into_py(this.py()))?;
+        let subscriber = this.borrow_mut().take()?;
+        wait(this.py(), || subscriber.undeclare())
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        self.handler(py)?.bind(py).iter()
     }
 
     fn __repr__(&self) -> PyResult<String> {

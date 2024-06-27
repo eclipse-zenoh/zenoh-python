@@ -22,7 +22,7 @@ use crate::{config::ZenohId, macros::zerror, utils::IntoPython};
 pub(crate) struct SessionInfo(pub(crate) Weak<zenoh::Session>);
 
 impl SessionInfo {
-    fn get_info(&self) -> PyResult<zenoh::info::SessionInfo<'static>> {
+    fn get_info(&self) -> PyResult<zenoh::session::SessionInfo<'static>> {
         Ok(self
             .0
             .upgrade()

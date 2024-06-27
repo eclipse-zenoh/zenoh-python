@@ -11,23 +11,20 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
+// TODO https://github.com/eclipse-zenoh/zenoh-python/pull/235#discussion_r1644498390
+// mod logging;
 mod bytes;
 mod config;
-mod encoding;
 mod handlers;
 mod info;
 mod key_expr;
-#[allow(unused)]
-mod logging; // https://github.com/eclipse-zenoh/zenoh-python/pull/235#discussion_r1644498390
 mod macros;
-mod publisher;
+mod pubsub;
+mod qos;
 mod query;
-mod queryable;
 mod sample;
 mod scouting;
-mod selector;
 mod session;
-mod subscriber;
 mod time;
 mod utils;
 
@@ -52,20 +49,20 @@ pub(crate) mod zenoh {
 
     #[pymodule_export]
     use crate::{
-        bytes::{deserializer, serializer, ZBytes},
+        bytes::{deserializer, serializer, Encoding, ZBytes},
         config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
-        encoding::Encoding,
         handlers::Handler,
         info::SessionInfo,
         key_expr::{KeyExpr, SetIntersectionLevel},
-        publisher::{CongestionControl, Priority, Publisher},
-        query::{ConsolidationMode, Query, QueryTarget, Reply, ReplyError},
-        queryable::Queryable,
+        pubsub::{Publisher, Reliability, Subscriber},
+        qos::{CongestionControl, Priority},
+        query::{
+            ConsolidationMode, Parameters, Query, QueryTarget, Queryable, Reply, ReplyError,
+            Selector,
+        },
         sample::{Sample, SampleKind},
         scouting::{scout, Hello, Scout},
-        selector::{Parameters, Selector},
         session::{open, Session},
-        subscriber::{Reliability, Subscriber},
         time::Timestamp,
         ZError,
     };
@@ -74,7 +71,8 @@ pub(crate) mod zenoh {
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let sys_modules = m.py().import_bound("sys")?.getattr("modules")?;
         sys_modules.set_item("zenoh.handlers", m.getattr("handlers")?)?;
-        crate::logging::init_logger(m.py())?;
+        // TODO
+        // crate::logging::init_logger(m.py())?;
         Ok(())
     }
 }
