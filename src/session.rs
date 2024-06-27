@@ -21,18 +21,15 @@ use pyo3::{
 use zenoh::prelude::*;
 
 use crate::{
-    bytes::ZBytes,
+    bytes::{Encoding, ZBytes},
     config::{Config, ConfigInner, ZenohId},
-    encoding::Encoding,
     handlers::{into_handler, HandlerImpl},
     info::SessionInfo,
     key_expr::KeyExpr,
     macros::{bail, build, build_with, option_wrapper},
-    publisher::{CongestionControl, Priority, Publisher},
-    query::{ConsolidationMode, QueryTarget, Reply},
-    queryable::Queryable,
-    selector::Selector,
-    subscriber::{Reliability, Subscriber},
+    pubsub::{Publisher, Reliability, Subscriber},
+    qos::{CongestionControl, Priority},
+    query::{ConsolidationMode, QueryTarget, Queryable, Reply, Selector},
     utils::{wait, MapInto},
 };
 
@@ -185,7 +182,7 @@ impl Session {
         Ok(SessionInfo(Arc::downgrade(self.get_ref()?)))
     }
 
-    #[pyo3(signature = (key_expr, handler = None, reliability = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, reliability = None))]
     fn declare_subscriber(
         &self,
         py: Python,
@@ -205,7 +202,7 @@ impl Session {
         Ok(subscriber)
     }
 
-    #[pyo3(signature = (key_expr, handler = None, complete = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, complete = None))]
     fn declare_queryable(
         &self,
         py: Python,

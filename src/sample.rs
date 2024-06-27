@@ -14,11 +14,10 @@
 use pyo3::prelude::*;
 
 use crate::{
-    bytes::ZBytes,
-    encoding::Encoding,
+    bytes::{Encoding, ZBytes},
     key_expr::KeyExpr,
     macros::{enum_mapper, wrapper},
-    publisher::{CongestionControl, Priority},
+    qos::{CongestionControl, Priority},
     time::Timestamp,
     utils::MapInto,
 };

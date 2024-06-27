@@ -56,7 +56,7 @@ class Config:
     @classmethod
     def from_file(cls, path: str | Path) -> Self: ...
     @classmethod
-    def from_json5(cls) -> Self: ...
+    def from_json5(cls, obj: Any) -> Self: ...
     def get_json(self, key: str) -> Any: ...
     def insert_json5(self, key: str, value: Any): ...
     def __str__(self) -> str: ...
@@ -101,18 +101,54 @@ class Encoding:
     """Just some bytes.
     
     Constant alias for string: "zenoh/bytes"."""
-    ZENOH_INT: Self
-    """A VLE-encoded signed little-endian integer. Either 8bit, 16bit, 32bit, or 64bit. Binary reprensentation uses two's complement.
+    ZENOH_INT8: Self
+    """A VLE-encoded signed little-endian 8bit integer. Binary representation uses two's complement.
     
-    Constant alias for string: "zenoh/int"."""
-    ZENOH_UINT: Self
-    """A VLE-encoded little-endian unsigned integer. Either 8bit, 16bit, 32bit, or 64bit.
+    Constant alias for string: "zenoh/int8"."""
+    ZENOH_INT16: Self
+    """A VLE-encoded signed little-endian 16bit integer. Binary representation uses two's complement.
+    
+    Constant alias for string: "zenoh/int16"."""
+    ZENOH_INT32: Self
+    """A VLE-encoded signed little-endian 32bit integer. Binary representation uses two's complement.
+    
+    Constant alias for string: "zenoh/int32"."""
+    ZENOH_INT64: Self
+    """A VLE-encoded signed little-endian 64bit integer. Binary representation uses two's complement.
+    
+    Constant alias for string: "zenoh/int64"."""
+    ZENOH_INT128: Self
+    """A VLE-encoded signed little-endian 128bit integer. Binary representation uses two's complement.
+    
+    Constant alias for string: "zenoh/int128"."""
+    ZENOH_UINT8: Self
+    """A VLE-encoded unsigned little-endian 8bit integer.
 
-    Constant alias for string: "zenoh/uint"."""
-    ZENOH_FLOAT: Self
-    """A VLE-encoded float. Either little-endian 32bit or 64bit. Binary representation uses IEEE 754-2008 binary32 or binary64, respectively.
+    Constant alias for string: "zenoh/uint8"."""
+    ZENOH_UINT16: Self
+    """A VLE-encoded unsigned little-endian 16bit integer.
 
-    Constant alias for string: "zenoh/float"."""
+    Constant alias for string: "zenoh/uint16"."""
+    ZENOH_UINT32: Self
+    """A VLE-encoded unsigned little-endian 32bit integer.
+
+    Constant alias for string: "zenoh/uint32"."""
+    ZENOH_UINT64: Self
+    """A VLE-encoded unsigned little-endian 64bit integer.
+
+    Constant alias for string: "zenoh/uint64"."""
+    ZENOH_UINT128: Self
+    """A VLE-encoded unsigned little-endian 128bit integer.
+
+    Constant alias for string: "zenoh/uint128"."""
+    ZENOH_FLOAT32: Self
+    """A VLE-encoded 32bit float. Binary representation uses IEEE 754-2008 binary32 .
+    
+    Constant alias for string: "zenoh/ float32"."""
+    ZENOH_FLOAT64: Self
+    """A VLE-encoded 64bit float. Binary representation uses IEEE 754-2008 binary64 .
+    
+    Constant alias for string: "zenoh/ float64"."""
     ZENOH_BOOL: Self
     """A boolean. 0 is false, 1 is true. Other values are invalid.
 
@@ -345,18 +381,19 @@ class KeyExpr:
     """
 
     def __new__(cls, key_expr: str) -> Self: ...
-    def autocanonize(self, key_expr: str) -> Self:
+    @classmethod
+    def autocanonize(cls, key_expr: str) -> Self:
         """Canonizes the passed value before returning it as a KeyExpr.
         Will return Err if the passed value isn't a valid key expression despite canonization.
         """
 
-    def intersects(self, key_expr: _IntoKeyExpr) -> bool:
+    def intersects(self, other: _IntoKeyExpr) -> bool:
         """Returns true if the keyexprs intersect, i.e. there exists at least one key which is contained in both of the sets defined by self and other."""
 
-    def includes(self, key_expr: _IntoKeyExpr) -> bool:
+    def includes(self, other: _IntoKeyExpr) -> bool:
         """Returns true if self includes other, i.e. the set defined by self contains every key belonging to the set defined by other."""
 
-    def relation_to(self, key_expr: _IntoKeyExpr) -> SetIntersectionLevel:
+    def relation_to(self, other: _IntoKeyExpr) -> SetIntersectionLevel:
         """Returns the relation between self and other from self's point of view (SetIntersectionLevel::Includes signifies that self includes other).
         Note that this is slower than keyexpr::intersects and keyexpr::includes, so you should favor these methods for most applications.
         """
@@ -431,7 +468,7 @@ class Publisher:
     Publishers are automatically undeclared when dropped."""
 
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_val, exc_tb): ...
+    def __exit__(self, *_args, **_kwargs): ...
     @property
     def key_expr(self) -> KeyExpr: ...
     @property
@@ -511,7 +548,7 @@ class Queryable(Generic[_H]):
     Queryables are automatically undeclared when dropped."""
 
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_val, exc_tb): ...
+    def __exit__(self, *_args, **_kwargs): ...
     @property
     def handler(self) -> _H: ...
     def undeclare(self): ...
@@ -611,7 +648,7 @@ class Sample:
 @final
 class Scout(Generic[_H]):
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_val, exc_tb): ...
+    def __exit__(self, *_args, **_kwargs): ...
     @property
     def handler(self) -> _H: ...
     def stop(self): ...
@@ -655,16 +692,13 @@ class Selector:
         cls, arg: _IntoKeyExpr | str, /, parameters: _IntoParameters | None = None
     ): ...
     @property
-    def key_expr(self) -> KeyExpr:
-        """Gets the key-expression."""
-
+    def key_expr(self) -> KeyExpr: ...
+    @key_expr.setter
+    def key_expr(self, key_expr: _IntoKeyExpr): ...
     @property
     def parameters(self) -> Parameters: ...
     @parameters.setter
     def parameters(self, parameters: _IntoParameters): ...
-    def split(self) -> tuple[KeyExpr, Parameters]:
-        """Returns this selector components as a tuple."""
-
     def __str__(self) -> str: ...
 
 _IntoSelector = Selector | _IntoKeyExpr
@@ -674,7 +708,7 @@ class Session:
     """A zenoh session."""
 
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_val, exc_tb): ...
+    def __exit__(self, *_args, **_kwargs): ...
     @property
     def info(self) -> SessionInfo: ...
     def zid(self) -> ZenohId:
@@ -875,7 +909,7 @@ class Subscriber(Generic[_H]):
     Subscribers are automatically undeclared when dropped."""
 
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_val, exc_tb): ...
+    def __exit__(self, *_args, **_kwargs): ...
     @property
     def key_expr(self) -> KeyExpr: ...
     @property
@@ -945,7 +979,6 @@ _IntoZBytes = Any
 class ZenohId:
     """The global unique id of a zenoh peer."""
 
-    def into_keyexpr(self) -> KeyExpr: ...
     def __str__(self) -> str: ...
 
 def try_init_log_from_env():
