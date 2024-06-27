@@ -21,18 +21,15 @@ use pyo3::{
 use zenoh::prelude::*;
 
 use crate::{
-    bytes::ZBytes,
+    bytes::{Encoding, ZBytes},
     config::{Config, ConfigInner, ZenohId},
-    encoding::Encoding,
     handlers::{into_handler, HandlerImpl},
     info::SessionInfo,
     key_expr::KeyExpr,
     macros::{bail, build, build_with, option_wrapper},
-    publisher::{CongestionControl, Priority, Publisher},
-    query::{ConsolidationMode, QueryTarget, Reply},
-    queryable::Queryable,
-    selector::Selector,
-    subscriber::{Reliability, Subscriber},
+    pubsub::{Publisher, Reliability, Subscriber},
+    qos::{CongestionControl, Priority},
+    query::{ConsolidationMode, QueryTarget, Queryable, Reply, Selector},
     utils::{wait, MapInto},
 };
 

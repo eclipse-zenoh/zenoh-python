@@ -145,7 +145,7 @@ pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
     name.rsplit_once("::").map_or(name, |(_, name)| name)
 }
 
-pub(crate) fn wait<T: Send, R: zenoh::core::Resolve<zenoh::Result<T>>>(
+pub(crate) fn wait<T: Send, R: zenoh::Resolve<zenoh::Result<T>>>(
     py: Python,
     resolve: impl FnOnce() -> R + Send,
 ) -> PyResult<T> {
