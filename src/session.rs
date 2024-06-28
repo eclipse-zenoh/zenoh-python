@@ -185,7 +185,7 @@ impl Session {
         Ok(SessionInfo(Arc::downgrade(self.get_ref()?)))
     }
 
-    #[pyo3(signature = (key_expr, handler = None, reliability = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, reliability = None))]
     fn declare_subscriber(
         &self,
         py: Python,
@@ -205,7 +205,7 @@ impl Session {
         Ok(subscriber)
     }
 
-    #[pyo3(signature = (key_expr, handler = None, complete = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, complete = None))]
     fn declare_queryable(
         &self,
         py: Python,
