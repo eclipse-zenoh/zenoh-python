@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -12,7 +11,7 @@ use std::borrow::Cow;
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use pyo3::prelude::*;
 

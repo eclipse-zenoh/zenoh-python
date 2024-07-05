@@ -143,7 +143,7 @@ impl ZBytes {
             zenoh::bytes::ZBytes::new(b.as_bytes().to_vec())
         } else if let Ok(s) = String::extract_bound(obj) {
             zenoh::bytes::ZBytes::serialize(s)
-        } else if let Ok(i) = i64::extract_bound(obj) {
+        } else if let Ok(i) = i128::extract_bound(obj) {
             zenoh::bytes::ZBytes::serialize(i)
         } else if let Ok(f) = f64::extract_bound(obj) {
             zenoh::bytes::ZBytes::serialize(f)
@@ -193,7 +193,7 @@ impl ZBytes {
         } else if tp.eq(PyString::type_object_bound(py))? {
             this.0.deserialize::<Cow<str>>().into_pyres()?.into_py(py)
         } else if tp.eq(PyInt::type_object_bound(py))? {
-            this.0.deserialize::<i64>().into_pyres()?.into_py(py)
+            this.0.deserialize::<i128>().into_pyres()?.into_py(py)
         } else if tp.eq(PyFloat::type_object_bound(py))? {
             this.0.deserialize::<f64>().into_pyres()?.into_py(py)
         } else if tp.eq(PyBool::type_object_bound(py))? {

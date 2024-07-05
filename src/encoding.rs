@@ -24,7 +24,7 @@ downcast_or_new!(Encoding => Option<String>);
 #[pymethods]
 impl Encoding {
     #[new]
-    pub(crate) fn new(s: Option<String>) -> PyResult<Self> {
+    fn new(s: Option<String>) -> PyResult<Self> {
         Ok(s.map_into().map(Self).unwrap_or_default())
     }
 
