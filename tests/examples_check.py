@@ -1,14 +1,8 @@
 # Copyright (c) 2017, 2022 ZettaScale Technology Inc.
-import threading
 
 # Contributors:
 #   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 #
-import time
-from os import getpgid, killpg, path
-from signal import SIGINT
-from subprocess import PIPE, Popen
-
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
 # http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
@@ -16,6 +10,10 @@ from subprocess import PIPE, Popen
 
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 
+import time
+from os import getpgid, killpg, path
+from signal import SIGINT
+from subprocess import PIPE, Popen
 
 examples = path.realpath(__file__).split("/tests")[0] + "/examples/"
 tab = "\t"
