@@ -28,22 +28,20 @@ use crate::{
 
 const CHECK_SIGNALS_INTERVAL: Duration = Duration::from_millis(100);
 
-fn exec_callback(callback: impl FnOnce(Python) -> PyResult<PyObject>) {
-    Python::with_gil(|gil| {
-        if let Err(err) = callback(gil) {
-            let kwargs = PyDict::new_bound(gil);
-            kwargs.set_item("exc_info", err.into_value(gil)).unwrap();
-            py_static!(gil, || PyResult::Ok(
-                import!(gil, logging.getLogger)
-                    .call1(("zenoh.handlers",))?
-                    .getattr("error")?
-                    .unbind()
-            ))
-            .unwrap()
-            .call(("callback error",), Some(&kwargs))
-            .ok();
-        }
-    })
+fn log_error(py: Python, result: PyResult<PyObject>) {
+    if let Err(err) = result {
+        let kwargs = PyDict::new_bound(py);
+        kwargs.set_item("exc_info", err.into_value(py)).unwrap();
+        py_static!(py, || PyResult::Ok(
+            import!(py, logging.getLogger)
+                .call1(("zenoh.handlers",))?
+                .getattr("error")?
+                .unbind()
+        ))
+        .unwrap()
+        .call(("callback error",), Some(&kwargs))
+        .ok();
+    }
 }
 
 #[pyclass]
@@ -150,7 +148,9 @@ impl Handler {
 #[pyclass]
 #[derive(Clone, Debug)]
 pub(crate) struct Callback {
+    #[pyo3(get)]
     callback: PyObject,
+    #[pyo3(get)]
     drop: Option<PyObject>,
     #[pyo3(get)]
     indirect: bool,
@@ -172,13 +172,6 @@ impl Callback {
         self.callback.call1(arg.py(), (arg,))
     }
 
-    fn drop(&self, py: Python) -> PyResult<PyObject> {
-        match &self.drop {
-            Some(drop) => drop.call0(py),
-            None => Ok(py.None()),
-        }
-    }
-
     fn __repr__(&self) -> String {
         format!("{self:?}")
     }
@@ -194,14 +187,16 @@ impl PythonCallback {
         Self(Callback::new(obj.clone().unbind(), None, true))
     }
 
-    fn call<T: IntoPython>(&self, t: T) {
-        exec_callback(|gil| self.0.callback.call1(gil, (t.into_pyobject(gil),)));
+    fn call<T: IntoPython>(&self, py: Python, t: T) {
+        log_error(py, self.0.callback.call1(py, (t.into_pyobject(py),)));
     }
 }
 
 impl Drop for PythonCallback {
     fn drop(&mut self) {
-        exec_callback(|gil| self.0.drop(gil));
+        if let Some(drop) = &self.0.drop {
+            Python::with_gil(|gil| log_error(gil, drop.call0(gil)));
+        }
     }
 }
 
@@ -230,7 +225,7 @@ where
         match self {
             Self::Rust { callback, handler } => (callback, HandlerImpl::Rust(handler, PhantomData)),
             Self::Python { callback, handler } => (
-                Arc::new(move |t| callback.call(t)),
+                Arc::new(move |t| Python::with_gil(|gil| callback.call(gil, t))),
                 HandlerImpl::Python(handler),
             ),
             Self::PythonIndirect { callback, handler } => (callback, HandlerImpl::Python(handler)),
@@ -427,12 +422,11 @@ where
     if callback.0.indirect {
         let (rust_callback, receiver) = DefaultHandler.into_rust().into_handler();
         let kwargs = PyDict::new_bound(py);
-        let target = PyCFunction::new_closure_bound(py, None, None, move |args, _| loop {
+        let target = PyCFunction::new_closure_bound(py, None, None, move |args, _| {
             let py = args.py();
-            match py.allow_threads(|| receiver.recv_timeout(CHECK_SIGNALS_INTERVAL)) {
-                Ok(x) => callback.call(x),
-                Err(flume::RecvTimeoutError::Timeout) => py.check_signals()?,
-                Err(flume::RecvTimeoutError::Disconnected) => return PyResult::Ok(()),
+            // No need to call `Python::check_signals` because it's not the main thread.
+            while let Ok(x) = py.allow_threads(|| receiver.recv()) {
+                callback.call(py, x);
             }
         })?;
         kwargs.set_item("target", target)?;
