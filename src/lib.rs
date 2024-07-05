@@ -16,7 +16,6 @@
 mod bytes;
 mod config;
 mod handlers;
-mod info;
 mod key_expr;
 mod macros;
 mod pubsub;
@@ -52,7 +51,6 @@ pub(crate) mod zenoh {
         bytes::{deserializer, serializer, Encoding, ZBytes},
         config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
         handlers::Handler,
-        info::SessionInfo,
         key_expr::{KeyExpr, SetIntersectionLevel},
         pubsub::{Publisher, Reliability, Subscriber},
         qos::{CongestionControl, Priority},
@@ -62,7 +60,7 @@ pub(crate) mod zenoh {
         },
         sample::{Sample, SampleKind},
         scouting::{scout, Hello, Scout},
-        session::{open, Session},
+        session::{open, Session, SessionInfo},
         time::Timestamp,
         ZError,
     };
