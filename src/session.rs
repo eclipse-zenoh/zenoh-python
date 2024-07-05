@@ -11,29 +11,28 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{Arc, Weak},
+    time::Duration,
+};
 
 use pyo3::{
     exceptions::PyValueError,
     prelude::*,
-    types::{PyDict, PySet, PyTuple},
+    types::{PyDict, PyList, PySet, PyTuple},
 };
 use zenoh::prelude::*;
 
 use crate::{
-    bytes::ZBytes,
+    bytes::{Encoding, ZBytes},
     config::{Config, ConfigInner, ZenohId},
-    encoding::Encoding,
     handlers::{into_handler, HandlerImpl},
-    info::SessionInfo,
     key_expr::KeyExpr,
-    macros::{bail, build, build_with, option_wrapper},
-    publisher::{CongestionControl, Priority, Publisher},
-    query::{ConsolidationMode, QueryTarget, Reply},
-    queryable::Queryable,
-    selector::Selector,
-    subscriber::{Reliability, Subscriber},
-    utils::{wait, MapInto},
+    macros::{bail, build, build_with, option_wrapper, zerror},
+    pubsub::{Publisher, Reliability, Subscriber},
+    qos::{CongestionControl, Priority},
+    query::{ConsolidationMode, QueryTarget, Queryable, Reply, Selector},
+    utils::{wait, IntoPython, MapInto},
 };
 
 #[pyclass]
@@ -278,4 +277,45 @@ pub(crate) fn timeout(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
     Duration::try_from_secs_f64(f64::extract_bound(obj)?)
         .map(Some)
         .map_err(|_| PyValueError::new_err("negative timeout"))
+}
+
+#[pyclass]
+pub(crate) struct SessionInfo(pub(crate) Weak<zenoh::Session>);
+
+impl SessionInfo {
+    fn get_info(&self) -> PyResult<zenoh::session::SessionInfo<'static>> {
+        Ok(self
+            .0
+            .upgrade()
+            .ok_or_else(|| zerror!("Closed session"))?
+            .info())
+    }
+}
+
+#[pymethods]
+impl SessionInfo {
+    fn zid(&self, py: Python) -> PyResult<ZenohId> {
+        let info = self.get_info()?;
+        Ok(py.allow_threads(|| info.zid().wait()).into())
+    }
+
+    fn routers_zid<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let info = self.get_info()?;
+        let list = PyList::empty_bound(py);
+        for zid in py.allow_threads(|| info.routers_zid().wait()) {
+            list.append(zid.into_pyobject(py))?;
+        }
+        Ok(list)
+    }
+
+    fn peers_zid<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let info = self.get_info()?;
+        let list = PyList::empty_bound(py);
+        for zid in py.allow_threads(|| info.peers_zid().wait()) {
+            list.append(zid.into_pyobject(py))?;
+        }
+        Ok(list)
+    }
+
+    // TODO __repr__
 }

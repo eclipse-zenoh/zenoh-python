@@ -17,11 +17,11 @@
 name = "zenoh-python"
 version = "0.11.0-dev"
 authors = [
-    "kydos <angelo@icorsaro.net>",
-    "Julien Enoch <julien@enoch.fr>",
-    "Olivier Hécart <olivier.hecart@adlinktech.com>",
-    "Luca Cominardi <luca.cominardi@gmail.com>",
-    "Pierre Avital <pierre.avital@adlinktech.com>",
+  "kydos <angelo@icorsaro.net>",
+  "Julien Enoch <julien@enoch.fr>",
+  "Olivier Hécart <olivier.hecart@adlinktech.com>",
+  "Luca Cominardi <luca.cominardi@gmail.com>",
+  "Pierre Avital <pierre.avital@adlinktech.com>",
 ]
 edition = "2021"
 license = "EPL-2.0 OR Apache-2.0"
@@ -49,4 +49,3 @@ tracing = "0.1.40"
 uhlc = "0.7.0"
 validated_struct = "2.1.0"
 zenoh = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "dev/1.0.0", features = ["unstable", "internal"], default-features = false }
-zenoh-util = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "dev/1.0.0" }
