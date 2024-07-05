@@ -72,7 +72,8 @@ jobs:
       - name: Build wheels - universal2
         uses: messense/maturin-action@v1
         with:
-          args: --release --universal2 --out dist
+          target: universal2-apple-darwin
+          args: --release --out dist
 
       - name: Upload wheels
         uses: actions/upload-artifact@v3
