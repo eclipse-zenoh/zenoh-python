@@ -43,8 +43,6 @@ class RingChannel(Generic[_T]):
 
     def __new__(cls, capacity: int) -> Self: ...
 
-RustHandler = DefaultHandler[_T] | FifoChannel[_T] | RingChannel[_T]
-
 @final
 class Callback(Generic[_T]):
     def __new__(
