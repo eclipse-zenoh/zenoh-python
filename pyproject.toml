@@ -47,3 +47,6 @@ classifiers = [
 "Bug Tracker" = "https://github.com/eclipse-zenoh/zenoh-python/issues"
 "Source Code" = "https://github.com/eclipse-zenoh/zenoh-python"
 "Documentation" = "https://readthedocs.org/projects/zenoh-python/"
+
+[package]
+version = "0.11.1-dev"
