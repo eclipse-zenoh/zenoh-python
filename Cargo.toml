@@ -48,4 +48,4 @@ pyo3 = { version = "0.21.2", features = ["extension-module", "abi3-py38", "exper
 tracing = "0.1.40"
 uhlc = "0.7.0"
 validated_struct = "2.1.0"
-zenoh = { version = "0.11.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "dev/1.0.0", features = ["unstable", "internal"], default-features = false }
+zenoh = { version = "1.0.0-alpha.5", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "release/1.0.0-alpha.5", features = ["unstable", "internal"], default-features = false }
