@@ -18,7 +18,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Generic, Literal, Never, Self, TypeVar, final, overload
+from typing import Any, Generic, Never, Self, TypeVar, final, overload
 
 from . import handlers as handlers
 from .handlers import Handler as Handler
@@ -41,10 +41,7 @@ class ZError(Exception): ...
 class Config:
     """The main configuration structure for Zenoh."""
 
-    @property
-    def id(self) -> ZenohId:
-        """The Zenoh ID of the instance. This ID MUST be unique throughout your Zenoh infrastructure and cannot exceed 16 bytes of length. If left unset, a random u128 will be generated."""
-
+    def __new__(cls) -> Self: ...
     @classmethod
     def client(cls, peers: Iterable[str]) -> Self: ...
     @classmethod
@@ -57,6 +54,10 @@ class Config:
     def from_file(cls, path: str | Path) -> Self: ...
     @classmethod
     def from_json5(cls, obj: Any) -> Self: ...
+    @property
+    def id(self) -> ZenohId:
+        """The Zenoh ID of the instance. This ID MUST be unique throughout your Zenoh infrastructure and cannot exceed 16 bytes of length. If left unset, a random u128 will be generated."""
+
     def get_json(self, key: str) -> Any: ...
     def insert_json5(self, key: str, value: Any): ...
     def __str__(self) -> str: ...
