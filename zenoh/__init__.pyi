@@ -473,13 +473,11 @@ class Publisher:
     @property
     def key_expr(self) -> KeyExpr: ...
     @property
+    def encoding(self) -> Encoding: ...
+    @property
     def congestion_control(self) -> CongestionControl: ...
-    @congestion_control.setter
-    def congestion_control(self, congestion_control: CongestionControl): ...
     @property
     def priority(self) -> Priority: ...
-    @priority.setter
-    def priority(self, priority: Priority): ...
     def put(
         self,
         payload: _IntoZBytes,
@@ -879,6 +877,7 @@ class Session:
         self,
         key_expr: _IntoKeyExpr,
         *,
+        encoding: _IntoEncoding | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,

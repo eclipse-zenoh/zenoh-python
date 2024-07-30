@@ -64,6 +64,11 @@ impl Publisher {
     }
 
     #[getter]
+    fn encoding(&self) -> PyResult<Encoding> {
+        Ok(self.get_ref()?.encoding().clone().into())
+    }
+
+    #[getter]
     fn congestion_control(&self) -> PyResult<CongestionControl> {
         Ok(self.get_ref()?.congestion_control().into())
     }

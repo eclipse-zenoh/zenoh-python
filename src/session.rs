@@ -224,11 +224,12 @@ impl Session {
         Ok(queryable)
     }
 
-    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None))]
+    #[pyo3(signature = (key_expr, *, encoding = None, congestion_control = None, priority = None, express = None))]
     fn declare_publisher(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
@@ -236,6 +237,7 @@ impl Session {
         let this = self.get_ref()?;
         let build = build!(
             this.declare_publisher(key_expr),
+            encoding,
             congestion_control,
             priority,
             express,
