@@ -17,6 +17,10 @@ on:
         type: string
         description: Release number of Zenoh
         required: false
+      branch:
+        type: string
+        description: Release branch
+        required: false
 
 jobs:
   tag:
@@ -32,6 +36,7 @@ jobs:
           repo: ${{ github.repository }}
           live-run: ${{ inputs.live-run || false }}
           version: ${{ inputs.version }}
+          branch: ${{ inputs.branch }}
           github-token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
 
       - name: Checkout this repository
@@ -76,9 +81,9 @@ jobs:
           args: --release --out dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-macos
           path: dist
 
   build-windows:
@@ -106,9 +111,9 @@ jobs:
           args: --release --out dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-windows-${{ matrix.target }}
           path: dist
 
   build-linux:
@@ -131,9 +136,9 @@ jobs:
           args: --release --out dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-linux-${{ matrix.target }}
           path: dist
 
   build-linux-aarch64:
@@ -159,9 +164,9 @@ jobs:
           args: --release --out dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-linux-aarch64
           path: dist
 
   build-linux-armv6:
@@ -188,13 +193,15 @@ jobs:
           export AR_arm_unknown_linux_gnueabihf=arm-unknown-linux-gnueabihf-ar
           export CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-unknown-linux-gnueabihf-gcc
 
-          pip3 install maturin
+          python3 -m venv venv
+          source venv/bin/activate
+          pip3 install -r requirements-dev.txt
           maturin build --release --target arm-unknown-linux-gnueabihf --out dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-linux-armv6
           path: dist
 
   publish-pypi:
@@ -210,10 +217,11 @@ jobs:
     name: Deploy wheels to pypi
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: wheels
           path: dist
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Check dist
         run: ls -al ./dist/*
