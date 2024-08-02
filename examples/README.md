@@ -1,10 +1,10 @@
-# Zenoh Python examples
+# Zenoh Python Examples
 
-## Start instructions
+## Get Started
 
-   ```bash
-   python3 <example.py>
-   ```
+```bash
+python3 <example.py>
+```
 
 Each example accepts the `-h` or `--help` option that provides a description of its arguments and their default values.
 
