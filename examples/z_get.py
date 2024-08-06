@@ -108,7 +108,6 @@ def main():
             selector,
             target=target,
             payload=args.payload,
-            consolidation=zenoh.ConsolidationMode.NONE,
         )
         for reply in replies:
             try:
