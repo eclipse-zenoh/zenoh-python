@@ -104,11 +104,7 @@ def main():
     print("Opening session...")
     with zenoh.open(conf) as session:
         print("Sending Query '{}'...".format(selector))
-        replies = session.get(
-            selector,
-            target=target,
-            payload=args.payload,
-        )
+        replies = session.get(selector, target=target, payload=args.payload)
         for reply in replies:
             try:
                 print(
