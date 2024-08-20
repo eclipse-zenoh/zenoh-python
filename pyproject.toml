@@ -51,3 +51,6 @@ classifiers = [
 
 [tool.isort]
 profile = "black"
+
+[package]
+version = "1.0.0-dev"
