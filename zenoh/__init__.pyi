@@ -987,7 +987,7 @@ def try_init_log_from_env():
     For example, `RUST_LOG=debug` will set the log level to DEBUG.
     If `RUST_LOG` is not set, then logging is not enabled."""
 
-def open(config: Config | None = None) -> Session:
+def open(config: Config) -> Session:
     """Open a zenoh Session."""
 
 @overload

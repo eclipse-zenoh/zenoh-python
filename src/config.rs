@@ -45,12 +45,6 @@ pub(crate) enum ConfigInner {
 #[derive(Clone)]
 pub(crate) struct Config(pub(crate) ConfigInner);
 
-impl Default for Config {
-    fn default() -> Self {
-        zenoh::config::default().into()
-    }
-}
-
 impl From<zenoh::config::Config> for Config {
     fn from(value: zenoh::config::Config) -> Self {
         Self(ConfigInner::Init(value))
