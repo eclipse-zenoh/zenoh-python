@@ -265,9 +265,9 @@ impl Drop for Session {
 }
 
 #[pyfunction]
-pub(crate) fn open(py: Python, config: Option<Config>) -> PyResult<Session> {
+pub(crate) fn open(py: Python, config: Config) -> PyResult<Session> {
     Ok(Session {
-        session: Some(wait(py, || zenoh::open(config.unwrap_or_default()))?.into_arc()),
+        session: Some(wait(py, || zenoh::open(config))?.into_arc()),
         pool: PySet::empty_bound(py)?.unbind(),
     })
 }
