@@ -40,8 +40,8 @@ Publish a key/value pair onto Zenoh
 """""""""""""""""""""""""""""""""""
 
 >>> import zenoh
->>> z = zenoh.open()
->>> z.put('demo/example/hello', 'Hello World!')
+>>> with zenoh.open() as z:
+>>>     z.put('demo/example/hello', 'Hello World!')
 
 Subscribe to a set of keys with Zenoh
 """""""""""""""""""""""""""""""""""""
@@ -50,151 +50,27 @@ Subscribe to a set of keys with Zenoh
 >>> def listener(sample):
 >>>     print(f"{sample.key_expr} => {sample.payload.decode('utf-8')}")
 >>>
->>> z = zenoh.open()
->>> subscriber = z.subscribe('demo/example/**', listener)
->>> time.sleep(60)
->>> subscriber.undeclare()
+>>> with zenoh.open() as z:
+>>>     with z.subscribe('demo/example/**', listener) as subscriber:
+>>>         time.sleep(60)
 
 Get keys/values from zenoh
 """"""""""""""""""""""""""
 
 >>> import zenoh
->>> z = zenoh.open()
->>> for response in z.get('demo/example/**', zenoh.Queue()):
->>>     response = response.ok
->>>     print(f"{response.key_expr} => {response.payload.decode('utf-8')}")
+>>> with zenoh.open() as z:
+>>>     for response in z.get('demo/example/**'):
+>>>         response = response.ok
+>>>         print(f"{response.key_expr} => {response.payload.deserialize(str)}")
 
 module zenoh
 ============
 
 .. automodule:: zenoh
-    :members: init_logger, open, scout
-
-Hello
------
-.. autoclass:: zenoh.Hello
     :members:
 
-Config
-------
-.. autoclass:: zenoh.Config
+module zenoh.handlers
+============
+
+.. automodule:: zenoh.handlers
     :members:
-
-Session
--------
-.. autoclass:: zenoh.Session
-    :members:
-
-Info
------
-.. autoclass:: zenoh.Info
-    :members:
-
-KeyExpr
--------
-.. autoclass:: zenoh.KeyExpr
-    :members:
-
-Sample
-------
-.. autoclass:: zenoh.Sample
-    :members:
-
-SampleKind
-----------
-.. autoclass:: zenoh.SampleKind
-    :members:
-    :undoc-members:
-
-Value
------
-.. autoclass:: zenoh.Value
-    :members:
-
-Encoding
---------
-.. autoclass:: zenoh.Encoding
-    :members:
-    :undoc-members:
-
-Publisher
-----------
-.. autoclass:: zenoh.Publisher
-    :members:
-
-CongestionControl
------------------
-.. autoclass:: zenoh.CongestionControl
-    :members:
-    :undoc-members:
-
-Priority
---------
-.. autoclass:: zenoh.Priority
-    :members:
-    :undoc-members:
-
-Subscriber
-----------
-.. autoclass:: zenoh.Subscriber
-    :members:
-
-PullSubscriber
---------------
-.. autoclass:: zenoh.PullSubscriber
-    :members:
-
-Reliability
------------
-.. autoclass:: zenoh.Reliability
-    :members:
-    :undoc-members:
-
-Query
------
-.. autoclass:: zenoh.Query
-    :members:
-
-Selector
---------
-.. autoclass:: zenoh.Selector
-    :members:
-
-QueryTarget
------------
-.. autoclass:: zenoh.QueryTarget
-    :members:
-
-QueryConsolidation
-------------------
-.. autoclass:: zenoh.QueryConsolidation
-    :members:
-
-.. ConsolidationMode
-.. -----------------
-.. .. autoclass:: zenoh.ConsolidationMode
-..     :members:
-..     :undoc-members:
-
-Reply
------
-.. autoclass:: zenoh.Reply
-    :members:
-
-Queryable
----------
-.. autoclass:: zenoh.Queryable
-    :members:
-
-ZenohId
--------
-.. autoclass:: zenoh.ZenohId
-    :members:
-
-Timestamp
----------
-.. autoclass:: zenoh.Timestamp
-    :members:
-
-.. automodule:: zenoh
-    :members: Queue, ListCollector, Closure, Handler, IClosure, IHandler, IValue

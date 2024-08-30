@@ -13,17 +13,43 @@ on:
   workflow_dispatch:
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone this repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Run isort
+        uses: isort/isort-action@v1
+
+      - name: Run black
+        uses: psf/black@stable
+        with:
+          options: "--check --diff -C"
+
+      - name: Run rustfmt
+        run: cargo fmt --check -- --config "unstable_features=true,imports_granularity=Crate,group_imports=StdExternalCrate"
+
+      - name: Clippy no-default-features
+        run: cargo clippy --no-default-features --all-targets -- --deny warnings
+
+      - name: Clippy
+        run: cargo clippy --all-features --all-targets -- --deny warnings
+
   build:
+    needs: check
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
-
+          - "3.11"
+          - "3.12"
     steps:
       - name: Clone this repository
         uses: actions/checkout@v4
@@ -35,23 +61,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Rust
-        run: rustup component add rustfmt clippy
-
       - name: Build zenoh-python
         uses: messense/maturin-action@v1
 
-      - name: Clippy
-        run: cargo clippy --all-features --all-targets -- --deny warnings
-
-      - name: Run rustfmt
-        run: cargo fmt --check
-
-      - name: Check for feature leaks
-        run: cargo test --no-default-features
-
       - name: Install zenoh-python
         run: pip3 install ./target/wheels/*.whl
+
+      - name: Run stubs check
+        run: python3 tests/stubs_check.py
 
       - name: Run examples check
         run: python3 tests/examples_check.py

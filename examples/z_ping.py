@@ -94,37 +94,33 @@ if args.listen is not None:
 # Zenoh code  --- --- --- --- --- --- --- --- --- --- ---
 def main():
     # initiate logging
-    zenoh.init_logger()
+    zenoh.try_init_log_from_env()
 
     print("Opening session...")
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
 
-    sub = session.declare_subscriber("test/pong", zenoh.Queue())
-    pub = session.declare_publisher(
-        "test/ping",
-        congestion_control=zenoh.CongestionControl.BLOCK(),
-    )
-    data = bytes(i % 10 for i in range(0, args.payload_size))
+        sub = session.declare_subscriber("test/pong")
+        pub = session.declare_publisher(
+            "test/ping", congestion_control=zenoh.CongestionControl.BLOCK
+        )
+        data = bytes(i % 10 for i in range(0, args.payload_size))
 
-    print(f"Warming up for {args.warmup}...")
-    warmup_end = time.time() + args.warmup
-    while time.time() < warmup_end:
-        pub.put(data)
-        sub.receiver.get()
+        print(f"Warming up for {args.warmup}...")
+        warmup_end = time.time() + args.warmup
+        while time.time() < warmup_end:
+            pub.put(data)
+            sub.recv()
 
-    samples = []
-    for i in range(args.samples):
-        write_time = time.time()
-        pub.put(data)
-        sub.receiver.get()
-        samples.append(round((time.time() - write_time) * 1_000_000))
+        samples = []
+        for i in range(args.samples):
+            write_time = time.time()
+            pub.put(data)
+            sub.recv()
+            samples.append(round((time.time() - write_time) * 1_000_000))
 
-    for i, rtt in enumerate(samples):
-        print(f"{args.payload_size} bytes: seq={i} rtt={rtt}µs lat={rtt / 2}µs")
-
-    pub.undeclare()
-    sub.undeclare()
-    session.close()
+        for i, rtt in enumerate(samples):
+            print(f"{args.payload_size} bytes: seq={i} rtt={rtt}µs lat={rtt / 2}µs")
 
 
-main()
+if __name__ == "__main__":
+    main()

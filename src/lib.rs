@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017, 2022 ZettaScale Technology Inc.
+// Copyright (c) 2024 ZettaScale Technology
 //
 // This program and the accompanying materials are made available under the
 // terms of the Eclipse Public License 2.0 which is available at
@@ -9,106 +9,71 @@
 // SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 //
 // Contributors:
-//   ZettaScale Zenoh team, <zenoh@zettascale.tech>
+//   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use pyo3::{prelude::*, types::PyDict, ToPyObject};
-mod closures;
+// TODO https://github.com/eclipse-zenoh/zenoh-python/pull/235#discussion_r1644498390
+// mod logging;
+mod bytes;
 mod config;
-mod enums;
-mod keyexpr;
-mod queryable;
+mod handlers;
+mod key_expr;
+mod macros;
+mod pubsub;
+mod qos;
+mod query;
+mod sample;
+mod scouting;
 mod session;
-mod value;
+mod time;
+mod utils;
+
+use pyo3::prelude::*;
 
 pyo3::create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
 
-pub(crate) trait ToPyErr {
-    fn to_pyerr(self) -> PyErr;
-}
-impl<E: std::error::Error> ToPyErr for E {
-    fn to_pyerr(self) -> PyErr {
-        PyErr::new::<ZError, _>(self.to_string())
-    }
-}
-pub(crate) trait ToPyResult<T> {
-    fn to_pyres(self) -> Result<T, PyErr>;
-}
-impl<T, E: ToPyErr> ToPyResult<T> for Result<T, E> {
-    fn to_pyres(self) -> Result<T, PyErr> {
-        self.map_err(ToPyErr::to_pyerr)
-    }
-}
-
-enum ExtractError {
-    Unavailable(Option<PyErr>),
-    Other(PyErr),
-}
-impl From<PyErr> for ExtractError {
-    fn from(e: PyErr) -> Self {
-        Self::Other(e)
-    }
-}
-pub(crate) trait PyExtract<K> {
-    fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError>;
-}
-impl<K: ToPyObject> PyExtract<K> for Bound<'_, PyDict> {
-    fn extract_item<'a, V: FromPyObject<'a>>(&'a self, key: K) -> Result<V, ExtractError> {
-        match self.get_item(key)? {
-            Some(item) => Ok(item.extract::<V>()?),
-            None => Err(ExtractError::Unavailable(None)),
-        }
-    }
-}
-
 #[pymodule]
-fn zenoh(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<config::_Config>()?;
-    m.add_class::<closures::_Queue>()?;
-    m.add_class::<keyexpr::_KeyExpr>()?;
-    m.add_class::<keyexpr::_Selector>()?;
-    m.add_class::<session::_Session>()?;
-    m.add_class::<session::_Publisher>()?;
-    m.add_class::<session::_Subscriber>()?;
-    m.add_class::<session::_PullSubscriber>()?;
-    m.add_class::<session::_Scout>()?;
-    m.add_class::<queryable::_Query>()?;
-    m.add_class::<queryable::_Queryable>()?;
-    m.add_class::<value::_Value>()?;
-    m.add_class::<value::_Attachment>()?;
-    m.add_class::<value::_Sample>()?;
-    m.add_class::<value::_QoS>()?;
-    m.add_class::<value::_Reply>()?;
-    m.add_class::<value::_Timestamp>()?;
-    m.add_class::<value::_Hello>()?;
-    m.add_class::<value::_ZenohId>()?;
-    m.add_class::<enums::_CongestionControl>()?;
-    m.add_class::<enums::_Encoding>()?;
-    m.add_class::<enums::_Priority>()?;
-    m.add_class::<enums::_SampleKind>()?;
-    m.add_class::<enums::_Reliability>()?;
-    m.add_class::<enums::_QueryConsolidation>()?;
-    m.add_class::<enums::_QueryTarget>()?;
-    m.add_wrapped(wrap_pyfunction!(init_logger))?;
-    m.add_wrapped(wrap_pyfunction!(session::scout))?;
-    Ok(())
-}
+pub(crate) mod zenoh {
+    use pyo3::prelude::*;
 
-/// Initialize the logger used by the Rust implementation of this API.
-///
-/// Once initialized, you can configure the logs displayed by the API using the ``RUST_LOG`` environment variable.
-/// For instance, start python with the *debug* logs available::
-///
-///    $ RUST_LOG=debug python
-///
-/// More details on the RUST_LOG configuration on
-/// https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#method.try_from_env
-///
-#[pyfunction]
-fn init_logger() {
-    zenoh_util::try_init_log_from_env();
-}
+    #[pymodule]
+    mod handlers {
+        #[pymodule_export]
+        use crate::handlers::{Callback, DefaultHandler, FifoChannel, Handler, RingChannel};
+    }
 
-pub(crate) use value::PyAnyToValue;
+    #[pyfunction]
+    fn try_init_log_from_env() {
+        zenoh::try_init_log_from_env();
+    }
+
+    #[pymodule_export]
+    use crate::{
+        bytes::{deserializer, serializer, Encoding, ZBytes},
+        config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
+        handlers::Handler,
+        key_expr::{KeyExpr, SetIntersectionLevel},
+        pubsub::{Publisher, Reliability, Subscriber},
+        qos::{CongestionControl, Priority},
+        query::{
+            ConsolidationMode, Parameters, Query, QueryTarget, Queryable, Reply, ReplyError,
+            Selector,
+        },
+        sample::{Sample, SampleKind},
+        scouting::{scout, Hello, Scout},
+        session::{open, Session, SessionInfo},
+        time::Timestamp,
+        ZError,
+    };
+
+    #[pymodule_init]
+    fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+        let sys_modules = m.py().import_bound("sys")?.getattr("modules")?;
+        sys_modules.set_item("zenoh.handlers", m.getattr("handlers")?)?;
+        // TODO
+        // crate::logging::init_logger(m.py())?;
+        Ok(())
+    }
+}
 
 // Test should be runned with `cargo test --no-default-features`
 #[test]

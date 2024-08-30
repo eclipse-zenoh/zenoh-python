@@ -12,76 +12,105 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-import sys
-import time
 import argparse
 import itertools
 import json
+import time
+
 import zenoh
-from zenoh import config
 
 # --- Command line argument parsing --- --- --- --- --- ---
-parser = argparse.ArgumentParser(
-    prog='z_pub',
-    description='zenoh pub example')
-parser.add_argument('--mode', '-m', dest='mode',
-                    choices=['peer', 'client'],
-                    type=str,
-                    help='The zenoh session mode.')
-parser.add_argument('--connect', '-e', dest='connect',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to connect to.')
-parser.add_argument('--listen', '-l', dest='listen',
-                    metavar='ENDPOINT',
-                    action='append',
-                    type=str,
-                    help='Endpoints to listen on.')
-parser.add_argument('--key', '-k', dest='key',
-                    default='demo/example/zenoh-python-pub',
-                    type=str,
-                    help='The key expression to publish onto.')
-parser.add_argument('--value', '-v', dest='value',
-                    default='Pub from Python!',
-                    type=str,
-                    help='The value to publish.')
-parser.add_argument("--iter", dest="iter", type=int,
-                    help="How many puts to perform")
-parser.add_argument('--config', '-c', dest='config',
-                    metavar='FILE',
-                    type=str,
-                    help='A configuration file.')
+parser = argparse.ArgumentParser(prog="z_pub", description="zenoh pub example")
+parser.add_argument(
+    "--mode",
+    "-m",
+    dest="mode",
+    choices=["peer", "client"],
+    type=str,
+    help="The zenoh session mode.",
+)
+parser.add_argument(
+    "--connect",
+    "-e",
+    dest="connect",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to connect to.",
+)
+parser.add_argument(
+    "--listen",
+    "-l",
+    dest="listen",
+    metavar="ENDPOINT",
+    action="append",
+    type=str,
+    help="Endpoints to listen on.",
+)
+parser.add_argument(
+    "--key",
+    "-k",
+    dest="key",
+    default="demo/example/zenoh-python-pub",
+    type=str,
+    help="The key expression to publish onto.",
+)
+parser.add_argument(
+    "--payload",
+    "-p",
+    dest="payload",
+    default="Pub from Python!",
+    type=str,
+    help="The payload to publish.",
+)
+parser.add_argument("--iter", dest="iter", type=int, help="How many puts to perform")
+parser.add_argument(
+    "--interval",
+    dest="interval",
+    type=float,
+    default=1.0,
+    help="Interval between each put",
+)
+parser.add_argument(
+    "--config",
+    "-c",
+    dest="config",
+    metavar="FILE",
+    type=str,
+    help="A configuration file.",
+)
 
 args = parser.parse_args()
-conf = zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
+conf = (
+    zenoh.Config.from_file(args.config) if args.config is not None else zenoh.Config()
+)
 if args.mode is not None:
-    conf.insert_json5(zenoh.config.MODE_KEY, json.dumps(args.mode))
+    conf.insert_json5("mode", json.dumps(args.mode))
 if args.connect is not None:
-    conf.insert_json5(zenoh.config.CONNECT_KEY, json.dumps(args.connect))
+    conf.insert_json5("connect/endpoints", json.dumps(args.connect))
 if args.listen is not None:
-    conf.insert_json5(zenoh.config.LISTEN_KEY, json.dumps(args.listen))
+    conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 key = args.key
-value = args.value
+payload = args.payload
+
 
 def main():
     # initiate logging
-    zenoh.init_logger()
+    zenoh.try_init_log_from_env()
 
     print("Opening session...")
-    session = zenoh.open(conf)
+    with zenoh.open(conf) as session:
 
-    print(f"Declaring Publisher on '{key}'...")
-    pub = session.declare_publisher(key)
+        print(f"Declaring Publisher on '{key}'...")
+        pub = session.declare_publisher(key)
 
-    print("Press CTRL-C to quit...")
-    for idx in itertools.count() if args.iter is None else range(args.iter):
-        time.sleep(1)
-        buf = f"[{idx:4d}] {value}"
-        print(f"Putting Data ('{key}': '{buf}')...")
-        pub.put(buf)
+        print("Press CTRL-C to quit...")
+        for idx in itertools.count() if args.iter is None else range(args.iter):
+            time.sleep(args.interval)
+            buf = f"[{idx:4d}] {payload}"
+            print(f"Putting Data ('{key}': '{buf}')...")
+            pub.put(buf)
 
-    pub.undeclare()
-    session.close()
 
-main()
+if __name__ == "__main__":
+    main()

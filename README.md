@@ -42,7 +42,7 @@ However, for `pip` to be able to build this source distribution, there are some 
 
 ### Supported Python versions and platforms
 
-zenoh-python has been tested with Python 3.7, 3.8, 3.9 and 3.10.
+zenoh-python has been tested with Python 3.8, 3.9, 3.10, 3.11 and 3.12
 
 It relies on the [zenoh](https://github.com/eclipse-zenoh/zenoh/tree/main/zenoh) Rust API which require the full `std` library. See the list in [Rust Platform Support](https://doc.rust-lang.org/nightly/rustc/platform-support.html).
 
@@ -54,7 +54,7 @@ It relies on the [zenoh](https://github.com/eclipse-zenoh/zenoh/tree/main/zenoh)
 
 Requirements:
 
-- Python >= 3.7
+- Python >= 3.8
 - pip >= 19.3.1
 - (Optional) A Python virtual environment (for instance [virtualenv](https://docs.python.org/3.10/tutorial/venv.html) or [miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - [Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html). If you already have the Rust toolchain installed, make sure it is up-to-date with:

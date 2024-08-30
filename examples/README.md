@@ -20,9 +20,9 @@ Scouts for zenoh peers and routers available on the network.
 
 Typical usage:
 
-```bash
-python3 z_scout.py
-```
+   ```bash
+      python3 z_scout.py
+   ```
 
 ### z_info
 
@@ -30,45 +30,45 @@ Gets information about the Zenoh session.
 
 Typical usage:
 
-```bash
-python3 z_info.py
-```
+   ```bash
+      python3 z_info.py
+   ```
 
 ### z_put
 
-Puts a path/value into Zenoh.
-The path/value will be received by all matching subscribers, for instance the [z_sub](#z_sub)
+Puts a path/payload into Zenoh.
+The path/payload will be received by all matching subscribers, for instance the [z_sub](#z_sub)
 and [z_storage](#z_storage) examples.
 
 Typical usage:
 
-```bash
-python3 z_put.py
-```
+   ```bash
+      python3 z_put.py
+   ```
 
 or
 
-```bash
-python3 z_put.py -k demo/example/test -v 'Hello World'
-```
+   ```bash
+      python3 z_put.py -k demo/example/test -v 'Hello World'
+   ```
 
 ### z_pub
 
-Declares a resource with a path and a publisher on this resource. Then puts a value using the numerical resource id.
-The path/value will be received by all matching subscribers, for instance the [z_sub](#z_sub)
+Declares a resource with a path and a publisher on this resource. Then puts a payload using the numerical resource id.
+The path/payload will be received by all matching subscribers, for instance the [z_sub](#z_sub)
 and [z_storage](#z_storage) examples.
 
 Typical usage:
 
-```bash
-python3 z_pub.py
-```
+   ```bash
+      python3 z_pub.py
+   ```
 
 or
 
-```bash
-python3 z_pub.py -k demo/example/test -v 'Hello World'
-```
+   ```bash
+      python3 z_pub.py -k demo/example/test -v 'Hello World'
+   ```
 
 ### z_sub
 
@@ -78,70 +78,51 @@ the subscriber's key expression, and will print this notification.
 
 Typical usage:
 
-```bash
-python3 z_sub.py
-```
+   ```bash
+      python3 z_sub.py
+   ```
 
 or
 
-```bash
-python3 z_sub.py -k 'demo/**'
-```
-
-### z_pull
-
-Creates a pull subscriber with a selector.
-The pull subscriber will receive each put made on any key expression matching
-the subscriber's key expression and will pull on demand and print the received
-key/value.
-
-Typical usage:
-
-```bash
-python3 z_pull.py
-```
-
-or
-
-```bash
-python3 z_pull.py -k 'demo/**'
-```
+   ```bash
+      python3 z_sub.py -k 'demo/**'
+   ```
 
 ### z_get
 
 Sends a query message for a selector.
 The queryables with a matching path or selector (for instance [z_queryable](#z_queryable) and [z_storage](#z_storage))
-will receive this query and reply with paths/values that will be received by the query callback.
+will receive this query and reply with paths/payloads that will be received by the query callback.
 
 Typical usage:
 
-```bash
-python3 z_get.py
-```
+   ```bash
+      python3 z_get.py
+   ```
 
 or
 
-```bash
-python3 z_get.py -s 'demo/**'
-```
+   ```bash
+      python3 z_get.py -s 'demo/**'
+   ```
 
 ### z_queryable
 
 Creates a queryable function with a key expression.
 This queryable function will be triggered by each call to a get operation on zenoh
-with a selector that matches the key expression, and will return a value to the querier.
+with a selector that matches the key expression, and will return a payload to the querier.
 
 Typical usage:
 
-```bash
-python3 z_queryable.py
-```
+   ```bash
+      python3 z_queryable.py
+   ```
 
 or
 
-```bash
-python3 z_queryable.py -k demo/example/queryable -v 'This is the result'
-```
+   ```bash
+      python3 z_queryable.py -k demo/example/queryable -v 'This is the result'
+   ```
 
 ### z_storage
 
@@ -153,15 +134,15 @@ and that match the queried selector.
 
 Typical usage:
 
-```bash
-python3 z_storage.py
-```
+   ```bash
+      python3 z_storage.py
+   ```
 
 or
 
-```bash
-python3 z_storage.py -k 'demo/**'
-```
+   ```bash
+      python3 z_storage.py -k 'demo/**'
+   ```
 
 ### z_pub_thr & z_sub_thr
 
@@ -171,12 +152,12 @@ put operations and a subscriber receiving notifications of those puts.
 
 Typical Subscriber usage:
 
-```bash
-python3 z_sub_thr.py
-```
+   ```bash
+      python3 z_sub_thr.py
+   ```
 
 Typical Publisher usage:
 
-```bash
-python3 z_pub_thr.py 1024
-```
+   ```bash
+      python3 z_pub_thr.py 1024
+   ```

@@ -31,6 +31,7 @@ build:
   jobs:
     pre_build:
       - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH maturin develop
+      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH python docs/stubs_to_sources.py
 
 # Optionally build your docs in additional formats such as PDF
 formats:
