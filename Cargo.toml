@@ -50,7 +50,7 @@ pyo3 = { version = "0.21.2", features = [
   "experimental-declarative-modules",
 ] }
 validated_struct = "2.1.0"
-zenoh = { version = "1.0.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = [
+zenoh = { version = "1.0.0-beta.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "release/1.0.0-beta.1", features = [
   "unstable",
   "internal",
 ], default-features = false }
