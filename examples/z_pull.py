@@ -98,11 +98,7 @@ def main():
         print("Declaring Subscriber on '{}'...".format(key))
         # Subscriber doesn't receive messages over the RingBuffer size.
         # The oldest message is overwritten by the latest one.
-        sub = session.declare_subscriber(
-            key,
-            zenoh.handlers.RingChannel(args.size),
-            reliability=zenoh.Reliability.RELIABLE,
-        )
+        sub = session.declare_subscriber(key, zenoh.handlers.RingChannel(args.size))
 
         print("Press CTRL-C to quit...")
         while True:

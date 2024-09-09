@@ -91,9 +91,7 @@ def main():
                 f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
             )
 
-        session.declare_subscriber(
-            key, listener, reliability=zenoh.Reliability.RELIABLE
-        )
+        session.declare_subscriber(key, listener)
 
         print("Press CTRL-C to quit...")
         while True:

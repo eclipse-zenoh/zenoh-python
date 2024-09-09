@@ -122,9 +122,7 @@ def main():
     print("Opening session...")
     with zenoh.open(conf) as session:
         print("Declaring Subscriber on '{}'...".format(key))
-        session.declare_subscriber(
-            key, listener, reliability=zenoh.Reliability.RELIABLE
-        )
+        session.declare_subscriber(key, listener)
 
         print("Declaring Queryable on '{}'...".format(key))
         session.declare_queryable(key, query_handler, complete=complete)

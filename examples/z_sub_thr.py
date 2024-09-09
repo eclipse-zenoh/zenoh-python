@@ -117,9 +117,7 @@ def main():
 
     with zenoh.open(conf) as session:
         session.declare_subscriber(
-            "test/thr",
-            zenoh.handlers.Callback(listener, report),
-            reliability=zenoh.Reliability.RELIABLE,
+            "test/thr", zenoh.handlers.Callback(listener, report)
         )
 
         print("Press CTRL-C to quit...")
