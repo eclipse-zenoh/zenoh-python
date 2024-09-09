@@ -62,14 +62,14 @@ macro_rules! bail {
 pub(crate) use bail;
 
 macro_rules! downcast_or_new {
-    ($ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
+    ($method:ident: $ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
         #[allow(unused)]
         impl $ty {
             pub(crate) fn from_py(obj: &Bound<PyAny>) -> PyResult<Self> {
                 if let Ok(obj) = <Self as pyo3::FromPyObject>::extract_bound(obj) {
                     return Ok(obj);
                 }
-                Self::new(PyResult::Ok(obj)$(.and_then(<$new>::extract_bound))??.into(), $($other)?)
+                Self::$method(PyResult::Ok(obj)$(.and_then(<$new>::extract_bound))??.into(), $($other)?)
             }
             pub(crate) fn from_py_opt(obj: &Bound<PyAny>) -> PyResult<Option<Self>> {
                 if obj.is_none() {
@@ -78,6 +78,9 @@ macro_rules! downcast_or_new {
                 Self::from_py(obj).map(Some)
             }
         }
+    };
+    ($ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
+        $crate::macros::downcast_or_new!(new: $ty $(=> $new)? $(, $other)?);
     };
 }
 pub(crate) use downcast_or_new;

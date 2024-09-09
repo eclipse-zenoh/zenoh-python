@@ -80,6 +80,7 @@ def main():
     data = bytearray()
     for i in range(0, size):
         data.append(i % 10)
+    data = zenoh.ZBytes(bytes(data))
     congestion_control = zenoh.CongestionControl.BLOCK
 
     with zenoh.open(conf) as session:
@@ -89,7 +90,7 @@ def main():
 
         print("Press CTRL-C to quit...")
         while True:
-            pub.put(bytes(data))
+            pub.put(data)
 
 
 if __name__ == "__main__":

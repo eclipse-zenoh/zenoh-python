@@ -962,10 +962,15 @@ _IntoWhatAmIMatcher = WhatAmIMatcher | str
 class ZBytes:
     """ZBytes contains the serialized bytes of user data."""
 
-    def __new__(cls, obj: Any = None) -> Self: ...
+    def __new__(cls, bytes: bytes = None) -> Self: ...
+    @classmethod
+    def serialize(cls, obj: Any) -> Self:
+        """Serialize object according to its type,
+        using default or registered serializer."""
+
     def deserialize(self, tp: type[_T]) -> _T:
-        """Deserialize payload to the given types,
-        using default or registered deserializer"""
+        """Deserialize bytes to the given types,
+        using default or registered deserializer."""
 
     def __bool__(self) -> bool: ...
     def __len__(self) -> int: ...
