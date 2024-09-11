@@ -94,10 +94,7 @@ pub(crate) fn serializer(
 }
 
 impl ZBytes {
-    fn serialize_impl(obj: Option<&Bound<PyAny>>) -> PyResult<Self> {
-        let Some(obj) = obj else {
-            return Ok(Self::default());
-        };
+    fn serialize_impl(obj: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(obj) = Self::extract_bound(obj) {
             return Ok(obj);
         }
@@ -115,16 +112,13 @@ impl ZBytes {
         } else if let Ok(list) = obj.downcast::<PyList>() {
             try_process(
                 list.iter()
-                    .map(|elt| PyResult::Ok(Self::serialize_impl(Some(&elt))?.0)),
+                    .map(|elt| PyResult::Ok(Self::serialize_impl(&elt)?.0)),
                 |iter| iter.collect(),
             )?
         } else if let Ok(dict) = obj.downcast::<PyDict>() {
             try_process(
                 dict.iter().map(|(k, v)| {
-                    PyResult::Ok((
-                        Self::serialize_impl(Some(&k))?.0,
-                        Self::serialize_impl(Some(&v))?.0,
-                    ))
+                    PyResult::Ok((Self::serialize_impl(&k)?.0, Self::serialize_impl(&v)?.0))
                 }),
                 |iter| iter.collect(),
             )?
@@ -135,8 +129,8 @@ impl ZBytes {
                 ));
             }
             zenoh::bytes::ZBytes::serialize((
-                Self::serialize_impl(Some(&tuple.get_item(0)?))?,
-                Self::serialize_impl(Some(&tuple.get_item(1)?))?,
+                Self::serialize_impl(&tuple.get_item(0)?)?,
+                Self::serialize_impl(&tuple.get_item(1)?)?,
             ))
         } else if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
             return match ZBytes::extract_bound(&ser.call1((obj,))?) {
@@ -197,7 +191,7 @@ impl ZBytes {
     }
 
     #[classmethod]
-    fn serialize(_cls: &Bound<PyType>, obj: Option<&Bound<PyAny>>) -> PyResult<Self> {
+    fn serialize(_cls: &Bound<PyType>, obj: &Bound<PyAny>) -> PyResult<Self> {
         Self::serialize_impl(obj)
     }
 
