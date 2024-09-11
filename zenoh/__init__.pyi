@@ -815,31 +815,19 @@ class Session:
 
     @overload
     def declare_subscriber(
-        self,
-        key_expr: _IntoKeyExpr,
-        handler: _RustHandler[Sample] | None = None,
-        *,
-        reliability: Reliability | None = None,
+        self, key_expr: _IntoKeyExpr, handler: _RustHandler[Sample] | None = None
     ) -> Subscriber[Handler[Sample]]:
         """Create a Subscriber for the given key expression."""
 
     @overload
     def declare_subscriber(
-        self,
-        key_expr: _IntoKeyExpr,
-        handler: _PythonHandler[Sample, _H],
-        *,
-        reliability: Reliability | None = None,
+        self, key_expr: _IntoKeyExpr, handler: _PythonHandler[Sample, _H]
     ) -> Subscriber[_H]:
         """Create a Subscriber for the given key expression."""
 
     @overload
     def declare_subscriber(
-        self,
-        key_expr: _IntoKeyExpr,
-        handler: _PythonCallback[Sample],
-        *,
-        reliability: Reliability | None = None,
+        self, key_expr: _IntoKeyExpr, handler: _PythonCallback[Sample]
     ) -> Subscriber[None]:
         """Create a Subscriber for the given key expression."""
 

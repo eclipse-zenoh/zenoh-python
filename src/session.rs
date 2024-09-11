@@ -29,7 +29,7 @@ use crate::{
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{bail, build, build_with, option_wrapper, zerror},
-    pubsub::{Publisher, Reliability, Subscriber},
+    pubsub::{Publisher, Subscriber},
     qos::{CongestionControl, Priority},
     query::{ConsolidationMode, QueryTarget, Queryable, Reply, Selector},
     utils::{wait, IntoPython, MapInto},
@@ -184,17 +184,16 @@ impl Session {
         Ok(SessionInfo(Arc::downgrade(self.get_ref()?)))
     }
 
-    #[pyo3(signature = (key_expr, handler = None, *, reliability = None))]
+    #[pyo3(signature = (key_expr, handler = None))]
     fn declare_subscriber(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
-        reliability: Option<Reliability>,
     ) -> PyResult<Py<Subscriber>> {
         let this = self.get_ref()?;
         let handler = into_handler(py, handler)?;
-        let build = build_with!(handler, this.declare_subscriber(key_expr), reliability,);
+        let build = || this.declare_subscriber(key_expr).with(handler);
         let subscriber = Subscriber {
             subscriber: Some(wait(py, build)?),
             session_pool: self.pool.clone_ref(py),
