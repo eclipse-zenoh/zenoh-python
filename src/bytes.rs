@@ -93,6 +93,61 @@ pub(crate) fn serializer(
     }
 }
 
+impl ZBytes {
+    fn serialize_impl(obj: &Bound<PyAny>) -> PyResult<Self> {
+        if let Ok(obj) = Self::extract_bound(obj) {
+            return Ok(obj);
+        }
+        let py = obj.py();
+        Ok(Self(if let Ok(b) = obj.downcast::<PyBytes>() {
+            zenoh::bytes::ZBytes::new(b.as_bytes().to_vec())
+        } else if let Ok(s) = String::extract_bound(obj) {
+            zenoh::bytes::ZBytes::serialize(s)
+        } else if let Ok(i) = i128::extract_bound(obj) {
+            zenoh::bytes::ZBytes::serialize(i)
+        } else if let Ok(f) = f64::extract_bound(obj) {
+            zenoh::bytes::ZBytes::serialize(f)
+        } else if let Ok(b) = bool::extract_bound(obj) {
+            zenoh::bytes::ZBytes::serialize(b)
+        } else if let Ok(list) = obj.downcast::<PyList>() {
+            try_process(
+                list.iter()
+                    .map(|elt| PyResult::Ok(Self::serialize_impl(&elt)?.0)),
+                |iter| iter.collect(),
+            )?
+        } else if let Ok(dict) = obj.downcast::<PyDict>() {
+            try_process(
+                dict.iter().map(|(k, v)| {
+                    PyResult::Ok((Self::serialize_impl(&k)?.0, Self::serialize_impl(&v)?.0))
+                }),
+                |iter| iter.collect(),
+            )?
+        } else if let Ok(tuple) = obj.downcast::<PyTuple>() {
+            if tuple.len() != 2 {
+                return Err(PyValueError::new_err(
+                    "only two-elements tuple are supported",
+                ));
+            }
+            zenoh::bytes::ZBytes::serialize((
+                Self::serialize_impl(&tuple.get_item(0)?)?,
+                Self::serialize_impl(&tuple.get_item(1)?)?,
+            ))
+        } else if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
+            return match ZBytes::extract_bound(&ser.call1((obj,))?) {
+                Ok(b) => Ok(b),
+                _ => Err(PyTypeError::new_err(format!(
+                    "serializer {} didn't return ZBytes",
+                    ser.repr()?
+                ))),
+            };
+        } else {
+            return Err(PyValueError::new_err(
+                format!("no serializer registered for type {type}", type = obj.get_type().name()?),
+            ));
+        }))
+    }
+}
+
 #[pyfunction]
 #[pyo3(signature = (func = None, /, *, target = None))]
 pub(crate) fn deserializer(
@@ -126,64 +181,18 @@ pub(crate) fn deserializer(
 }
 
 wrapper!(zenoh::bytes::ZBytes: Clone, Default);
-downcast_or_new!(ZBytes);
+downcast_or_new!(serialize_impl: ZBytes);
 
 #[pymethods]
 impl ZBytes {
     #[new]
-    fn new(obj: Option<&Bound<PyAny>>) -> PyResult<Self> {
-        let Some(obj) = obj else {
-            return Ok(Self::default());
-        };
-        if let Ok(obj) = Self::extract_bound(obj) {
-            return Ok(obj);
-        }
-        let py = obj.py();
-        Ok(Self(if let Ok(b) = obj.downcast::<PyBytes>() {
-            zenoh::bytes::ZBytes::new(b.as_bytes().to_vec())
-        } else if let Ok(s) = String::extract_bound(obj) {
-            zenoh::bytes::ZBytes::serialize(s)
-        } else if let Ok(i) = i128::extract_bound(obj) {
-            zenoh::bytes::ZBytes::serialize(i)
-        } else if let Ok(f) = f64::extract_bound(obj) {
-            zenoh::bytes::ZBytes::serialize(f)
-        } else if let Ok(b) = bool::extract_bound(obj) {
-            zenoh::bytes::ZBytes::serialize(b)
-        } else if let Ok(list) = obj.downcast::<PyList>() {
-            try_process(
-                list.iter()
-                    .map(|elt| PyResult::Ok(Self::new(Some(&elt))?.0)),
-                |iter| iter.collect(),
-            )?
-        } else if let Ok(dict) = obj.downcast::<PyDict>() {
-            try_process(
-                dict.iter()
-                    .map(|(k, v)| PyResult::Ok((Self::new(Some(&k))?.0, Self::new(Some(&v))?.0))),
-                |iter| iter.collect(),
-            )?
-        } else if let Ok(tuple) = obj.downcast::<PyTuple>() {
-            if tuple.len() != 2 {
-                return Err(PyValueError::new_err(
-                    "only two-elements tuple are supported",
-                ));
-            }
-            zenoh::bytes::ZBytes::serialize((
-                Self::new(Some(&tuple.get_item(0)?))?,
-                Self::new(Some(&tuple.get_item(1)?))?,
-            ))
-        } else if let Ok(Some(ser)) = serializers(py).bind(py).get_item(obj.get_type()) {
-            return match ZBytes::extract_bound(&ser.call1((obj,))?) {
-                Ok(b) => Ok(b),
-                _ => Err(PyTypeError::new_err(format!(
-                    "serializer {} didn't return ZBytes",
-                    ser.repr()?
-                ))),
-            };
-        } else {
-            return Err(PyValueError::new_err(
-                format!("no serializer registered for type {type}", type = obj.get_type().name()?),
-            ));
-        }))
+    fn new(bytes: Option<&Bound<PyBytes>>) -> Self {
+        bytes.map_or_else(Self::default, |b| Self(b.as_bytes().into()))
+    }
+
+    #[classmethod]
+    fn serialize(_cls: &Bound<PyType>, obj: &Bound<PyAny>) -> PyResult<Self> {
+        Self::serialize_impl(obj)
     }
 
     fn deserialize(this: PyRef<Self>, tp: &Bound<PyAny>) -> PyResult<PyObject> {

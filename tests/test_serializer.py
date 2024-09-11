@@ -24,9 +24,9 @@ default_serializer_tests = [
     (int, 42),
     (float, 0.5),
     (bool, True),
-    (ZBytes, ZBytes(b"foo")),
-    (list, [ZBytes(0), ZBytes(1)]),
-    (dict, {ZBytes("foo"): ZBytes("bar")}),
+    (ZBytes, ZBytes.serialize(b"foo")),
+    (list, [ZBytes.serialize(0), ZBytes.serialize(1)]),
+    (dict, {ZBytes.serialize("foo"): ZBytes.serialize("bar")}),
 ]
 if sys.version_info >= (3, 9):
     default_serializer_tests = [
@@ -40,7 +40,7 @@ if sys.version_info >= (3, 9):
 
 @pytest.mark.parametrize("tp, value", default_serializer_tests)
 def test_default_serializer(tp, value):
-    assert ZBytes(value).deserialize(tp) == value
+    assert ZBytes.serialize(value).deserialize(tp) == value
 
 
 def test_registered_serializer():
@@ -54,10 +54,10 @@ def test_registered_serializer():
 
     @serializer
     def serialize_foo(foo: Foo) -> ZBytes:
-        return ZBytes(foo.bar)
+        return ZBytes.serialize(foo.bar)
 
     foo = Foo(42)
-    assert ZBytes(foo).deserialize(Foo) == foo
+    assert ZBytes.serialize(foo).deserialize(Foo) == foo
 
 
 def test_registered_serializer_with_target():
@@ -71,7 +71,7 @@ def test_registered_serializer_with_target():
 
     @serializer(target=Foo)
     def serialize_foo(foo):
-        return ZBytes(foo.bar)
+        return ZBytes.serialize(foo.bar)
 
     foo = Foo(42)
-    assert ZBytes(foo).deserialize(Foo) == foo
+    assert ZBytes.serialize(foo).deserialize(Foo) == foo
