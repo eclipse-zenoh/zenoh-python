@@ -478,6 +478,8 @@ class Publisher:
     def congestion_control(self) -> CongestionControl: ...
     @property
     def priority(self) -> Priority: ...
+    @property
+    def reliability(self) -> Reliability: ...
     def put(
         self,
         payload: _IntoZBytes,
@@ -869,6 +871,7 @@ class Session:
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
+        reliability: Reliability | None = None,
     ) -> Publisher:
         """Create a Publisher for the given key expression."""
 
