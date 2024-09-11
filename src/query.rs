@@ -17,7 +17,6 @@ use pyo3::{
     prelude::*,
     types::{PyDict, PyIterator, PySet, PyTuple, PyType},
 };
-use zenoh::prelude::*;
 
 use crate::{
     bytes::{Encoding, ZBytes},
