@@ -44,7 +44,7 @@ pub(crate) trait IntoRust: Send + Sync + 'static {
 
 into_rust!(bool, Duration);
 
-pub(crate) trait IntoPython: Sized + Send {
+pub(crate) trait IntoPython: Sized + Send + 'static {
     type Into: IntoPy<PyObject>;
     fn into_python(self) -> Self::Into;
     fn into_pyobject(self, py: Python) -> PyObject {
@@ -145,9 +145,9 @@ pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
     name.rsplit_once("::").map_or(name, |(_, name)| name)
 }
 
-pub(crate) fn wait<T: Send, R: zenoh::Resolve<zenoh::Result<T>>>(
+pub(crate) fn wait<T: Send>(
     py: Python,
-    resolve: impl FnOnce() -> R + Send,
+    resolve: impl zenoh::Resolve<zenoh::Result<T>> + Send,
 ) -> PyResult<T> {
-    py.allow_threads(|| resolve().wait()).into_pyres()
+    py.allow_threads(|| resolve.wait()).into_pyres()
 }
