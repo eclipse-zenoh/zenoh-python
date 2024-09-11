@@ -12,13 +12,58 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
+import zenoh
+
+batch_count = 0
+count = 0
+start = None
+global_start = None
+
+
+def listener(sample):
+    global n, count, batch_count, start, global_start
+    if count == 0:
+        start = time.time()
+        if global_start is None:
+            global_start = start
+        count += 1
+    elif count < n:
+        count += 1
+    else:
+        stop = time.time()
+        print(f"{n / (stop - start):.6f} msgs/sec")
+        batch_count += 1
+        count = 0
+
+
+def report():
+    global n, m, count, batch_count, global_start
+    end = time.time()
+    total = batch_count * n + count
+    print(
+        f"Received {total} messages in {end - global_start}: averaged {total / (end - global_start):.6f} msgs/sec"
+    )
+
+
+def main():
+    # initiate logging
+    zenoh.try_init_log_from_env()
+
+    with zenoh.open(conf) as session:
+        session.declare_subscriber(
+            "test/thr", zenoh.handlers.Callback(listener, report)
+        )
+
+        print("Press CTRL-C to quit...")
+        while True:
+            time.sleep(1)
+
+
+# --- Command line argument parsing --- --- --- --- --- ---
 import argparse
 import json
 import time
 
-import zenoh
-
-# --- Command line argument parsing --- --- --- --- --- ---
 parser = argparse.ArgumentParser(
     prog="z_sub_thr", description="zenoh throughput sub example"
 )
@@ -78,51 +123,6 @@ if args.connect is not None:
 if args.listen is not None:
     conf.insert_json5("listen/endpoints", json.dumps(args.listen))
 n = args.number
-
-
-batch_count = 0
-count = 0
-start = None
-global_start = None
-
-
-def listener(sample):
-    global n, count, batch_count, start, global_start
-    if count == 0:
-        start = time.time()
-        if global_start is None:
-            global_start = start
-        count += 1
-    elif count < n:
-        count += 1
-    else:
-        stop = time.time()
-        print(f"{n / (stop - start):.6f} msgs/sec")
-        batch_count += 1
-        count = 0
-
-
-def report():
-    global n, m, count, batch_count, global_start
-    end = time.time()
-    total = batch_count * n + count
-    print(
-        f"Received {total} messages in {end - global_start}: averaged {total / (end - global_start):.6f} msgs/sec"
-    )
-
-
-def main():
-    # initiate logging
-    zenoh.try_init_log_from_env()
-
-    with zenoh.open(conf) as session:
-        session.declare_subscriber(
-            "test/thr", zenoh.handlers.Callback(listener, report)
-        )
-
-        print("Press CTRL-C to quit...")
-        while True:
-            time.sleep(1)
 
 
 if __name__ == "__main__":
