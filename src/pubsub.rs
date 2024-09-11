@@ -77,6 +77,11 @@ impl Publisher {
         Ok(self.get_ref()?.priority().into())
     }
 
+    #[getter]
+    fn reliability(&self) -> PyResult<Reliability> {
+        Ok(self.get_ref()?.reliability().into())
+    }
+
     // TODO add timestamp
     #[pyo3(signature = (payload, *, encoding = None, attachment = None))]
     fn put(

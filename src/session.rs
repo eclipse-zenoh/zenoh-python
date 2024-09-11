@@ -29,7 +29,7 @@ use crate::{
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{bail, build, build_with, option_wrapper, zerror},
-    pubsub::{Publisher, Subscriber},
+    pubsub::{Publisher, Reliability, Subscriber},
     qos::{CongestionControl, Priority},
     query::{ConsolidationMode, QueryTarget, Queryable, Reply, Selector},
     utils::{wait, IntoPython, MapInto},
@@ -223,7 +223,7 @@ impl Session {
         Ok(queryable)
     }
 
-    #[pyo3(signature = (key_expr, *, encoding = None, congestion_control = None, priority = None, express = None))]
+    #[pyo3(signature = (key_expr, *, encoding = None, congestion_control = None, priority = None, express = None, reliability = None))]
     fn declare_publisher(
         &self,
         py: Python,
@@ -232,6 +232,7 @@ impl Session {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
+        reliability: Option<Reliability>,
     ) -> PyResult<Py<Publisher>> {
         let this = self.get_ref()?;
         let build = build!(
@@ -240,6 +241,7 @@ impl Session {
             congestion_control,
             priority,
             express,
+            reliability,
         );
         let publisher = Publisher {
             publisher: Some(wait(py, build)?),
