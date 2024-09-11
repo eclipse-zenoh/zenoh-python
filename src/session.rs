@@ -223,6 +223,7 @@ impl Session {
         Ok(queryable)
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (key_expr, *, encoding = None, congestion_control = None, priority = None, express = None, reliability = None))]
     fn declare_publisher(
         &self,
