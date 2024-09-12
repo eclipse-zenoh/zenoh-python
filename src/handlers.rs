@@ -26,7 +26,7 @@ use crate::{
     ZError,
 };
 
-type RustCallback<T> = zenoh::handlers::Callback<'static, T>;
+type RustCallback<T> = zenoh::handlers::Callback<T>;
 
 const CHECK_SIGNALS_INTERVAL: Duration = Duration::from_millis(100);
 
@@ -255,9 +255,9 @@ where
 
 struct RustHandler<H: IntoRust, T: IntoRust>
 where
-    H::Into: IntoHandler<'static, T::Into>,
+    H::Into: IntoHandler<T::Into>,
 {
-    handler: <H::Into as IntoHandler<'static, T::Into>>::Handler,
+    handler: <H::Into as IntoHandler<T::Into>>::Handler,
     _phantom: PhantomData<T>,
 }
 
@@ -366,8 +366,8 @@ fn rust_handler<H: IntoRust, T: IntoRust>(
     into_handler: H,
 ) -> (RustCallback<T::Into>, HandlerImpl<T>)
 where
-    H::Into: IntoHandler<'static, T::Into>,
-    <H::Into as IntoHandler<'static, T::Into>>::Handler: Send + Sync,
+    H::Into: IntoHandler<T::Into>,
+    <H::Into as IntoHandler<T::Into>>::Handler: Send + Sync,
     T::Into: IntoPython,
     RustHandler<H, T>: Receiver,
 {
@@ -398,17 +398,16 @@ fn python_callback<T: IntoPython>(callback: &Bound<PyAny>) -> PyResult<RustCallb
         thread.call_method0("start")?;
         rust_callback
     } else {
-        Arc::new(move |t| Python::with_gil(|gil| callback.call(gil, t)))
+        RustCallback::new(Arc::new(move |t| {
+            Python::with_gil(|gil| callback.call(gil, t))
+        }))
     })
 }
 
 pub(crate) fn into_handler<T: IntoRust>(
     py: Python,
     obj: Option<&Bound<PyAny>>,
-) -> PyResult<(
-    impl IntoHandler<'static, T::Into, Handler = HandlerImpl<T>>,
-    bool,
-)>
+) -> PyResult<(impl IntoHandler<T::Into, Handler = HandlerImpl<T>>, bool)>
 where
     T::Into: IntoPython,
 {
