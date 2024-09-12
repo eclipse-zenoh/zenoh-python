@@ -13,7 +13,7 @@
 //
 use pyo3::{
     prelude::*,
-    types::{PyDict, PyIterator, PySet, PyTuple, PyType},
+    types::{PyDict, PyIterator, PyTuple, PyType},
 };
 
 use crate::{
@@ -26,35 +26,23 @@ use crate::{
     utils::{generic, wait},
 };
 
-#[pyclass]
-pub(crate) struct Publisher {
-    pub(crate) publisher: Option<zenoh::pubsub::Publisher<'static>>,
-    pub(crate) session_pool: Py<PySet>,
-}
-
-option_wrapper!(
-    Publisher.publisher: zenoh::pubsub::Publisher<'static>,
-    "Undeclared publisher"
-);
+option_wrapper!(zenoh::pubsub::Publisher<'static>, "Undeclared publisher");
 
 #[pymethods]
 impl Publisher {
-    fn _drop(&mut self) {
-        self.wait_drop();
-    }
-
     fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> PyResult<&'a Bound<'py, Self>> {
         Self::check(this)
     }
 
     #[pyo3(signature = (*_args, **_kwargs))]
     fn __exit__(
-        this: &Bound<Self>,
+        &mut self,
+        py: Python,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<PyObject> {
-        Self::undeclare(this)?;
-        Ok(this.py().None())
+        self.undeclare(py)?;
+        Ok(py.None())
     }
 
     #[getter]
@@ -101,17 +89,11 @@ impl Publisher {
         py: Python,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
-        let this = self.get_ref()?;
-        wait(py, build!(this.delete(), attachment))
+        wait(py, build!(self.get_ref()?.delete(), attachment))
     }
 
-    fn undeclare(this: &Bound<Self>) -> PyResult<()> {
-        this.borrow()
-            .session_pool
-            .bind(this.py())
-            .discard(this.into_py(this.py()))?;
-        let publisher = this.borrow_mut().take()?;
-        wait(this.py(), || publisher.undeclare())
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -130,40 +112,31 @@ impl Reliability {
     const DEFAULT: Self = Self::BestEffort;
 }
 
-#[pyclass]
-pub(crate) struct Subscriber {
-    pub(crate) subscriber: Option<zenoh::pubsub::Subscriber<'static, HandlerImpl<Sample>>>,
-    pub(crate) session_pool: Py<PySet>,
-}
-
 option_wrapper!(
-    Subscriber.subscriber: zenoh::pubsub::Subscriber<'static, HandlerImpl<Sample>>,
+    zenoh::pubsub::Subscriber<HandlerImpl<Sample>>,
     "Undeclared subscriber"
 );
 
 #[pymethods]
 impl Subscriber {
-    fn _drop(&mut self) {
-        self.wait_drop();
-    }
-
     #[classmethod]
     fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
         generic(cls, args)
     }
 
-    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> PyResult<&'a Bound<'py, Self>> {
-        Self::check(this)
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> &'a Bound<'py, Self> {
+        this
     }
 
     #[pyo3(signature = (*_args, **_kwargs))]
     fn __exit__(
-        this: &Bound<Self>,
+        &mut self,
+        py: Python,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<PyObject> {
-        Self::undeclare(this)?;
-        Ok(this.py().None())
+        self.undeclare(py)?;
+        Ok(py.None())
     }
 
     #[getter]
@@ -184,13 +157,8 @@ impl Subscriber {
         self.get_ref()?.handler().recv(py)
     }
 
-    fn undeclare(this: &Bound<Self>) -> PyResult<()> {
-        this.borrow()
-            .session_pool
-            .bind(this.py())
-            .discard(this.into_py(this.py()))?;
-        let subscriber = this.borrow_mut().take()?;
-        wait(this.py(), || subscriber.undeclare())
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {

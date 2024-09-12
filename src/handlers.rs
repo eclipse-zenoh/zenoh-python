@@ -18,13 +18,15 @@ use pyo3::{
     prelude::*,
     types::{PyCFunction, PyDict, PyType},
 };
-use zenoh::handlers::{Callback as RustCallback, IntoHandler};
+use zenoh::handlers::IntoHandler;
 
 use crate::{
     macros::{import, py_static},
     utils::{generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust},
     ZError,
 };
+
+type RustCallback<T> = zenoh::handlers::Callback<'static, T>;
 
 const CHECK_SIGNALS_INTERVAL: Duration = Duration::from_millis(100);
 
@@ -200,39 +202,6 @@ impl Drop for PythonCallback {
     }
 }
 
-pub(crate) enum IntoHandlerImpl<T: IntoRust> {
-    Rust {
-        callback: RustCallback<'static, T::Into>,
-        handler: Py<Handler>,
-    },
-    Python {
-        callback: PythonCallback,
-        handler: PyObject,
-    },
-    PythonIndirect {
-        callback: RustCallback<'static, T::Into>,
-        handler: PyObject,
-    },
-}
-
-impl<T: IntoPython> IntoHandler<'static, T> for IntoHandlerImpl<T::Into>
-where
-    T::Into: IntoRust<Into = T>,
-{
-    type Handler = HandlerImpl<T::Into>;
-
-    fn into_handler(self) -> (RustCallback<'static, T>, Self::Handler) {
-        match self {
-            Self::Rust { callback, handler } => (callback, HandlerImpl::Rust(handler, PhantomData)),
-            Self::Python { callback, handler } => (
-                Arc::new(move |t| Python::with_gil(|gil| callback.call(gil, t))),
-                HandlerImpl::Python(handler),
-            ),
-            Self::PythonIndirect { callback, handler } => (callback, HandlerImpl::Python(handler)),
-        }
-    }
-}
-
 pub(crate) enum HandlerImpl<T> {
     Rust(Py<Handler>, PhantomData<T>),
     Python(PyObject),
@@ -392,7 +361,10 @@ where
     }
 }
 
-fn rust_handler<H: IntoRust, T: IntoRust>(py: Python, into_handler: H) -> IntoHandlerImpl<T>
+fn rust_handler<H: IntoRust, T: IntoRust>(
+    py: Python,
+    into_handler: H,
+) -> (RustCallback<T::Into>, HandlerImpl<T>)
 where
     H::Into: IntoHandler<'static, T::Into>,
     <H::Into as IntoHandler<'static, T::Into>>::Handler: Send + Sync,
@@ -400,26 +372,18 @@ where
     RustHandler<H, T>: Receiver,
 {
     let (callback, handler) = into_handler.into_rust().into_handler();
-    let handler = RustHandler::<H, T> {
+    let rust_handler = RustHandler::<H, T> {
         handler,
         _phantom: PhantomData,
     };
-    IntoHandlerImpl::Rust {
-        callback,
-        handler: Py::new(py, Handler(Box::new(handler))).unwrap(),
-    }
+    let handler = Py::new(py, Handler(Box::new(rust_handler))).unwrap();
+    (callback, HandlerImpl::Rust(handler, PhantomData))
 }
 
-fn python_handler<T: IntoRust>(
-    py: Python,
-    callback: &Bound<PyAny>,
-    handler: PyObject,
-) -> PyResult<IntoHandlerImpl<T>>
-where
-    T::Into: IntoPython,
-{
+fn python_callback<T: IntoPython>(callback: &Bound<PyAny>) -> PyResult<RustCallback<T>> {
+    let py = callback.py();
     let callback = PythonCallback::new(callback);
-    if callback.0.indirect {
+    Ok(if callback.0.indirect {
         let (rust_callback, receiver) = DefaultHandler.into_rust().into_handler();
         let kwargs = PyDict::new_bound(py);
         let target = PyCFunction::new_closure_bound(py, None, None, move |args, _| {
@@ -432,43 +396,46 @@ where
         kwargs.set_item("target", target)?;
         let thread = import!(py, threading.Thread).call((), Some(&kwargs))?;
         thread.call_method0("start")?;
-        Ok(IntoHandlerImpl::PythonIndirect {
-            callback: rust_callback,
-            handler,
-        })
+        rust_callback
     } else {
-        Ok(IntoHandlerImpl::Python { callback, handler })
-    }
+        Arc::new(move |t| Python::with_gil(|gil| callback.call(gil, t)))
+    })
 }
 
 pub(crate) fn into_handler<T: IntoRust>(
     py: Python,
     obj: Option<&Bound<PyAny>>,
-) -> PyResult<IntoHandlerImpl<T>>
+) -> PyResult<(
+    impl IntoHandler<'static, T::Into, Handler = HandlerImpl<T>>,
+    bool,
+)>
 where
     T::Into: IntoPython,
 {
+    let mut undeclare_on_drop = true;
     let Some(obj) = obj else {
-        return Ok(rust_handler(py, DefaultHandler));
+        return Ok((rust_handler(py, DefaultHandler), undeclare_on_drop));
     };
-    if let Ok(handler) = obj.extract::<DefaultHandler>() {
-        return Ok(rust_handler(py, handler));
-    }
-    if let Ok(handler) = obj.extract::<FifoChannel>() {
-        return Ok(rust_handler(py, handler));
-    }
-    if let Ok(handler) = obj.extract::<RingChannel>() {
-        return Ok(rust_handler(py, handler));
-    }
-    if obj.is_callable() {
-        return python_handler(py, obj, py.None());
-    } else if let Ok((cb, handler)) = obj.extract::<(Bound<PyAny>, PyObject)>() {
-        if cb.is_callable() {
-            return python_handler(py, &cb, handler);
-        }
-    }
-    Err(PyValueError::new_err(format!(
-        "Invalid handler type {}",
-        obj.get_type().name()?
-    )))
+    let into_handler = if let Ok(handler) = obj.extract::<DefaultHandler>() {
+        rust_handler(py, handler)
+    } else if let Ok(handler) = obj.extract::<FifoChannel>() {
+        rust_handler(py, handler)
+    } else if let Ok(handler) = obj.extract::<RingChannel>() {
+        rust_handler(py, handler)
+    } else if obj.is_callable() {
+        undeclare_on_drop = false;
+        (python_callback(obj)?, HandlerImpl::Python(py.None()))
+    } else if let Some((cb, handler)) = obj
+        .extract::<(Bound<PyAny>, PyObject)>()
+        .ok()
+        .filter(|(cb, _)| cb.is_callable())
+    {
+        (python_callback(&cb)?, HandlerImpl::Python(handler))
+    } else {
+        return Err(PyValueError::new_err(format!(
+            "Invalid handler type {}",
+            obj.get_type().name()?
+        )));
+    };
+    Ok((into_handler, undeclare_on_drop))
 }

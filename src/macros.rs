@@ -140,8 +140,8 @@ macro_rules! enum_mapper {
 pub(crate) use enum_mapper;
 
 macro_rules! wrapper {
-    ($($path:ident)::* $(<$($args:tt),*>)? $(:$($derive:ty),*)?) => {
-        $crate::macros::wrapper!(@ $($path)::*, $($path)::* $(<$($args),*>)? $(:$($derive),*)?);
+    ($($path:ident)::* $(<$arg:lifetime>)? $(:$($derive:ty),*)?) => {
+        $crate::macros::wrapper!(@ $($path)::*, $($path)::* $(<$arg>)? $(:$($derive),*)?);
     };
     (@ $ty:ident::$($tt:ident)::*, $path:path $(:$($derive:ty),*)?) => {
         $crate::macros::wrapper!(@ $($tt)::*, $path $(:$($derive),*)?);
@@ -182,7 +182,19 @@ macro_rules! wrapper {
 pub(crate) use wrapper;
 
 macro_rules! option_wrapper {
-    ($ty:ident.$attr:tt: $path:ty, $error:literal) => {
+    ($($path:ident)::* $(<$arg:lifetime>)?, $error:literal) => {
+        $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
+    };
+    ($($path:ident)::* $(<$arg:ty>)?, $error:literal) => {
+        $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
+    };
+    (@ $ty:ident::$($tt:ident)::*, $path:path, $error:literal) => {
+        $crate::macros::option_wrapper!(@ $($tt)::*, $path, $error);
+    };
+    (@ $ty:ident, $path:path, $error:literal) => {
+        #[pyclass]
+        pub struct $ty(pub(crate) Option<$path>);
+
         #[allow(unused)]
         impl $ty {
             fn none() -> PyErr {
@@ -193,29 +205,43 @@ macro_rules! option_wrapper {
                 Ok(this)
             }
             fn get_ref(&self) -> PyResult<&$path> {
-                self.$attr.as_ref().ok_or_else(Self::none)
+                self.0.as_ref().ok_or_else(Self::none)
             }
             fn get_mut(&mut self) -> PyResult<&mut $path> {
-                self.$attr.as_mut().ok_or_else(Self::none)
+                self.0.as_mut().ok_or_else(Self::none)
             }
             fn take(&mut self) -> PyResult<$path> {
-                self.$attr.take().ok_or_else(Self::none)
+                self.0.take().ok_or_else(Self::none)
             }
-            fn wait_drop(&mut self) {
-                Python::with_gil(|gil| gil.allow_threads(|| drop(self.$attr.take())))
+        }
+
+        impl From<$path> for $ty {
+            fn from(value: $path) -> Self {
+                Self(Some(value))
             }
+        }
+
+        impl $crate::utils::IntoPython for $path {
+            type Into = $ty;
+            fn into_python(self) -> Self::Into { self.into() }
         }
 
         impl $crate::utils::IntoPython for $ty {
             type Into = $ty;
             fn into_python(self) -> Self::Into { self }
         }
+
+        impl Drop for $ty {
+            fn drop(&mut self) {
+                Python::with_gil(|gil| gil.allow_threads(|| drop(self.0.take())));
+            }
+        }
     };
 }
 pub(crate) use option_wrapper;
 
 macro_rules! build {
-    ($builder:expr, $($value:ident),* $(,)?) => {|| {
+    ($builder:expr, $($value:ident),* $(,)?) => {{
         let mut builder = $builder;
         $(
             if let Some(value) = $value.map($crate::utils::IntoRust::into_rust) {
@@ -227,11 +253,10 @@ macro_rules! build {
 }
 pub(crate) use build;
 
-macro_rules! build_with {
-    ($handler:expr, $builder:expr, $($value:ident),* $(,)?) => {{
-        let handler = $handler;
-        #[allow(clippy::redundant_closure_call)]
-        || $crate::macros::build!($builder, $($value),*)().with(handler)
-    }};
+macro_rules! with {
+    ($builder:ident, $py:expr, $handler:expr) => {
+        let (handler, undeclare_on_drop) = $crate::handlers::into_handler($py, $handler)?;
+        let $builder = $builder.with(handler).undeclare_on_drop(undeclare_on_drop);
+    };
 }
-pub(crate) use build_with;
+pub(crate) use with;

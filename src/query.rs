@@ -15,7 +15,7 @@ use std::{borrow::Cow, collections::HashMap};
 //
 use pyo3::{
     prelude::*,
-    types::{PyDict, PyIterator, PySet, PyTuple, PyType},
+    types::{PyDict, PyIterator, PyTuple, PyType},
 };
 
 use crate::{
@@ -208,23 +208,13 @@ impl ReplyError {
     }
 }
 
-#[pyclass]
-pub(crate) struct Queryable {
-    pub(crate) queryable: Option<zenoh::query::Queryable<'static, HandlerImpl<Query>>>,
-    pub(crate) session_pool: Py<PySet>,
-}
-
 option_wrapper!(
-    Queryable.queryable: zenoh::query::Queryable<'static, HandlerImpl<Query>>,
+    zenoh::query::Queryable<HandlerImpl<Query>>,
     "Undeclared queryable"
 );
 
 #[pymethods]
 impl Queryable {
-    fn _drop(&mut self) {
-        self.wait_drop();
-    }
-
     #[classmethod]
     fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
         generic(cls, args)
@@ -236,12 +226,13 @@ impl Queryable {
 
     #[pyo3(signature = (*_args, **_kwargs))]
     fn __exit__(
-        this: &Bound<Self>,
+        &mut self,
+        py: Python,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<PyObject> {
-        Self::undeclare(this)?;
-        Ok(this.py().None())
+        self.undeclare(py)?;
+        Ok(py.None())
     }
 
     #[getter]
@@ -257,13 +248,8 @@ impl Queryable {
         self.get_ref()?.handler().recv(py)
     }
 
-    fn undeclare(this: &Bound<Self>) -> PyResult<()> {
-        this.borrow()
-            .session_pool
-            .bind(this.py())
-            .discard(this.into_py(this.py()))?;
-        let queryable = this.borrow_mut().take()?;
-        wait(this.py(), || queryable.undeclare())
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {

@@ -58,10 +58,7 @@ impl Hello {
     }
 }
 
-#[pyclass]
-pub(crate) struct Scout(Option<zenoh::scouting::Scout<HandlerImpl<Hello>>>);
-
-option_wrapper!(Scout.0: zenoh::scouting::Scout<HandlerImpl<Hello>>, "Stopped scout");
+option_wrapper!(zenoh::scouting::Scout<HandlerImpl<Hello>>, "Stopped scout");
 
 #[pymethods]
 impl Scout {
@@ -77,10 +74,11 @@ impl Scout {
     #[pyo3(signature = (*_args, **_kwargs))]
     fn __exit__(
         &mut self,
+        py: Python,
         _args: &Bound<PyTuple>,
         _kwargs: Option<&Bound<PyDict>>,
     ) -> PyResult<()> {
-        self.stop()
+        self.stop(py)
     }
 
     #[getter]
@@ -96,8 +94,9 @@ impl Scout {
         self.get_ref()?.deref().recv(py)
     }
 
-    fn stop(&mut self) -> PyResult<()> {
-        self.take()?.stop();
+    fn stop(&mut self, py: Python) -> PyResult<()> {
+        let this = self.take()?;
+        py.allow_threads(|| this.stop());
         Ok(())
     }
 
@@ -120,7 +119,7 @@ pub(crate) fn scout(
 ) -> PyResult<Scout> {
     let what = what.unwrap_or_default();
     let config = config.unwrap_or_default();
-    let handler = into_handler(py, handler)?;
-    let scout = wait(py, || zenoh::scout(what, config).with(handler))?;
-    Ok(Scout(Some(scout)))
+    let (handler, _) = into_handler(py, handler)?;
+    let builder = zenoh::scout(what, config).with(handler);
+    Ok(Scout(Some(wait(py, builder)?)))
 }
