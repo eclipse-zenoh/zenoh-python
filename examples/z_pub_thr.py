@@ -14,12 +14,12 @@
 import zenoh
 
 
-def main(conf: zenoh.Config, size: int):
+def main(conf: zenoh.Config, payload_size: int):
     # initiate logging
     zenoh.try_init_log_from_env()
 
     data = bytearray()
-    for i in range(0, size):
+    for i in range(0, payload_size):
         data.append(i % 10)
     data = zenoh.ZBytes(bytes(data))
     congestion_control = zenoh.CongestionControl.BLOCK
@@ -92,7 +92,5 @@ if __name__ == "__main__":
         conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listen is not None:
         conf.insert_json5("listen/endpoints", json.dumps(args.listen))
-    size = args.payload_size
 
-
-main()
+    main(conf, args.payload_size)
