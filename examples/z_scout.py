@@ -18,7 +18,7 @@ import zenoh
 
 def main():
     # initiate logging
-    zenoh.try_init_log_from_env()
+    zenoh.init_log_from_env_or("error")
 
     print("Scouting...")
     scout = zenoh.scout(what="peer|router")
