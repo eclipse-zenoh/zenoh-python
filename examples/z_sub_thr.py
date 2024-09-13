@@ -46,7 +46,7 @@ def main(conf: zenoh.Config, number: int):
         )
 
     # initiate logging
-    zenoh.try_init_log_from_env()
+    zenoh.init_log_from_env_or("error")
 
     with zenoh.open(conf) as session:
         session.declare_subscriber(

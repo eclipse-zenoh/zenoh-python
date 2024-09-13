@@ -16,7 +16,7 @@ import zenoh
 
 def main(conf: zenoh.Config, payload_size: int):
     # initiate logging
-    zenoh.try_init_log_from_env()
+    zenoh.init_log_from_env_or("error")
 
     data = bytearray()
     for i in range(0, payload_size):

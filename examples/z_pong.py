@@ -18,7 +18,7 @@ import zenoh
 
 def main(conf: zenoh.Config, express: bool):
     # initiate logging
-    zenoh.try_init_log_from_env()
+    zenoh.init_log_from_env_or("error")
 
     print("Opening session...")
     with zenoh.open(conf) as session:

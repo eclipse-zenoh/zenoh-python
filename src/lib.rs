@@ -46,6 +46,11 @@ pub(crate) mod zenoh {
         zenoh::try_init_log_from_env();
     }
 
+    #[pyfunction]
+    fn init_log_from_env_or(level: &str) {
+        zenoh::init_log_from_env_or(level);
+    }
+
     #[pymodule_export]
     use crate::{
         bytes::{deserializer, serializer, Encoding, ZBytes},
