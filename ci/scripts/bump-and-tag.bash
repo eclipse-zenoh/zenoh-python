@@ -32,7 +32,7 @@ export GIT_COMMITTER_EMAIL=$git_user_email
 
 # For development releases (e.g. 1.0.0-dev-21-g2ca8632), transform the version
 # into a PEP-440 compatible version, since maturin>1 requires strict version compliance.
-if [[ "${version}" =~ [0-9]+\.[0-9]+\.[0-9]+-dev-[0-9]+-[a-z0-9]+ ]]; then
+if [[ "${version}" =~ [0-9]+\.[0-9]+\.[0-9]+-dev-[0-9]+-g[a-f0-9]+ ]]; then
   version=$(echo $version | sed 's/dev-/dev+/')
 
 # Bump Cargo version
