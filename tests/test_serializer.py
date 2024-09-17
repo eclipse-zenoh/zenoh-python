@@ -19,21 +19,28 @@ import pytest
 from zenoh import ZBytes, deserializer, serializer
 
 default_serializer_tests = [
+    (ZBytes, ZBytes.serialize(b"foo")),
     (bytes, b"foo"),
+    (bytearray, bytearray(b"foo")),
     (str, "foo"),
     (int, 42),
     (float, 0.5),
     (bool, True),
-    (ZBytes, ZBytes.serialize(b"foo")),
     (list, [ZBytes.serialize(0), ZBytes.serialize(1)]),
+    (tuple, (ZBytes.serialize(0), ZBytes.serialize(1))),
     (dict, {ZBytes.serialize("foo"): ZBytes.serialize("bar")}),
+    (set, {ZBytes.serialize(0), ZBytes.serialize(1)}),
+    (frozenset, frozenset([ZBytes.serialize(0), ZBytes.serialize(1)])),
 ]
 if sys.version_info >= (3, 9):
     default_serializer_tests = [
         *default_serializer_tests,
         (list[int], [0, 1, 2]),
-        (dict[str, str], {"foo": "bar"}),
         (tuple[int, int], (0, 1)),
+        (tuple[int, ...], (0, 1, 2)),
+        (dict[str, str], {"foo": "bar"}),
+        (set[int], {0, 1, 2}),
+        (frozenset[int], frozenset([0, 1, 2])),
         (list[tuple[int, int]], [(0, 1), (2, 3)]),
     ]
 

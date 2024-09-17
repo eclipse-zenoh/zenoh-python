@@ -953,7 +953,7 @@ _IntoWhatAmIMatcher = WhatAmIMatcher | str
 class ZBytes:
     """ZBytes contains the serialized bytes of user data."""
 
-    def __new__(cls, bytes: bytes = None) -> Self: ...
+    def __new__(cls, bytes: bytes | bytearray = None) -> Self: ...
     @classmethod
     def serialize(cls, obj: Any) -> Self:
         """Serialize object according to its type,

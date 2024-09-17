@@ -121,25 +121,6 @@ impl<I: Iterator<Item = Result<T, E>>, T, E> Iterator for TryProcessIter<'_, I, 
     }
 }
 
-pub(crate) fn try_process<I, T, E, R>(
-    iter: I,
-    process: impl FnOnce(TryProcessIter<'_, I::IntoIter, E>) -> R,
-) -> Result<R, E>
-where
-    I: IntoIterator<Item = Result<T, E>>,
-{
-    let mut error = None;
-    let iter = TryProcessIter {
-        iter: iter.into_iter(),
-        error: &mut error,
-    };
-    let res = process(iter);
-    if let Some(err) = error {
-        return Err(err);
-    }
-    Ok(res)
-}
-
 pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
     let name = std::any::type_name::<T>();
     name.rsplit_once("::").map_or(name, |(_, name)| name)

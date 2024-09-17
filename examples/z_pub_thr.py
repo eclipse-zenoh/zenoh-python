@@ -21,7 +21,7 @@ def main(conf: zenoh.Config, payload_size: int):
     data = bytearray()
     for i in range(0, payload_size):
         data.append(i % 10)
-    data = zenoh.ZBytes(bytes(data))
+    data = zenoh.ZBytes(data)
     congestion_control = zenoh.CongestionControl.BLOCK
 
     with zenoh.open(conf) as session:
