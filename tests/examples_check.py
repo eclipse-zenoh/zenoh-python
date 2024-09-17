@@ -1,4 +1,9 @@
 # Copyright (c) 2017, 2022 ZettaScale Technology Inc.
+import sys
+import time
+from os import getpgid, killpg, path
+from signal import SIGINT
+from subprocess import PIPE, Popen
 
 # Contributors:
 #   ZettaScale Zenoh team, <zenoh@zettascale.tech>
@@ -10,10 +15,6 @@
 
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 
-import time
-from os import getpgid, killpg, path
-from signal import SIGINT
-from subprocess import PIPE, Popen
 
 examples = path.realpath(__file__).split("/tests")[0] + "/examples/"
 tab = "\t"
@@ -90,12 +91,13 @@ class Pyrun:
 
 errors = []
 
-# Test z_bytes
-print("=> Test z_bytes")
-z_bytes = Pyrun("z_bytes.py")
-if error := z_bytes.status():
-    z_bytes.dbg()
-    errors.append(error)
+if sys.version_info >= (3, 9):
+    # Test z_bytes
+    print("=> Test z_bytes")
+    z_bytes = Pyrun("z_bytes.py")
+    if error := z_bytes.status():
+        z_bytes.dbg()
+        errors.append(error)
 
 # Test z_info & z_scout
 print("=> Test z_info & z_scout")
