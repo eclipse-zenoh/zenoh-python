@@ -1,1 +1,1 @@
-maturin>=0.13,<0.15
+maturin>1
