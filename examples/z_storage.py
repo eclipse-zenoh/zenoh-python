@@ -20,9 +20,7 @@ store = {}
 
 def listener(sample: zenoh.Sample):
     print(
-        ">> [Subscriber] Received {} ('{}': '{}')".format(
-            sample.kind, sample.key_expr, sample.payload.deserialize(str)
-        )
+        f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
     )
     if sample.kind == zenoh.SampleKind.DELETE:
         store.pop(sample.key_expr, None)
@@ -31,8 +29,7 @@ def listener(sample: zenoh.Sample):
 
 
 def query_handler(query: zenoh.Query):
-    print(">> [Queryable ] Received Query '{}'".format(query.selector))
-    replies = []
+    print(f">> [Queryable ] Received Query '{query.selector}'")
     for stored_name, sample in store.items():
         if query.key_expr.intersects(stored_name):
             query.reply(
@@ -51,10 +48,10 @@ def main(conf: zenoh.Config, key: str, complete: bool):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print("Declaring Subscriber on '{}'...".format(key))
+        print(f"Declaring Subscriber on '{key}'...")
         session.declare_subscriber(key, listener)
 
-        print("Declaring Queryable on '{}'...".format(key))
+        print(f"Declaring Queryable on '{key}'...")
         session.declare_queryable(key, query_handler, complete=complete)
 
         print("Press CTRL-C to quit...")

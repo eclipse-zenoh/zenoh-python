@@ -90,6 +90,13 @@ class Pyrun:
 
 errors = []
 
+# Test z_bytes
+print("=> Test z_bytes")
+z_bytes = Pyrun("z_bytes.py")
+if error := z_bytes.status():
+    z_bytes.dbg()
+    errors.append(error)
+
 # Test z_info & z_scout
 print("=> Test z_info & z_scout")
 info = Pyrun("z_info.py")

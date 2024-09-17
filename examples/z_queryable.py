@@ -33,7 +33,7 @@ def main(conf: zenoh.Config, key: str, payload: str, complete: bool):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print("Declaring Queryable on '{}'...".format(key))
+        print(f"Declaring Queryable on '{key}'...")
         session.declare_queryable(key, queryable_callback, complete=complete)
 
         print("Press CTRL-C to quit...")
