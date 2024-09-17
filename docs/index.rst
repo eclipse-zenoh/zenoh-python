@@ -16,9 +16,7 @@
 Zenoh API Reference
 *******************
 
-
-
-[Zenoh](https://zenoh.io) /zeno/ is a stack that unifies data in motion, data at
+`Zenoh <https://zenoh.io>`_ /zeno/ is a stack that unifies data in motion, data at
 rest and computations. It elegantly blends traditional pub/sub with geo distributed
 storage, queries and computations, while retaining a level of time and space efficiency
 that is well beyond any of the mainstream stacks.
@@ -40,8 +38,8 @@ Publish a key/value pair onto Zenoh
 """""""""""""""""""""""""""""""""""
 
 >>> import zenoh
->>> with zenoh.open() as z:
->>>     z.put('demo/example/hello', 'Hello World!')
+>>> with zenoh.open() as session:
+>>>     session.put('demo/example/hello', 'Hello World!')
 
 Subscribe to a set of keys with Zenoh
 """""""""""""""""""""""""""""""""""""
@@ -50,16 +48,16 @@ Subscribe to a set of keys with Zenoh
 >>> def listener(sample):
 >>>     print(f"{sample.key_expr} => {sample.payload.decode('utf-8')}")
 >>>
->>> with zenoh.open() as z:
->>>     with z.subscribe('demo/example/**', listener) as subscriber:
+>>> with zenoh.open() as session:
+>>>     with session.declare_subscriber('demo/example/**', listener) as subscriber:
 >>>         time.sleep(60)
 
 Get keys/values from zenoh
 """"""""""""""""""""""""""
 
 >>> import zenoh
->>> with zenoh.open() as z:
->>>     for response in z.get('demo/example/**'):
+>>> with zenoh.open() as session:
+>>>     for response in session.get('demo/example/**'):
 >>>         response = response.ok
 >>>         print(f"{response.key_expr} => {response.payload.deserialize(str)}")
 
