@@ -16,15 +16,36 @@ from dataclasses import dataclass
 
 import pytest
 
-from zenoh import ZBytes, deserializer, serializer
+from zenoh import (
+    Float32,
+    Float64,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Int128,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    UInt128,
+    ZBytes,
+    deserializer,
+    serializer,
+)
 
 default_serializer_tests = [
     (ZBytes, ZBytes.serialize(b"foo")),
     (bytes, b"foo"),
     (bytearray, bytearray(b"foo")),
     (str, "foo"),
+    (int, -42),
+    *((tp, tp(-42)) for tp in (Int8, Int16, Int32, Int64, Int128)),
     (int, 42),
+    *((tp, tp(42)) for tp in (UInt8, UInt16, UInt32, UInt64, UInt128)),
     (float, 0.5),
+    (Float64, Float64(0.5)),
+    (Float32, Float32(0.5)),
     (bool, True),
     (list, [ZBytes.serialize(0), ZBytes.serialize(1)]),
     (tuple, (ZBytes.serialize(0), ZBytes.serialize(1))),
@@ -41,7 +62,7 @@ if sys.version_info >= (3, 9):
         (dict[str, str], {"foo": "bar"}),
         (set[int], {0, 1, 2}),
         (frozenset[int], frozenset([0, 1, 2])),
-        (list[tuple[int, int]], [(0, 1), (2, 3)]),
+        (list[tuple[float, Float32]], [(0.0, Float32(0.5)), (1.5, Float32(2))]),
     ]
 
 

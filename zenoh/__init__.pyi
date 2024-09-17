@@ -34,6 +34,42 @@ _RustHandler = (
 _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
+class Int8(int):
+    """int subclass enabling to (de)serialize 8bit signed integer."""
+
+class Int16(int):
+    """int subclass enabling to (de)serialize 16bit signed integer."""
+
+class Int32(int):
+    """int subclass enabling to (de)serialize 32bit signed integer."""
+
+class Int64(int):
+    """int subclass enabling to (de)serialize 64bit signed integer."""
+
+class Int128(int):
+    """int subclass enabling to (de)serialize 128bit signed integer."""
+
+class UInt8(int):
+    """int subclass enabling to (de)serialize 8bit unsigned integer."""
+
+class UInt16(int):
+    """int subclass enabling to (de)serialize 16bit unsigned integer."""
+
+class UInt32(int):
+    """int subclass enabling to (de)serialize 32bit unsigned integer."""
+
+class UInt64(int):
+    """int subclass enabling to (de)serialize 64bit unsigned integer."""
+
+class UInt128(int):
+    """int subclass enabling to (de)serialize 128bit unsigned integer."""
+
+class Float32(float):
+    """float subclass enabling to (de)serialize 32bit floating point numbers."""
+
+class Float64(float):
+    """float subclass enabling to (de)serialize 64bit floating point numbers."""
+
 @final
 class ZError(Exception): ...
 
@@ -54,7 +90,7 @@ class Config:
     def from_file(cls, path: str | Path) -> Self: ...
     @classmethod
     def from_json5(cls, obj: Any) -> Self: ...
-    @property
+    property
     def id(self) -> ZenohId:
         """The Zenoh ID of the instance. This ID MUST be unique throughout your Zenoh infrastructure and cannot exceed 16 bytes of length. If left unset, a random u128 will be generated."""
 
