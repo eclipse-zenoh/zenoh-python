@@ -11,9 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-"""Zenoh /zeno/ is a stack that unifies data in motion, data at rest and computations. It elegantly blends traditional pub/sub with geo distributed storage, queries and computations, while retaining a level of time and space efficiency that is well beyond any of the mainstream stacks.
 
-Before delving into the examples, we need to introduce few Zenoh concepts. First off, in Zenoh you will deal with Resources, where a resource is made up of a key and a value. The other concept you’ll have to familiarize yourself with are key expressions, such as robot/sensor/temp, robot/sensor/*, robot/**, etc. As you can gather, the above key expression denotes set of keys, while the * and ** are wildcards representing respectively (1) an arbitrary string of characters, with the exclusion of the / separator, and (2) an arbitrary sequence of characters including separators."""
 from collections.abc import Callable, Iterable
 from datetime import datetime
 from enum import Enum, auto
@@ -56,7 +54,7 @@ class Config:
     def from_json5(cls, obj: Any) -> Self: ...
     @property
     def id(self) -> ZenohId:
-        """The Zenoh ID of the instance. This ID MUST be unique throughout your Zenoh infrastructure and cannot exceed 16 bytes of length. If left unset, a random u128 will be generated."""
+        """The Zenoh ID of the instance. This ID MUST be unique throughout your Zenoh infrastructure and cannot exceed 16 bytes in length. If left unset, a random u128 will be generated."""
 
     def get_json(self, key: str) -> Any: ...
     def insert_json5(self, key: str, value: Any): ...
@@ -92,7 +90,7 @@ class Encoding:
 
     def __new__(cls, encoding: str | None = None) -> Self: ...
     def with_schema(self, schema: str) -> Self:
-        """Set a schema to this encoding. Zenoh does not define what a schema is and its semantichs is left to the implementer. E.g. a common schema for text/plain encoding is utf-8."""
+        """Set a schema to this encoding. Zenoh does not define what a schema is and its semantics are left to the implementer. E.g. a common schema for text/plain encoding is utf-8."""
 
     def __eq__(self, other: _IntoEncoding) -> bool: ...
     def __hash__(self) -> int: ...
@@ -195,11 +193,11 @@ class Encoding:
 
     Constant alias for string: "text/yaml"."""
     TEXT_JSON5: Self
-    """JSON5 encoded data that are human readable.
+    """JSON5 encoded data intended to be human readable.
 
     Constant alias for string: "text/json5"."""
     APPLICATION_PYTHON_SERIALIZED_OBJECT: Self
-    """A Python object serialized using pickle .
+    """A Python object serialized using pickle.
 
     Constant alias for string: "application/python-serialized-object"."""
     APPLICATION_PROTOBUF: Self
@@ -211,7 +209,7 @@ class Encoding:
 
     Constant alias for string: "application/java-serialized-object"."""
     APPLICATION_OPENMETRICS_TEXT: Self
-    """An openmetrics  data, common used by Prometheus .
+    """An openmetrics text data representation, commonly used by Prometheus.
 
     Constant alias for string: "application/openmetrics-text"."""
     IMAGE_PNG: Self
@@ -235,7 +233,7 @@ class Encoding:
 
     Constant alias for string: "image/webp"""
     APPLICATION_XML: Self
-    """An XML file intended to be consumed by an application..
+    """An XML file intended to be consumed by an application.
 
     Constant alias for string: "application/xml"."""
     APPLICATION_X_WWW_FORM_URLENCODED: Self
@@ -323,23 +321,23 @@ class Encoding:
 
     Constant alias for string: "audio/vorbis"."""
     VIDEO_H261: Self
-    """A h261-encoded video stream.
+    """An h261-encoded video stream.
 
     Constant alias for string: "video/h261"."""
     VIDEO_H263: Self
-    """A h263-encoded video stream.
+    """An h263-encoded video stream.
 
     Constant alias for string: "video/h263"."""
     VIDEO_H264: Self
-    """A h264-encoded video stream.
+    """An h264-encoded video stream.
 
     Constant alias for string: "video/h264"."""
     VIDEO_H265: Self
-    """A h265-encoded video stream.
+    """An h265-encoded video stream.
 
     Constant alias for string: "video/h265"."""
     VIDEO_H266: Self
-    """A h266-encoded video stream.
+    """An h266-encoded video stream.
 
     Constant alias for string: "video/h266"."""
     VIDEO_MP4: Self
@@ -405,7 +403,7 @@ class KeyExpr:
 
     def concat(self, other: str) -> KeyExpr:
         """Performs string concatenation and returns the result as a KeyExpr if possible.
-        You should probably prefer KeyExpr::join as Zenoh may then take advantage of the hierachical separation it ins  erts.
+        You should probably prefer KeyExpr::join as Zenoh may then take advantage of the hierachical separation it inserts.
         """
 
     def __str__(self) -> str: ...
@@ -568,7 +566,7 @@ class Queryable(Generic[_H]):
 
 @final
 class QueryTarget(Enum):
-    """The kind of consolidation."""
+    """The kind of consolidation used."""
 
     BEST_MATCHING = auto()
     ALL = auto()
@@ -679,7 +677,7 @@ class Selector:
     parameters are separated by &,
     the parameter name and value are separated by the first =,
     in the absence of =, the parameter value is considered to be the empty string,
-    both name and value should use percent-encoding to escape characters,
+    both name and value should use percent-encoding (URL-encoding) to escape characters,
     defining a value for the same parameter name twice is considered undefined behavior, with the encouraged behaviour being to reject operations when a duplicate parameter is detected.
     Zenoh intends to standardize the usage of a set of parameter names. To avoid conflicting with RPC parameters, the Zenoh team has settled on reserving the set of parameter names that start with non-alphanumeric characters.
     The full specification for selectors is available here , it includes standardized parameters.
@@ -723,11 +721,11 @@ class Session:
     def undeclare(self, obj: KeyExpr): ...
     def config(self) -> Config:
         """Get the current configuration of the zenoh Session.
-        The returned configuration Notifier can be used to read the current zenoh configuration through the get function or modify the zenoh configuration through the insert, or insert_json5 funtion.
+        The returned configuration Notifier can be used to read the current zenoh configuration through the get function or modify the zenoh configuration through the insert, or insert_json5 function.
         """
 
     def declare_keyexpr(self, key_expr: _IntoKeyExpr):
-        """Informs Zenoh that you intend to use key_expr multiple times and that it should optimize its transmission.
+        """Informs Zenoh that you intend to use the provided key_expr multiple times and that it should optimize its transmission.
         The returned KeyExpr's internal structure may differ from what you would have obtained through a simple key_expr.try_into(), to save time on detecting the optimizations that have been associated with it.
         """
 
@@ -742,7 +740,7 @@ class Session:
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
     ):
-        """Put data."""
+        """Put data on zenoh for a given key expression."""
 
     def delete(
         self,
@@ -753,7 +751,7 @@ class Session:
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
     ):
-        """Delete data."""
+        """Delete data for a given key expression."""
 
     @overload
     def get(
@@ -957,11 +955,11 @@ class ZBytes:
     @classmethod
     def serialize(cls, obj: Any) -> Self:
         """Serialize object according to its type,
-        using default or registered serializer."""
+        using default or a registered serializer."""
 
     def deserialize(self, tp: type[_T]) -> _T:
         """Deserialize bytes to the given types,
-        using default or registered deserializer."""
+        using default or a registered deserializer."""
 
     def __bool__(self) -> bool: ...
     def __len__(self) -> int: ...
