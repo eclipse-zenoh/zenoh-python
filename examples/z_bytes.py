@@ -11,8 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-import json
-
+import zenoh
 from zenoh import UInt32, ZBytes
 
 
@@ -61,6 +60,8 @@ def main():
     assert input == output
 
     # JSON
+    import json
+
     input = {"name": "John Doe", "age": 43, "phones": ["+44 1234567", "+44 2345678"]}
     payload = ZBytes.serialize(json.dumps(input))
     output = json.loads(payload.deserialize(str))
@@ -68,7 +69,32 @@ def main():
     # Corresponding encoding to be used in operations like `.put()`, `.reply()`, etc.
     # encoding = Encoding.APPLICATION_JSON;
 
-    # Other formats like protobuf can be used the same way as JSON, i.e. dumps to bytes/str before serializing to ZBytes, and loads from ZBytes deserialized to str/bytes.
+    # Other formats like protobuf can be used the same way as JSON, i.e. dumps to
+    # bytes/str before serializing to ZBytes, and loads from ZBytes after deserializing
+    # to str/bytes.
+
+    # arbitrary type
+    import struct
+    from dataclasses import dataclass
+
+    @dataclass
+    class Coordinates:
+        x: float
+        y: float
+        z: float
+
+    @zenoh.serializer  # input type is retrieved from serializer signature
+    def serialize_coordinates(c: Coordinates) -> ZBytes:
+        return ZBytes(struct.pack("<fff", c.x, c.y, c.z))
+
+    @zenoh.deserializer  # output type is retrieved from deserializer signature
+    def deserialize_coordinates(zbytes: ZBytes) -> Coordinates:
+        return Coordinates(*struct.unpack("<fff", bytes(zbytes)))
+
+    input = Coordinates(42, 1.5, 0)
+    payload = ZBytes.serialize(input)
+    output = payload.deserialize(Coordinates)
+    assert input == output
 
 
 if __name__ == "__main__":
