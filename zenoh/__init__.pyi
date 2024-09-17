@@ -987,7 +987,19 @@ _IntoWhatAmIMatcher = WhatAmIMatcher | str
 
 @final
 class ZBytes:
-    """ZBytes contains the serialized bytes of user data."""
+    """ZBytes contains the serialized bytes of user data.
+
+    It provides convenient methods to the user for serialization/deserialization.
+
+    **NOTE** Zenoh semantic and protocol take care of sending and receiving bytes
+    without restricting the actual data types. Default (de)serializers are provided for
+    convenience to the users to deal with primitives data types via a simple
+    out-of-the-box encoding. They are NOT by any means the only (de)serializers
+    users can use nor a limitation to the types supported by Zenoh. Users are free and
+    encouraged to use any data format of their choice like JSON, protobuf,
+    flatbuffers, etc. Deserializers/serializers can be registered for arbitrary types
+    with `zenoh.serializer`/`zenoh.deserializer` decorators, and default ones can be
+    overridden."""
 
     def __new__(cls, bytes: bytes | bytearray = None) -> Self: ...
     @classmethod
