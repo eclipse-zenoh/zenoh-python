@@ -32,6 +32,42 @@ _RustHandler = (
 _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
+class Int8(int):
+    """int subclass enabling to (de)serialize 8bit signed integer."""
+
+class Int16(int):
+    """int subclass enabling to (de)serialize 16bit signed integer."""
+
+class Int32(int):
+    """int subclass enabling to (de)serialize 32bit signed integer."""
+
+class Int64(int):
+    """int subclass enabling to (de)serialize 64bit signed integer."""
+
+class Int128(int):
+    """int subclass enabling to (de)serialize 128bit signed integer."""
+
+class UInt8(int):
+    """int subclass enabling to (de)serialize 8bit unsigned integer."""
+
+class UInt16(int):
+    """int subclass enabling to (de)serialize 16bit unsigned integer."""
+
+class UInt32(int):
+    """int subclass enabling to (de)serialize 32bit unsigned integer."""
+
+class UInt64(int):
+    """int subclass enabling to (de)serialize 64bit unsigned integer."""
+
+class UInt128(int):
+    """int subclass enabling to (de)serialize 128bit unsigned integer."""
+
+class Float32(float):
+    """float subclass enabling to (de)serialize 32bit floating point numbers."""
+
+class Float64(float):
+    """float subclass enabling to (de)serialize 64bit floating point numbers."""
+
 @final
 class ZError(Exception): ...
 
@@ -949,7 +985,19 @@ _IntoWhatAmIMatcher = WhatAmIMatcher | str
 
 @final
 class ZBytes:
-    """ZBytes contains the serialized bytes of user data."""
+    """ZBytes contains the serialized bytes of user data.
+
+    It provides convenient methods to the user for serialization/deserialization.
+
+    **NOTE** Zenoh semantic and protocol take care of sending and receiving bytes
+    without restricting the actual data types. Default (de)serializers are provided for
+    convenience to the users to deal with primitives data types via a simple
+    out-of-the-box encoding. They are NOT by any means the only (de)serializers
+    users can use nor a limitation to the types supported by Zenoh. Users are free and
+    encouraged to use any data format of their choice like JSON, protobuf,
+    flatbuffers, etc. Deserializers/serializers can be registered for arbitrary types
+    with `zenoh.serializer`/`zenoh.deserializer` decorators, and default ones can be
+    overridden."""
 
     def __new__(cls, bytes: bytes | bytearray = None) -> Self: ...
     @classmethod
