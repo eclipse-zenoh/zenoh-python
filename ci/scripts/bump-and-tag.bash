@@ -34,6 +34,7 @@ export GIT_COMMITTER_EMAIL=$git_user_email
 # into a PEP-440 compatible version, since maturin>1 requires strict version compliance.
 if [[ "${version}" =~ [0-9]+\.[0-9]+\.[0-9]+-dev-[0-9]+-g[a-f0-9]+ ]]; then
   version=$(echo $version | sed 's/dev-/dev+/')
+fi
 
 # Bump Cargo version
 toml_set_in_place Cargo.toml "package.version" "$version"
