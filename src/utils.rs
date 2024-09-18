@@ -93,34 +93,6 @@ pub(crate) fn generic(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
         .unbind()
 }
 
-pub(crate) struct TryProcessIter<'a, I, E> {
-    iter: I,
-    error: &'a mut Option<E>,
-}
-
-impl<I: Iterator<Item = Result<T, E>>, T, E> Iterator for TryProcessIter<'_, I, E> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.iter.next() {
-            Some(Ok(x)) => Some(x),
-            Some(Err(err)) => {
-                *self.error = Some(err);
-                None
-            }
-            None => None,
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.error.is_some() {
-            (0, Some(0))
-        } else {
-            self.iter.size_hint()
-        }
-    }
-}
-
 pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
     let name = std::any::type_name::<T>();
     name.rsplit_once("::").map_or(name, |(_, name)| name)
@@ -128,7 +100,7 @@ pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
 
 pub(crate) fn wait<T: Send>(
     py: Python,
-    resolve: impl zenoh::Resolve<zenoh::Result<T>> + Send,
+    resolve: impl zenoh::Resolve<zenoh::Result<T>>,
 ) -> PyResult<T> {
     py.allow_threads(|| resolve.wait()).into_pyres()
 }
