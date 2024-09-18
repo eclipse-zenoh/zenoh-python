@@ -11,6 +11,13 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
+use std::collections::HashMap;
+
+use pyo3::{
+    prelude::*,
+    types::{PyDict, PyIterator, PyTuple, PyType},
+};
+
 use crate::{
     bytes::{Encoding, ZBytes},
     config::ZenohId,
@@ -20,11 +27,6 @@ use crate::{
     qos::{CongestionControl, Priority},
     utils::{generic, wait, IntoPyResult, IntoPython, MapInto},
 };
-use pyo3::{
-    prelude::*,
-    types::{PyDict, PyIterator, PyTuple, PyType},
-};
-use std::collections::HashMap;
 
 enum_mapper!(zenoh::query::QueryTarget: u8 {
     BestMatching,
