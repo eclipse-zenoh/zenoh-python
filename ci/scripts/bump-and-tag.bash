@@ -3,7 +3,7 @@
 set -xeo pipefail
 
 # Release number
-readonly version=${VERSION:?input VERSION is required}
+version=${VERSION:?input VERSION is required}
 # Dependencies' pattern
 readonly bump_deps_pattern=${BUMP_DEPS_PATTERN:-''}
 # Dependencies' version
