@@ -33,10 +33,10 @@ jobs:
         run: cargo fmt --check -- --config "unstable_features=true,imports_granularity=Crate,group_imports=StdExternalCrate"
 
       - name: Clippy no-default-features
-        run: cargo clippy --no-default-features --all-targets -- --deny warnings
+        run: cargo +stable clippy --no-default-features --all-targets -- --deny warnings
 
       - name: Clippy
-        run: cargo clippy --all-features --all-targets -- --deny warnings
+        run: cargo +stable clippy --all-features --all-targets -- --deny warnings
 
   build:
     needs: check

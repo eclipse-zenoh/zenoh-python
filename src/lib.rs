@@ -60,8 +60,8 @@ pub(crate) mod zenoh {
         pubsub::{Publisher, Reliability, Subscriber},
         qos::{CongestionControl, Priority},
         query::{
-            ConsolidationMode, Parameters, Query, QueryTarget, Queryable, Reply, ReplyError,
-            Selector,
+            ConsolidationMode, Parameters, Query, QueryConsolidation, QueryTarget, Queryable,
+            Reply, ReplyError, Selector,
         },
         sample::{Sample, SampleKind},
         scouting::{scout, Hello, Scout},

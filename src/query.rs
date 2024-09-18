@@ -25,7 +25,7 @@ use crate::{
     key_expr::KeyExpr,
     macros::{build, downcast_or_new, enum_mapper, option_wrapper, wrapper},
     qos::{CongestionControl, Priority},
-    utils::{generic, wait, IntoPyResult, IntoPython, MapInto},
+    utils::{generic, wait, IntoPyResult, IntoPython, IntoRust, MapInto},
 };
 
 enum_mapper!(zenoh::query::QueryTarget: u8 {
@@ -51,6 +51,29 @@ enum_mapper!(zenoh::query::ConsolidationMode: u8 {
 impl ConsolidationMode {
     #[classattr]
     const DEFAULT: Self = Self::Auto;
+}
+
+wrapper!(zenoh::query::QueryConsolidation: Clone);
+downcast_or_new!(QueryConsolidation => ConsolidationMode);
+
+#[pymethods]
+impl QueryConsolidation {
+    #[classattr]
+    const AUTO: Self = Self(zenoh::query::QueryConsolidation::AUTO);
+    #[classattr]
+    const DEFAULT: Self = Self(zenoh::query::QueryConsolidation::DEFAULT);
+
+    #[new]
+    fn new(mode: Option<ConsolidationMode>) -> PyResult<Self> {
+        let Some(mode) = mode else {
+            return Ok(Self::DEFAULT);
+        };
+        Ok(Self(mode.into_rust().into()))
+    }
+
+    fn mode(&self) -> ConsolidationMode {
+        self.0.mode().into()
+    }
 }
 
 wrapper!(zenoh::query::Query: Clone);
@@ -308,7 +331,10 @@ downcast_or_new!(Parameters);
 #[pymethods]
 impl Parameters {
     #[new]
-    pub(crate) fn new(obj: &Bound<PyAny>) -> PyResult<Self> {
+    pub(crate) fn new(obj: Option<&Bound<PyAny>>) -> PyResult<Self> {
+        let Some(obj) = obj else {
+            return Ok(Self(zenoh::query::Parameters::empty()));
+        };
         if let Ok(map) = <HashMap<String, String>>::extract_bound(obj) {
             return Ok(Self(map.into()));
         }
@@ -319,24 +345,20 @@ impl Parameters {
         self.0.is_empty()
     }
 
-    fn contains_key(&self, key: String) -> bool {
-        self.0.contains_key(key)
-    }
-
     #[pyo3(signature = (key, default = None))]
-    fn get(&self, key: String, default: Option<String>) -> Option<String> {
+    fn get(&self, key: &str, default: Option<String>) -> Option<String> {
         self.0.get(key).map_into().or(default)
     }
 
-    fn values(&self, key: String) -> Vec<&str> {
+    fn values(&self, key: &str) -> Vec<&str> {
         self.0.values(key).collect()
     }
 
-    fn insert(&mut self, key: String, value: String) -> Option<String> {
+    fn insert(&mut self, key: &str, value: &str) -> Option<String> {
         self.0.insert(key, value)
     }
 
-    fn remove(&mut self, key: String) -> Option<String> {
+    fn remove(&mut self, key: &str) -> Option<String> {
         self.0.remove(key)
     }
 
@@ -352,11 +374,11 @@ impl Parameters {
         !self.0.is_empty()
     }
 
-    fn __contains__(&self, key: String) -> bool {
-        self.contains_key(key)
+    fn __contains__(&self, key: &str) -> bool {
+        self.0.contains_key(key)
     }
 
-    fn __getitem__(&self, key: String) -> Option<String> {
+    fn __getitem__(&self, key: &str) -> Option<String> {
         self.get(key, None)
     }
 

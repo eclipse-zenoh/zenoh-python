@@ -438,12 +438,9 @@ _IntoKeyExpr = KeyExpr | str
 
 @final
 class Parameters:
-    def __new__(cls, parameters: dict[str, str] | str): ...
+    def __new__(cls, parameters: dict[str, str] | str | None = None): ...
     def is_empty(self) -> bool:
         """Returns true if properties does not contain anything."""
-
-    def contains_key(self, key: str) -> bool:
-        """Returns true if properties contains the specified key."""
 
     def get(self, key: str, default: str | None = None) -> str | None:
         """Returns the value corresponding to the key."""
@@ -528,6 +525,8 @@ class Query:
     @property
     def key_expr(self) -> KeyExpr: ...
     @property
+    def parameters(self) -> Parameters: ...
+    @property
     def payload(self) -> ZBytes | None: ...
     @property
     def encoding(self) -> Encoding | None: ...
@@ -589,6 +588,16 @@ class Queryable(Generic[_H]):
     def __iter__(self: Queryable[Handler[Query]]) -> Handler[Query]: ...
     @overload
     def __iter__(self) -> Never: ...
+
+@final
+class QueryConsolidation:
+    AUTO: Self
+    DEFAULT: Self
+    def __new__(cls, mode: ConsolidationMode, /) -> Self: ...
+    @property
+    def mode(self) -> ConsolidationMode: ...
+
+_IntoQueryConsolidation = ConsolidationMode
 
 @final
 class QueryTarget(Enum):
@@ -744,7 +753,16 @@ class Session:
         Sessions are automatically closed when dropped, but you may want to use this function to handle errors or close the Session asynchronously.
         """
 
+    def is_closed(self) -> bool:
+        """Check if the session has been closed."""
+
     def undeclare(self, obj: KeyExpr): ...
+    def new_timestamp(self) -> Timestamp:
+        """Get a new Timestamp from a Zenoh session.
+
+        The returned timestamp has the current time, with the session's runtime ZenohId.
+        """
+
     def declare_keyexpr(self, key_expr: _IntoKeyExpr):
         """Informs Zenoh that you intend to use the provided key_expr multiple times and that it should optimize its transmission.
         The returned KeyExpr's internal structure may differ from what you would have obtained through a simple key_expr.try_into(), to save time on detecting the optimizations that have been associated with it.
@@ -781,7 +799,7 @@ class Session:
         handler: _RustHandler[Reply] | None = None,
         *,
         target: QueryTarget | None = None,
-        consolidation: ConsolidationMode | None = None,
+        consolidation: _IntoQueryConsolidation | None = None,
         timeout: float | int | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
@@ -801,7 +819,7 @@ class Session:
         handler: _PythonHandler[Reply, _H],
         *,
         target: QueryTarget | None = None,
-        consolidation: ConsolidationMode | None = None,
+        consolidation: _IntoQueryConsolidation | None = None,
         timeout: float | int | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
@@ -821,7 +839,7 @@ class Session:
         handler: _PythonCallback[Reply],
         *,
         target: QueryTarget | None = None,
-        consolidation: ConsolidationMode | None = None,
+        consolidation: _IntoQueryConsolidation | None = None,
         timeout: float | int | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
