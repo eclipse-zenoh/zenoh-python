@@ -22,7 +22,7 @@ use zenoh::Wait;
 
 use crate::{
     bytes::{Encoding, ZBytes},
-    config::{Config, ConfigInner, ZenohId},
+    config::{Config, ZenohId},
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{build, with, wrapper},
@@ -68,10 +68,6 @@ impl Session {
         }
         obj.call_method0("undeclare")?;
         Ok(())
-    }
-
-    fn config(&self) -> PyResult<Config> {
-        Ok(Config(ConfigInner::Notifier(self.0.config().clone())))
     }
 
     fn declare_keyexpr(

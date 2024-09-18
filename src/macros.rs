@@ -54,13 +54,6 @@ macro_rules! zerror {
 }
 pub(crate) use zerror;
 
-macro_rules! bail {
-    ($($tt:tt)*) => {
-        return Err($crate::macros::zerror!($($tt)*))
-    };
-}
-pub(crate) use bail;
-
 macro_rules! downcast_or_new {
     ($method:ident: $ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
         #[allow(unused)]
