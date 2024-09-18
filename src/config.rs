@@ -29,6 +29,9 @@ impl Config {
         Self::default()
     }
 
+    #[classattr]
+    const DEFAULT_CONFIG_PATH_ENV: &'static str = zenoh::Config::DEFAULT_CONFIG_PATH_ENV;
+
     #[classmethod]
     fn from_env(_cls: &Bound<PyType>) -> PyResult<Self> {
         Ok(Self(zenoh::config::Config::from_env().into_pyres()?))
