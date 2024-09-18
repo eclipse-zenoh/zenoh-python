@@ -28,7 +28,8 @@ use crate::{
     macros::{build, with, wrapper},
     pubsub::{Publisher, Reliability, Subscriber},
     qos::{CongestionControl, Priority},
-    query::{ConsolidationMode, QueryTarget, Queryable, Reply, Selector},
+    query::{QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
+    time::Timestamp,
     utils::{wait, IntoPython, MapInto},
 };
 
@@ -56,10 +57,12 @@ impl Session {
         Ok(self.0.zid().into())
     }
 
-    // TODO HLC
-
     fn close(&self, py: Python) -> PyResult<()> {
         wait(py, self.0.close())
+    }
+
+    fn is_closed(&self) -> bool {
+        self.0.is_closed()
     }
 
     fn undeclare(&self, obj: &Bound<PyAny>) -> PyResult<()> {
@@ -68,6 +71,10 @@ impl Session {
         }
         obj.call_method0("undeclare")?;
         Ok(())
+    }
+
+    fn new_timestamp(&self) -> Timestamp {
+        self.0.new_timestamp().into()
     }
 
     fn declare_keyexpr(
@@ -130,7 +137,9 @@ impl Session {
         #[pyo3(from_py_with = "Selector::from_py")] selector: Selector,
         handler: Option<&Bound<PyAny>>,
         target: Option<QueryTarget>,
-        consolidation: Option<ConsolidationMode>,
+        #[pyo3(from_py_with = "QueryConsolidation::from_py_opt")] consolidation: Option<
+            QueryConsolidation,
+        >,
         #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
