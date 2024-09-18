@@ -11,156 +11,56 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::ops::Deref;
+use std::path::PathBuf;
 
-use pyo3::{
-    prelude::*,
-    types::{PyString, PyType},
-};
-use validated_struct::ValidatedMap;
-use zenoh::config::{EndPoint, Notifier};
+use pyo3::{prelude::*, types::PyType};
 
 use crate::{
-    macros::{bail, downcast_or_new, enum_mapper, import, wrapper},
-    utils::{IntoPyErr, IntoPyResult, IntoRust},
+    macros::{downcast_or_new, enum_mapper, wrapper},
+    utils::{IntoPyResult, IntoRust},
 };
 
-fn string_or_dumps(obj: &Bound<PyAny>) -> PyResult<String> {
-    if let Ok(s) = obj.downcast::<PyString>() {
-        return Ok(s.to_string());
-    }
-    Ok(import!(obj.py(), json.dumps)
-        .call1((obj,))?
-        .downcast_into::<PyString>()?
-        .to_string())
-}
-
-#[derive(Clone)]
-pub(crate) enum ConfigInner {
-    Init(zenoh::config::Config),
-    Notifier(Notifier<zenoh::config::Config>),
-}
-
-#[pyclass]
-#[derive(Clone)]
-pub(crate) struct Config(pub(crate) ConfigInner);
-
-impl Default for Config {
-    fn default() -> Self {
-        zenoh::config::default().into()
-    }
-}
-
-impl From<zenoh::config::Config> for Config {
-    fn from(value: zenoh::config::Config) -> Self {
-        Self(ConfigInner::Init(value))
-    }
-}
-
-impl From<Notifier<zenoh::config::Config>> for Config {
-    fn from(value: Notifier<zenoh::config::Config>) -> Self {
-        Self(ConfigInner::Notifier(value))
-    }
-}
-
-impl From<Config> for zenoh::config::Config {
-    fn from(value: Config) -> Self {
-        match value.0 {
-            ConfigInner::Init(cfg) => cfg.clone(),
-            ConfigInner::Notifier(cfg) => cfg.lock().clone(),
-        }
-    }
-}
+wrapper!(zenoh::Config: Default, Clone);
 
 #[pymethods]
 impl Config {
     #[new]
     fn new() -> Self {
-        Self(ConfigInner::Init(Default::default()))
+        Self::default()
     }
 
-    #[getter]
-    fn id(&self) -> ZenohId {
-        match &self.0 {
-            ConfigInner::Init(cfg) => *cfg.id(),
-            ConfigInner::Notifier(cfg) => *cfg.lock().id(),
-        }
-        .into()
-    }
-
-    #[classmethod]
-    pub(crate) fn client(_cls: &Bound<PyType>, peers: Vec<String>) -> PyResult<Config> {
-        let endpoints = peers
-            .into_iter()
-            .map(EndPoint::try_from)
-            .collect::<Result<Vec<_>, _>>()
-            .into_pyres()?;
-        Ok(zenoh::config::client(endpoints).into())
-    }
-
-    #[classmethod]
-    pub(crate) fn empty(_cls: &Bound<PyType>) -> Self {
-        Config::new()
-    }
-
-    #[classmethod]
-    pub(crate) fn peer(_cls: &Bound<PyType>) -> Self {
-        zenoh::config::peer().into()
-    }
+    #[classattr]
+    const DEFAULT_CONFIG_PATH_ENV: &'static str = zenoh::Config::DEFAULT_CONFIG_PATH_ENV;
 
     #[classmethod]
     fn from_env(_cls: &Bound<PyType>) -> PyResult<Self> {
-        Ok(Self(ConfigInner::Init(
-            zenoh::config::Config::from_env().into_pyres()?,
-        )))
+        Ok(Self(zenoh::config::Config::from_env().into_pyres()?))
     }
 
     #[classmethod]
-    fn from_file(_cls: &Bound<PyType>, path: &str) -> PyResult<Self> {
-        Ok(Self(ConfigInner::Init(
-            zenoh::config::Config::from_file(path).into_pyres()?,
-        )))
+    fn from_file(_cls: &Bound<PyType>, path: PathBuf) -> PyResult<Self> {
+        Ok(Self(zenoh::config::Config::from_file(path).into_pyres()?))
     }
 
     #[classmethod]
-    fn from_json5(_cls: &Bound<PyType>, obj: &Bound<PyAny>) -> PyResult<Self> {
-        let json = string_or_dumps(obj)?;
-        let mut deserializer = json5::Deserializer::from_str(&json).into_pyres()?;
-        match zenoh::config::Config::from_deserializer(&mut deserializer) {
-            Ok(cfg) => Ok(Self(ConfigInner::Init(cfg))),
-            Err(Ok(_)) => bail!("{json} did parse into a config, but invalid values were found",),
-            Err(Err(err)) => Err(err.into_pyerr()),
-        }
+    fn from_json5(_cls: &Bound<PyType>, json: &str) -> PyResult<Self> {
+        Ok(Self(zenoh::config::Config::from_json5(json).into_pyres()?))
     }
 
     fn get_json(&self, key: &str) -> PyResult<String> {
-        match &self.0 {
-            ConfigInner::Init(cfg) => cfg.get_json(key).into_pyres(),
-            ConfigInner::Notifier(cfg) => cfg.get_json(key).into_pyres(),
-        }
+        self.0.get_json(key).into_pyres()
     }
 
-    fn insert_json5(&mut self, key: &str, value: &Bound<PyAny>) -> PyResult<()> {
-        match &mut self.0 {
-            ConfigInner::Init(cfg) => cfg.insert_json5(key, &string_or_dumps(value)?).into_pyres(),
-            ConfigInner::Notifier(cfg) => {
-                cfg.insert_json5(key, &string_or_dumps(value)?).into_pyres()
-            }
-        }
+    fn insert_json5(&mut self, key: &str, value: &str) -> PyResult<()> {
+        self.0.insert_json5(key, value).into_pyres()
     }
 
     fn __repr__(&self) -> String {
-        match &self.0 {
-            ConfigInner::Init(cfg) => format!("{cfg:?}"),
-            ConfigInner::Notifier(cfg) => format!("Notifier({:?})", cfg.lock().deref()),
-        }
+        format!("{:?}", self.0)
     }
 
     fn __str__(&self) -> String {
-        match &self.0 {
-            ConfigInner::Init(cfg) => format!("{cfg}"),
-            ConfigInner::Notifier(cfg) => cfg.lock().to_string(),
-        }
+        format!("{}", self.0)
     }
 }
 

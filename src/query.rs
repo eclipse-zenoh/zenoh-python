@@ -1,5 +1,3 @@
-use std::{borrow::Cow, collections::HashMap};
-
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -13,6 +11,8 @@ use std::{borrow::Cow, collections::HashMap};
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
+use std::collections::HashMap;
+
 use pyo3::{
     prelude::*,
     types::{PyDict, PyIterator, PyTuple, PyType},
@@ -285,25 +285,12 @@ impl Selector {
 
     #[getter]
     fn get_key_expr(&self) -> KeyExpr {
-        self.0.key_expr.clone().into_owned().into()
-    }
-
-    #[setter]
-    fn set_key_expr(&mut self, #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr) {
-        self.0.key_expr = Cow::Owned(key_expr.0)
+        self.0.key_expr().clone().into_owned().into()
     }
 
     #[getter]
     fn get_parameters(&self) -> Parameters {
-        self.0.parameters.clone().into_owned().into()
-    }
-
-    #[setter]
-    fn set_parameters(
-        &mut self,
-        #[pyo3(from_py_with = "Parameters::from_py")] parameters: Parameters,
-    ) {
-        self.0.parameters = Cow::Owned(parameters.0)
+        self.0.parameters().clone().into_owned().into()
     }
 
     fn __repr__(&self) -> String {
