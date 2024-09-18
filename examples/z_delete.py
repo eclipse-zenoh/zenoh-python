@@ -20,7 +20,7 @@ def main(conf: zenoh.Config, key: str):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print("Deleting resources matching '{}'...".format(key))
+        print(f"Deleting resources matching '{key}'...")
         session.delete(key)
 
 

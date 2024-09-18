@@ -88,7 +88,7 @@ class Config:
     def from_file(cls, path: str | Path) -> Self: ...
     @classmethod
     def from_json5(cls, obj: Any) -> Self: ...
-    @property
+    property
     def id(self) -> ZenohId:
         """The Zenoh ID of the instance. This ID MUST be unique throughout your Zenoh infrastructure and cannot exceed 16 bytes in length. If left unset, a random u128 will be generated."""
 
