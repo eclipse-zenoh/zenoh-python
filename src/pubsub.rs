@@ -20,8 +20,8 @@ use crate::{
     bytes::{Encoding, ZBytes},
     handlers::HandlerImpl,
     key_expr::KeyExpr,
-    macros::{build, enum_mapper, option_wrapper},
-    qos::{CongestionControl, Priority},
+    macros::{build, option_wrapper},
+    qos::{CongestionControl, Priority, Reliability},
     sample::Sample,
     utils::{generic, wait},
 };
@@ -99,17 +99,6 @@ impl Publisher {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("{:?}", self.get_ref()?))
     }
-}
-
-enum_mapper!(zenoh::pubsub::Reliability: u8 {
-    BestEffort,
-    Reliable
-});
-
-#[pymethods]
-impl Reliability {
-    #[classattr]
-    const DEFAULT: Self = Self::BestEffort;
 }
 
 option_wrapper!(
