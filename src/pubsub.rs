@@ -101,7 +101,7 @@ impl Publisher {
     }
 }
 
-enum_mapper!(zenoh::pubsub::Reliability: u8 {
+enum_mapper!(zenoh::qos::Reliability: u8 {
     BestEffort,
     Reliable
 });
