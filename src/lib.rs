@@ -57,8 +57,8 @@ pub(crate) mod zenoh {
         config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
         handlers::Handler,
         key_expr::{KeyExpr, SetIntersectionLevel},
-        pubsub::{Publisher, Reliability, Subscriber},
-        qos::{CongestionControl, Priority},
+        pubsub::{Publisher, Subscriber},
+        qos::{CongestionControl, Priority, Reliability},
         query::{
             ConsolidationMode, Parameters, Query, QueryConsolidation, QueryTarget, Queryable,
             Reply, ReplyError, Selector,

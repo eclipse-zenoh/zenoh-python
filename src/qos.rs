@@ -47,3 +47,14 @@ impl CongestionControl {
     #[classattr]
     const DEFAULT: Self = Self::Drop;
 }
+
+enum_mapper!(zenoh::qos::Reliability: u8 {
+    BestEffort,
+    Reliable
+});
+
+#[pymethods]
+impl Reliability {
+    #[classattr]
+    const DEFAULT: Self = Self::BestEffort;
+}
