@@ -69,9 +69,22 @@ def main():
     # Corresponding encoding to be used in operations like `.put()`, `.reply()`, etc.
     # encoding = Encoding.APPLICATION_JSON;
 
-    # Other formats like protobuf can be used the same way as JSON, i.e. dumps to
-    # bytes/str before serializing to ZBytes, and loads from ZBytes after deserializing
-    # to str/bytes.
+    # Protobuf
+    try:
+        import entity_pb2
+
+        input = entity_pb2.Entity(id=1234, name="John Doe")
+        payload = ZBytes.serialize(input.SerializeToString())
+        output = entity_pb2.Entity()
+        output.ParseFromString(payload.deserialize(bytes))
+        assert input == output
+        # Corresponding encoding to be used in operations like `.put()`, `.reply()`, etc.
+        # encoding = Encoding.APPLICATION_PROTOBUF;
+    except ImportError:
+        # You must install protobuf and generate the protobuf classes from the schema with
+        # $ pip install protobuf
+        # $ protoc --python_out=. --pyi_out=. examples/entity.proto
+        pass
 
     # arbitrary type
     import struct
