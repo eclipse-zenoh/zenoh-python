@@ -36,7 +36,7 @@ def main(conf: zenoh.Config, key: str, size: int, interval: int):
                 if sample is None:
                     break
                 print(
-                    f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
+                    f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.to_string()}')"
                 )
 
 

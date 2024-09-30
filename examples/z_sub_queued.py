@@ -25,7 +25,7 @@ def main(conf: zenoh.Config, key: str):
             print("Press CTRL-C to quit...")
             for sample in sub:
                 print(
-                    f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
+                    f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.to_string()}')"
                 )
 
 

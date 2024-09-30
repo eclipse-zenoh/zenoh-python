@@ -25,35 +25,6 @@ def main(conf: zenoh.Config, key: str, payload: str):
         # Refer to z_bytes.py to see how to serialize different types of message
         session.put(key, payload)
 
-        # --- Examples of put with other types:
-
-        # - Integer
-        # session.put('demo/example/Integer', 3)
-
-        # - Float
-        # session.put('demo/example/Float', 3.14)
-
-        # - Properties (as a Dictionary with str only)
-        # session.put('demo/example/Properties', {'p1': 'v1', 'p2': 'v2'}
-
-        # - Json (str format)
-        # session.put('demo/example/Json',
-        #             json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}]).encode(),
-        #             encoding=zenoh.Encoding.TEXT_JSON))
-
-        # - Raw ('zenoh/bytes' encoding by default)
-        # session.put('demo/example/Raw', b'\x48\x69\x21')
-
-        # - Custom encoding
-        # session.put('demo/example/Custom',
-        #             b'\x48\x69\x21',
-        #             encoding='my_encoding')
-
-        # - UTF-16 String specifying the charset as Encoding schema
-        # session.put('demo/example/UTF-16',
-        #             'hello'.encode('utf-16'),
-        #             encoding=zenoh.Encoding.TEXT_PLAIN.with_schema(';charset=utf-16'))
-
 
 # --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":

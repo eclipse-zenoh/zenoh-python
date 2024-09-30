@@ -4,7 +4,7 @@ except ImportError:
     import warnings
 
     raise ModuleNotFoundError(
-        "No module named 'zenoh._ext'.\nzenoh must be built wit zenoh-ext feature to enable it."
+        "No module named 'zenoh.ext'.\nzenoh must be built wit zenoh-ext feature to enable it."
     ) from None
 
 _INT8_MIN = -(1 << 7)
