@@ -11,5 +11,9 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from . import ext
 from .zenoh import *
+
+try:
+    from . import ext
+except ImportError:
+    pass

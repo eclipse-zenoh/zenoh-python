@@ -15,6 +15,7 @@
 // mod logging;
 mod bytes;
 mod config;
+#[cfg(feature = "zenoh-ext")]
 mod ext;
 mod handlers;
 mod key_expr;
@@ -73,6 +74,7 @@ pub(crate) mod zenoh {
         use crate::handlers::{Callback, DefaultHandler, FifoChannel, Handler, RingChannel};
     }
 
+    #[cfg(feature = "zenoh-ext")]
     #[pymodule]
     mod _ext {
         #[pymodule_export]
@@ -85,6 +87,7 @@ pub(crate) mod zenoh {
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let sys_modules = m.py().import_bound("sys")?.getattr("modules")?;
         sys_modules.set_item("zenoh.handlers", m.getattr("handlers")?)?;
+        #[cfg(feature = "zenoh-ext")]
         sys_modules.set_item("zenoh._ext", m.getattr("_ext")?)?;
         // TODO
         // crate::logging::init_logger(m.py())?;
