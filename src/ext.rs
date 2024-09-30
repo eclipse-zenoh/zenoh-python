@@ -171,25 +171,25 @@ fn serialize_impl(
         }
         SupportedType::Bytes => serializer.serialize(obj.downcast::<PyBytes>()?.as_bytes()),
         SupportedType::Str => serializer.serialize(&obj.downcast::<PyString>()?.to_cow()?),
-        SupportedType::Int8 => serializer.serialize(&i8::extract_bound(obj)?),
-        SupportedType::Int16 => serializer.serialize(&i16::extract_bound(obj)?),
-        SupportedType::Int32 => serializer.serialize(&i32::extract_bound(obj)?),
-        SupportedType::Int64 => serializer.serialize(&i64::extract_bound(obj)?),
-        SupportedType::Int128 => serializer.serialize(&i128::extract_bound(obj)?),
-        SupportedType::UInt8 => serializer.serialize(&u8::extract_bound(obj)?),
-        SupportedType::UInt16 => serializer.serialize(&u16::extract_bound(obj)?),
-        SupportedType::UInt32 => serializer.serialize(&u32::extract_bound(obj)?),
-        SupportedType::UInt64 => serializer.serialize(&u64::extract_bound(obj)?),
-        SupportedType::UInt128 => serializer.serialize(&u128::extract_bound(obj)?),
+        SupportedType::Int8 => serializer.serialize(i8::extract_bound(obj)?),
+        SupportedType::Int16 => serializer.serialize(i16::extract_bound(obj)?),
+        SupportedType::Int32 => serializer.serialize(i32::extract_bound(obj)?),
+        SupportedType::Int64 => serializer.serialize(i64::extract_bound(obj)?),
+        SupportedType::Int128 => serializer.serialize(i128::extract_bound(obj)?),
+        SupportedType::UInt8 => serializer.serialize(u8::extract_bound(obj)?),
+        SupportedType::UInt16 => serializer.serialize(u16::extract_bound(obj)?),
+        SupportedType::UInt32 => serializer.serialize(u32::extract_bound(obj)?),
+        SupportedType::UInt64 => serializer.serialize(u64::extract_bound(obj)?),
+        SupportedType::UInt128 => serializer.serialize(u128::extract_bound(obj)?),
         SupportedType::Float | SupportedType::Float64 => {
-            serializer.serialize(&f64::extract_bound(obj)?)
+            serializer.serialize(f64::extract_bound(obj)?)
         }
-        SupportedType::Float32 => serializer.serialize(&(f64::extract_bound(obj)? as f32)),
+        SupportedType::Float32 => serializer.serialize(f64::extract_bound(obj)? as f32),
         SupportedType::VarInt | SupportedType::Int => {
-            serializer.serialize(&VarInt(i64::extract_bound(obj)?))
+            serializer.serialize(VarInt(i64::extract_bound(obj)?))
         }
-        SupportedType::VarUInt => serializer.serialize(&VarInt(u64::extract_bound(obj)?)),
-        SupportedType::Bool => serializer.serialize(&bool::extract_bound(obj)?),
+        SupportedType::VarUInt => serializer.serialize(VarInt(u64::extract_bound(obj)?)),
+        SupportedType::Bool => serializer.serialize(bool::extract_bound(obj)?),
         SupportedType::List => serialize_iter(
             serializer,
             obj.downcast::<PyList>()?,
