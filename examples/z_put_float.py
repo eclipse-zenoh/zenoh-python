@@ -12,31 +12,27 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 import zenoh
+from zenoh.ext import z_serialize
 
 
-def main(conf: zenoh.Config, selector: str, target: zenoh.QueryTarget, payload: str):
+def main(conf: zenoh.Config, key: str, payload: float):
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print(f"Sending Query '{selector}'...")
-        replies = session.get(selector, target=target, payload=payload)
-        for reply in replies:
-            try:
-                print(
-                    f">> Received ('{reply.ok.key_expr}': '{reply.ok.payload.to_string()}')"
-                )
-            except:
-                print(f">> Received (ERROR: '{reply.err.payload.to_string()}')")
+
+        print(f"Putting Data ('{key}': '{payload}')...")
+        # Refer to z_bytes.py to see how to serialize different types of message
+        session.put(key, z_serialize(payload))
 
 
+# --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
-    # --- Command line argument parsing --- --- --- --- --- ---
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(prog="z_get", description="zenoh get example")
+    parser = argparse.ArgumentParser(prog="z_put", description="zenoh put example")
     parser.add_argument(
         "--mode",
         "-m",
@@ -64,28 +60,20 @@ if __name__ == "__main__":
         help="Endpoints to listen on.",
     )
     parser.add_argument(
-        "--selector",
-        "-s",
-        dest="selector",
-        default="demo/example/**",
+        "--key",
+        "-k",
+        dest="key",
+        default="demo/example/zenoh-python-put",
         type=str,
-        help="The selection of resources to query.",
-    )
-    parser.add_argument(
-        "--target",
-        "-t",
-        dest="target",
-        choices=["ALL", "BEST_MATCHING", "ALL_COMPLETE", "NONE"],
-        default="BEST_MATCHING",
-        type=str,
-        help="The target queryables of the query.",
+        help="The key expression to write.",
     )
     parser.add_argument(
         "--payload",
         "-p",
         dest="payload",
-        type=str,
-        help="An optional payload to send in the query.",
+        default=42.0,
+        type=float,
+        help="The payload to write.",
     )
     parser.add_argument(
         "--config",
@@ -108,10 +96,5 @@ if __name__ == "__main__":
         conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listen is not None:
         conf.insert_json5("listen/endpoints", json.dumps(args.listen))
-    target = {
-        "ALL": zenoh.QueryTarget.ALL,
-        "BEST_MATCHING": zenoh.QueryTarget.BEST_MATCHING,
-        "ALL_COMPLETE": zenoh.QueryTarget.ALL_COMPLETE,
-    }.get(args.target)
 
-    main(conf, args.selector, target, args.payload)
+    main(conf, args.key, args.payload)

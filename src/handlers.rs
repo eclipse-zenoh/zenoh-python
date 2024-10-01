@@ -34,12 +34,10 @@ fn log_error(py: Python, result: PyResult<PyObject>) {
     if let Err(err) = result {
         let kwargs = PyDict::new_bound(py);
         kwargs.set_item("exc_info", err.into_value(py)).unwrap();
-        py_static!(py, || PyResult::Ok(
-            import!(py, logging.getLogger)
-                .call1(("zenoh.handlers",))?
-                .getattr("error")?
-                .unbind()
-        ))
+        py_static!(py, PyAny, || Ok(import!(py, logging.getLogger)
+            .call1(("zenoh.handlers",))?
+            .getattr("error")?
+            .unbind()))
         .unwrap()
         .call(("callback error",), Some(&kwargs))
         .ok();

@@ -12,17 +12,23 @@
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
 macro_rules! py_static {
-    ($py:expr, $expr:expr) => {{
-        static CELL: pyo3::sync::GILOnceCell<PyObject> = pyo3::sync::GILOnceCell::new();
-        CELL.get_or_try_init($py, $expr).map(|obj| obj.bind($py))
+    ($py:expr, $tp:ty, $expr:expr) => {{
+        static CELL: pyo3::sync::GILOnceCell<Py<$tp>> = pyo3::sync::GILOnceCell::new();
+        let res: pyo3::PyResult<&pyo3::Bound<$tp>> =
+            CELL.get_or_try_init($py, $expr).map(|obj| obj.bind($py));
+        res
     }};
 }
 pub(crate) use py_static;
 
 macro_rules! try_import {
     ($py:expr, $module:ident.$attr:ident) => {{
-        $crate::macros::py_static!($py, || PyResult::Ok(
-            $py.import_bound(stringify!($module))?
+        const MODULE: &str = stringify!($module);
+        $crate::macros::try_import!($py, MODULE, $attr)
+    }};
+    ($py:expr, $module:expr, $attr:ident) => {{
+        $crate::macros::py_static!($py, PyAny, || PyResult::Ok(
+            $py.import_bound($module)?
                 .getattr(stringify!($attr))?
                 .unbind()
         ))
@@ -33,6 +39,9 @@ pub(crate) use try_import;
 macro_rules! import {
     ($py:expr, $module:ident.$attr:ident) => {{
         $crate::macros::try_import!($py, $module.$attr).unwrap()
+    }};
+    ($py:expr, $module:expr, $attr:ident) => {{
+        $crate::macros::try_import!($py, $module, $attr).unwrap()
     }};
 }
 pub(crate) use import;
@@ -55,14 +64,14 @@ macro_rules! zerror {
 pub(crate) use zerror;
 
 macro_rules! downcast_or_new {
-    ($method:ident: $ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
+    ($ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
         #[allow(unused)]
         impl $ty {
             pub(crate) fn from_py(obj: &Bound<PyAny>) -> PyResult<Self> {
                 if let Ok(obj) = <Self as pyo3::FromPyObject>::extract_bound(obj) {
                     return Ok(obj);
                 }
-                Self::$method(PyResult::Ok(obj)$(.and_then(<$new>::extract_bound))??.into(), $($other)?)
+                Self::new(PyResult::Ok(obj)$(.and_then(<$new>::extract_bound))??.into(), $($other)?)
             }
             pub(crate) fn from_py_opt(obj: &Bound<PyAny>) -> PyResult<Option<Self>> {
                 if obj.is_none() {
@@ -71,9 +80,6 @@ macro_rules! downcast_or_new {
                 Self::from_py(obj).map(Some)
             }
         }
-    };
-    ($ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
-        $crate::macros::downcast_or_new!(new: $ty $(=> $new)? $(, $other)?);
     };
 }
 pub(crate) use downcast_or_new;
@@ -142,7 +148,7 @@ macro_rules! wrapper {
     (@ $ty:ident, $path:path $(:$($derive:ty),*)?) => {
         #[pyo3::pyclass]
         #[derive($($($derive),*)?)]
-        pub struct $ty(pub(crate) $path);
+        pub(crate) struct $ty(pub(crate) $path);
 
         impl From<$ty> for $path {
             fn from(value: $ty) -> Self {
@@ -186,7 +192,7 @@ macro_rules! option_wrapper {
     };
     (@ $ty:ident, $path:path, $error:literal) => {
         #[pyclass]
-        pub struct $ty(pub(crate) Option<$path>);
+        pub(crate) struct $ty(pub(crate) Option<$path>);
 
         #[allow(unused)]
         impl $ty {

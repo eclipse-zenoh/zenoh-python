@@ -34,7 +34,7 @@ name = "zenoh"
 crate-type = ["cdylib"]
 
 [features]
-default = ["zenoh/default"]
+default = ["zenoh/default", "zenoh-ext"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -51,3 +51,4 @@ pyo3 = { version = "0.21.2", features = [
 ] }
 validated_struct = "2.1.0"
 zenoh = { version = "1.0.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["unstable", "internal"], default-features = false }
+zenoh-ext = { version = "1.0.0-dev", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", default-features = false, optional = true }

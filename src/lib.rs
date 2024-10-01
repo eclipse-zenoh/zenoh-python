@@ -15,6 +15,8 @@
 // mod logging;
 mod bytes;
 mod config;
+#[cfg(feature = "zenoh-ext")]
+mod ext;
 mod handlers;
 mod key_expr;
 mod macros;
@@ -30,16 +32,12 @@ mod utils;
 use pyo3::prelude::*;
 
 pyo3::create_exception!(zenoh, ZError, pyo3::exceptions::PyException);
+// must be defined here or exporting doesn't work
+pyo3::create_exception!(zenoh, ZDeserializeError, pyo3::exceptions::PyException);
 
 #[pymodule]
 pub(crate) mod zenoh {
     use pyo3::prelude::*;
-
-    #[pymodule]
-    mod handlers {
-        #[pymodule_export]
-        use crate::handlers::{Callback, DefaultHandler, FifoChannel, Handler, RingChannel};
-    }
 
     #[pyfunction]
     fn try_init_log_from_env() {
@@ -53,7 +51,7 @@ pub(crate) mod zenoh {
 
     #[pymodule_export]
     use crate::{
-        bytes::{deserializer, serializer, Encoding, ZBytes},
+        bytes::{Encoding, ZBytes},
         config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
         handlers::Handler,
         key_expr::{KeyExpr, SetIntersectionLevel},
@@ -70,10 +68,27 @@ pub(crate) mod zenoh {
         ZError,
     };
 
+    #[pymodule]
+    mod handlers {
+        #[pymodule_export]
+        use crate::handlers::{Callback, DefaultHandler, FifoChannel, Handler, RingChannel};
+    }
+
+    #[cfg(feature = "zenoh-ext")]
+    #[pymodule]
+    mod _ext {
+        #[pymodule_export]
+        use crate::ext::{z_deserialize, z_serialize};
+        #[pymodule_export]
+        use crate::ZDeserializeError;
+    }
+
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let sys_modules = m.py().import_bound("sys")?.getattr("modules")?;
         sys_modules.set_item("zenoh.handlers", m.getattr("handlers")?)?;
+        #[cfg(feature = "zenoh-ext")]
+        sys_modules.set_item("zenoh._ext", m.getattr("_ext")?)?;
         // TODO
         // crate::logging::init_logger(m.py())?;
         Ok(())

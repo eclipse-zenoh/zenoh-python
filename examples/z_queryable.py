@@ -21,7 +21,7 @@ def main(conf: zenoh.Config, key: str, payload: str, complete: bool):
         print(
             f">> [Queryable ] Received Query '{query.selector}'"
             + (
-                f" with payload: {query.payload.deserialize(str)}"
+                f" with payload: {query.payload.to_string()}"
                 if query.payload is not None
                 else ""
             )

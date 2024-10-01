@@ -11,60 +11,32 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-import zenoh
-from zenoh import UInt32, ZBytes
+from zenoh import ZBytes
 
 
 def main():
-    # Numeric: UInt8, UInt16, Uint32, UInt64, UInt128, Int8, Int16, Int32, Int64,
-    # Int128, Float32, Float64, int (handled as Int64), float (handled as Float64)
-    input = UInt32(1234)
-    payload = ZBytes.serialize(input)
-    output = payload.deserialize(UInt32)
+    # Raw bytes
+    input = b"raw bytes"
+    payload = ZBytes(input)
+    output = payload.to_bytes()  # equivalent to `bytes(payload)`
     assert input == output
     # Corresponding encoding to be used in operations like `.put()`, `.reply()`, etc.
-    # encoding = Encoding.ZENOH_UINT32;
+    # encoding = Encoding.ZENOH_BYTES;
 
-    # str
-    input = "test"
-    payload = ZBytes.serialize(input)
-    output = payload.deserialize(str)
-    assert input == output
-    # Corresponding encoding to be used in operations like `.put()`, `.reply()`, etc.
-    # encoding = Encoding.ZENOH_STRING;
-
-    # bytes, bytearray
-    input = b"test"
-    payload = ZBytes.serialize(input)
-    output = payload.deserialize(bytes)
+    # Raw utf8 bytes, i.e. string
+    input = "raw bytes"
+    payload = ZBytes(input)
+    output = payload.to_string()  # equivalent to `str(payload)`
     assert input == output
     # Corresponding encoding to be used in operations like `.put()`, `.reply()`, etc.
     # encoding = Encoding.ZENOH_STRING;
-
-    # tuple
-    input = 1234, "test"
-    payload = ZBytes.serialize(input)
-    output = payload.deserialize(tuple[int, str])
-    assert input == output
-
-    # list
-    input = [1, 2, 3, 4]
-    payload = ZBytes.serialize(input)
-    output = payload.deserialize(list[int])
-    assert input == output
-
-    # dict
-    input = {0: "abc", 1: "def"}
-    payload = ZBytes.serialize(input)
-    output = payload.deserialize(dict[int, str])
-    assert input == output
 
     # JSON
     import json
 
     input = {"name": "John Doe", "age": 43, "phones": ["+44 1234567", "+44 2345678"]}
-    payload = ZBytes.serialize(json.dumps(input))
-    output = json.loads(payload.deserialize(str))
+    payload = ZBytes(json.dumps(input))
+    output = json.loads(payload.to_string())
     assert input == output
     # Corresponding encoding to be used in operations like `.put()`, `.reply()`, etc.
     # encoding = Encoding.APPLICATION_JSON;
@@ -74,9 +46,9 @@ def main():
         import entity_pb2
 
         input = entity_pb2.Entity(id=1234, name="John Doe")
-        payload = ZBytes.serialize(input.SerializeToString())
+        payload = ZBytes(input.SerializeToString())
         output = entity_pb2.Entity()
-        output.ParseFromString(payload.deserialize(bytes))
+        output.ParseFromString(payload.to_bytes())
         assert input == output
         # Corresponding encoding to be used in operations like `.put()`, `.reply()`, etc.
         # encoding = Encoding.APPLICATION_PROTOBUF;
@@ -86,28 +58,41 @@ def main():
         # $ protoc --python_out=. --pyi_out=. examples/entity.proto
         pass
 
-    # arbitrary type
-    import struct
-    from dataclasses import dataclass
+    # zenoh.ext serialization
+    from zenoh.ext import UInt32, z_deserialize, z_serialize
 
-    @dataclass
-    class Coordinates:
-        x: float
-        y: float
-        z: float
+    if True:
+        # Numeric: UInt8, UInt16, Uint32, UInt64, UInt128, Int8, Int16, Int32, Int64,
+        # Int128, Float32, Float64, float (handled as Float64)
+        input = UInt32(1234)
+        payload = z_serialize(input)
+        output = z_deserialize(UInt32, payload)
+        assert input == output
 
-    @zenoh.serializer  # input type is retrieved from serializer signature
-    def serialize_coordinates(c: Coordinates) -> ZBytes:
-        return ZBytes(struct.pack("<fff", c.x, c.y, c.z))
+        # Varint LEB128: VarInt, VarUInt, int (handled as VarInt)
+        input = 42
+        payload = z_serialize(input)
+        assert len(payload.to_bytes()) == 1
+        output = z_deserialize(int, payload)
+        assert input == output
 
-    @zenoh.deserializer  # output type is retrieved from deserializer signature
-    def deserialize_coordinates(zbytes: ZBytes) -> Coordinates:
-        return Coordinates(*struct.unpack("<fff", bytes(zbytes)))
+        # list
+        input = [0.0, 1.5, 42.0]  # all items must have the same type
+        payload = z_serialize(input)
+        output = z_deserialize(list[float], payload)
+        assert input == output
 
-    input = Coordinates(42, 1.5, 0)
-    payload = ZBytes.serialize(input)
-    output = payload.deserialize(Coordinates)
-    assert input == output
+        # dict
+        input = {0: "abc", 1: "def"}
+        payload = z_serialize(input)
+        output = z_deserialize(dict[int, str], payload)
+        assert input == output
+
+        # tuple
+        input = (0.42, "string")
+        payload = z_serialize(input)
+        output = z_deserialize(tuple[float, str], payload)
+        assert input == output
 
 
 if __name__ == "__main__":

@@ -32,42 +32,6 @@ _RustHandler = (
 _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
-class Int8(int):
-    """int subclass enabling to (de)serialize 8bit signed integer."""
-
-class Int16(int):
-    """int subclass enabling to (de)serialize 16bit signed integer."""
-
-class Int32(int):
-    """int subclass enabling to (de)serialize 32bit signed integer."""
-
-class Int64(int):
-    """int subclass enabling to (de)serialize 64bit signed integer."""
-
-class Int128(int):
-    """int subclass enabling to (de)serialize 128bit signed integer."""
-
-class UInt8(int):
-    """int subclass enabling to (de)serialize 8bit unsigned integer."""
-
-class UInt16(int):
-    """int subclass enabling to (de)serialize 16bit unsigned integer."""
-
-class UInt32(int):
-    """int subclass enabling to (de)serialize 32bit unsigned integer."""
-
-class UInt64(int):
-    """int subclass enabling to (de)serialize 64bit unsigned integer."""
-
-class UInt128(int):
-    """int subclass enabling to (de)serialize 128bit unsigned integer."""
-
-class Float32(float):
-    """float subclass enabling to (de)serialize 32bit floating point numbers."""
-
-class Float64(float):
-    """float subclass enabling to (de)serialize 64bit floating point numbers."""
-
 @final
 class ZError(Exception): ...
 
@@ -998,23 +962,15 @@ class ZBytes:
     out-of-the-box encoding. They are NOT by any means the only (de)serializers
     users can use nor a limitation to the types supported by Zenoh. Users are free and
     encouraged to use any data format of their choice like JSON, protobuf,
-    flatbuffers, etc. Deserializers/serializers can be registered for arbitrary types
-    with `zenoh.serializer`/`zenoh.deserializer` decorators, and default ones can be
-    overridden."""
+    flatbuffers, etc."""
 
-    def __new__(cls, bytes: bytes | bytearray = None) -> Self: ...
-    @classmethod
-    def serialize(cls, obj: Any) -> Self:
-        """Serialize object according to its type,
-        using default or a registered serializer."""
-
-    def deserialize(self, tp: type[_T]) -> _T:
-        """Deserialize bytes to the given types,
-        using default or a registered deserializer."""
-
+    def __new__(cls, bytes: bytearray | bytes | str = None) -> Self: ...
+    def to_bytes(self) -> bytes: ...
+    def to_string(self) -> str: ...
     def __bool__(self) -> bool: ...
     def __len__(self) -> int: ...
     def __bytes__(self) -> bytes: ...
+    def __str__(self) -> str: ...
     def __eq__(self, other: Any) -> bool: ...
     def __hash__(self) -> int: ...
 
@@ -1073,31 +1029,3 @@ def scout(
 
     scout spawns a task that periodically sends scout messages and waits for Hello replies.
     Drop the returned Scout to stop the scouting task."""
-
-@overload
-def serializer(func: _F, /) -> _F:
-    """Register a serializer for a given type, which will be used to serialize payloads.
-
-    If the function is type-annotated, it will use the type of the first argument.
-    Otherwise, the type has to be passed with the 'target' parameter."""
-
-@overload
-def serializer(*, target: type) -> Callable[[_F], _F]:
-    """Register a serializer for a given type, which will be used to serialize payloads.
-
-    If the function is type-annotated, it will use the type of the first argument.
-    Otherwise, the type has to be passed with the 'target' parameter."""
-
-@overload
-def deserializer(func: _F, /) -> _F:
-    """Register a deserializer for a given type, which will be used to deserialize payload.
-
-    If the function is type-annotated, it will use the return type.
-    Otherwise, the type has to be passed with the 'target' parameter."""
-
-@overload
-def deserializer(*, target: type) -> Callable[[_F], _F]:
-    """Register a deserializer for a given type, which will be used to deserialize payload.
-
-    If the function is type-annotated, it will use the return type.
-    Otherwise, the type has to be passed with the 'target' parameter."""

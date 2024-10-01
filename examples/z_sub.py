@@ -27,7 +27,7 @@ def main(conf: zenoh.Config, key: str):
 
         def listener(sample: zenoh.Sample):
             print(
-                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
+                f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.to_string()}')"
             )
 
         session.declare_subscriber(key, listener)

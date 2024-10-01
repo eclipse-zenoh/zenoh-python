@@ -20,7 +20,7 @@ store = {}
 
 def listener(sample: zenoh.Sample):
     print(
-        f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.deserialize(str)}')"
+        f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.to_string()}')"
     )
     if sample.kind == zenoh.SampleKind.DELETE:
         store.pop(sample.key_expr, None)
