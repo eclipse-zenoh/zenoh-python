@@ -36,8 +36,6 @@ enum SupportedType {
     Float,
     Float32,
     Float64,
-    VarInt,
-    VarUInt,
     Bool,
     List,
     Tuple,
@@ -75,8 +73,6 @@ impl SupportedType {
         add_type::<PyFloat>(py, &dict, SupportedType::Float);
         add_wrapper_type("Float32", SupportedType::Float32);
         add_wrapper_type("Float64", SupportedType::Float64);
-        add_wrapper_type("VarInt", SupportedType::VarInt);
-        add_wrapper_type("VarUInt", SupportedType::VarUInt);
         add_type::<PyBool>(py, &dict, SupportedType::Bool);
         add_type::<PyList>(py, &dict, SupportedType::List);
         add_type::<PyTuple>(py, &dict, SupportedType::Tuple);
@@ -106,8 +102,6 @@ impl SupportedType {
             n if n == Self::Float as u8 => Self::Float,
             n if n == Self::Float32 as u8 => Self::Float32,
             n if n == Self::Float64 as u8 => Self::Float64,
-            n if n == Self::VarInt as u8 => Self::VarInt,
-            n if n == Self::VarUInt as u8 => Self::VarUInt,
             n if n == Self::Bool as u8 => Self::Bool,
             n if n == Self::List as u8 => Self::List,
             n if n == Self::Tuple as u8 => Self::Tuple,
@@ -173,7 +167,7 @@ fn serialize_impl(
         SupportedType::Str => serializer.serialize(&obj.downcast::<PyString>()?.to_cow()?),
         SupportedType::Int8 => serializer.serialize(i8::extract_bound(obj)?),
         SupportedType::Int16 => serializer.serialize(i16::extract_bound(obj)?),
-        SupportedType::Int32 => serializer.serialize(i32::extract_bound(obj)?),
+        SupportedType::Int | SupportedType::Int32 => serializer.serialize(i32::extract_bound(obj)?),
         SupportedType::Int64 => serializer.serialize(i64::extract_bound(obj)?),
         SupportedType::Int128 => serializer.serialize(i128::extract_bound(obj)?),
         SupportedType::UInt8 => serializer.serialize(u8::extract_bound(obj)?),
@@ -185,10 +179,6 @@ fn serialize_impl(
             serializer.serialize(f64::extract_bound(obj)?)
         }
         SupportedType::Float32 => serializer.serialize(f64::extract_bound(obj)? as f32),
-        SupportedType::VarInt | SupportedType::Int => {
-            serializer.serialize(VarInt(i64::extract_bound(obj)?))
-        }
-        SupportedType::VarUInt => serializer.serialize(VarInt(u64::extract_bound(obj)?)),
         SupportedType::Bool => serializer.serialize(bool::extract_bound(obj)?),
         SupportedType::List => serialize_iter(
             serializer,
@@ -327,7 +317,7 @@ fn deserialize_impl(
             PyBytes::new_bound(py, &deserializer.deserialize::<Vec<u8>>()?).into_py(py)
         }
         SupportedType::Str => deserializer.deserialize::<String>()?.into_py(py),
-        SupportedType::Int => deserializer.deserialize::<VarInt<i64>>()?.0.into_py(py),
+        SupportedType::Int => deserializer.deserialize::<i32>()?.into_py(py),
         SupportedType::Int8 => deserialize_wrapper!(i8, Int8),
         SupportedType::Int16 => deserialize_wrapper!(i16, Int16),
         SupportedType::Int32 => deserialize_wrapper!(i32, Int32),
@@ -341,12 +331,6 @@ fn deserialize_impl(
         SupportedType::Float => deserializer.deserialize::<f64>()?.into_py(py),
         SupportedType::Float32 => deserialize_wrapper!(f32, Float32),
         SupportedType::Float64 => deserialize_wrapper!(f64, Float64),
-        SupportedType::VarInt => import!(py, "zenoh.ext", VarInt)
-            .call1((deserializer.deserialize::<VarInt<i64>>()?.0,))?
-            .into_py(py),
-        SupportedType::VarUInt => import!(py, "zenoh.ext", VarUInt)
-            .call1((deserializer.deserialize::<VarInt<u64>>()?.0,))?
-            .into_py(py),
         SupportedType::Bool => deserializer.deserialize::<bool>()?.into_py(py),
         tp @ (SupportedType::List | SupportedType::Set | SupportedType::FrozenSet) => {
             deserialize_collection(deserializer, py, tp, unwrap_args()?)?
