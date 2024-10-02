@@ -40,12 +40,6 @@ class Float32(float):
 class Float64(float):
     """float subclass enabling to (de)serialize 64bit floating point numbers."""
 
-class VarUInt(int):
-    """int subclass enabling to (de)serialize unsigned varint."""
-
-class VarInt(int):
-    """int subclass enabling to (de)serialize signed varint."""
-
 class ZDeserializeError(Exception):
     pass
 

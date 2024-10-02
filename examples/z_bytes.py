@@ -63,17 +63,10 @@ def main():
 
     if True:
         # Numeric: UInt8, UInt16, Uint32, UInt64, UInt128, Int8, Int16, Int32, Int64,
-        # Int128, Float32, Float64, float (handled as Float64)
+        # Int128, int (handled as int32), Float32, Float64, float (handled as Float64)
         input = UInt32(1234)
         payload = z_serialize(input)
         output = z_deserialize(UInt32, payload)
-        assert input == output
-
-        # Varint LEB128: VarInt, VarUInt, int (handled as VarInt)
-        input = 42
-        payload = z_serialize(input)
-        assert len(payload.to_bytes()) == 1
-        output = z_deserialize(int, payload)
         assert input == output
 
         # list

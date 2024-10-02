@@ -30,8 +30,6 @@ from zenoh.ext import (
     UInt32,
     UInt64,
     UInt128,
-    VarInt,
-    VarUInt,
     z_deserialize,
     z_serialize,
 )
@@ -41,12 +39,12 @@ default_serializer_tests = [
     (bytes, b"foo"),
     (bytearray, bytearray(b"foo")),
     (str, "foo"),
-    (int, -42),
-    (int, 42),
-    *((tp, tp(-42)) for tp in (Int8, Int16, Int32, Int64, Int128)),
+    *(
+        (tp, tp(i))
+        for i in (-42, 42)
+        for tp in (int, Int8, Int16, Int32, Int64, Int128)
+    ),
     *((tp, tp(42)) for tp in (UInt8, UInt16, UInt32, UInt64, UInt128)),
-    (VarUInt, VarUInt(42)),
-    (VarInt, VarInt(-42)),
     (float, 0.5),
     (Float64, Float64(0.5)),
     (Float32, Float32(0.5)),
