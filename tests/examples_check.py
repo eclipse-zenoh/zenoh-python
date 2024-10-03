@@ -114,7 +114,7 @@ if error := scout.status():
 print("=> Test z_get & z_queryable")
 ## Run z_queryable
 queryable = Pyrun("z_queryable.py", ["-k=demo/example/zenoh-python-queryable"])
-time.sleep(1)
+time.sleep(3)
 ## z_get: Able to get reply from queryable
 get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-queryable"])
 if error := get.status():
@@ -141,7 +141,7 @@ if any(("z_queryable" in error) for error in errors):
 print("=> Test z_storage & z_sub")
 storage = Pyrun("z_storage.py")
 sub = Pyrun("z_sub.py")
-time.sleep(1)
+time.sleep(3)
 ## z_put: Put one message (to storage & sub)
 put = Pyrun("z_put.py")
 if error := put.status():
@@ -164,7 +164,7 @@ if not (
     errors.append("z_get didn't get a response from z_storage about put")
 if any(("z_get" in error) for error in errors):
     get.dbg()
-time.sleep(1)
+time.sleep(3)
 ## z_delete: Delete put in storage
 delete = Pyrun("z_delete.py")
 if error := delete.status():
@@ -231,9 +231,9 @@ if any(("z_storage" in error) for error in errors):
 print("=> Test z_pull & z_sub_queued")
 ## Run z_pull and z_sub_queued
 sub_queued = Pyrun("z_sub_queued.py")
-time.sleep(1)
+time.sleep(3)
 pull = Pyrun("z_pull.py", ["--size=1", "--interval=1"])
-time.sleep(1)
+time.sleep(3)
 ## z_pub: Put two messages (to storage & sub)
 pub = Pyrun("z_pub.py", ["--iter=2", "--interval=0"])
 if error := pub.status():
@@ -257,7 +257,7 @@ if not (
 if any(("z_sub_queued" in error) for error in errors):
     sub_queued.dbg()
 ## z_pull: Should only receive the last messages
-time.sleep(1)
+time.sleep(3)
 if error := pull.interrupt():
     pull.dbg()
     errors.append(error)
