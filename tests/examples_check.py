@@ -147,7 +147,7 @@ put = Pyrun("z_put.py")
 if error := put.status():
     put.dbg()
     errors.append(error)
-time.sleep(1)
+time.sleep(3)
 ## z_pub: Put two messages (to storage & sub)
 pub = Pyrun("z_pub.py", ["--iter=2"])
 time.sleep(4)
