@@ -170,7 +170,7 @@ delete = Pyrun("z_delete.py")
 if error := delete.status():
     delete.dbg()
     errors.append(error)
-time.sleep(1)
+time.sleep(3)
 ## z_get: Unable to get put from storage
 get = Pyrun("z_get.py", ["-s=demo/example/zenoh-python-put"])
 if error := get.status():
@@ -183,7 +183,7 @@ if "Received ('demo/example/zenoh-python-put': 'Put from Python!')" in "".join(
     errors.append("z_get did get a response from z_storage about put after delete")
 if any(("z_get" in error) for error in errors):
     get.dbg()
-time.sleep(1)
+time.sleep(3)
 ## z_sub: Should receive put, pub and delete
 if error := sub.interrupt():
     sub.dbg()
