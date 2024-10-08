@@ -418,9 +418,9 @@ pub(crate) fn into_handler<T: IntoRust>(
 where
     T::Into: IntoPython,
 {
-    let mut undeclare_on_drop = true;
+    let mut background = false;
     let Some(obj) = obj else {
-        return Ok((rust_handler(py, DefaultHandler), undeclare_on_drop));
+        return Ok((rust_handler(py, DefaultHandler), background));
     };
     let into_handler = if let Ok(handler) = obj.extract::<DefaultHandler>() {
         rust_handler(py, handler)
@@ -429,7 +429,7 @@ where
     } else if let Ok(handler) = obj.extract::<RingChannel>() {
         rust_handler(py, handler)
     } else if obj.is_callable() {
-        undeclare_on_drop = false;
+        background = true;
         (python_callback(obj)?, HandlerImpl::Python(py.None()))
     } else if let Some((cb, handler)) = obj
         .extract::<(Bound<PyAny>, PyObject)>()
@@ -443,5 +443,5 @@ where
             obj.get_type().name()?
         )));
     };
-    Ok((into_handler, undeclare_on_drop))
+    Ok((into_handler, background))
 }

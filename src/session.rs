@@ -25,7 +25,7 @@ use crate::{
     config::{Config, ZenohId},
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
-    macros::{build, with, wrapper},
+    macros::{build, wrapper},
     pubsub::{Publisher, Subscriber},
     qos::{CongestionControl, Priority, Reliability},
     query::{QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
@@ -148,6 +148,7 @@ impl Session {
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<HandlerImpl<Reply>> {
+        let (handler, _) = into_handler(py, handler)?;
         let builder = build!(
             self.0.get(selector),
             target,
@@ -159,9 +160,8 @@ impl Session {
             payload,
             encoding,
             attachment,
-        )
-        .with(into_handler(py, handler)?.0);
-        wait(py, builder).map_into()
+        );
+        wait(py, builder.with(handler)).map_into()
     }
 
     #[getter]
@@ -176,9 +176,11 @@ impl Session {
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
     ) -> PyResult<Subscriber> {
+        let (handler, background) = into_handler(py, handler)?;
         let builder = self.0.declare_subscriber(key_expr);
-        with!(builder, py, handler);
-        wait(py, builder).map_into()
+        let mut subscriber = wait(py, builder.with(handler))?;
+        subscriber.set_background(background);
+        Ok(subscriber.into())
     }
 
     #[pyo3(signature = (key_expr, handler = None, *, complete = None))]
@@ -189,9 +191,11 @@ impl Session {
         handler: Option<&Bound<PyAny>>,
         complete: Option<bool>,
     ) -> PyResult<Queryable> {
+        let (handler, background) = into_handler(py, handler)?;
         let builder = build!(self.0.declare_queryable(key_expr), complete);
-        with!(builder, py, handler);
-        wait(py, builder).map_into()
+        let mut queryable = wait(py, builder.with(handler))?;
+        queryable.set_background(background);
+        Ok(queryable.into())
     }
 
     #[allow(clippy::too_many_arguments)]

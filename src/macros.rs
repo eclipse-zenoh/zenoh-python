@@ -251,11 +251,3 @@ macro_rules! build {
     }};
 }
 pub(crate) use build;
-
-macro_rules! with {
-    ($builder:ident, $py:expr, $handler:expr) => {
-        let (handler, undeclare_on_drop) = $crate::handlers::into_handler($py, $handler)?;
-        let $builder = $builder.with(handler).undeclare_on_drop(undeclare_on_drop);
-    };
-}
-pub(crate) use with;
