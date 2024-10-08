@@ -30,7 +30,7 @@ def main(conf: zenoh.Config, key: str):
                 f">> [Subscriber] Received {sample.kind} ('{sample.key_expr}': '{sample.payload.to_string()}')"
             )
 
-        session.declare_subscriber(key, listener)
+        session.declare_subscriber(key, listener, background=True)
 
         print("Press CTRL-C to quit...")
         while True:

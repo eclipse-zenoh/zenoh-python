@@ -414,22 +414,20 @@ fn python_callback<T: IntoPython>(callback: &Bound<PyAny>) -> PyResult<RustCallb
 pub(crate) fn into_handler<T: IntoRust>(
     py: Python,
     obj: Option<&Bound<PyAny>>,
-) -> PyResult<(impl IntoHandler<T::Into, Handler = HandlerImpl<T>>, bool)>
+) -> PyResult<impl IntoHandler<T::Into, Handler = HandlerImpl<T>>>
 where
     T::Into: IntoPython,
 {
-    let mut background = false;
     let Some(obj) = obj else {
-        return Ok((rust_handler(py, DefaultHandler), background));
+        return Ok(rust_handler(py, DefaultHandler));
     };
-    let into_handler = if let Ok(handler) = obj.extract::<DefaultHandler>() {
+    Ok(if let Ok(handler) = obj.extract::<DefaultHandler>() {
         rust_handler(py, handler)
     } else if let Ok(handler) = obj.extract::<FifoChannel>() {
         rust_handler(py, handler)
     } else if let Ok(handler) = obj.extract::<RingChannel>() {
         rust_handler(py, handler)
     } else if obj.is_callable() {
-        background = true;
         (python_callback(obj)?, HandlerImpl::Python(py.None()))
     } else if let Some((cb, handler)) = obj
         .extract::<(Bound<PyAny>, PyObject)>()
@@ -442,6 +440,5 @@ where
             "Invalid handler type {}",
             obj.get_type().name()?
         )));
-    };
-    Ok((into_handler, background))
+    })
 }

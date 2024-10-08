@@ -148,7 +148,6 @@ impl Session {
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<HandlerImpl<Reply>> {
-        let (handler, _) = into_handler(py, handler)?;
         let builder = build!(
             self.0.get(selector),
             target,
@@ -161,7 +160,7 @@ impl Session {
             encoding,
             attachment,
         );
-        wait(py, builder.with(handler)).map_into()
+        wait(py, builder.with(into_handler(py, handler)?)).map_into()
     }
 
     #[getter]
@@ -169,33 +168,41 @@ impl Session {
         self.0.info().into()
     }
 
-    #[pyo3(signature = (key_expr, handler = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, background = false))]
     fn declare_subscriber(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
-    ) -> PyResult<Subscriber> {
-        let (handler, background) = into_handler(py, handler)?;
+        background: bool,
+    ) -> PyResult<Option<Subscriber>> {
         let builder = self.0.declare_subscriber(key_expr);
-        let mut subscriber = wait(py, builder.with(handler))?;
-        subscriber.set_background(background);
-        Ok(subscriber.into())
+        let mut subscriber = wait(py, builder.with(into_handler(py, handler)?))?;
+        Ok(if background {
+            subscriber.set_background(true);
+            None
+        } else {
+            Some(subscriber.into())
+        })
     }
 
-    #[pyo3(signature = (key_expr, handler = None, *, complete = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, complete = None, background = false))]
     fn declare_queryable(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
         complete: Option<bool>,
-    ) -> PyResult<Queryable> {
-        let (handler, background) = into_handler(py, handler)?;
+        background: bool,
+    ) -> PyResult<Option<Queryable>> {
         let builder = build!(self.0.declare_queryable(key_expr), complete);
-        let mut queryable = wait(py, builder.with(handler))?;
-        queryable.set_background(background);
-        Ok(queryable.into())
+        let mut queryable = wait(py, builder.with(into_handler(py, handler)?))?;
+        Ok(if background {
+            queryable.set_background(true);
+            None
+        } else {
+            Some(queryable.into())
+        })
     }
 
     #[allow(clippy::too_many_arguments)]
