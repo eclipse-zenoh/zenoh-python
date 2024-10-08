@@ -280,6 +280,19 @@ fn recv<T: IntoPython, E: IntoPyErr + Send>(
     }
 }
 
+enum DeadlineError<E> {
+    Timeout,
+    Error(E),
+}
+impl<E: fmt::Display> fmt::Display for DeadlineError<E> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Error(err) => write!(f, "{err}"),
+            Self::Timeout => unreachable!(),
+        }
+    }
+}
+
 impl<T: IntoRust> Receiver for RustHandler<DefaultHandler, T>
 where
     T::Into: IntoPython,
@@ -295,8 +308,12 @@ where
     fn recv(&self, py: Python) -> PyResult<PyObject> {
         recv(
             py,
-            || self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL),
-            |err| matches!(err, flume::RecvTimeoutError::Timeout),
+            || match self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL) {
+                Ok(Some(x)) => Ok(x),
+                Ok(None) => Err(DeadlineError::Timeout),
+                Err(err) => Err(DeadlineError::Error(err)),
+            },
+            |err| matches!(err, DeadlineError::Timeout),
         )
     }
 }
@@ -316,8 +333,12 @@ where
     fn recv(&self, py: Python) -> PyResult<PyObject> {
         recv(
             py,
-            || self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL),
-            |err| matches!(err, flume::RecvTimeoutError::Timeout),
+            || match self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL) {
+                Ok(Some(x)) => Ok(x),
+                Ok(None) => Err(DeadlineError::Timeout),
+                Err(err) => Err(DeadlineError::Error(err)),
+            },
+            |err| matches!(err, DeadlineError::Timeout),
         )
     }
 }
@@ -335,18 +356,6 @@ where
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
-        enum DeadlineError<E> {
-            Timeout,
-            Error(E),
-        }
-        impl<E: fmt::Display> fmt::Display for DeadlineError<E> {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                match self {
-                    Self::Error(err) => write!(f, "{err}"),
-                    Self::Timeout => unreachable!(),
-                }
-            }
-        }
         recv(
             py,
             || match self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL) {
