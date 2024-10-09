@@ -233,7 +233,7 @@ macro_rules! option_wrapper {
         impl Drop for $ty {
             fn drop(&mut self) {
                 Python::with_gil(|gil| {
-                    $(if self.0.is_some() {
+                    $(if self.0.as_ref().is_some_and(|obj| obj.is_background(gil)) {
                         let _ = $crate::macros::import!(gil, warnings.warn).call1(($warning,));
                     })?
                     gil.allow_threads(|| drop(self.0.take()))

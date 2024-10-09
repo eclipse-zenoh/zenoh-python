@@ -236,6 +236,10 @@ impl<T: IntoRust> HandlerImpl<T>
 where
     T::Into: IntoPython,
 {
+    pub(crate) fn is_background(&self, py: Python) -> bool {
+        matches!(self, Self::Python(handler) if handler.is_none(py))
+    }
+
     pub(crate) fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         match self {
             Self::Rust(handler, _) => handler.borrow(py).try_recv(py),
