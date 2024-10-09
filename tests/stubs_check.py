@@ -41,6 +41,7 @@ class CheckExported(ast.NodeVisitor):
             sig_params = {
                 p.name: (p.kind, p.default is not Parameter.empty)
                 for p in inspect.signature(func).parameters.values()
+                if p.name != "background"
             }
             node_params = {}
             for i, arg in enumerate(node.args.posonlyargs):
