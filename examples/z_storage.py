@@ -52,7 +52,9 @@ def main(conf: zenoh.Config, key: str, complete: bool):
         session.declare_subscriber(key, listener, background=True)
 
         print(f"Declaring Queryable on '{key}'...")
-        session.declare_queryable(key, query_handler, complete=complete)
+        session.declare_queryable(
+            key, query_handler, complete=complete, background=True
+        )
 
         print("Press CTRL-C to quit...")
         while True:
