@@ -119,7 +119,6 @@ pub(crate) fn scout(
 ) -> PyResult<Scout> {
     let what = what.unwrap_or_default();
     let config = config.unwrap_or_default();
-    let (handler, _) = into_handler(py, handler)?;
-    let builder = zenoh::scout(what, config).with(handler);
+    let builder = zenoh::scout(what, config).with(into_handler(py, handler)?);
     Ok(Scout(Some(wait(py, builder)?)))
 }

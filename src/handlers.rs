@@ -236,6 +236,10 @@ impl<T: IntoRust> HandlerImpl<T>
 where
     T::Into: IntoPython,
 {
+    pub(crate) fn is_background(&self, py: Python) -> bool {
+        matches!(self, Self::Python(handler) if handler.is_none(py))
+    }
+
     pub(crate) fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         match self {
             Self::Rust(handler, _) => handler.borrow(py).try_recv(py),
@@ -414,22 +418,20 @@ fn python_callback<T: IntoPython>(callback: &Bound<PyAny>) -> PyResult<RustCallb
 pub(crate) fn into_handler<T: IntoRust>(
     py: Python,
     obj: Option<&Bound<PyAny>>,
-) -> PyResult<(impl IntoHandler<T::Into, Handler = HandlerImpl<T>>, bool)>
+) -> PyResult<impl IntoHandler<T::Into, Handler = HandlerImpl<T>>>
 where
     T::Into: IntoPython,
 {
-    let mut undeclare_on_drop = true;
     let Some(obj) = obj else {
-        return Ok((rust_handler(py, DefaultHandler), undeclare_on_drop));
+        return Ok(rust_handler(py, DefaultHandler));
     };
-    let into_handler = if let Ok(handler) = obj.extract::<DefaultHandler>() {
+    Ok(if let Ok(handler) = obj.extract::<DefaultHandler>() {
         rust_handler(py, handler)
     } else if let Ok(handler) = obj.extract::<FifoChannel>() {
         rust_handler(py, handler)
     } else if let Ok(handler) = obj.extract::<RingChannel>() {
         rust_handler(py, handler)
     } else if obj.is_callable() {
-        undeclare_on_drop = false;
         (python_callback(obj)?, HandlerImpl::Python(py.None()))
     } else if let Some((cb, handler)) = obj
         .extract::<(Bound<PyAny>, PyObject)>()
@@ -442,6 +444,5 @@ where
             "Invalid handler type {}",
             obj.get_type().name()?
         )));
-    };
-    Ok((into_handler, undeclare_on_drop))
+    })
 }

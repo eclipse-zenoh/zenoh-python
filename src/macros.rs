@@ -181,16 +181,16 @@ macro_rules! wrapper {
 pub(crate) use wrapper;
 
 macro_rules! option_wrapper {
-    ($($path:ident)::* $(<$arg:lifetime>)?, $error:literal) => {
-        $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
+    ($($path:ident)::* $(<$arg:lifetime>)?, $error:literal $(, $warning:literal)?) => {
+        $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error $(, $warning)?);
     };
-    ($($path:ident)::* $(<$arg:ty>)?, $error:literal) => {
-        $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
+    ($($path:ident)::* $(<$arg:ty>)?, $error:literal $(, $warning:literal)?) => {
+        $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error $(, $warning)?);
     };
-    (@ $ty:ident::$($tt:ident)::*, $path:path, $error:literal) => {
-        $crate::macros::option_wrapper!(@ $($tt)::*, $path, $error);
+    (@ $ty:ident::$($tt:ident)::*, $path:path, $error:literal $(, $warning:literal)?) => {
+        $crate::macros::option_wrapper!(@ $($tt)::*, $path, $error $(, $warning)?);
     };
-    (@ $ty:ident, $path:path, $error:literal) => {
+    (@ $ty:ident, $path:path, $error:literal $(, $warning:literal)?) => {
         #[pyclass]
         pub(crate) struct $ty(pub(crate) Option<$path>);
 
@@ -232,7 +232,12 @@ macro_rules! option_wrapper {
 
         impl Drop for $ty {
             fn drop(&mut self) {
-                Python::with_gil(|gil| gil.allow_threads(|| drop(self.0.take())));
+                Python::with_gil(|gil| {
+                    $(if self.0.as_ref().is_some_and(|obj| obj.is_background(gil)) {
+                        let _ = $crate::macros::import!(gil, warnings.warn).call1(($warning,));
+                    })?
+                    gil.allow_threads(|| drop(self.0.take()))
+                });
             }
         }
     };
@@ -251,11 +256,3 @@ macro_rules! build {
     }};
 }
 pub(crate) use build;
-
-macro_rules! with {
-    ($builder:ident, $py:expr, $handler:expr) => {
-        let (handler, undeclare_on_drop) = $crate::handlers::into_handler($py, $handler)?;
-        let $builder = $builder.with(handler).undeclare_on_drop(undeclare_on_drop);
-    };
-}
-pub(crate) use with;

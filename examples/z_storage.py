@@ -49,10 +49,12 @@ def main(conf: zenoh.Config, key: str, complete: bool):
     print("Opening session...")
     with zenoh.open(conf) as session:
         print(f"Declaring Subscriber on '{key}'...")
-        session.declare_subscriber(key, listener)
+        session.declare_subscriber(key, listener, background=True)
 
         print(f"Declaring Queryable on '{key}'...")
-        session.declare_queryable(key, query_handler, complete=complete)
+        session.declare_queryable(
+            key, query_handler, complete=complete, background=True
+        )
 
         print("Press CTRL-C to quit...")
         while True:

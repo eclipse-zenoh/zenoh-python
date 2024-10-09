@@ -50,7 +50,7 @@ def main(conf: zenoh.Config, number: int):
 
     with zenoh.open(conf) as session:
         session.declare_subscriber(
-            "test/thr", zenoh.handlers.Callback(listener, report)
+            "test/thr", zenoh.handlers.Callback(listener, report), background=True
         )
 
         print("Press CTRL-C to quit...")

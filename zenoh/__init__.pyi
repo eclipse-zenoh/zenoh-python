@@ -16,7 +16,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Generic, Never, Self, TypeVar, final, overload
+from typing import Any, Generic, Literal, Never, Self, TypeVar, final, overload
 
 from . import handlers as handlers
 from .handlers import Handler as Handler
@@ -835,6 +835,16 @@ class Session:
         """Create a Subscriber for the given key expression."""
 
     @overload
+    def declare_subscriber(
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _PythonCallback[Sample],
+        *,
+        background: Literal[True],
+    ):
+        """Create a Subscriber for the given key expression."""
+
+    @overload
     def declare_queryable(
         self,
         key_expr: _IntoKeyExpr,
@@ -862,6 +872,17 @@ class Session:
         *,
         complete: bool | None = None,
     ) -> Queryable[None]:
+        """Create a Queryable for the given key expression."""
+
+    @overload
+    def declare_queryable(
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _PythonCallback[Query],
+        *,
+        complete: bool | None = None,
+        background: Literal[True],
+    ):
         """Create a Queryable for the given key expression."""
 
     def declare_publisher(
