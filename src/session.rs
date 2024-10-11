@@ -192,7 +192,7 @@ impl Session {
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
         complete: Option<bool>,
-    ) -> PyResult<Option<Queryable>> {
+    ) -> PyResult<Queryable> {
         let (handler, background) = into_handler(py, handler)?;
         let builder = build!(self.0.declare_queryable(key_expr), complete);
         let mut queryable = wait(py, builder.with(handler))?;
