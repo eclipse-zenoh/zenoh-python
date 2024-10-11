@@ -15,7 +15,7 @@
 #
 [package]
 name = "zenoh-python"
-version = "1.0.0-dev"
+version = "1.0.0-dev+55-gcf7f5bd"
 authors = [
   "kydos <angelo@icorsaro.net>",
   "Julien Enoch <julien@enoch.fr>",
