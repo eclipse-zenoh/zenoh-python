@@ -233,13 +233,7 @@ impl ReplyError {
 
 option_wrapper!(
     zenoh::query::Queryable<HandlerImpl<Query>>,
-    "Undeclared queryable",
-    "Queryable has been automatically undeclared by its finalizer.\n\
-    This behavior may not be expected, as it could occur right after the declaration \
-    if it is not assigned to a variable.\n\
-    You should either undeclare the queryable explicitly, using for example a context manager, \
-    or use `background=true` parameter in `Session.declare_queryable` if you don't want to have \
-    it undeclared."
+    "Undeclared queryable"
 );
 
 #[pymethods]

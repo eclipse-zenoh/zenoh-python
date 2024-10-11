@@ -90,66 +90,14 @@ class Encoding:
     """Just some bytes.
     
     Constant alias for string: "zenoh/bytes"."""
-    ZENOH_INT8: Self
-    """A VLE-encoded signed little-endian 8bit integer. Binary representation uses two's complement.
-    
-    Constant alias for string: "zenoh/int8"."""
-    ZENOH_INT16: Self
-    """A VLE-encoded signed little-endian 16bit integer. Binary representation uses two's complement.
-    
-    Constant alias for string: "zenoh/int16"."""
-    ZENOH_INT32: Self
-    """A VLE-encoded signed little-endian 32bit integer. Binary representation uses two's complement.
-    
-    Constant alias for string: "zenoh/int32"."""
-    ZENOH_INT64: Self
-    """A VLE-encoded signed little-endian 64bit integer. Binary representation uses two's complement.
-    
-    Constant alias for string: "zenoh/int64"."""
-    ZENOH_INT128: Self
-    """A VLE-encoded signed little-endian 128bit integer. Binary representation uses two's complement.
-    
-    Constant alias for string: "zenoh/int128"."""
-    ZENOH_UINT8: Self
-    """A VLE-encoded unsigned little-endian 8bit integer.
-
-    Constant alias for string: "zenoh/uint8"."""
-    ZENOH_UINT16: Self
-    """A VLE-encoded unsigned little-endian 16bit integer.
-
-    Constant alias for string: "zenoh/uint16"."""
-    ZENOH_UINT32: Self
-    """A VLE-encoded unsigned little-endian 32bit integer.
-
-    Constant alias for string: "zenoh/uint32"."""
-    ZENOH_UINT64: Self
-    """A VLE-encoded unsigned little-endian 64bit integer.
-
-    Constant alias for string: "zenoh/uint64"."""
-    ZENOH_UINT128: Self
-    """A VLE-encoded unsigned little-endian 128bit integer.
-
-    Constant alias for string: "zenoh/uint128"."""
-    ZENOH_FLOAT32: Self
-    """A VLE-encoded 32bit float. Binary representation uses IEEE 754-2008 binary32 .
-    
-    Constant alias for string: "zenoh/ float32"."""
-    ZENOH_FLOAT64: Self
-    """A VLE-encoded 64bit float. Binary representation uses IEEE 754-2008 binary64 .
-    
-    Constant alias for string: "zenoh/ float64"."""
-    ZENOH_BOOL: Self
-    """A boolean. 0 is false, 1 is true. Other values are invalid.
-
-    Constant alias for string: "zenoh/bool"."""
     ZENOH_STRING: Self
     """A UTF-8 string.
 
     Constant alias for string: "zenoh/string"."""
-    ZENOH_ERROR: Self
-    """A zenoh error.
+    ZENOH_SERIALIZED: Self
+    """Zenoh serialized data.
 
-    Constant alias for string: "zenoh/error"."""
+    Constant alias for string: "zenoh/serialized"."""
     APPLICATION_OCTET_STREAM: Self
     """An application-specific stream of bytes.
 
@@ -835,16 +783,6 @@ class Session:
         """Create a Subscriber for the given key expression."""
 
     @overload
-    def declare_subscriber(
-        self,
-        key_expr: _IntoKeyExpr,
-        handler: _PythonCallback[Sample],
-        *,
-        background: Literal[True],
-    ):
-        """Create a Subscriber for the given key expression."""
-
-    @overload
     def declare_queryable(
         self,
         key_expr: _IntoKeyExpr,
@@ -872,17 +810,6 @@ class Session:
         *,
         complete: bool | None = None,
     ) -> Queryable[None]:
-        """Create a Queryable for the given key expression."""
-
-    @overload
-    def declare_queryable(
-        self,
-        key_expr: _IntoKeyExpr,
-        handler: _PythonCallback[Query],
-        *,
-        complete: bool | None = None,
-        background: Literal[True],
-    ):
         """Create a Queryable for the given key expression."""
 
     def declare_publisher(
