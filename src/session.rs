@@ -175,16 +175,14 @@ impl Session {
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
-    ) -> PyResult<Option<Subscriber>> {
+    ) -> PyResult<Subscriber> {
         let (handler, background) = into_handler(py, handler)?;
         let builder = self.0.declare_subscriber(key_expr);
         let mut subscriber = wait(py, builder.with(handler))?;
-        Ok(if background {
+        if background {
             subscriber.set_background(true);
-            None
-        } else {
-            Some(subscriber.into())
-        })
+        }
+        Ok(subscriber.into())
     }
 
     #[pyo3(signature = (key_expr, handler = None, *, complete = None))]
@@ -198,12 +196,10 @@ impl Session {
         let (handler, background) = into_handler(py, handler)?;
         let builder = build!(self.0.declare_queryable(key_expr), complete);
         let mut queryable = wait(py, builder.with(handler))?;
-        Ok(if background {
+        if background {
             queryable.set_background(true);
-            None
-        } else {
-            Some(queryable.into())
-        })
+        }
+        Ok(queryable.into())
     }
 
     #[allow(clippy::too_many_arguments)]
