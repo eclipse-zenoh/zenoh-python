@@ -27,9 +27,7 @@ def main(conf: zenoh.Config, express: bool):
             congestion_control=zenoh.CongestionControl.BLOCK,
             express=express,
         )
-        session.declare_subscriber(
-            "test/ping", lambda s: pub.put(s.payload), background=True
-        )
+        session.declare_subscriber("test/ping", lambda s: pub.put(s.payload))
 
         print("Press CTRL-C to quit...")
         while True:

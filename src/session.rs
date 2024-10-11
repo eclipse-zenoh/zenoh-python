@@ -148,6 +148,7 @@ impl Session {
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<HandlerImpl<Reply>> {
+        let (handler, _) = into_handler(py, handler)?;
         let builder = build!(
             self.0.get(selector),
             target,
@@ -160,7 +161,7 @@ impl Session {
             encoding,
             attachment,
         );
-        wait(py, builder.with(into_handler(py, handler)?)).map_into()
+        wait(py, builder.with(handler)).map_into()
     }
 
     #[getter]
@@ -168,16 +169,16 @@ impl Session {
         self.0.info().into()
     }
 
-    #[pyo3(signature = (key_expr, handler = None, *, background = false))]
+    #[pyo3(signature = (key_expr, handler = None))]
     fn declare_subscriber(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
-        background: bool,
     ) -> PyResult<Option<Subscriber>> {
+        let (handler, background) = into_handler(py, handler)?;
         let builder = self.0.declare_subscriber(key_expr);
-        let mut subscriber = wait(py, builder.with(into_handler(py, handler)?))?;
+        let mut subscriber = wait(py, builder.with(handler))?;
         Ok(if background {
             subscriber.set_background(true);
             None
@@ -186,17 +187,17 @@ impl Session {
         })
     }
 
-    #[pyo3(signature = (key_expr, handler = None, *, complete = None, background = false))]
+    #[pyo3(signature = (key_expr, handler = None, *, complete = None))]
     fn declare_queryable(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
         complete: Option<bool>,
-        background: bool,
     ) -> PyResult<Option<Queryable>> {
+        let (handler, background) = into_handler(py, handler)?;
         let builder = build!(self.0.declare_queryable(key_expr), complete);
-        let mut queryable = wait(py, builder.with(into_handler(py, handler)?))?;
+        let mut queryable = wait(py, builder.with(handler))?;
         Ok(if background {
             queryable.set_background(true);
             None
