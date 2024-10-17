@@ -71,11 +71,11 @@ jobs:
       - name: Run stubs check
         run: python3 tests/stubs_check.py
 
-      - name: Run examples check
-        run: python3 tests/examples_check.py
-
       - name: Install pytest
-        run: pip3 install pytest pytest-xdist
+        run: pip3 install pytest pytest-xdist fixtures
+
+      - name: Run examples check
+        run: pytest tests/examples_check.py -v --durations=0
 
       - name: Run pytest
         run: pytest -n auto --import-mode=append
