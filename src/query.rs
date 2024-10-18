@@ -15,7 +15,7 @@ use std::collections::HashMap;
 
 use pyo3::{
     prelude::*,
-    types::{PyDict, PyIterator, PyTuple, PyType},
+    types::{PyDict, PyIterator, PyList, PyTuple, PyType},
 };
 
 use crate::{
@@ -382,8 +382,12 @@ impl Parameters {
         self.get(key, None)
     }
 
-    fn __iter__(&self) -> Vec<(&str, &str)> {
-        self.0.iter().collect()
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        let list = PyList::empty_bound(py);
+        for kv in self.0.iter() {
+            list.append(kv)?;
+        }
+        list.as_any().iter()
     }
 
     fn __repr__(&self) -> String {
