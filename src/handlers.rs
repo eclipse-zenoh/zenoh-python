@@ -29,6 +29,13 @@ use crate::{
 type RustCallback<T> = zenoh::handlers::Callback<T>;
 
 const CHECK_SIGNALS_INTERVAL: Duration = Duration::from_millis(100);
+const DONE_CALLBACK_WARNING: &str = "Passing drop-callback using a tuple \
+`(callback, drop-callback)` no more works in 1.0;\n\
+`zenoh.handlers.Callback(callback, drop_callback)` must be used instead.\n\
+The tuple form is reserved for passing a handler with`(callback, handler)`.\n\
+If you are already passing a handler but having this warning wrongly displayed, \
+you can silent it with:\n\
+warnings.filterwarnings(\"ignore\", message=\"Passing drop-callback\")";
 
 fn log_error(py: Python, result: PyResult<PyObject>) {
     if let Err(err) = result {
@@ -436,6 +443,9 @@ where
         .ok()
         .filter(|(cb, _)| cb.is_callable())
     {
+        if handler.bind(py).is_callable() {
+            import!(py, warnings.warn).call1((DONE_CALLBACK_WARNING,))?;
+        }
         (python_callback(&cb)?, HandlerImpl::Python(handler))
     } else {
         return Err(PyValueError::new_err(format!(
