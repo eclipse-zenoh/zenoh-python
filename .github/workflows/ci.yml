@@ -14,8 +14,7 @@ on:
 
 jobs:
   check:
-    # TODO put back ubuntu-latest when isort issue will be fixed
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Clone this repository
         uses: actions/checkout@v4
