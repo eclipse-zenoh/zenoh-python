@@ -76,7 +76,7 @@ if __name__ == "__main__":
         "--timeout",
         "-o",
         dest="timeout",
-        default=1.0,
+        default=10.0,
         type=float,
         help="The query timeout.",
     )
