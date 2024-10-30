@@ -14,7 +14,6 @@
 use std::time::Duration;
 
 use pyo3::{
-    exceptions::PyValueError,
     prelude::*,
     types::{PyDict, PyList, PyTuple},
 };
@@ -25,16 +24,17 @@ use crate::{
     config::{Config, ZenohId},
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
+    liveliness::Liveliness,
     macros::{build, wrapper},
     pubsub::{Publisher, Subscriber},
     qos::{CongestionControl, Priority, Reliability},
     query::{QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
     time::Timestamp,
-    utils::{wait, IntoPython, MapInto},
+    utils::{timeout, wait, IntoPython, MapInto},
 };
 
 #[pyclass]
-pub(crate) struct Session(zenoh::Session);
+pub(crate) struct Session(pub(crate) zenoh::Session);
 
 #[pymethods]
 impl Session {
@@ -225,6 +225,10 @@ impl Session {
         wait(py, builder).map_into()
     }
 
+    fn liveliness(&self) -> Liveliness {
+        Liveliness(self.0.clone())
+    }
+
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("{:?}", self.0))
     }
@@ -239,15 +243,6 @@ impl Drop for Session {
 #[pyfunction]
 pub(crate) fn open(py: Python, config: Config) -> PyResult<Session> {
     wait(py, zenoh::open(config)).map(Session)
-}
-
-pub(crate) fn timeout(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
-    if obj.is_none() {
-        return Ok(None);
-    }
-    Duration::try_from_secs_f64(f64::extract_bound(obj)?)
-        .map(Some)
-        .map_err(|_| PyValueError::new_err("negative timeout"))
 }
 
 wrapper!(zenoh::session::SessionInfo);

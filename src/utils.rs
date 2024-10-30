@@ -13,7 +13,7 @@
 //
 use std::time::Duration;
 
-use pyo3::{prelude::*, types::PyType};
+use pyo3::{exceptions::PyValueError, prelude::*, types::PyType};
 
 use crate::{
     macros::{import, into_rust},
@@ -103,4 +103,13 @@ pub(crate) fn wait<T: Send>(
     resolve: impl zenoh::Resolve<zenoh::Result<T>>,
 ) -> PyResult<T> {
     py.allow_threads(|| resolve.wait()).into_pyres()
+}
+
+pub(crate) fn timeout(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
+    if obj.is_none() {
+        return Ok(None);
+    }
+    Duration::try_from_secs_f64(f64::extract_bound(obj)?)
+        .map(Some)
+        .map_err(|_| PyValueError::new_err("negative timeout"))
 }

@@ -349,6 +349,78 @@ class KeyExpr:
 _IntoKeyExpr = KeyExpr | str
 
 @final
+class Liveliness:
+    def declare_token(self, key_expr: _IntoKeyExpr) -> LivelinessToken:
+        """Create a LivelinessToken for the given key expression."""
+
+    @overload
+    def get(
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _RustHandler[Reply] | None = None,
+        *,
+        timeout: float | int | None = None,
+    ) -> Handler[Reply]:
+        """Query liveliness tokens with matching key expressions."""
+
+    @overload
+    def get(
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _PythonHandler[Reply, _H],
+        *,
+        timeout: float | int | None = None,
+    ) -> _H:
+        """Query liveliness tokens with matching key expressions."""
+
+    @overload
+    def get(
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _PythonCallback[Reply],
+        *,
+        timeout: float | int | None = None,
+    ) -> None:
+        """Query liveliness tokens with matching key expressions."""
+
+    @overload
+    def declare_subscriber(
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _RustHandler[Sample] | None = None,
+        *,
+        history: bool | None = None,
+    ) -> Subscriber[Handler[Sample]]:
+        """Create a Subscriber for liveliness changes matching the given key expression."""
+
+    @overload
+    def declare_subscriber(
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _PythonHandler[Sample, _H],
+        *,
+        history: bool | None = None,
+    ) -> Subscriber[_H]:
+        """Create a Subscriber for liveliness changes matching the given key expression."""
+
+    @overload
+    def declare_subscriber(
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _PythonCallback[Sample],
+        *,
+        history: bool | None = None,
+    ) -> Subscriber[None]:
+        """Create a Subscriber for liveliness changes matching the given key expression."""
+
+@final
+class LivelinessToken:
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *_args, **_kwargs): ...
+    def undeclare(self):
+        """Undeclare the LivelinessToken."""
+
+@final
 class Parameters:
     def __new__(cls, parameters: dict[str, str] | str | None = None): ...
     def is_empty(self) -> bool:
@@ -823,6 +895,9 @@ class Session:
         reliability: Reliability | None = None,
     ) -> Publisher:
         """Create a Publisher for the given key expression."""
+
+    def liveliness(self) -> Liveliness:
+        """Obtain a Liveliness instance tied to this Zenoh session."""
 
 @final
 class SessionInfo:

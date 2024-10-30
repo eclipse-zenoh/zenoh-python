@@ -14,33 +14,32 @@
 import zenoh
 
 
-def main(
-    conf: zenoh.Config,
-    selector: str,
-    target: zenoh.QueryTarget,
-    payload: str,
-    timeout: float,
-):
+def main(conf: zenoh.Config, key: str, history: bool):
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print(f"Sending Query '{selector}'...")
-        replies = session.get(selector, target=target, payload=payload, timeout=timeout)
-        for reply in replies:
-            try:
-                print(f">> Alive token ('{reply.ok.key_expr}')")
-            except:
-                print(f">> Received (ERROR: '{reply.err.payload.to_string()}')")
+
+        print(f"Declaring Liveliness Subscriber on '{key}'...")
+        with session.liveliness().declare_subscriber(key, history=history) as sub:
+            for sample in sub:
+                if sample.kind == zenoh.SampleKind.PUT:
+                    print(
+                        f">> [LivelinessSubscriber] New alive token ('{sample.key_expr}')"
+                    )
+                elif sample.kind == zenoh.SampleKind.DELETE:
+                    print(
+                        f">> [LivelinessSubscriber] Dropped token ('{sample.key_expr}')"
+                    )
 
 
+# --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
-    # --- Command line argument parsing --- --- --- --- --- ---
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(prog="z_get", description="zenoh get example")
+    parser = argparse.ArgumentParser(prog="z_sub", description="zenoh sub example")
     parser.add_argument(
         "--mode",
         "-m",
@@ -68,36 +67,19 @@ if __name__ == "__main__":
         help="Endpoints to listen on.",
     )
     parser.add_argument(
-        "--selector",
-        "-s",
-        dest="selector",
-        default="demo/example/**",
+        "--key",
+        "-k",
+        dest="key",
+        default="group1/**",
         type=str,
-        help="The selection of resources to query.",
+        help="The key expression to subscribe to.",
     )
     parser.add_argument(
-        "--target",
-        "-t",
-        dest="target",
-        choices=["ALL", "BEST_MATCHING", "ALL_COMPLETE", "NONE"],
-        default="BEST_MATCHING",
-        type=str,
-        help="The target queryables of the query.",
-    )
-    parser.add_argument(
-        "--payload",
-        "-p",
-        dest="payload",
-        type=str,
-        help="An optional payload to send in the query.",
-    )
-    parser.add_argument(
-        "--timeout",
-        "-o",
-        dest="timeout",
-        default=1.0,
-        type=float,
-        help="The query timeout",
+        "--history",
+        dest="history",
+        default=False,
+        type=bool,
+        help="Get historical liveliness tokens.",
     )
     parser.add_argument(
         "--config",
@@ -120,10 +102,5 @@ if __name__ == "__main__":
         conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listen is not None:
         conf.insert_json5("listen/endpoints", json.dumps(args.listen))
-    target = {
-        "ALL": zenoh.QueryTarget.ALL,
-        "BEST_MATCHING": zenoh.QueryTarget.BEST_MATCHING,
-        "ALL_COMPLETE": zenoh.QueryTarget.ALL_COMPLETE,
-    }.get(args.target)
 
-    main(conf, args.selector, target, args.payload, args.timeout)
+    main(conf, args.key, args.history)
