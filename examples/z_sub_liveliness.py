@@ -39,7 +39,9 @@ if __name__ == "__main__":
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(prog="z_sub", description="zenoh sub example")
+    parser = argparse.ArgumentParser(
+        prog="z_sub_liveliness", description="zenoh sub example"
+    )
     parser.add_argument(
         "--mode",
         "-m",

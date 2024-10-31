@@ -25,9 +25,7 @@ def main(conf: zenoh.Config, key: str, timeout: float):
         replies = session.liveliness().get(key, timeout=timeout)
         for reply in replies:
             try:
-                print(
-                    f">> Received ('{reply.ok.key_expr}': '{reply.ok.payload.to_string()}')"
-                )
+                print(f">> Alive token ('{reply.ok.key_expr}')")
             except:
                 print(f">> Received (ERROR: '{reply.err.payload.to_string()}')")
 
@@ -37,7 +35,9 @@ if __name__ == "__main__":
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(prog="z_put", description="zenoh put example")
+    parser = argparse.ArgumentParser(
+        prog="z_get_liveliness", description="zenoh put example"
+    )
     parser.add_argument(
         "--mode",
         "-m",

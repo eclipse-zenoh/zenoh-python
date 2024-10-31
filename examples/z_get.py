@@ -30,7 +30,9 @@ def main(
         replies = session.get(selector, target=target, payload=payload, timeout=timeout)
         for reply in replies:
             try:
-                print(f">> Alive token ('{reply.ok.key_expr}')")
+                print(
+                    f">> Received ('{reply.ok.key_expr}': '{reply.ok.payload.to_string()}')"
+                )
             except:
                 print(f">> Received (ERROR: '{reply.err.payload.to_string()}')")
 

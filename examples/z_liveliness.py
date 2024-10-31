@@ -36,7 +36,9 @@ if __name__ == "__main__":
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(prog="z_put", description="zenoh put example")
+    parser = argparse.ArgumentParser(
+        prog="z_liveliness", description="zenoh put example"
+    )
     parser.add_argument(
         "--mode",
         "-m",
