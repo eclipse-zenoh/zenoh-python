@@ -11,6 +11,8 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import time
+
 import zenoh
 
 
@@ -20,8 +22,13 @@ def main(conf: zenoh.Config, key: str):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print(f"Deleting resources matching '{key}'...")
-        session.delete(key)
+
+        print(f"Declaring LivelinessToken on '{key}'...")
+        with session.liveliness().declare_token(key) as token:
+
+            print("Press CTRL-C to quit...")
+            while True:
+                time.sleep(1)
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -29,7 +36,9 @@ if __name__ == "__main__":
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(prog="z_delete", description="zenoh put example")
+    parser = argparse.ArgumentParser(
+        prog="z_liveliness", description="zenoh put example"
+    )
     parser.add_argument(
         "--mode",
         "-m",
@@ -60,9 +69,9 @@ if __name__ == "__main__":
         "--key",
         "-k",
         dest="key",
-        default="demo/example/zenoh-python-put",
+        default="group1/zenoh-py",
         type=str,
-        help="The key expression matching resources to delete.",
+        help="The key expression to write.",
     )
     parser.add_argument(
         "--config",
@@ -85,6 +94,5 @@ if __name__ == "__main__":
         conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listen is not None:
         conf.insert_json5("listen/endpoints", json.dumps(args.listen))
-    key = args.key
 
-    main(conf, key)
+    main(conf, args.key)

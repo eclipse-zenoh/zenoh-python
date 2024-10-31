@@ -14,14 +14,24 @@
 import zenoh
 
 
-def main(conf: zenoh.Config, key: str):
+def main(conf: zenoh.Config, key: str, history: bool):
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print(f"Deleting resources matching '{key}'...")
-        session.delete(key)
+
+        print(f"Declaring Liveliness Subscriber on '{key}'...")
+        with session.liveliness().declare_subscriber(key, history=history) as sub:
+            for sample in sub:
+                if sample.kind == zenoh.SampleKind.PUT:
+                    print(
+                        f">> [LivelinessSubscriber] New alive token ('{sample.key_expr}')"
+                    )
+                elif sample.kind == zenoh.SampleKind.DELETE:
+                    print(
+                        f">> [LivelinessSubscriber] Dropped token ('{sample.key_expr}')"
+                    )
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -29,7 +39,9 @@ if __name__ == "__main__":
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(prog="z_delete", description="zenoh put example")
+    parser = argparse.ArgumentParser(
+        prog="z_sub_liveliness", description="zenoh sub example"
+    )
     parser.add_argument(
         "--mode",
         "-m",
@@ -60,9 +72,16 @@ if __name__ == "__main__":
         "--key",
         "-k",
         dest="key",
-        default="demo/example/zenoh-python-put",
+        default="group1/**",
         type=str,
-        help="The key expression matching resources to delete.",
+        help="The key expression to subscribe to.",
+    )
+    parser.add_argument(
+        "--history",
+        dest="history",
+        default=False,
+        type=bool,
+        help="Get historical liveliness tokens.",
     )
     parser.add_argument(
         "--config",
@@ -85,6 +104,5 @@ if __name__ == "__main__":
         conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listen is not None:
         conf.insert_json5("listen/endpoints", json.dumps(args.listen))
-    key = args.key
 
-    main(conf, key)
+    main(conf, args.key, args.history)

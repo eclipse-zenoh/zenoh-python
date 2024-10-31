@@ -14,14 +14,20 @@
 import zenoh
 
 
-def main(conf: zenoh.Config, key: str):
+def main(conf: zenoh.Config, key: str, timeout: float):
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-        print(f"Deleting resources matching '{key}'...")
-        session.delete(key)
+
+        print(f"Sending Liveliness Query '{key}'...")
+        replies = session.liveliness().get(key, timeout=timeout)
+        for reply in replies:
+            try:
+                print(f">> Alive token ('{reply.ok.key_expr}')")
+            except:
+                print(f">> Received (ERROR: '{reply.err.payload.to_string()}')")
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
@@ -29,7 +35,9 @@ if __name__ == "__main__":
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(prog="z_delete", description="zenoh put example")
+    parser = argparse.ArgumentParser(
+        prog="z_get_liveliness", description="zenoh put example"
+    )
     parser.add_argument(
         "--mode",
         "-m",
@@ -60,9 +68,17 @@ if __name__ == "__main__":
         "--key",
         "-k",
         dest="key",
-        default="demo/example/zenoh-python-put",
+        default="group1/**",
         type=str,
-        help="The key expression matching resources to delete.",
+        help="The key expression to write.",
+    )
+    parser.add_argument(
+        "--timeout",
+        "-o",
+        dest="timeout",
+        default=10.0,
+        type=float,
+        help="The query timeout.",
     )
     parser.add_argument(
         "--config",
@@ -85,6 +101,5 @@ if __name__ == "__main__":
         conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listen is not None:
         conf.insert_json5("listen/endpoints", json.dumps(args.listen))
-    key = args.key
 
-    main(conf, key)
+    main(conf, args.key, args.timeout)

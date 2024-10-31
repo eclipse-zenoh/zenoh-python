@@ -14,14 +14,20 @@
 import zenoh
 
 
-def main(conf: zenoh.Config, selector: str, target: zenoh.QueryTarget, payload: str):
+def main(
+    conf: zenoh.Config,
+    selector: str,
+    target: zenoh.QueryTarget,
+    payload: str,
+    timeout: float,
+):
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
     print("Opening session...")
     with zenoh.open(conf) as session:
         print(f"Sending Query '{selector}'...")
-        replies = session.get(selector, target=target, payload=payload)
+        replies = session.get(selector, target=target, payload=payload, timeout=timeout)
         for reply in replies:
             try:
                 print(
@@ -88,6 +94,14 @@ if __name__ == "__main__":
         help="An optional payload to send in the query.",
     )
     parser.add_argument(
+        "--timeout",
+        "-o",
+        dest="timeout",
+        default=10.0,
+        type=float,
+        help="The query timeout",
+    )
+    parser.add_argument(
         "--config",
         "-c",
         dest="config",
@@ -114,4 +128,4 @@ if __name__ == "__main__":
         "ALL_COMPLETE": zenoh.QueryTarget.ALL_COMPLETE,
     }.get(args.target)
 
-    main(conf, args.selector, target, args.payload)
+    main(conf, args.selector, target, args.payload, args.timeout)
