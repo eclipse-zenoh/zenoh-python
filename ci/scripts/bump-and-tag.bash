@@ -2,6 +2,7 @@
 
 set -xeo pipefail
 
+readonly live_run=${LIVE_RUN:-false}
 # Release number
 version=${VERSION:?input VERSION is required}
 # Dependencies' pattern
@@ -65,7 +66,9 @@ if [[ "$bump_deps_pattern" != '' ]]; then
   fi
 fi
 
-git tag --force "$version" -m "v$version"
+if [[ ${live_run} ]]; then
+  git tag --force "$version" -m "v$version"
+fi
 git log -10
 git show-ref --tags
 git push origin
