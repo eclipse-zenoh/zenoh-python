@@ -53,6 +53,10 @@ impl ZBytes {
         self.0.to_bytes()
     }
 
+    fn to_bytearray<'py>(&self, py: Python<'py>) -> Bound<'py, PyByteArray> {
+        PyByteArray::new_bound(py, &self.0.to_bytes())
+    }
+
     fn to_string(&self) -> PyResult<Cow<str>> {
         self.0
             .try_to_string()
