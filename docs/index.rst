@@ -46,7 +46,7 @@ Subscribe to a set of keys with Zenoh
 
 >>> import zenoh, time
 >>> def listener(sample):
->>>     print(f"{sample.key_expr} => {sample.payload.decode('utf-8')}")
+>>>     print(f"{sample.key_expr} => {sample.payload.to_string()}")
 >>>
 >>> with zenoh.open() as session:
 >>>     with session.declare_subscriber('demo/example/**', listener) as subscriber:
@@ -59,16 +59,18 @@ Get keys/values from zenoh
 >>> with zenoh.open() as session:
 >>>     for response in session.get('demo/example/**'):
 >>>         response = response.ok
->>>         print(f"{response.key_expr} => {response.payload.deserialize(str)}")
+>>>         print(f"{response.key_expr} => {response.payload.to_string()}")
 
 module zenoh
 ============
 
 .. automodule:: zenoh
     :members:
+    :undoc-members:
 
 module zenoh.handlers
 ============
 
 .. automodule:: zenoh.handlers
     :members:
+    :undoc-members:
