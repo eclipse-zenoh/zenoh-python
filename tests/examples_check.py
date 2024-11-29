@@ -149,6 +149,43 @@ def test_z_get_z_queryable():
     assert not z_queryable.errors
 
 
+def test_z_querier_z_queryable():
+    """Test z_querier & z_queryable"""
+    z_queryable = Pyrun("z_queryable.py", ["-k=demo/example/zenoh-python-queryable"])
+    time.sleep(3)
+    ## z_querier: Able to get reply from queryable
+    z_querier = Pyrun(
+        "z_querier.py", ["-s=demo/example/zenoh-python-queryable", "-p=value"]
+    )
+    time.sleep(5)
+    z_queryable.interrupt()
+    z_querier.interrupt()
+
+    if not (
+        "Received ('demo/example/zenoh-python-queryable': 'Queryable from Python!')"
+        in "".join(z_querier.stdout)
+    ):
+        z_querier.dbg()
+        z_queryable.dbg()
+        z_querier.errors.append("z_querier didn't get a response from z_queryable")
+    queryableout = "".join(z_queryable.stdout)
+    if not (
+        "Received Query 'demo/example/zenoh-python-queryable' with payload: [   0] value"
+        in queryableout
+    ):
+        z_queryable.errors.append("z_queryable didn't catch query [0]")
+    elif not (
+        "Received Query 'demo/example/zenoh-python-queryable' with payload: [   2] value"
+        in queryableout
+    ):
+        z_queryable.errors.append("z_queryable didn't catch query [2]")
+    if any(("z_queryable" in error) for error in z_queryable.errors):
+        z_queryable.dbg()
+
+    assert not z_querier.errors
+    assert not z_queryable.errors
+
+
 def test_z_storage_z_sub():
     """Test z_storage & z_sub."""
     z_storage = Pyrun("z_storage.py")
