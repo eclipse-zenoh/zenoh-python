@@ -574,6 +574,54 @@ class Queryable(Generic[_H]):
     def __iter__(self) -> Never: ...
 
 @final
+class Querier:
+    """A querier that allows to send queries to a queryable..
+    Queriers are automatically undeclared when dropped."""
+
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *_args, **_kwargs): ...
+    @property
+    def key_expr(self) -> KeyExpr: ...
+    @overload
+    def get(
+        self,
+        handler: _RustHandler[Reply] | None = None,
+        *,
+        parameters: _IntoParameters | None = None,
+        payload: _IntoZBytes | None = None,
+        encoding: _IntoEncoding | None = None,
+        attachment: _IntoZBytes | None = None,
+    ) -> Handler[Reply]:
+        """Sends a query."""
+
+    @overload
+    def get(
+        self,
+        handler: _PythonHandler[Reply, _H],
+        *,
+        parameters: _IntoParameters | None = None,
+        payload: _IntoZBytes | None = None,
+        encoding: _IntoEncoding | None = None,
+        attachment: _IntoZBytes | None = None,
+    ) -> _H:
+        """Sends a query."""
+
+    @overload
+    def get(
+        self,
+        handler: _PythonCallback[Reply],
+        *,
+        parameters: _IntoParameters | None = None,
+        payload: _IntoZBytes | None = None,
+        encoding: _IntoEncoding | None = None,
+        attachment: _IntoZBytes | None = None,
+    ) -> None:
+        """Send a query."""
+
+    def undeclare(self):
+        """Undeclares the Querier, informing the network that it needn't optimize queries for its key expression anymore."""
+
+@final
 class QueryConsolidation:
     AUTO: Self
     DEFAULT: Self
@@ -895,6 +943,19 @@ class Session:
         reliability: Reliability | None = None,
     ) -> Publisher:
         """Create a Publisher for the given key expression."""
+
+    def declare_querier(
+        self,
+        key_expr: _IntoKeyExpr,
+        *,
+        target: QueryTarget | None = None,
+        consolidation: _IntoQueryConsolidation | None = None,
+        timeout: float | int | None = None,
+        congestion_control: CongestionControl | None = None,
+        priority: Priority | None = None,
+        express: bool | None = None,
+    ) -> Querier:
+        """Create a Querier for the given key expression."""
 
     def liveliness(self) -> Liveliness:
         """Obtain a Liveliness instance tied to this Zenoh session."""
