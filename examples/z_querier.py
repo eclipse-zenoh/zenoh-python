@@ -24,17 +24,18 @@ def main(
     target: zenoh.QueryTarget,
     payload: str,
     timeout: float,
-    iter: int,
+    iter: Optional[int],
 ):
     # initiate logging
     zenoh.init_log_from_env_or("error")
-
     print("Opening session...")
     with zenoh.open(conf) as session:
-        keyexpr, params = split_selector(selector)
+        query_selector = zenoh.Selector(selector)
 
-        print(f"Declaring Querier on '{keyexpr}'...")
-        querier = session.declare_querier(keyexpr, target=target, timeout=timeout)
+        print(f"Declaring Querier on '{query_selector.key_expr}'...")
+        querier = session.declare_querier(
+            query_selector.key_expr, target=target, timeout=timeout
+        )
 
         print("Press CTRL-C to quit...")
         for idx in itertools.count() if iter is None else range(iter):
@@ -42,7 +43,7 @@ def main(
             buf = f"[{idx:4d}] {payload if payload else ''}"
             print(f"Querying '{selector}' with payload '{buf}')...")
 
-            replies = querier.get(parameters=params, payload=buf)
+            replies = querier.get(parameters=query_selector.parameters, payload=buf)
             for reply in replies:
                 try:
                     print(
@@ -50,15 +51,6 @@ def main(
                     )
                 except:
                     print(f">> Received (ERROR: '{reply.err.payload.to_string()}')")
-
-
-def split_selector(selector: str) -> Tuple[str, Optional[str]]:
-    res = selector.split("?", 2)
-    if len(res) == 0:
-        return "", None
-    elif len(res) == 1:
-        return res[0], None
-    return res[0], res[1]
 
 
 if __name__ == "__main__":
@@ -136,7 +128,7 @@ if __name__ == "__main__":
         help="A configuration file.",
     )
     parser.add_argument(
-        "--iter", dest="iter", type=int, help="How many puts to perform"
+        "--iter", dest="iter", type=int, help="How many gets to perform"
     )
 
     args = parser.parse_args()

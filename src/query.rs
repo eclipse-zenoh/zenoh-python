@@ -326,7 +326,7 @@ impl Querier {
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
         let (handler, _) = into_handler(py, handler)?;
-        let builder = build!(this.get(), parameters, payload, encoding, attachment,);
+        let builder = build!(this.get(), parameters, payload, encoding, attachment);
         wait(py, builder.with(handler)).map_into()
     }
 

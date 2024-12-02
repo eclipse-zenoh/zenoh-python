@@ -12,11 +12,14 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 import time
+from typing import Optional
 
 import zenoh
 
 
-def main(conf: zenoh.Config, key: str, payload: str, iter: int, interval: int):
+def main(
+    conf: zenoh.Config, key: str, payload: str, iter: Optional[int], interval: int
+):
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
