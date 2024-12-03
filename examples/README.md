@@ -106,6 +106,24 @@ or
       python3 z_get.py -s 'demo/**'
    ```
 
+### z_querier
+
+Continuously sends query messages for a selector.
+The queryables with a matching path or selector (for instance [z_queryable](#z_queryable) and [z_storage](#z_storage))
+will receive these queries and reply with paths/payloads that will be received by the querier's query callback.
+
+Typical usage:
+
+   ```bash
+      python3 z_querier.py
+   ```
+
+or
+
+   ```bash
+      python3 z_get.py -s 'demo/**'
+   ```
+
 ### z_queryable
 
 Creates a queryable function with a key expression.

@@ -93,6 +93,56 @@ def run_session_qryrep(peer01: Session, peer02: Session):
         queryable.undeclare()
 
 
+def run_session_qrrrep(peer01: Session, peer02: Session):
+    keyexpr = "test/querier"
+
+    for size in MSG_SIZE:
+        num_requests = 0
+        num_replies = 0
+        num_errors = 0
+
+        def queryable_callback(query: Query):
+            nonlocal num_requests
+            query.reply(keyexpr, bytes(size))
+            num_requests += 1
+
+        print("[QR][01c] Queryable on peer01 session")
+        queryable = peer01.declare_queryable(
+            keyexpr, queryable_callback, complete=False
+        )
+
+        time.sleep(SLEEP)
+
+        print(f"[QR][02c] Declaring querier on peer02 session.")
+        querier = peer02.declare_querier(keyexpr)
+        print(f"[QR][03c] Sending {MSG_COUNT} queries.")
+        for _ in range(MSG_COUNT):
+            replies = querier.get()
+            for reply in replies:
+                try:
+                    unwraped_reply = reply.ok
+                except:
+                    unwraped_reply = None
+
+                if unwraped_reply:
+                    assert len(unwraped_reply.payload) == size
+                    num_replies += 1
+                else:
+                    num_errors += 1
+
+        time.sleep(SLEEP)
+        print(f"[QR][03c] Got on querier {num_replies}/{MSG_COUNT} replies.")
+        assert num_replies == MSG_COUNT
+        assert num_requests == MSG_COUNT
+        assert num_errors == 0
+
+        print("[QR][04c] Undeclare querier on peer02 session")
+        querier.undeclare()
+
+        print("[QR][05c] Unqueryable on peer01 session")
+        queryable.undeclare()
+
+
 def run_session_pubsub(peer01: Session, peer02: Session):
     keyexpr = "test_pub/session"
     msg = "Pub Message".encode()
@@ -141,4 +191,5 @@ def test_session():
     (peer01, peer02) = open_session(["tcp/127.0.0.1:17447"])
     run_session_qryrep(peer01, peer02)
     run_session_pubsub(peer01, peer02)
+    run_session_qrrrep(peer01, peer02)
     close_session(peer01, peer02)

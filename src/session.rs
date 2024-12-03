@@ -28,7 +28,7 @@ use crate::{
     macros::{build, wrapper},
     pubsub::{Publisher, Subscriber},
     qos::{CongestionControl, Priority, Reliability},
-    query::{QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
+    query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
     time::Timestamp,
     utils::{timeout, wait, IntoPython, MapInto},
 };
@@ -221,6 +221,33 @@ impl Session {
             priority,
             express,
             reliability,
+        );
+        wait(py, builder).map_into()
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (key_expr, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None))]
+    fn declare_querier(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        target: Option<QueryTarget>,
+        #[pyo3(from_py_with = "QueryConsolidation::from_py_opt")] consolidation: Option<
+            QueryConsolidation,
+        >,
+        #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
+        congestion_control: Option<CongestionControl>,
+        priority: Option<Priority>,
+        express: Option<bool>,
+    ) -> PyResult<Querier> {
+        let builder = build!(
+            self.0.declare_querier(key_expr),
+            target,
+            consolidation,
+            timeout,
+            congestion_control,
+            priority,
+            express,
         );
         wait(py, builder).map_into()
     }

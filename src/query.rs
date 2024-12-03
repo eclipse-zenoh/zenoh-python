@@ -21,7 +21,7 @@ use pyo3::{
 use crate::{
     bytes::{Encoding, ZBytes},
     config::ZenohId,
-    handlers::HandlerImpl,
+    handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{build, downcast_or_new, enum_mapper, option_wrapper, wrapper},
     qos::{CongestionControl, Priority},
@@ -277,6 +277,61 @@ impl Queryable {
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
         self.handler(py)?.bind(py).iter()
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.get_ref()?))
+    }
+}
+
+option_wrapper!(zenoh::query::Querier<'static>, "Undeclared querier");
+
+#[pymethods]
+impl Querier {
+    #[classmethod]
+    fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
+        generic(cls, args)
+    }
+
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> PyResult<&'a Bound<'py, Self>> {
+        Self::check(this)
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?;
+        Ok(py.None())
+    }
+
+    #[getter]
+    fn key_expr(&self) -> PyResult<KeyExpr> {
+        Ok(self.get_ref()?.key_expr().clone().into())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (handler = None, *, parameters = None, payload = None, encoding = None, attachment = None))]
+    fn get(
+        &self,
+        py: Python,
+        handler: Option<&Bound<PyAny>>,
+        #[pyo3(from_py_with = "Parameters::from_py_opt")] parameters: Option<Parameters>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] payload: Option<ZBytes>,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+    ) -> PyResult<HandlerImpl<Reply>> {
+        let this = self.get_ref()?;
+        let (handler, _) = into_handler(py, handler)?;
+        let builder = build!(this.get(), parameters, payload, encoding, attachment);
+        wait(py, builder.with(handler)).map_into()
+    }
+
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
     }
 
     fn __repr__(&self) -> PyResult<String> {

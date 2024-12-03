@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022 ZettaScale Technology
+# Copyright (c) 2024 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -11,39 +11,56 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import itertools
 import time
-from typing import Optional
+from typing import Optional, Tuple
 
 import zenoh
 
 
 def main(
-    conf: zenoh.Config, key: str, payload: str, iter: Optional[int], interval: int
+    conf: zenoh.Config,
+    selector: str,
+    target: zenoh.QueryTarget,
+    payload: str,
+    timeout: float,
+    iter: Optional[int],
 ):
     # initiate logging
     zenoh.init_log_from_env_or("error")
-
     print("Opening session...")
     with zenoh.open(conf) as session:
+        query_selector = zenoh.Selector(selector)
 
-        print(f"Declaring Publisher on '{key}'...")
-        pub = session.declare_publisher(key)
+        print(f"Declaring Querier on '{query_selector.key_expr}'...")
+        querier = session.declare_querier(
+            query_selector.key_expr, target=target, timeout=timeout
+        )
 
         print("Press CTRL-C to quit...")
         for idx in itertools.count() if iter is None else range(iter):
-            time.sleep(interval)
-            buf = f"[{idx:4d}] {payload}"
-            print(f"Putting Data ('{key}': '{buf}')...")
-            pub.put(buf)
+            time.sleep(1.0)
+            buf = f"[{idx:4d}] {payload if payload else ''}"
+            print(f"Querying '{selector}' with payload '{buf}')...")
+
+            replies = querier.get(parameters=query_selector.parameters, payload=buf)
+            for reply in replies:
+                try:
+                    print(
+                        f">> Received ('{reply.ok.key_expr}': '{reply.ok.payload.to_string()}')"
+                    )
+                except:
+                    print(f">> Received (ERROR: '{reply.err.payload.to_string()}')")
 
 
-# --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
+    # --- Command line argument parsing --- --- --- --- --- ---
     import argparse
-    import itertools
     import json
 
-    parser = argparse.ArgumentParser(prog="z_pub", description="zenoh pub example")
+    parser = argparse.ArgumentParser(
+        prog="z_querier", description="zenoh querier example"
+    )
     parser.add_argument(
         "--mode",
         "-m",
@@ -71,30 +88,36 @@ if __name__ == "__main__":
         help="Endpoints to listen on.",
     )
     parser.add_argument(
-        "--key",
-        "-k",
-        dest="key",
-        default="demo/example/zenoh-python-pub",
+        "--selector",
+        "-s",
+        dest="selector",
+        default="demo/example/**",
         type=str,
-        help="The key expression to publish onto.",
+        help="The selection of resources to query.",
+    )
+    parser.add_argument(
+        "--target",
+        "-t",
+        dest="target",
+        choices=["ALL", "BEST_MATCHING", "ALL_COMPLETE", "NONE"],
+        default="BEST_MATCHING",
+        type=str,
+        help="The target queryables of the query.",
     )
     parser.add_argument(
         "--payload",
         "-p",
         dest="payload",
-        default="Pub from Python!",
         type=str,
-        help="The payload to publish.",
+        help="An optional payload to send in the query.",
     )
     parser.add_argument(
-        "--iter", dest="iter", type=int, help="How many puts to perform"
-    )
-    parser.add_argument(
-        "--interval",
-        dest="interval",
+        "--timeout",
+        "-o",
+        dest="timeout",
+        default=10.0,
         type=float,
-        default=1.0,
-        help="Interval between each put",
+        help="The query timeout",
     )
     parser.add_argument(
         "--config",
@@ -103,6 +126,9 @@ if __name__ == "__main__":
         metavar="FILE",
         type=str,
         help="A configuration file.",
+    )
+    parser.add_argument(
+        "--iter", dest="iter", type=int, help="How many gets to perform"
     )
 
     args = parser.parse_args()
@@ -117,5 +143,10 @@ if __name__ == "__main__":
         conf.insert_json5("connect/endpoints", json.dumps(args.connect))
     if args.listen is not None:
         conf.insert_json5("listen/endpoints", json.dumps(args.listen))
+    target = {
+        "ALL": zenoh.QueryTarget.ALL,
+        "BEST_MATCHING": zenoh.QueryTarget.BEST_MATCHING,
+        "ALL_COMPLETE": zenoh.QueryTarget.ALL_COMPLETE,
+    }.get(args.target)
 
-    main(conf, args.key, args.payload, args.iter, args.interval)
+    main(conf, args.selector, target, args.payload, args.timeout, args.iter)
