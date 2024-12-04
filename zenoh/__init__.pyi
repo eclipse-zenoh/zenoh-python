@@ -333,6 +333,7 @@ class KeyExpr:
     def includes(self, other: _IntoKeyExpr) -> bool:
         """Returns true if self includes other, i.e. the set defined by self contains every key belonging to the set defined by other."""
 
+    @_unstable
     def relation_to(self, other: _IntoKeyExpr) -> SetIntersectionLevel:
         """Returns the relation between self and other from self's point of view (SetIntersectionLevel::Includes signifies that self includes other).
         Note that this is slower than keyexpr::intersects and keyexpr::includes, so you should favor these methods for most applications.
@@ -665,6 +666,7 @@ class Reply:
     @property
     def err(self) -> ReplyError | None: ...
     @property
+    @_unstable
     def replier_id(self) -> ZenohId | None: ...
 
 @final
@@ -966,6 +968,7 @@ class Session:
     ) -> Querier:
         """Create a Querier for the given key expression."""
 
+    @_unstable
     def liveliness(self) -> Liveliness:
         """Obtain a Liveliness instance tied to this Zenoh session."""
 
@@ -981,6 +984,7 @@ class SessionInfo:
         """Return the ZenohId of the zenoh peers this process is currently connected to."""
 
 @final
+@_unstable
 class SetIntersectionLevel(Enum):
     DISJOINT = auto()
     INTERSECTS = auto()
