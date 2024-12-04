@@ -352,8 +352,8 @@ class KeyExpr:
 
 _IntoKeyExpr = KeyExpr | str
 
-@final
 @_unstable
+@final
 class Liveliness:
     def declare_token(self, key_expr: _IntoKeyExpr) -> LivelinessToken:
         """Create a LivelinessToken for the given key expression."""
@@ -418,8 +418,8 @@ class Liveliness:
     ) -> Subscriber[None]:
         """Create a Subscriber for liveliness changes matching the given key expression."""
 
-@final
 @_unstable
+@final
 class LivelinessToken:
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
@@ -580,8 +580,8 @@ class Queryable(Generic[_H]):
     @overload
     def __iter__(self) -> Never: ...
 
-@final
 @_unstable
+@final
 class Querier:
     """A querier that allows to send queries to a queryable.
     Queriers are automatically undeclared when dropped."""
@@ -983,8 +983,8 @@ class SessionInfo:
     def peers_zid(self) -> list[ZenohId]:
         """Return the ZenohId of the zenoh peers this process is currently connected to."""
 
-@final
 @_unstable
+@final
 class SetIntersectionLevel(Enum):
     DISJOINT = auto()
     INTERSECTS = auto()
