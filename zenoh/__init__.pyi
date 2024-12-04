@@ -32,8 +32,8 @@ _RustHandler = (
 _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
-def _unstable(item):
-    return item
+def _unstable(item: _T) -> _T:
+    """marker for unstable items"""
 
 @final
 class ZError(Exception): ...
