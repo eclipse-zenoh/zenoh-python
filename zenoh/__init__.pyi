@@ -32,6 +32,9 @@ _RustHandler = (
 _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
+def _unstable(item):
+    return item
+
 @final
 class ZError(Exception): ...
 
