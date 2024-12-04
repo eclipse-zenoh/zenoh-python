@@ -69,7 +69,7 @@ module zenoh
     :undoc-members:
 
 module zenoh.handlers
-============
+=====================
 
 .. automodule:: zenoh.handlers
     :members:

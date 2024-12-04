@@ -33,7 +33,7 @@ _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
 def unstable(original):
-    _WARNING = "Warning: This API has been marked as unstable: it works as advertised, but it may be changed in a future release."
+    _WARNING = ".. warning:: This API has been marked as unstable: it works as advertised, but it may be changed in a future release."
     if original.__doc__:
         original.__doc__ += "\n" + _WARNING
     else:
