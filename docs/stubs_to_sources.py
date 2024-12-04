@@ -22,11 +22,21 @@ Moreover, all function parameters annotations are stringified in order to allow
 referencing a type not declared yet (i.e. forward reference)."""
 
 import ast
+import inspect
 from collections import defaultdict
 from pathlib import Path
 
 PACKAGE = (Path(__file__) / "../../zenoh").resolve()
 __INIT__ = PACKAGE / "__init__.py"
+
+
+def _unstable(item):
+    warning = ".. warning:: This API has been marked as unstable: it works as advertised, but it may be changed in a future release."
+    if item.__doc__:
+        item.__doc__ += "\n" + warning
+    else:
+        item.__doc__ = warning
+    return item
 
 
 class RemoveOverload(ast.NodeTransformer):
@@ -95,10 +105,16 @@ def main():
         entry.rename(PACKAGE / f"{entry.stem}.py")
     # read stub code
     with open(__INIT__) as f:
-        stub = ast.parse(f.read())
+        stub: ast.Module = ast.parse(f.read())
+        # replace _unstable
+        for i, stmt in enumerate(stub.body):
+            if isinstance(stmt, ast.FunctionDef) and stmt.name == "_unstable":
+                stub.body[i] = ast.parse(inspect.getsource(_unstable))
+        # remove overload
+        stub = RemoveOverload().visit(stub)
     # write modified code
     with open(__INIT__, "w") as f:
-        f.write(ast.unparse(RemoveOverload().visit(stub)))
+        f.write(ast.unparse(stub))
 
 
 if __name__ == "__main__":

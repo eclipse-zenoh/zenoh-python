@@ -32,13 +32,8 @@ _RustHandler = (
 _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
-def unstable(original):
-    _WARNING = ".. warning:: This API has been marked as unstable: it works as advertised, but it may be changed in a future release."
-    if original.__doc__:
-        original.__doc__ += "\n" + _WARNING
-    else:
-        original.__doc__ = _WARNING
-    return original
+def _unstable(item: _T) -> _T:
+    """marker for unstable functionality"""
 
 @final
 class ZError(Exception): ...
@@ -357,7 +352,7 @@ class KeyExpr:
 _IntoKeyExpr = KeyExpr | str
 
 @final
-@unstable
+@_unstable
 class Liveliness:
     def declare_token(self, key_expr: _IntoKeyExpr) -> LivelinessToken:
         """Create a LivelinessToken for the given key expression."""
@@ -423,7 +418,7 @@ class Liveliness:
         """Create a Subscriber for liveliness changes matching the given key expression."""
 
 @final
-@unstable
+@_unstable
 class LivelinessToken:
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
@@ -494,7 +489,7 @@ class Publisher:
     @property
     def priority(self) -> Priority: ...
     @property
-    @unstable
+    @_unstable
     def reliability(self) -> Reliability: ...
     def put(
         self,
@@ -585,7 +580,7 @@ class Queryable(Generic[_H]):
     def __iter__(self) -> Never: ...
 
 @final
-@unstable
+@_unstable
 class Querier:
     """A querier that allows to send queries to a queryable.
     Queriers are automatically undeclared when dropped."""
@@ -654,7 +649,7 @@ class QueryTarget(Enum):
     DEFAULT = BEST_MATCHING
 
 @final
-@unstable
+@_unstable
 class Reliability(Enum):
     BEST_EFFORT = auto()
     RELIABLE = auto()
@@ -957,7 +952,7 @@ class Session:
     ) -> Publisher:
         """Create a Publisher for the given key expression."""
 
-    @unstable
+    @_unstable
     def declare_querier(
         self,
         key_expr: _IntoKeyExpr,

@@ -19,5 +19,5 @@ except ImportError:
     pass
 
 
-def unstable(original):
-    return original
+def _unstable(item):
+    return item
