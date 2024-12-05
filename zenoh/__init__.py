@@ -17,7 +17,3 @@ try:
     from . import ext
 except ImportError:
     pass
-
-
-def _unstable(item):
-    return item
