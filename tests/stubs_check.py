@@ -34,6 +34,8 @@ class CheckExported(ast.NodeVisitor):
         self.current_cls = None
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
+        if node.name == "_unstable":
+            return
         func = getattr(self.current_cls or self.module, node.name)
         if node.name.startswith("__") or node.name.endswith("serializer"):
             pass

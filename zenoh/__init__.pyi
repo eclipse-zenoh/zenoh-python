@@ -32,6 +32,9 @@ _RustHandler = (
 _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
+def _unstable(item: _T) -> _T:
+    """marker for unstable functionality"""
+
 @final
 class ZError(Exception): ...
 
@@ -330,6 +333,7 @@ class KeyExpr:
     def includes(self, other: _IntoKeyExpr) -> bool:
         """Returns true if self includes other, i.e. the set defined by self contains every key belonging to the set defined by other."""
 
+    @_unstable
     def relation_to(self, other: _IntoKeyExpr) -> SetIntersectionLevel:
         """Returns the relation between self and other from self's point of view (SetIntersectionLevel::Includes signifies that self includes other).
         Note that this is slower than keyexpr::intersects and keyexpr::includes, so you should favor these methods for most applications.
@@ -348,6 +352,7 @@ class KeyExpr:
 
 _IntoKeyExpr = KeyExpr | str
 
+@_unstable
 @final
 class Liveliness:
     def declare_token(self, key_expr: _IntoKeyExpr) -> LivelinessToken:
@@ -413,6 +418,7 @@ class Liveliness:
     ) -> Subscriber[None]:
         """Create a Subscriber for liveliness changes matching the given key expression."""
 
+@_unstable
 @final
 class LivelinessToken:
     def __enter__(self) -> Self: ...
@@ -484,6 +490,7 @@ class Publisher:
     @property
     def priority(self) -> Priority: ...
     @property
+    @_unstable
     def reliability(self) -> Reliability: ...
     def put(
         self,
@@ -573,9 +580,10 @@ class Queryable(Generic[_H]):
     @overload
     def __iter__(self) -> Never: ...
 
+@_unstable
 @final
 class Querier:
-    """A querier that allows to send queries to a queryable..
+    """A querier that allows to send queries to a queryable.
     Queriers are automatically undeclared when dropped."""
 
     def __enter__(self) -> Self: ...
@@ -642,6 +650,7 @@ class QueryTarget(Enum):
     DEFAULT = BEST_MATCHING
 
 @final
+@_unstable
 class Reliability(Enum):
     BEST_EFFORT = auto()
     RELIABLE = auto()
@@ -657,6 +666,7 @@ class Reply:
     @property
     def err(self) -> ReplyError | None: ...
     @property
+    @_unstable
     def replier_id(self) -> ZenohId | None: ...
 
 @final
@@ -944,6 +954,7 @@ class Session:
     ) -> Publisher:
         """Create a Publisher for the given key expression."""
 
+    @_unstable
     def declare_querier(
         self,
         key_expr: _IntoKeyExpr,
@@ -957,6 +968,7 @@ class Session:
     ) -> Querier:
         """Create a Querier for the given key expression."""
 
+    @_unstable
     def liveliness(self) -> Liveliness:
         """Obtain a Liveliness instance tied to this Zenoh session."""
 
@@ -971,6 +983,7 @@ class SessionInfo:
     def peers_zid(self) -> list[ZenohId]:
         """Return the ZenohId of the zenoh peers this process is currently connected to."""
 
+@_unstable
 @final
 class SetIntersectionLevel(Enum):
     DISJOINT = auto()
