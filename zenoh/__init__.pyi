@@ -352,7 +352,6 @@ class KeyExpr:
 
 _IntoKeyExpr = KeyExpr | str
 
-@_unstable
 @final
 class Liveliness:
     def declare_token(self, key_expr: _IntoKeyExpr) -> LivelinessToken:
@@ -418,7 +417,6 @@ class Liveliness:
     ) -> Subscriber[None]:
         """Create a Subscriber for liveliness changes matching the given key expression."""
 
-@_unstable
 @final
 class LivelinessToken:
     def __enter__(self) -> Self: ...
@@ -968,7 +966,6 @@ class Session:
     ) -> Querier:
         """Create a Querier for the given key expression."""
 
-    @_unstable
     def liveliness(self) -> Liveliness:
         """Obtain a Liveliness instance tied to this Zenoh session."""
 
