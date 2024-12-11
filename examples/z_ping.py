@@ -51,41 +51,10 @@ if __name__ == "__main__":
     import argparse
     import json
 
+    import common
+
     parser = argparse.ArgumentParser(prog="z_ping", description="zenoh get example")
-    parser.add_argument(
-        "--mode",
-        "-m",
-        dest="mode",
-        choices=["peer", "client"],
-        type=str,
-        help="The zenoh session mode.",
-    )
-    parser.add_argument(
-        "--connect",
-        "-e",
-        dest="connect",
-        metavar="ENDPOINT",
-        action="append",
-        type=str,
-        help="Endpoints to connect to.",
-    )
-    parser.add_argument(
-        "--listen",
-        "-l",
-        dest="listen",
-        metavar="ENDPOINT",
-        action="append",
-        type=str,
-        help="Endpoints to listen on.",
-    )
-    parser.add_argument(
-        "--config",
-        "-c",
-        dest="config",
-        metavar="FILE",
-        type=str,
-        help="A configuration file.",
-    )
+    common.add_config_arguments(parser)
     parser.add_argument(
         "--warmup",
         "-w",
@@ -110,18 +79,15 @@ if __name__ == "__main__":
         type=int,
         help="Sets the size of the payload to publish.",
     )
+    parser.add_argument(
+        "--no-multicast-scouting",
+        dest="no_multicast_scouting",
+        default=False,
+        action="store_true",
+        help="Disable multicast scouting.",
+    )
 
     args = parser.parse_args()
-    conf = (
-        zenoh.Config.from_file(args.config)
-        if args.config is not None
-        else zenoh.Config()
-    )
-    if args.mode is not None:
-        conf.insert_json5("mode", json.dumps(args.mode))
-    if args.connect is not None:
-        conf.insert_json5("connect/endpoints", json.dumps(args.connect))
-    if args.listen is not None:
-        conf.insert_json5("listen/endpoints", json.dumps(args.listen))
+    conf = common.get_config_from_args(args)
 
     main(conf, args.payload_size, args.warmup, args.samples)

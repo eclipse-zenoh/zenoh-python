@@ -32,35 +32,12 @@ if __name__ == "__main__":
     import argparse
     import json
 
+    import common
+
     parser = argparse.ArgumentParser(
         prog="z_put_float", description="zenoh put example"
     )
-    parser.add_argument(
-        "--mode",
-        "-m",
-        dest="mode",
-        choices=["peer", "client"],
-        type=str,
-        help="The zenoh session mode.",
-    )
-    parser.add_argument(
-        "--connect",
-        "-e",
-        dest="connect",
-        metavar="ENDPOINT",
-        action="append",
-        type=str,
-        help="Endpoints to connect to.",
-    )
-    parser.add_argument(
-        "--listen",
-        "-l",
-        dest="listen",
-        metavar="ENDPOINT",
-        action="append",
-        type=str,
-        help="Endpoints to listen on.",
-    )
+    common.add_config_arguments(parser)
     parser.add_argument(
         "--key",
         "-k",
@@ -77,26 +54,8 @@ if __name__ == "__main__":
         type=float,
         help="The payload to write.",
     )
-    parser.add_argument(
-        "--config",
-        "-c",
-        dest="config",
-        metavar="FILE",
-        type=str,
-        help="A configuration file.",
-    )
 
     args = parser.parse_args()
-    conf = (
-        zenoh.Config.from_file(args.config)
-        if args.config is not None
-        else zenoh.Config()
-    )
-    if args.mode is not None:
-        conf.insert_json5("mode", json.dumps(args.mode))
-    if args.connect is not None:
-        conf.insert_json5("connect/endpoints", json.dumps(args.connect))
-    if args.listen is not None:
-        conf.insert_json5("listen/endpoints", json.dumps(args.listen))
+    conf = common.get_config_from_args(args)
 
     main(conf, args.key, args.payload)
