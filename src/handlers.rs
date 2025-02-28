@@ -207,6 +207,8 @@ impl Drop for PythonCallback {
     }
 }
 
+// the generic type is not useful per se, it just there to make typing
+// prettier, e.g. to have `get` returning a `PyResult<HandlerImpl<Reply>>`
 pub(crate) enum HandlerImpl<T> {
     Rust(Py<Handler>, PhantomData<T>),
     Python(PyObject),
@@ -239,10 +241,7 @@ impl<T> ToPyObject for HandlerImpl<T> {
     }
 }
 
-impl<T: IntoRust> HandlerImpl<T>
-where
-    T::Into: IntoPython,
-{
+impl<T> HandlerImpl<T> {
     pub(crate) fn try_recv(&self, py: Python) -> PyResult<PyObject> {
         match self {
             Self::Rust(handler, _) => handler.borrow(py).try_recv(py),
@@ -258,11 +257,11 @@ where
     }
 }
 
-struct RustHandler<H: IntoRust, T: IntoRust>
+struct RustHandler<H: IntoRust, T: IntoPython>
 where
-    H::Into: IntoHandler<T::Into>,
+    H::Into: IntoHandler<T>,
 {
-    handler: <H::Into as IntoHandler<T::Into>>::Handler,
+    handler: <H::Into as IntoHandler<T>>::Handler,
     _phantom: PhantomData<T>,
 }
 
@@ -300,10 +299,7 @@ impl<E: fmt::Display> fmt::Display for DeadlineError<E> {
     }
 }
 
-impl<T: IntoRust> Receiver for RustHandler<DefaultHandler, T>
-where
-    T::Into: IntoPython,
-{
+impl<T: IntoPython> Receiver for RustHandler<DefaultHandler, T> {
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
@@ -325,10 +321,7 @@ where
     }
 }
 
-impl<T: IntoRust> Receiver for RustHandler<FifoChannel, T>
-where
-    T::Into: IntoPython,
-{
+impl<T: IntoPython> Receiver for RustHandler<FifoChannel, T> {
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
@@ -350,10 +343,7 @@ where
     }
 }
 
-impl<T: IntoRust> Receiver for RustHandler<RingChannel, T>
-where
-    T::Into: IntoPython,
-{
+impl<T: IntoPython> Receiver for RustHandler<RingChannel, T> {
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
@@ -375,14 +365,13 @@ where
     }
 }
 
-fn rust_handler<H: IntoRust, T: IntoRust>(
+fn rust_handler<H: IntoRust, T: IntoPython>(
     py: Python,
     into_handler: H,
-) -> (RustCallback<T::Into>, HandlerImpl<T>)
+) -> (RustCallback<T>, HandlerImpl<T::Into>)
 where
-    H::Into: IntoHandler<T::Into>,
-    <H::Into as IntoHandler<T::Into>>::Handler: Send + Sync,
-    T::Into: IntoPython,
+    H::Into: IntoHandler<T>,
+    <H::Into as IntoHandler<T>>::Handler: Send + Sync,
     RustHandler<H, T>: Receiver,
 {
     let (callback, handler) = into_handler.into_rust().into_handler();
@@ -418,13 +407,10 @@ fn python_callback<T: IntoPython>(callback: &Bound<PyAny>) -> PyResult<RustCallb
     })
 }
 
-pub(crate) fn into_handler<T: IntoRust>(
+pub(crate) fn into_handler<T: IntoPython>(
     py: Python,
     obj: Option<&Bound<PyAny>>,
-) -> PyResult<(impl IntoHandler<T::Into, Handler = HandlerImpl<T>>, bool)>
-where
-    T::Into: IntoPython,
-{
+) -> PyResult<(impl IntoHandler<T, Handler = HandlerImpl<T::Into>>, bool)> {
     let mut background = false;
     let Some(obj) = obj else {
         return Ok((rust_handler(py, DefaultHandler), background));
