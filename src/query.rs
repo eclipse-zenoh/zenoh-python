@@ -76,38 +76,53 @@ impl QueryConsolidation {
     }
 }
 
-wrapper!(zenoh::query::Query: Clone);
+option_wrapper!(zenoh::query::Query, "Dropped query");
 
 #[pymethods]
 impl Query {
-    #[getter]
-    fn selector(&self) -> Selector {
-        self.0.selector().into_owned().into()
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> &'a Bound<'py, Self> {
+        this
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        self.drop();
+        Ok(py.None())
     }
 
     #[getter]
-    fn key_expr(&self) -> KeyExpr {
-        self.0.key_expr().clone().into_owned().into()
+    fn selector(&self) -> PyResult<Selector> {
+        Ok(self.get_ref()?.selector().into_owned().into())
     }
 
     #[getter]
-    fn parameters(&self) -> Parameters {
-        self.0.parameters().clone().into_owned().into()
+    fn key_expr(&self) -> PyResult<KeyExpr> {
+        Ok(self.get_ref()?.key_expr().clone().into_owned().into())
     }
 
     #[getter]
-    fn payload(&self) -> Option<ZBytes> {
-        self.0.payload().cloned().map_into()
+    fn parameters(&self) -> PyResult<Parameters> {
+        Ok(self.get_ref()?.parameters().clone().into_owned().into())
     }
 
     #[getter]
-    fn encoding(&self) -> Option<Encoding> {
-        self.0.encoding().cloned().map_into()
+    fn payload(&self) -> PyResult<Option<ZBytes>> {
+        Ok(self.get_ref()?.payload().cloned().map_into())
     }
 
     #[getter]
-    fn attachment(&self) -> Option<ZBytes> {
-        self.0.attachment().cloned().map_into()
+    fn encoding(&self) -> PyResult<Option<Encoding>> {
+        Ok(self.get_ref()?.encoding().cloned().map_into())
+    }
+
+    #[getter]
+    fn attachment(&self) -> PyResult<Option<ZBytes>> {
+        Ok(self.get_ref()?.attachment().cloned().map_into())
     }
 
     // TODO timestamp
@@ -125,7 +140,7 @@ impl Query {
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
         let build = build!(
-            self.0.reply(key_expr, payload),
+            self.get_ref()?.reply(key_expr, payload),
             encoding,
             congestion_control,
             priority,
@@ -134,6 +149,7 @@ impl Query {
         );
         wait(py, build)
     }
+
     #[pyo3(signature = (payload, *, encoding = None))]
     fn reply_err(
         &self,
@@ -141,7 +157,7 @@ impl Query {
         #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
     ) -> PyResult<()> {
-        let build = build!(self.0.reply_err(payload), encoding);
+        let build = build!(self.get_ref()?.reply_err(payload), encoding);
         wait(py, build)
     }
 
@@ -156,7 +172,7 @@ impl Query {
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
         let build = build!(
-            self.0.reply_del(key_expr),
+            self.get_ref()?.reply_del(key_expr),
             congestion_control,
             priority,
             express,
@@ -165,12 +181,16 @@ impl Query {
         wait(py, build)
     }
 
-    fn __repr__(&self) -> String {
-        format!("{:?}", self.0)
+    fn drop(&mut self) {
+        Python::with_gil(|gil| gil.allow_threads(|| drop(self.0.take())));
     }
 
-    fn __str__(&self) -> String {
-        format!("{}", self.0)
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.get_ref()?))
+    }
+
+    fn __str__(&self) -> PyResult<String> {
+        Ok(format!("{}", self.get_ref()?))
     }
 }
 

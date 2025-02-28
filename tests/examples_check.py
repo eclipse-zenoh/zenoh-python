@@ -170,12 +170,12 @@ def test_z_querier_z_queryable():
         z_querier.errors.append("z_querier didn't get a response from z_queryable")
     queryableout = "".join(z_queryable.stdout)
     if not (
-        "Received Query 'demo/example/zenoh-python-queryable' with payload: [   0] value"
+        "Received Query 'demo/example/zenoh-python-queryable' with payload: '[   0] value'"
         in queryableout
     ):
         z_queryable.errors.append("z_queryable didn't catch query [0]")
     elif not (
-        "Received Query 'demo/example/zenoh-python-queryable' with payload: [   2] value"
+        "Received Query 'demo/example/zenoh-python-queryable' with payload: '[   2] value'"
         in queryableout
     ):
         z_queryable.errors.append("z_queryable didn't catch query [2]")
