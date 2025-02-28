@@ -17,32 +17,27 @@ import zenoh
 
 
 def main(conf: zenoh.Config, key: str, payload: str, complete: bool):
-    def queryable_callback(query):
-        print(
-            f">> [Queryable ] Received Query '{query.selector}'"
-            + (
-                f" with payload: {query.payload.to_string()}"
-                if query.payload is not None
-                else ""
-            )
-        )
-        query.reply(key, payload)
-
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
     print("Opening session...")
     with zenoh.open(conf) as session:
         print(f"Declaring Queryable on '{key}'...")
-        session.declare_queryable(key, queryable_callback, complete=complete)
+        queryable = session.declare_queryable(key, complete=complete)
 
         print("Press CTRL-C to quit...")
         while True:
-            try:
-                time.sleep(1)
-            except Exception as err:
-                print(err, flush=True)
-                raise
+            with queryable.recv() as query:
+                if query.payload is not None:
+                    print(
+                        f">> [Queryable ] Received Query '{query.selector}'"
+                        f" with payload: '{query.payload.to_string()}'"
+                    )
+                else:
+                    print(f">> [Queryable ] Received Query '{query.selector}'")
+                query.reply(key, payload)
+                # it's possible to call `query.drop()` after handling it
+                # instead of using a context manager
 
 
 # --- Command line argument parsing --- --- --- --- --- ---

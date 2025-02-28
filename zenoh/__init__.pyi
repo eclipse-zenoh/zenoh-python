@@ -509,6 +509,8 @@ class Publisher:
 class Query:
     """Structs received by a Queryable."""
 
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *_args, **_kwargs): ...
     @property
     def selector(self) -> Selector: ...
     @property
@@ -552,6 +554,7 @@ class Query:
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
         """
 
+    def drop(self): ...
     def __str__(self) -> str: ...
 
 @final
