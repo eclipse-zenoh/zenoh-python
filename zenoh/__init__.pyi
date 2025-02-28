@@ -554,7 +554,19 @@ class Query:
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
         """
 
-    def drop(self): ...
+    def drop(self):
+        """Drop the instance of a query.
+        The query will only be finalized when all query instances (one per queryable
+        matched) are dropped. Finalization is required to not have query hanging
+        on the querier side.
+
+        This method should be called after handling the query, as Python finalizers
+        are not reliable, especially when it comes to loop variables. It is also
+        possible, and advised, to use query context manager, which calls `drop` on
+        exit. Once a query is dropped, it's no more possible to use it, and its
+        methods will raise an exception.
+        """
+
     def __str__(self) -> str: ...
 
 @final
