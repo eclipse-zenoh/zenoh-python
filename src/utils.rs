@@ -37,14 +37,14 @@ impl<T, E: IntoPyErr> IntoPyResult<T> for Result<T, E> {
     }
 }
 
-pub(crate) trait IntoRust: Send + Sync + 'static {
+pub(crate) trait IntoRust: 'static {
     type Into;
     fn into_rust(self) -> Self::Into;
 }
 
 into_rust!(bool, Duration);
 
-pub(crate) trait IntoPython: Sized + Send + 'static {
+pub(crate) trait IntoPython: Sized + Send + Sync + 'static {
     type Into: IntoPy<PyObject>;
     fn into_python(self) -> Self::Into;
     fn into_pyobject(self, py: Python) -> PyObject {
