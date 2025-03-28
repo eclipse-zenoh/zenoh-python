@@ -26,7 +26,7 @@ This repository provides a Python binding based on the main [Zenoh implementatio
 ## How to install it
 
 The Eclipse zenoh-python library is available on [Pypi.org](https://pypi.org/project/eclipse-zenoh/).
-Install the latest available version using `pip`:
+Install the latest available version using `pip` in a [virtual environment](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/):
 
 ```bash
 pip install eclipse-zenoh
@@ -45,6 +45,13 @@ However, for `pip` to be able to build this source distribution, there are some 
 zenoh-python has been tested with Python 3.8, 3.9, 3.10, 3.11 and 3.12
 
 It relies on the [zenoh](https://github.com/eclipse-zenoh/zenoh/tree/main/zenoh) Rust API which require the full `std` library. See the list in [Rust Platform Support](https://doc.rust-lang.org/nightly/rustc/platform-support.html).
+
+### Enable zenoh features
+
+To enable some compilation features of the Rust library that are disabled by default, for example `shared-memory`, execute the following command:
+```bash
+pip install eclipse-zenoh --no-binary :all: --config-settings build-args="--features=zenoh/shared-memory"
+```
 
 -------------------------------
 
