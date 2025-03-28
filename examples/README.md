@@ -49,7 +49,7 @@ Typical usage:
 or
 
    ```bash
-      python3 z_put.py -k demo/example/test -v 'Hello World'
+      python3 z_put.py -k demo/example/test -p 'Hello World'
    ```
 
 ### z_pub
@@ -67,7 +67,7 @@ Typical usage:
 or
 
    ```bash
-      python3 z_pub.py -k demo/example/test -v 'Hello World'
+      python3 z_pub.py -k demo/example/test -p 'Hello World'
    ```
 
 ### z_sub
@@ -139,7 +139,7 @@ Typical usage:
 or
 
    ```bash
-      python3 z_queryable.py -k demo/example/queryable -v 'This is the result'
+      python3 z_queryable.py -k demo/example/queryable -p 'This is the result'
    ```
 
 ### z_storage
