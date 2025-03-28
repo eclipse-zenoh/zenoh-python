@@ -49,6 +49,7 @@ It relies on the [zenoh](https://github.com/eclipse-zenoh/zenoh/tree/main/zenoh)
 ### Enable zenoh features
 
 To enable some compilation features of the Rust library that are disabled by default, for example `shared-memory`, execute the following command:
+
 ```bash
 pip install eclipse-zenoh --no-binary :all: --config-settings build-args="--features=zenoh/shared-memory"
 ```
