@@ -40,7 +40,6 @@ def main(
 if __name__ == "__main__":
     import argparse
     import itertools
-    import json
 
     import common
 

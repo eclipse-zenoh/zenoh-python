@@ -32,7 +32,6 @@ def main(conf: zenoh.Config, key: str, timeout: float):
 # --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
     import argparse
-    import json
 
     import common
 

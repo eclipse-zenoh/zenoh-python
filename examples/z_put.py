@@ -28,7 +28,6 @@ def main(conf: zenoh.Config, key: str, payload: str):
 # --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
     import argparse
-    import json
 
     import common
 
