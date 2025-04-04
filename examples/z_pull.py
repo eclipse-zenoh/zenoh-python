@@ -22,7 +22,6 @@ def main(conf: zenoh.Config, key: str, size: int, interval: int):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Declaring Subscriber on '{key}'...")
         # Subscriber doesn't receive messages over the RingBuffer size.
         # The oldest message is overwritten by the latest one.
@@ -43,7 +42,6 @@ def main(conf: zenoh.Config, key: str, size: int, interval: int):
 # --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
     import argparse
-    import json
 
     import common
 
