@@ -25,7 +25,6 @@ def main(
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Declaring Publisher on '{key}'...")
         pub = session.declare_publisher(key)
 

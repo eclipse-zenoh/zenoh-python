@@ -22,10 +22,8 @@ def main(conf: zenoh.Config, key: str):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Declaring LivelinessToken on '{key}'...")
         with session.liveliness().declare_token(key) as token:
-
             print("Press CTRL-C to quit...")
             while True:
                 time.sleep(1)

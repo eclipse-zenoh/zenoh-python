@@ -22,7 +22,6 @@ def main(conf: zenoh.Config, key: str):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Declaring Subscriber on '{key}'...")
 
         def listener(sample: zenoh.Sample):

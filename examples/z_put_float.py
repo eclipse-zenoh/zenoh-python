@@ -21,7 +21,6 @@ def main(conf: zenoh.Config, key: str, payload: float):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Putting Data ('{key}': '{payload}')...")
         # Refer to z_bytes.py to see how to serialize different types of message
         session.put(key, z_serialize(payload))

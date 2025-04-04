@@ -20,7 +20,6 @@ def main(conf: zenoh.Config, key: str, history: bool):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Declaring Liveliness Subscriber on '{key}'...")
         with session.liveliness().declare_subscriber(key, history=history) as sub:
             for sample in sub:
