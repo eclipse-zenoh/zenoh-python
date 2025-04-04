@@ -74,7 +74,7 @@ def get_config_from_args(args) -> zenoh.Config:
 
     for c in args.cfg:
         try:
-            [key, value] = c.split(":")
+            [key, value] = c.split(":", 1)
         except:
             print(f"`--cfg` argument: expected KEY:VALUE pair, got {c}")
             raise
