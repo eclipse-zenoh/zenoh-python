@@ -22,7 +22,6 @@ def main(conf: zenoh.Config, key: str):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Declaring Subscriber on '{key}'...")
 
         def listener(sample: zenoh.Sample):
@@ -40,7 +39,6 @@ def main(conf: zenoh.Config, key: str):
 # --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
     import argparse
-    import json
 
     import common
 

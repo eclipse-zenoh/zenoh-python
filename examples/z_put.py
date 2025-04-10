@@ -20,7 +20,6 @@ def main(conf: zenoh.Config, key: str, payload: str):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Putting Data ('{key}': '{payload}')...")
         # Refer to z_bytes.py to see how to serialize different types of message
         session.put(key, payload)
@@ -29,7 +28,6 @@ def main(conf: zenoh.Config, key: str, payload: str):
 # --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
     import argparse
-    import json
 
     import common
 

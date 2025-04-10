@@ -25,7 +25,6 @@ def main(
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Declaring Publisher on '{key}'...")
         pub = session.declare_publisher(key)
 
@@ -41,7 +40,6 @@ def main(
 if __name__ == "__main__":
     import argparse
     import itertools
-    import json
 
     import common
 
