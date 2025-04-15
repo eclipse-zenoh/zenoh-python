@@ -79,13 +79,6 @@ if __name__ == "__main__":
         type=int,
         help="Sets the size of the payload to publish.",
     )
-    parser.add_argument(
-        "--no-multicast-scouting",
-        dest="no_multicast_scouting",
-        default=False,
-        action="store_true",
-        help="Disable multicast scouting.",
-    )
 
     args = parser.parse_args()
     conf = common.get_config_from_args(args)
