@@ -279,6 +279,11 @@ impl Queryable {
     }
 
     #[getter]
+    fn key_expr(&self) -> PyResult<KeyExpr> {
+        Ok(self.get_ref()?.key_expr().clone().into())
+    }
+
+    #[getter]
     fn handler(&self, py: Python) -> PyResult<PyObject> {
         Ok(self.get_ref()?.handler().to_object(py))
     }
