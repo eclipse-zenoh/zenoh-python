@@ -20,7 +20,6 @@ def main(conf: zenoh.Config, key: str, timeout: float):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         print(f"Sending Liveliness Query '{key}'...")
         replies = session.liveliness().get(key, timeout=timeout)
         for reply in replies:
@@ -33,7 +32,6 @@ def main(conf: zenoh.Config, key: str, timeout: float):
 # --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
     import argparse
-    import json
 
     import common
 
