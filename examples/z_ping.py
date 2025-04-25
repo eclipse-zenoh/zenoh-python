@@ -22,7 +22,6 @@ def main(conf: zenoh.Config, payload_size: int, warmup: int, samples: int):
 
     print("Opening session...")
     with zenoh.open(conf) as session:
-
         sub = session.declare_subscriber("test/pong")
         pub = session.declare_publisher(
             "test/ping", congestion_control=zenoh.CongestionControl.BLOCK
@@ -49,7 +48,6 @@ def main(conf: zenoh.Config, payload_size: int, warmup: int, samples: int):
 # --- Command line argument parsing --- --- --- --- --- ---
 if __name__ == "__main__":
     import argparse
-    import json
 
     import common
 
