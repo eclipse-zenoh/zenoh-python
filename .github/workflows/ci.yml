@@ -29,6 +29,10 @@ jobs:
         with:
           options: "--check --diff -C"
 
+      - name: Install rust components
+        run: |
+          rustup component add clippy rustfmt
+
       - name: Run rustfmt
         run: cargo fmt --check -- --config "unstable_features=true,imports_granularity=Crate,group_imports=StdExternalCrate"
 
