@@ -92,8 +92,8 @@ downcast_or_new!(Encoding => Option<String>);
 #[pymethods]
 impl Encoding {
     #[new]
-    fn new(s: Option<String>) -> PyResult<Self> {
-        Ok(s.map_into().map(Self).unwrap_or_default())
+    fn new(s: Option<String>) -> Self {
+        s.map_into().map(Self).unwrap_or_default()
     }
 
     fn with_schema(&self, schema: String) -> Self {
