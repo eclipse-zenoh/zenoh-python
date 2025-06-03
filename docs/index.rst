@@ -74,3 +74,10 @@ module zenoh.handlers
 .. automodule:: zenoh.handlers
     :members:
     :undoc-members:
+
+module zenoh.ext
+================
+
+.. automodule:: zenoh.ext
+    :members:
+    :undoc-members:

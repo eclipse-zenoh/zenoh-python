@@ -44,19 +44,27 @@ class ZDeserializeError(Exception):
     pass
 
 def z_serialize(obj: Any) -> ZBytes:
-    """Serialize an object of supported type according to the `Zenoh serialization format <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Serialization.md>`.
+    """Serialize an object of supported type according to the `Zenoh serialization format <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Serialization.md>`_.
+
     Supported types are:
-    - UInt8, UInt16, Uint32, UInt64, UInt128, Int8, Int16, Int32, Int64, Int128, int (handled as int32), Float32, Float64, float (handled as Float64), bool;
-    - Str, Bytes, ByteArray;
-    - List, Dict, Set, FrozenSet and Tuple of supported types.
+
+    * UInt8, UInt16, Uint32, UInt64, UInt128, Int8, Int16, Int32, Int64, Int128, int (handled as int32), Float32, Float64, float (handled as Float64), bool;
+
+    * Str, Bytes, ByteArray;
+
+    * List, Dict, Set, FrozenSet and Tuple of supported types.
     """
     pass
 
 def z_deserialize(tp: type[_T], zbytes: ZBytes) -> _T:
-    """Deserialize into an object of supported type according to the `Zenoh serialization format <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Serialization.md>`.
+    """Deserialize into an object of supported type according to the `Zenoh serialization format <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Serialization.md>`_.
+
     Supported types are:
-    - UInt8, UInt16, Uint32, UInt64, UInt128, Int8, Int16, Int32, Int64, Int128, int (handled as int32), Float32, Float64, float (handled as Float64), bool;
-    - Str, Bytes, ByteArray;
-    - List, Dict, Set, FrozenSet and Tuple of supported types.
+
+    * UInt8, UInt16, Uint32, UInt64, UInt128, Int8, Int16, Int32, Int64, Int128, int (handled as int32), Float32, Float64, float (handled as Float64), bool;
+
+    * Str, Bytes, ByteArray;
+
+    * List, Dict, Set, FrozenSet and Tuple of supported types.
     """
     pass
