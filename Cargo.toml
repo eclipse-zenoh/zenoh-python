@@ -35,6 +35,7 @@ crate-type = ["cdylib"]
 
 [features]
 default = ["zenoh/default", "zenoh-ext"]
+zenoh-ext = ["dep:zenoh-ext", "zenoh-ext/unstable", "zenoh-ext/internal"]
 
 [badges]
 maintenance = { status = "actively-developed" }

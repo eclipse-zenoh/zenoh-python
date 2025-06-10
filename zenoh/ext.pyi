@@ -1,8 +1,36 @@
-from typing import Any, TypeVar
+from collections.abc import Callable
+from typing import Any, Generic, Literal, Never, Self, TypeVar, final, overload
 
-from zenoh import ZBytes
+from zenoh import (
+    CongestionControl,
+    Encoding,
+    EntityGlobalId,
+    Handler,
+    KeyExpr,
+    Priority,
+    Reliability,
+    Sample,
+    Subscriber,
+    ZBytes,
+    handlers,
+)
+from zenoh.zenoh import Session
 
 _T = TypeVar("_T")
+_H = TypeVar("_H")
+
+_RustHandler = (
+    handlers.DefaultHandler[_T] | handlers.FifoChannel[_T] | handlers.RingChannel[_T]
+)
+_PythonCallback = Callable[[_T], Any]
+_PythonHandler = tuple[_PythonCallback[_T], _H]
+
+def _unstable(item: _T) -> _T:
+    """marker for unstable functionality"""
+
+_IntoEncoding = Encoding | str
+_IntoKeyExpr = KeyExpr | str
+_IntoZBytes = Any
 
 class Int8(int):
     """int subclass enabling to (de)serialize 8bit signed integer."""
@@ -45,3 +73,278 @@ class ZDeserializeError(Exception):
 
 def z_serialize(obj: Any) -> ZBytes: ...
 def z_deserialize(tp: type[_T], zbytes: ZBytes) -> _T: ...
+@_unstable
+@final
+class AdvancedPublisher:
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *_args, **_kwargs): ...
+    @property
+    def key_expr(self) -> KeyExpr: ...
+    @property
+    def encoding(self) -> Encoding: ...
+    @property
+    def congestion_control(self) -> CongestionControl: ...
+    @property
+    def priority(self) -> Priority: ...
+    def put(
+        self,
+        payload: _IntoZBytes,
+        *,
+        encoding: _IntoEncoding | None = None,
+        attachment: _IntoZBytes | None = None,
+    ): ...
+    def delete(self, *, attachment: _IntoZBytes | None = None): ...
+    def undeclare(self): ...
+
+@_unstable
+@final
+class AdvancedSubscriber(Generic[_H]):
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *_args, **_kwargs): ...
+    @property
+    def key_expr(self) -> KeyExpr: ...
+    @property
+    def handler(self) -> _H: ...
+    @overload
+    def sample_miss_listener(
+        self, handler: _RustHandler[Miss] | None = None
+    ) -> SampleMissListener[Handler[Miss]]:
+        """Declares a listener to detect missed samples.
+
+        Missed samples can only be detected from `AdvancedPublisher` that enable `sample_miss_detection`.
+        """
+
+    @overload
+    def sample_miss_listener(
+        self, handler: _PythonHandler[Miss, _H]
+    ) -> SampleMissListener[_H]:
+        """Declares a listener to detect missed samples.
+
+        Missed samples can only be detected from `AdvancedPublisher` that enable `sample_miss_detection`.
+        """
+
+    @overload
+    def sample_miss_listener(
+        self, handler: _PythonCallback[Miss]
+    ) -> SampleMissListener[None]:
+        """Declares a listener to detect missed samples.
+
+        Missed samples can only be detected from `AdvancedPublisher` that enable `sample_miss_detection`.
+        """
+
+    @overload
+    def detect_publishers(
+        self,
+        handler: _RustHandler[Sample] | None = None,
+        *,
+        history: bool | None = None,
+    ) -> Subscriber[Handler[Sample]]:
+        """Declares a listener to detect matching publishers.
+
+        Only `AdvancedPublisher` that enable `publisher_detection` can be detected.
+        """
+
+    @overload
+    def detect_publishers(
+        self, handler: _PythonHandler[Sample, _H], *, history: bool | None = None
+    ) -> Subscriber[_H]:
+        """Declares a listener to detect matching publishers.
+
+        Only `AdvancedPublisher` that enable `publisher_detection` can be detected.
+        """
+
+    @overload
+    def detect_publishers(
+        self, handler: _PythonCallback[Sample], *, history: bool | None = None
+    ) -> Subscriber[None]:
+        """Declares a listener to detect matching publishers.
+
+        Only `AdvancedPublisher` that enable `publisher_detection` can be detected.
+        """
+
+    @property
+    def undeclare(self): ...
+    @overload
+    def try_recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample | None: ...
+    @overload
+    def try_recv(self) -> Never: ...
+    @overload
+    def recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample: ...
+    @overload
+    def recv(self) -> Never: ...
+    @overload
+    def __iter__(self: AdvancedSubscriber[Handler[Sample]]) -> Handler[Sample]: ...
+    @overload
+    def __iter__(self) -> Never: ...
+
+@_unstable
+@final
+class CacheConfig:
+    def __new__(
+        cls,
+        max_samples: int | None = None,
+        *,
+        replies_config: RepliesConfig | None = None,
+    ) -> Self:
+        """
+        :param max_samples: specify how many samples to keep for each resource, default to 1
+        :param replies_config: the QoS to apply to replies
+        """
+
+@_unstable
+@final
+class HistoryConfig:
+    def __new__(
+        cls,
+        *,
+        detect_late_publishers: bool | None = None,
+        max_samples: int | None = None,
+        max_age: float | int | None = None,
+    ) -> Self:
+        """
+        :param detect_late_publishers: enable detection of late joiner publishers and query for their historical data;
+            late joiner detection can only be achieved for `AdvancedPublisher` that enable `publisher_detection`
+            history can only be retransmitted by `AdvancedPublisher` that enable `cache`
+        :param max_samples: specify how many samples to query for each resource
+        :param max_age: specify the maximum age of samples to query in seconds
+        """
+
+@_unstable
+@final
+class Miss:
+    @property
+    def source(self) -> EntityGlobalId:
+        """The source of missed samples."""
+
+    @property
+    def nb(self) -> int:
+        """The number of missed samples."""
+
+@_unstable
+@final
+class MissDetectionConfig:
+    @overload
+    def __new__(cls) -> Self: ...
+    @overload
+    def __new__(cls, *, heartbeat: float | int) -> Self:
+        """
+        :param heartbeat: period in seconds, allow last sample miss detection through periodic heartbeat;
+            periodically send the last published Sample's sequence number to allow last sample recovery
+            `AdvancedSubscriber`(crate::AdvancedSubscriber) can recover the last sample with the `heartbeat` option
+        """
+
+    @overload
+    def __new__(cls, sporadic_heartbeat: float | int) -> Self:
+        """
+        :param sporadic_heartbeat: period in seconds, allow last sample miss detection through sporadic heartbeat;
+            each period, the last published Sample's sequence number is sent with `CongestionControl.Block` but only if
+            it has changed since the last period.
+        """
+
+@_unstable
+@final
+class RecoveryConfig:
+    @overload
+    def __new__(cls) -> Self: ...
+    @overload
+    def __new__(cls, *, periodic_queries: float | int) -> Self:
+        """
+        :param periodic_queries: enable periodic queries for not yet received Samples and specify their period;
+            it allows retrieving the last Sample(s) if the last Sample(s) is/are lost,
+            so it is useful for sporadic publications but useless for periodic publications
+            with a period smaller or equal to this period
+            retransmission can only be achieved by `AdvancedPublisher` that enable `cache` and `sample_miss_detection`
+        """
+
+    @overload
+    def __new__(cls, *, heartbeat: Literal[True]) -> Self:
+        """
+        :param heartbeat: subscribe to heartbeats of `AdvancedPublisher`;
+            it allows receiving the last published Sample's sequence number and check for misses
+            heartbeat subscriber must be paired with `AdvancedPublishers` that enable `cache` and
+            `sample_miss_detection` with `heartbeat` or `sporadic_heartbeat`
+        """
+
+@_unstable
+@final
+class RepliesConfig:
+    def __new__(
+        cls,
+        *,
+        congestion_control: CongestionControl | None = None,
+        priority: Priority | None = None,
+        express: bool | None = None,
+    ) -> Self: ...
+
+@_unstable
+@final
+class SampleMissListener(Generic[_H]):
+    @property
+    def undeclare(self): ...
+    @overload
+    def try_recv(self: SampleMissListener[Handler[Miss]]) -> Miss | None: ...
+    @overload
+    def try_recv(self) -> Never: ...
+    @overload
+    def recv(self: SampleMissListener[Handler[Miss]]) -> Miss: ...
+    @overload
+    def recv(self) -> Never: ...
+    @overload
+    def __iter__(self: SampleMissListener[Handler[Miss]]) -> Handler[Miss]: ...
+    @overload
+    def __iter__(self) -> Never: ...
+
+@_unstable
+def declare_advanced_publisher(
+    session: Session,
+    key_expr: _IntoKeyExpr,
+    *,
+    encoding: _IntoEncoding | None = None,
+    congestion_control: CongestionControl | None = None,
+    priority: Priority | None = None,
+    express: bool | None = None,
+    reliability: Reliability | None = None,
+    cache: CacheConfig | int | None = None,
+    sample_miss_detection: MissDetectionConfig | None = None,
+    publisher_detection: bool | None = None,
+) -> AdvancedPublisher:
+    """Create an AdvancedPublisher for the given key expression."""
+
+@_unstable
+@overload
+def declare_advanced_subscriber(
+    session: Session,
+    key_expr: _IntoKeyExpr,
+    handler: _RustHandler[Sample] | None = None,
+    *,
+    history: HistoryConfig | None = None,
+    recovery: RecoveryConfig | None = None,
+    subscriber_detection: bool | None = None,
+) -> AdvancedSubscriber[Handler[Sample]]:
+    """Create an AdvancedSubscriber for the given key expression."""
+
+@_unstable
+@overload
+def declare_advanced_subscriber(
+    session: Session,
+    key_expr: _IntoKeyExpr,
+    handler: _PythonHandler[Sample, _H],
+    *,
+    history: HistoryConfig | None = None,
+    recovery: RecoveryConfig | None = None,
+    subscriber_detection: bool | None = None,
+) -> AdvancedSubscriber[_H]:
+    """Create an AdvancedSubscriber for the given key expression."""
+
+@_unstable
+@overload
+def declare_advanced_subscriber(
+    session: Session,
+    key_expr: _IntoKeyExpr,
+    handler: _PythonCallback[Sample],
+    *,
+    history: HistoryConfig | None = None,
+    recovery: RecoveryConfig | None = None,
+    subscriber_detection: bool | None = None,
+) -> AdvancedSubscriber[None]:
+    """Create an AdvancedSubscriber for the given key expression."""
