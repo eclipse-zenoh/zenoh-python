@@ -18,7 +18,7 @@ use crate::{
     bytes::{Encoding, ZBytes},
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
-    macros::{build, downcast_or_new, import, option_wrapper, py_static, try_import, wrapper},
+    macros::{build, import, option_wrapper, py_static, try_import, wrapper},
     pubsub::Subscriber,
     qos::{CongestionControl, Priority, Reliability},
     sample::Sample,
@@ -594,7 +594,6 @@ impl AdvancedSubscriber {
 }
 
 wrapper!(zenoh_ext::CacheConfig: Clone);
-downcast_or_new!(CacheConfig => Option<usize>, None);
 
 #[pymethods]
 impl CacheConfig {
@@ -634,12 +633,12 @@ wrapper!(zenoh_ext::Miss);
 impl Miss {
     #[getter]
     fn source(&self) -> EntityGlobalId {
-        self.source().into()
+        self.0.source().into()
     }
 
     #[getter]
-    fn nb(&self) -> usize {
-        self.nb()
+    fn nb(&self) -> u32 {
+        self.0.nb()
     }
 }
 
@@ -745,7 +744,7 @@ impl SampleMissListener {
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (session, key_expr, *, encoding = None, congestion_control = None, priority = None, express = None, reliability = None, cache = None, sample_miss_detection = None, publisher_detection = None))]
-fn declare_publisher(
+pub(crate) fn declare_advanced_publisher(
     py: Python,
     session: &Session,
     #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
@@ -777,7 +776,7 @@ fn declare_publisher(
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (session, key_expr, handler = None, *, history = None, recovery = None, subscriber_detection = None))]
-fn declare_subscriber(
+pub(crate) fn declare_advanced_subscriber(
     session: &Session,
     py: Python,
     #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,

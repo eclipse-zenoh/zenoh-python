@@ -80,7 +80,11 @@ pub(crate) mod zenoh {
     #[pymodule]
     mod _ext {
         #[pymodule_export]
-        use crate::ext::{z_deserialize, z_serialize};
+        use crate::ext::{
+            declare_advanced_publisher, declare_advanced_subscriber, z_deserialize, z_serialize,
+            AdvancedPublisher, AdvancedSubscriber, CacheConfig, HistoryConfig, Miss,
+            MissDetectionConfig, RecoveryConfig, RepliesConfig, SampleMissListener,
+        };
         #[pymodule_export]
         use crate::ZDeserializeError;
     }

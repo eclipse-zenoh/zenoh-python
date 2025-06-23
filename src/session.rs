@@ -313,5 +313,7 @@ impl EntityGlobalId {
         self.0.eid()
     }
 
-    // TODO __repr__
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }

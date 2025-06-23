@@ -304,7 +304,7 @@ def declare_advanced_publisher(
     priority: Priority | None = None,
     express: bool | None = None,
     reliability: Reliability | None = None,
-    cache: CacheConfig | int | None = None,
+    cache: CacheConfig | None = None,
     sample_miss_detection: MissDetectionConfig | None = None,
     publisher_detection: bool | None = None,
 ) -> AdvancedPublisher:
