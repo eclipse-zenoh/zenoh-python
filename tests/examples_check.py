@@ -356,3 +356,31 @@ def test_z_sub_thr_z_pub_thr():
 
     assert not sub_thr.errors
     assert not pub_thr.errors
+
+
+def test_z_advanced_pub_z_advanced_sub():
+    """Test z_advanced_pub & z_advanced_sub."""
+    ## Run z_advanced_pub and z_advanced_sub
+    ## z_advanced_pub: Start publishing messages
+    pub = Pyrun("z_advanced_pub.py", ["--history=10"])
+    time.sleep(5) # wait 5 seconds to ensure that we miss few messages
+    sub = Pyrun("z_advanced_sub.py", [])
+    time.sleep(5)
+
+    if error := pub.interrupt():
+        pub.dbg()
+        pub.errors.append(error)
+    if error := sub.interrupt():
+        sub.dbg()
+        sub.errors.append(error)
+
+    sub_out = "".join(sub.stdout)
+    for i in range(0, 8):
+        if not (
+            F"Received SampleKind.PUT ('demo/example/zenoh-python-pub': '[   {i}] Pub from Python!')"
+            in sub_out
+        ):
+            sub.errors.append(F"z_advanced_sub didn't catch the {i}-th z_advanced_pub message")
+
+    assert not pub.errors
+    assert not sub.errors

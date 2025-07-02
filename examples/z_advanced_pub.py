@@ -35,6 +35,7 @@ def main(conf: zenoh.Config, key: str, payload: str, history: int):
 
         print("Press CTRL-C to quit...")
         for idx in itertools.count():
+            time.sleep(1)
             buf = f"[{idx:4d}] {payload}"
             print(f"Putting Data ('{key}': '{buf}')...")
             pub.put(buf)
@@ -47,7 +48,7 @@ if __name__ == "__main__":
 
     import common
 
-    parser = argparse.ArgumentParser(prog="z_pub", description="zenoh pub example")
+    parser = argparse.ArgumentParser(prog="z_advanced_pub", description="zenoh advanced pub example")
     common.add_config_arguments(parser)
     parser.add_argument(
         "--key",
@@ -76,4 +77,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     conf = common.get_config_from_args(args)
 
-    main(conf, args.key, args.payload, args.history, args.iter, args.interval)
+    main(conf, args.key, args.payload, args.history)
