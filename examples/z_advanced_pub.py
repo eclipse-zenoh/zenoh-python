@@ -48,7 +48,9 @@ if __name__ == "__main__":
 
     import common
 
-    parser = argparse.ArgumentParser(prog="z_advanced_pub", description="zenoh advanced pub example")
+    parser = argparse.ArgumentParser(
+        prog="z_advanced_pub", description="zenoh advanced pub example"
+    )
     common.add_config_arguments(parser)
     parser.add_argument(
         "--key",

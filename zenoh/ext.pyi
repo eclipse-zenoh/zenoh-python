@@ -186,7 +186,6 @@ class AdvancedSubscriber(Generic[_H]):
         Only `AdvancedPublisher` that enable `publisher_detection` can be detected.
         """
 
-    @property
     def undeclare(self): ...
     @overload
     def try_recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample | None: ...
