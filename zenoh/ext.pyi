@@ -203,34 +203,36 @@ class AdvancedSubscriber(Generic[_H]):
 @_unstable
 @final
 class CacheConfig:
+    """
+    :param max_samples: specify how many samples to keep for each resource, default to 1
+    :param replies_config: the QoS to apply to replies
+    """
+
     def __new__(
         cls,
         max_samples: int | None = None,
         *,
         replies_config: RepliesConfig | None = None,
-    ) -> Self:
-        """
-        :param max_samples: specify how many samples to keep for each resource, default to 1
-        :param replies_config: the QoS to apply to replies
-        """
+    ) -> Self: ...
 
 @_unstable
 @final
 class HistoryConfig:
+    """
+    :param detect_late_publishers: enable detection of late joiner publishers and query for their historical data;
+        late joiner detection can only be achieved for `AdvancedPublisher` that enable `publisher_detection`
+        history can only be retransmitted by `AdvancedPublisher` that enable `cache`
+    :param max_samples: specify how many samples to query for each resource
+    :param max_age: specify the maximum age of samples to query in seconds
+    """
+
     def __new__(
         cls,
         *,
         detect_late_publishers: bool | None = None,
         max_samples: int | None = None,
         max_age: float | int | None = None,
-    ) -> Self:
-        """
-        :param detect_late_publishers: enable detection of late joiner publishers and query for their historical data;
-            late joiner detection can only be achieved for `AdvancedPublisher` that enable `publisher_detection`
-            history can only be retransmitted by `AdvancedPublisher` that enable `cache`
-        :param max_samples: specify how many samples to query for each resource
-        :param max_age: specify the maximum age of samples to query in seconds
-        """
+    ) -> Self: ...
 
 @_unstable
 @final
@@ -246,47 +248,48 @@ class Miss:
 @_unstable
 @final
 class MissDetectionConfig:
-    @overload
-    def __new__(cls) -> Self: ...
-    @overload
-    def __new__(cls, *, heartbeat: float | int) -> Self:
-        """
-        :param heartbeat: period in seconds, allow last sample miss detection through periodic heartbeat;
-            periodically send the last published Sample's sequence number to allow last sample recovery
-            `AdvancedSubscriber`(crate::AdvancedSubscriber) can recover the last sample with the `heartbeat` option
-        """
+    """
+    :param heartbeat: period in seconds, allow last sample miss detection through periodic heartbeat;
+        periodically send the last published Sample's sequence number to allow last sample recovery.
+        `AdvancedSubscriber can only recover the last sample with the `heartbeat` option enabled.
 
-    @overload
-    def __new__(cls, sporadic_heartbeat: float | int) -> Self:
-        """
-        :param sporadic_heartbeat: period in seconds, allow last sample miss detection through sporadic heartbeat;
-            each period, the last published Sample's sequence number is sent with `CongestionControl.Block` but only if
-            it has changed since the last period.
-        """
+        **This option can not be enabled simultaneously with `sporadic_heartbeat`.**
+
+    :param sporadic_heartbeat: period in seconds, allow last sample miss detection through sporadic heartbeat;
+        each period, the last published Sample's sequence number is sent with `CongestionControl.Block` but only if
+        it has changed since the last period.
+        `AdvancedSubscriber can only recover the last sample with the `heartbeat` option enabled.
+
+        **This option can not be enabled simultaneously with `heartbeat`.**
+    """
+
+    def __new__(
+        cls, *, heartbeat: float | int | None, sporadic_heartbeat: float | int | None
+    ) -> Self: ...
 
 @_unstable
 @final
 class RecoveryConfig:
-    @overload
-    def __new__(cls) -> Self: ...
-    @overload
-    def __new__(cls, *, periodic_queries: float | int) -> Self:
-        """
-        :param periodic_queries: enable periodic queries for not yet received Samples and specify their period;
-            it allows retrieving the last Sample(s) if the last Sample(s) is/are lost,
-            so it is useful for sporadic publications but useless for periodic publications
-            with a period smaller or equal to this period
-            retransmission can only be achieved by `AdvancedPublisher` that enable `cache` and `sample_miss_detection`
-        """
+    """
+    :param periodic_queries: enable periodic queries for not yet received Samples and specify their period;
+        it allows retrieving the last Sample(s) if the last Sample(s) is/are lost,
+        so it is useful for sporadic publications but useless for periodic publications
+        with a period smaller or equal to this period.
+        Retransmission can only be achieved by `AdvancedPublisher` that enable `cache` and `sample_miss_detection`.
 
-    @overload
-    def __new__(cls, *, heartbeat: Literal[True]) -> Self:
-        """
-        :param heartbeat: subscribe to heartbeats of `AdvancedPublisher`;
-            it allows receiving the last published Sample's sequence number and check for misses
-            heartbeat subscriber must be paired with `AdvancedPublishers` that enable `cache` and
-            `sample_miss_detection` with `heartbeat` or `sporadic_heartbeat`
-        """
+        **This option can not be enabled simultaneously with `heartbeat`.**
+
+    :param heartbeat: subscribe to heartbeats of `AdvancedPublisher`;
+        it allows receiving the last published Sample's sequence number and check for misses.
+        Heartbeat subscriber must be paired with `AdvancedPublishers` that enable `cache` and
+        `sample_miss_detection` with `heartbeat` or `sporadic_heartbeat`.
+
+        **This option can not be enabled simultaneously with `periodic_queries`.**
+    """
+
+    def __new__(
+        cls, *, periodic_queries: float | int | None, heartbeat: Literal[True] | None
+    ) -> Self: ...
 
 @_unstable
 @final
@@ -302,7 +305,6 @@ class RepliesConfig:
 @_unstable
 @final
 class SampleMissListener(Generic[_H]):
-    @property
     def undeclare(self): ...
     @overload
     def try_recv(self: SampleMissListener[Handler[Miss]]) -> Miss | None: ...
