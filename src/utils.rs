@@ -20,6 +20,22 @@ use crate::{
     ZError,
 };
 
+pub(crate) trait IntoResult<T, E> {
+    fn into_result(self) -> Result<T, E>;
+}
+
+impl<T, E> IntoResult<T, E> for T {
+    fn into_result(self) -> Result<T, E> {
+        Ok(self)
+    }
+}
+
+impl<T, E> IntoResult<T, E> for Result<T, E> {
+    fn into_result(self) -> Result<T, E> {
+        self
+    }
+}
+
 pub(crate) trait IntoPyErr {
     fn into_pyerr(self) -> PyErr;
 }
@@ -42,7 +58,7 @@ pub(crate) trait IntoRust: 'static {
     fn into_rust(self) -> Self::Into;
 }
 
-into_rust!(bool, Duration);
+into_rust!(bool, usize, f64, Duration);
 
 pub(crate) trait IntoPython: Sized + Send + Sync + 'static {
     type Into: IntoPy<PyObject>;
@@ -105,7 +121,7 @@ pub(crate) fn wait<T: Send>(
     py.allow_threads(|| resolve.wait()).into_pyres()
 }
 
-pub(crate) fn timeout(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
+pub(crate) fn duration(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
     if obj.is_none() {
         return Ok(None);
     }

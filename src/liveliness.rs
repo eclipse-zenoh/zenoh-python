@@ -11,7 +11,7 @@ use crate::{
     macros::{build, option_wrapper},
     pubsub::Subscriber,
     query::Reply,
-    utils::{timeout, wait, MapInto},
+    utils::{duration, wait, MapInto},
 };
 
 #[pyclass]
@@ -53,7 +53,7 @@ impl Liveliness {
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
-        #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
+        #[pyo3(from_py_with = "duration")] timeout: Option<Duration>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let (handler, _) = into_handler(py, handler)?;
         let liveliness = self.0.liveliness();

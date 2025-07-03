@@ -12,23 +12,21 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Generic, Literal, Never, Self, TypeVar, final, overload
+from typing import Any, Generic, Never, Self, TypeVar, final, overload
 
 from . import handlers as handlers
 from .handlers import Handler as Handler
 
 _T = TypeVar("_T")
 _H = TypeVar("_H")
-_F = TypeVar("_F", bound=Callable)
 
 _RustHandler = (
     handlers.DefaultHandler[_T] | handlers.FifoChannel[_T] | handlers.RingChannel[_T]
 )
-
 _PythonCallback = Callable[[_T], Any]
 _PythonHandler = tuple[_PythonCallback[_T], _H]
 
@@ -303,6 +301,19 @@ class Encoding:
     Constant alias for string: "video/vp9"."""
 
 _IntoEncoding = Encoding | str
+
+EntityId = int
+
+@_unstable
+@final
+class EntityGlobalId:
+    @property
+    def zid(self) -> ZenohId:
+        """Returns the `ZenohId`, i.e. the Zenoh session, this ID is associated to."""
+
+    @property
+    def eid(self) -> EntityId:
+        """Returns the `EntityId` used to identify the entity in a Zenoh session."""
 
 @final
 class Hello:

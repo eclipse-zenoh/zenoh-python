@@ -1,17 +1,29 @@
+use std::time::Duration;
+
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
     prelude::*,
     types::{
-        PyBool, PyByteArray, PyBytes, PyDict, PyFloat, PyFrozenSet, PyInt, PyList, PySet, PyString,
-        PyTuple, PyType,
+        PyBool, PyByteArray, PyBytes, PyDict, PyFloat, PyFrozenSet, PyInt, PyIterator, PyList,
+        PySet, PyString, PyTuple, PyType,
     },
     PyTypeInfo,
 };
-use zenoh_ext::{Deserialize, VarInt, ZDeserializer, ZSerializer};
+use zenoh_ext::{
+    AdvancedPublisherBuilderExt, AdvancedSubscriberBuilderExt, Deserialize, VarInt, ZDeserializer,
+    ZSerializer,
+};
 
 use crate::{
-    bytes::ZBytes,
-    macros::{import, py_static, try_import},
+    bytes::{Encoding, ZBytes},
+    handlers::{into_handler, HandlerImpl},
+    key_expr::KeyExpr,
+    macros::{build, import, option_wrapper, py_static, try_import, wrapper},
+    pubsub::Subscriber,
+    qos::{CongestionControl, Priority, Reliability},
+    sample::Sample,
+    session::{EntityGlobalId, Session},
+    utils::{duration, generic, wait, MapInto},
     ZDeserializeError,
 };
 
@@ -425,4 +437,366 @@ fn deserialize_collection(
 pub(crate) fn z_deserialize(tp: &Bound<PyAny>, zbytes: &ZBytes) -> PyResult<PyObject> {
     let mut deserializer = ZDeserializer::new(&zbytes.0);
     deserialize(&mut deserializer, tp).map_err(|err| err.0)
+}
+
+option_wrapper!(
+    zenoh_ext::AdvancedPublisher<'static>,
+    "Undeclared publisher"
+);
+
+#[pymethods]
+impl AdvancedPublisher {
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> PyResult<&'a Bound<'py, Self>> {
+        Self::check(this)
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?;
+        Ok(py.None())
+    }
+
+    #[getter]
+    fn key_expr(&self) -> PyResult<KeyExpr> {
+        Ok(self.get_ref()?.key_expr().clone().into())
+    }
+
+    #[getter]
+    fn encoding(&self) -> PyResult<Encoding> {
+        Ok(self.get_ref()?.encoding().clone().into())
+    }
+
+    #[getter]
+    fn congestion_control(&self) -> PyResult<CongestionControl> {
+        Ok(self.get_ref()?.congestion_control().into())
+    }
+
+    #[getter]
+    fn priority(&self) -> PyResult<Priority> {
+        Ok(self.get_ref()?.priority().into())
+    }
+
+    // TODO add timestamp
+    #[pyo3(signature = (payload, *, encoding = None, attachment = None))]
+    fn put(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
+        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+    ) -> PyResult<()> {
+        let this = self.get_ref()?;
+        wait(py, build!(this.put(payload), encoding, attachment))
+    }
+
+    #[pyo3(signature = (*, attachment = None))]
+    fn delete(
+        &self,
+        py: Python,
+        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+    ) -> PyResult<()> {
+        wait(py, build!(self.get_ref()?.delete(), attachment))
+    }
+
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
+    }
+}
+
+option_wrapper!(
+    zenoh_ext::AdvancedSubscriber<HandlerImpl<Sample>>,
+    "Undeclared subscriber"
+);
+
+#[pymethods]
+impl AdvancedSubscriber {
+    #[classmethod]
+    fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
+        generic(cls, args)
+    }
+
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> &'a Bound<'py, Self> {
+        this
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?;
+        Ok(py.None())
+    }
+
+    #[getter]
+    fn key_expr(&self) -> PyResult<KeyExpr> {
+        Ok(self.get_ref()?.key_expr().clone().into())
+    }
+
+    #[getter]
+    fn handler(&self, py: Python) -> PyResult<PyObject> {
+        Ok(self.get_ref()?.handler().to_object(py))
+    }
+
+    #[pyo3(signature = (handler = None))]
+    fn sample_miss_listener(
+        &self,
+        py: Python,
+        handler: Option<&Bound<PyAny>>,
+    ) -> PyResult<SampleMissListener> {
+        let (handler, background) = into_handler(py, handler)?;
+        let builder = self.get_ref()?.sample_miss_listener();
+        let mut listener = wait(py, builder.with(handler))?;
+        if background {
+            listener.set_background(true);
+        }
+        Ok(listener.into())
+    }
+
+    #[pyo3(signature = (handler = None, *, history = None))]
+    fn detect_publishers(
+        &self,
+        py: Python,
+        handler: Option<&Bound<PyAny>>,
+        history: Option<bool>,
+    ) -> PyResult<Subscriber> {
+        let (handler, background) = into_handler(py, handler)?;
+        let builder = build!(self.get_ref()?.detect_publishers(), history);
+        let mut subscriber = wait(py, builder.with(handler))?;
+        if background {
+            subscriber.set_background(true);
+        }
+        Ok(subscriber.into())
+    }
+
+    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().try_recv(py)
+    }
+
+    fn recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().recv(py)
+    }
+
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        self.handler(py)?.bind(py).iter()
+    }
+}
+
+wrapper!(zenoh_ext::CacheConfig: Clone);
+
+#[pymethods]
+impl CacheConfig {
+    #[new]
+    #[pyo3(signature = (max_samples = None, *, replies_config = None))]
+    fn new(max_samples: Option<usize>, replies_config: Option<RepliesConfig>) -> Self {
+        Self(build!(
+            zenoh_ext::CacheConfig::default(),
+            max_samples,
+            replies_config,
+        ))
+    }
+}
+
+wrapper!(zenoh_ext::HistoryConfig: Clone);
+
+#[pymethods]
+impl HistoryConfig {
+    #[new]
+    #[pyo3(signature = (*, detect_late_publishers = None, max_samples = None, max_age = None))]
+    fn new(
+        detect_late_publishers: Option<bool>,
+        max_samples: Option<usize>,
+        max_age: Option<f64>,
+    ) -> Self {
+        let mut config = build!(zenoh_ext::HistoryConfig::default(), max_samples, max_age);
+        if matches!(detect_late_publishers, Some(true)) {
+            config = config.detect_late_publishers();
+        }
+        Self(config)
+    }
+}
+
+wrapper!(zenoh_ext::Miss);
+
+#[pymethods]
+impl Miss {
+    #[getter]
+    fn source(&self) -> EntityGlobalId {
+        self.0.source().into()
+    }
+
+    #[getter]
+    fn nb(&self) -> u32 {
+        self.0.nb()
+    }
+}
+
+wrapper!(zenoh_ext::MissDetectionConfig: Clone);
+
+#[pymethods]
+impl MissDetectionConfig {
+    #[new]
+    #[pyo3(signature = (*, heartbeat = None, sporadic_heartbeat = None))]
+    fn new(
+        #[pyo3(from_py_with = "duration")] heartbeat: Option<Duration>,
+        #[pyo3(from_py_with = "duration")] sporadic_heartbeat: Option<Duration>,
+    ) -> Self {
+        Self(build!(
+            zenoh_ext::MissDetectionConfig::default(),
+            heartbeat,
+            sporadic_heartbeat,
+        ))
+    }
+}
+
+wrapper!(zenoh_ext::RecoveryConfig: Clone);
+
+#[pymethods]
+impl RecoveryConfig {
+    #[new]
+    #[pyo3(signature = (*, periodic_queries = None, heartbeat = None))]
+    fn new(periodic_queries: Option<Duration>, heartbeat: Option<bool>) -> PyResult<Self> {
+        let config = zenoh_ext::RecoveryConfig::default();
+        Ok(Self(match (periodic_queries, heartbeat) {
+            (Some(periodic_queries), None) => config.periodic_queries(periodic_queries),
+            (None, Some(true)) => config.heartbeat(),
+            _ => return Err(PyValueError::new_err("invalid parameters")),
+        }))
+    }
+}
+
+wrapper!(zenoh_ext::RepliesConfig: Clone);
+
+#[pymethods]
+impl RepliesConfig {
+    #[new]
+    #[pyo3(signature = (*, congestion_control = None, priority = None, express = None))]
+    fn new(
+        congestion_control: Option<CongestionControl>,
+        priority: Option<Priority>,
+        express: Option<bool>,
+    ) -> Self {
+        Self(build!(
+            zenoh_ext::RepliesConfig::default(),
+            congestion_control,
+            priority,
+            express,
+            express,
+        ))
+    }
+}
+
+option_wrapper!(
+    zenoh_ext::SampleMissListener<HandlerImpl<Miss>>,
+    "Undeclared sample-miss listener"
+);
+
+#[pymethods]
+impl SampleMissListener {
+    #[classmethod]
+    fn __class_getitem__(cls: &Bound<PyType>, args: &Bound<PyAny>) -> PyObject {
+        generic(cls, args)
+    }
+
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> &'a Bound<'py, Self> {
+        this
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?;
+        Ok(py.None())
+    }
+
+    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.try_recv(py)
+    }
+
+    fn recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.recv(py)
+    }
+
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        (**self.get_ref()?).to_object(py).bind(py).iter()
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+#[pyfunction]
+#[pyo3(signature = (session, key_expr, *, encoding = None, congestion_control = None, priority = None, express = None, reliability = None, cache = None, sample_miss_detection = None, publisher_detection = None))]
+pub(crate) fn declare_advanced_publisher(
+    py: Python,
+    session: &Session,
+    #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+    #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+    congestion_control: Option<CongestionControl>,
+    priority: Option<Priority>,
+    express: Option<bool>,
+    reliability: Option<Reliability>,
+    cache: Option<CacheConfig>,
+    sample_miss_detection: Option<MissDetectionConfig>,
+    publisher_detection: Option<bool>,
+) -> PyResult<AdvancedPublisher> {
+    let mut builder = build!(
+        session.0.declare_publisher(key_expr).advanced(),
+        encoding,
+        congestion_control,
+        priority,
+        express,
+        reliability,
+        cache,
+        sample_miss_detection,
+    );
+    if matches!(publisher_detection, Some(true)) {
+        builder = builder.publisher_detection();
+    }
+    wait(py, builder).map_into()
+}
+
+#[allow(clippy::too_many_arguments)]
+#[pyfunction]
+#[pyo3(signature = (session, key_expr, handler = None, *, history = None, recovery = None, subscriber_detection = None))]
+pub(crate) fn declare_advanced_subscriber(
+    session: &Session,
+    py: Python,
+    #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+    handler: Option<&Bound<PyAny>>,
+    history: Option<HistoryConfig>,
+    recovery: Option<RecoveryConfig>,
+    subscriber_detection: Option<bool>,
+) -> PyResult<AdvancedSubscriber> {
+    let (handler, background) = into_handler(py, handler)?;
+    let mut builder = build!(
+        session.0.declare_subscriber(key_expr).advanced(),
+        history,
+        recovery
+    );
+    if matches!(subscriber_detection, Some(true)) {
+        builder = builder.subscriber_detection();
+    }
+    let mut subscriber = wait(py, builder.with(handler))?;
+    if background {
+        subscriber.set_background(true);
+    }
+    Ok(subscriber.into())
 }

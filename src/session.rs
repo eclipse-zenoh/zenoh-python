@@ -17,7 +17,7 @@ use pyo3::{
     prelude::*,
     types::{PyDict, PyList, PyTuple},
 };
-use zenoh::Wait;
+use zenoh::{session::EntityId, Wait};
 
 use crate::{
     bytes::{Encoding, ZBytes},
@@ -30,7 +30,7 @@ use crate::{
     qos::{CongestionControl, Priority, Reliability},
     query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
     time::Timestamp,
-    utils::{timeout, wait, IntoPython, MapInto},
+    utils::{duration, wait, IntoPython, MapInto},
 };
 
 #[pyclass]
@@ -140,7 +140,7 @@ impl Session {
         #[pyo3(from_py_with = "QueryConsolidation::from_py_opt")] consolidation: Option<
             QueryConsolidation,
         >,
-        #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
+        #[pyo3(from_py_with = "duration")] timeout: Option<Duration>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
@@ -235,7 +235,7 @@ impl Session {
         #[pyo3(from_py_with = "QueryConsolidation::from_py_opt")] consolidation: Option<
             QueryConsolidation,
         >,
-        #[pyo3(from_py_with = "timeout")] timeout: Option<Duration>,
+        #[pyo3(from_py_with = "duration")] timeout: Option<Duration>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
@@ -297,4 +297,23 @@ impl SessionInfo {
     }
 
     // TODO __repr__
+}
+
+wrapper!(zenoh::session::EntityGlobalId);
+
+#[pymethods]
+impl EntityGlobalId {
+    #[getter]
+    fn zid(&self) -> ZenohId {
+        self.0.zid().into()
+    }
+
+    #[getter]
+    fn eid(&self) -> EntityId {
+        self.0.eid()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }

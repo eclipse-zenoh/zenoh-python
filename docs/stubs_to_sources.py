@@ -28,6 +28,7 @@ from pathlib import Path
 
 PACKAGE = (Path(__file__) / "../../zenoh").resolve()
 __INIT__ = PACKAGE / "__init__.py"
+EXT = PACKAGE / "ext.py"
 
 
 def _unstable(item):
@@ -98,23 +99,26 @@ class RemoveOverload(ast.NodeTransformer):
 
 
 def main():
-    # remove __init__.pyi
-    __INIT__.unlink()
+    fnames = [__INIT__, EXT]
+    for fname in fnames:
+        # remove *.py
+        fname.unlink()
     # rename stubs
     for entry in PACKAGE.glob("*.pyi"):
         entry.rename(PACKAGE / f"{entry.stem}.py")
-    # read stub code
-    with open(__INIT__) as f:
-        stub: ast.Module = ast.parse(f.read())
-        # replace _unstable
-        for i, stmt in enumerate(stub.body):
-            if isinstance(stmt, ast.FunctionDef) and stmt.name == "_unstable":
-                stub.body[i] = ast.parse(inspect.getsource(_unstable))
-        # remove overload
-        stub = RemoveOverload().visit(stub)
-    # write modified code
-    with open(__INIT__, "w") as f:
-        f.write(ast.unparse(stub))
+    for fname in fnames:
+        # read stub code
+        with open(fname) as f:
+            stub: ast.Module = ast.parse(f.read())
+            # replace _unstable
+            for i, stmt in enumerate(stub.body):
+                if isinstance(stmt, ast.FunctionDef) and stmt.name == "_unstable":
+                    stub.body[i] = ast.parse(inspect.getsource(_unstable))
+            # remove overload
+            stub = RemoveOverload().visit(stub)
+        # write modified code
+        with open(fname, "w") as f:
+            f.write(ast.unparse(stub))
 
 
 if __name__ == "__main__":

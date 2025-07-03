@@ -64,11 +64,11 @@ impl QueryConsolidation {
     const DEFAULT: Self = Self(zenoh::query::QueryConsolidation::DEFAULT);
 
     #[new]
-    fn new(mode: Option<ConsolidationMode>) -> PyResult<Self> {
+    fn new(mode: Option<ConsolidationMode>) -> Self {
         let Some(mode) = mode else {
-            return Ok(Self::DEFAULT);
+            return Self::DEFAULT;
         };
-        Ok(Self(mode.into_rust().into()))
+        Self(mode.into_rust().into())
     }
 
     fn mode(&self) -> ConsolidationMode {

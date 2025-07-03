@@ -71,7 +71,8 @@ macro_rules! downcast_or_new {
                 if let Ok(obj) = <Self as pyo3::FromPyObject>::extract_bound(obj) {
                     return Ok(obj);
                 }
-                Self::new(PyResult::Ok(obj)$(.and_then(<$new>::extract_bound))??.into(), $($other)?)
+                let this = Self::new(PyResult::Ok(obj)$(.and_then(<$new>::extract_bound))??.into(), $($other)?);
+                $crate::utils::IntoResult::into_result(this)
             }
             pub(crate) fn from_py_opt(obj: &Bound<PyAny>) -> PyResult<Option<Self>> {
                 if obj.is_none() {
