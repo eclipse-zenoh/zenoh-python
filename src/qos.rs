@@ -40,6 +40,7 @@ impl Priority {
 enum_mapper!(zenoh::qos::CongestionControl: u8 {
     Drop = 0,
     Block = 1,
+    BlockFirst = 2
 });
 
 #[pymethods]
