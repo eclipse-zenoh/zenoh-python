@@ -57,6 +57,7 @@ class CongestionControl(Enum):
 
     DROP = auto()
     BLOCK = auto()
+    BLOCK_FIRST = _unstable(auto())
 
     DEFAULT = DROP
 
