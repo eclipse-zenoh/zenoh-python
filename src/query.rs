@@ -20,11 +20,11 @@ use pyo3::{
 
 use crate::{
     bytes::{Encoding, ZBytes},
-    config::ZenohId,
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{build, downcast_or_new, enum_mapper, option_wrapper, wrapper},
     qos::{CongestionControl, Priority},
+    session::EntityGlobalId,
     utils::{generic, wait, IntoPyResult, IntoPython, IntoRust, MapInto},
 };
 
@@ -223,7 +223,7 @@ impl Reply {
     }
 
     #[getter]
-    fn replier_id(&self) -> Option<ZenohId> {
+    fn replier_id(&self) -> Option<EntityGlobalId> {
         self.0.replier_id().map_into()
     }
 
