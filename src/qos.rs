@@ -40,7 +40,7 @@ impl Priority {
 enum_mapper!(zenoh::qos::CongestionControl: u8 {
     Drop = 0,
     Block = 1,
-    BlockFirst = 2
+    BlockFirst = 2,
 });
 
 #[pymethods]
@@ -51,7 +51,7 @@ impl CongestionControl {
 
 enum_mapper!(zenoh::qos::Reliability: u8 {
     BestEffort,
-    Reliable
+    Reliable,
 });
 
 #[pymethods]
