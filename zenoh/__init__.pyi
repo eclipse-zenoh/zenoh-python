@@ -502,6 +502,8 @@ class Publisher:
     @property
     @_unstable
     def reliability(self) -> Reliability: ...
+    @property
+    def matching_status(self) -> bool: ...
     def put(
         self,
         payload: _IntoZBytes,
@@ -516,6 +518,24 @@ class Publisher:
 
     def undeclare(self):
         """Undeclares the Publisher, informing the network that it needn't optimize publications for its key expression anymore."""
+
+    @overload
+    def declare_matching_listener(
+        self, handler: _RustHandler[MatchingStatus] | None = None
+    ) -> MatchingListener[Handler[MatchingStatus]]:
+        """Create a Matching listener. It will send notifications each time the matching status of this publisher changes."""
+
+    @overload
+    def declare_matching_listener(
+        self, handler: _PythonHandler[MatchingStatus, _H]
+    ) -> MatchingListener[_H]:
+        """Create a Matching listener. It will send notifications each time the matching status of this publisher changes."""
+
+    @overload
+    def declare_matching_listener(
+        self, handler: _PythonCallback[MatchingStatus]
+    ) -> MatchingListener[None]:
+        """Create a Matching listener. It will send notifications each time the matching status of this publisher changes."""
 
 @final
 class Query:
@@ -607,7 +627,6 @@ class Queryable(Generic[_H]):
     @overload
     def __iter__(self) -> Never: ...
 
-@_unstable
 @final
 class Querier:
     """A querier that allows to send queries to a queryable.
@@ -617,6 +636,8 @@ class Querier:
     def __exit__(self, *_args, **_kwargs): ...
     @property
     def key_expr(self) -> KeyExpr: ...
+    @property
+    def matching_status(self) -> bool: ...
     @overload
     def get(
         self,
@@ -655,6 +676,24 @@ class Querier:
 
     def undeclare(self):
         """Undeclares the Querier, informing the network that it needn't optimize queries for its key expression anymore."""
+
+    @overload
+    def declare_matching_listener(
+        self, handler: _RustHandler[MatchingStatus] | None = None
+    ) -> MatchingListener[Handler[MatchingStatus]]:
+        """Create a Matching listener. It will send notifications each time the matching status of this querier changes."""
+
+    @overload
+    def declare_matching_listener(
+        self, handler: _PythonHandler[MatchingStatus, _H]
+    ) -> MatchingListener[_H]:
+        """Create a Matching listener. It will send notifications each time the matching status of this querier changes."""
+
+    @overload
+    def declare_matching_listener(
+        self, handler: _PythonCallback[MatchingStatus]
+    ) -> MatchingListener[None]:
+        """Create a Matching listener. It will send notifications each time the matching status of this querier changes."""
 
 @final
 class QueryConsolidation:
@@ -981,7 +1020,6 @@ class Session:
     ) -> Publisher:
         """Create a Publisher for the given key expression."""
 
-    @_unstable
     def declare_querier(
         self,
         key_expr: _IntoKeyExpr,
@@ -1016,6 +1054,45 @@ class SetIntersectionLevel(Enum):
     INTERSECTS = auto()
     INCLUDES = auto()
     EQUALS = auto()
+
+@final
+class MatchingStatus:
+    """A struct that indicates if there exist entities matching the key expression."""
+
+    @property
+    def matching(self) -> bool:
+        """Return true if there exist entities matching the target (i.e either Subscribers matching Publisher's key expression or Queryables matching Querier's key expression and target)."""
+
+@final
+class MatchingListener(Generic[_H]):
+    """A listener that sends notifications when the `MatchingStatus` of a
+    corresponding Zenoh entity changes."""
+
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *_args, **_kwargs): ...
+    @property
+    def handler(self) -> _H: ...
+    def undeclare(self):
+        """Close a Matching listener.
+        Matching listeners are automatically closed when dropped, but you may want to use this function to handle errors or close the Matching listener asynchronously.
+        """
+
+    @overload
+    def try_recv(
+        self: MatchingListener[Handler[MatchingStatus]],
+    ) -> MatchingStatus | None: ...
+    @overload
+    def try_recv(self) -> Never: ...
+    @overload
+    def recv(self: MatchingListener[Handler[MatchingStatus]]) -> MatchingStatus: ...
+    @overload
+    def recv(self) -> Never: ...
+    @overload
+    def __iter__(
+        self: MatchingListener[Handler[MatchingStatus]],
+    ) -> Handler[MatchingStatus]: ...
+    @overload
+    def __iter__(self) -> Never: ...
 
 @final
 class Subscriber(Generic[_H]):

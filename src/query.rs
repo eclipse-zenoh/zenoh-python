@@ -24,6 +24,7 @@ use crate::{
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{build, downcast_or_new, enum_mapper, option_wrapper, wrapper},
+    matching::{MatchingListener, MatchingStatus},
     qos::{CongestionControl, Priority},
     utils::{generic, wait, IntoPyResult, IntoPython, IntoRust, MapInto},
 };
@@ -338,6 +339,11 @@ impl Querier {
         Ok(self.get_ref()?.key_expr().clone().into())
     }
 
+    #[getter]
+    fn matching_status(&self, py: Python) -> PyResult<MatchingStatus> {
+        Ok(wait(py, self.get_ref()?.matching_status())?.into())
+    }
+
     #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (handler = None, *, parameters = None, payload = None, encoding = None, attachment = None))]
     fn get(
@@ -353,6 +359,20 @@ impl Querier {
         let (handler, _) = into_handler(py, handler)?;
         let builder = build!(this.get(), parameters, payload, encoding, attachment);
         wait(py, builder.with(handler)).map_into()
+    }
+
+    #[pyo3(signature = (handler = None))]
+    fn declare_matching_listener(
+        &self,
+        py: Python,
+        handler: Option<&Bound<PyAny>>,
+    ) -> PyResult<MatchingListener> {
+        let (handler, background) = into_handler(py, handler)?;
+        let mut listener = wait(py, self.get_ref()?.matching_listener().with(handler))?;
+        if background {
+            listener.set_background(true);
+        }
+        Ok(listener.into())
     }
 
     fn undeclare(&mut self, py: Python) -> PyResult<()> {

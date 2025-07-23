@@ -18,9 +18,10 @@ use pyo3::{
 
 use crate::{
     bytes::{Encoding, ZBytes},
-    handlers::HandlerImpl,
+    handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{build, option_wrapper},
+    matching::{MatchingListener, MatchingStatus},
     qos::{CongestionControl, Priority, Reliability},
     sample::Sample,
     utils::{generic, wait},
@@ -70,6 +71,11 @@ impl Publisher {
         Ok(self.get_ref()?.reliability().into())
     }
 
+    #[getter]
+    fn matching_status(&self, py: Python) -> PyResult<MatchingStatus> {
+        Ok(wait(py, self.get_ref()?.matching_status())?.into())
+    }
+
     // TODO add timestamp
     #[pyo3(signature = (payload, *, encoding = None, attachment = None))]
     fn put(
@@ -90,6 +96,20 @@ impl Publisher {
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
     ) -> PyResult<()> {
         wait(py, build!(self.get_ref()?.delete(), attachment))
+    }
+
+    #[pyo3(signature = (handler = None))]
+    fn declare_matching_listener(
+        &self,
+        py: Python,
+        handler: Option<&Bound<PyAny>>,
+    ) -> PyResult<MatchingListener> {
+        let (handler, background) = into_handler(py, handler)?;
+        let mut listener = wait(py, self.get_ref()?.matching_listener().with(handler))?;
+        if background {
+            listener.set_background(true);
+        }
+        Ok(listener.into())
     }
 
     fn undeclare(&mut self, py: Python) -> PyResult<()> {
