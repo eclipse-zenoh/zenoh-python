@@ -20,9 +20,9 @@ import zenoh
 
 def on_matching_status_update(status: zenoh.MatchingStatus):
     if status.matching:
-        print("Querier has matching subscribers.")
+        print("Querier has matching queryables.")
     else:
-        print("Querier has NO MORE matching subscribers")
+        print("Querier has NO MORE matching queryables")
 
 
 def main(
