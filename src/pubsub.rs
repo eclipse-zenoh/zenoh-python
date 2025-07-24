@@ -24,6 +24,7 @@ use crate::{
     matching::{MatchingListener, MatchingStatus},
     qos::{CongestionControl, Priority, Reliability},
     sample::Sample,
+    time::Timestamp,
     utils::{generic, wait},
 };
 
@@ -76,26 +77,30 @@ impl Publisher {
         Ok(wait(py, self.get_ref()?.matching_status())?.into())
     }
 
-    // TODO add timestamp
-    #[pyo3(signature = (payload, *, encoding = None, attachment = None))]
+    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None))]
     fn put(
         &self,
         py: Python,
         #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
-        wait(py, build!(this.put(payload), encoding, attachment))
+        wait(
+            py,
+            build!(this.put(payload), encoding, attachment, timestamp),
+        )
     }
 
-    #[pyo3(signature = (*, attachment = None))]
+    #[pyo3(signature = (*, attachment = None, timestamp = None))]
     fn delete(
         &self,
         py: Python,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
-        wait(py, build!(self.get_ref()?.delete(), attachment))
+        wait(py, build!(self.get_ref()?.delete(), attachment, timestamp))
     }
 
     #[pyo3(signature = (handler = None))]

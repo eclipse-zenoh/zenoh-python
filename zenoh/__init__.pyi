@@ -510,10 +510,16 @@ class Publisher:
         *,
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
+        timestamp: Timestamp | None = None,
     ):
         """Put data."""
 
-    def delete(self, *, attachment: _IntoZBytes | None = None):
+    def delete(
+        self,
+        *,
+        attachment: _IntoZBytes | None = None,
+        timestamp: Timestamp | None = None,
+    ):
         """Delete data."""
 
     def undeclare(self):
@@ -565,6 +571,7 @@ class Query:
         priority: Priority | None = None,
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
+        timestamp: Timestamp | None = None,
     ):
         """Sends a reply to this Query.
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
@@ -581,6 +588,7 @@ class Query:
         priority: Priority | None = None,
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
+        timestamp: Timestamp | None = None,
     ):
         """Sends a delete reply to this Query.
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
@@ -720,6 +728,16 @@ class QueryTarget(Enum):
 class Reliability(Enum):
     BEST_EFFORT = auto()
     RELIABLE = auto()
+
+@final
+class Locality(Enum):
+    """The locality of samples/queries to be received by subscribers/queryables or targeted by publishers/queriers."""
+
+    SESSION_LOCAL = auto()
+    REMOTE = auto()
+    ANY = auto()
+
+    DEFAULT = ANY
 
 @final
 class Reply:
@@ -886,6 +904,8 @@ class Session:
         priority: Priority | None = None,
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
+        timestamp: Timestamp | None = None,
+        allowed_destination: Locality | None = None,
     ):
         """Put data on zenoh for a given key expression."""
 
@@ -897,6 +917,8 @@ class Session:
         priority: Priority | None = None,
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
+        timestamp: Timestamp | None = None,
+        allowed_destination: Locality | None = None,
     ):
         """Delete data for a given key expression."""
 
@@ -915,6 +937,7 @@ class Session:
         payload: _IntoZBytes = None,
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
+        allowed_destination: Locality | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -935,6 +958,7 @@ class Session:
         payload: _IntoZBytes = None,
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
+        allowed_destination: Locality | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -955,6 +979,7 @@ class Session:
         payload: _IntoZBytes = None,
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
+        allowed_destination: Locality | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -962,19 +987,31 @@ class Session:
 
     @overload
     def declare_subscriber(
-        self, key_expr: _IntoKeyExpr, handler: _RustHandler[Sample] | None = None
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _RustHandler[Sample] | None = None,
+        *,
+        allowed_origin: Locality | None = None,
     ) -> Subscriber[Handler[Sample]]:
         """Create a Subscriber for the given key expression."""
 
     @overload
     def declare_subscriber(
-        self, key_expr: _IntoKeyExpr, handler: _PythonHandler[Sample, _H]
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _PythonHandler[Sample, _H],
+        *,
+        allowed_origin: Locality | None = None,
     ) -> Subscriber[_H]:
         """Create a Subscriber for the given key expression."""
 
     @overload
     def declare_subscriber(
-        self, key_expr: _IntoKeyExpr, handler: _PythonCallback[Sample]
+        self,
+        key_expr: _IntoKeyExpr,
+        handler: _PythonCallback[Sample],
+        *,
+        allowed_origin: Locality | None = None,
     ) -> Subscriber[None]:
         """Create a Subscriber for the given key expression."""
 
@@ -985,6 +1022,7 @@ class Session:
         handler: _RustHandler[Query] | None = None,
         *,
         complete: bool | None = None,
+        allowed_origin: Locality | None = None,
     ) -> Queryable[Handler[Query]]:
         """Create a Queryable for the given key expression."""
 
@@ -995,6 +1033,7 @@ class Session:
         handler: _PythonHandler[Query, _H],
         *,
         complete: bool | None = None,
+        allowed_origin: Locality | None = None,
     ) -> Queryable[_H]:
         """Create a Queryable for the given key expression."""
 
@@ -1005,6 +1044,7 @@ class Session:
         handler: _PythonCallback[Query],
         *,
         complete: bool | None = None,
+        allowed_origin: Locality | None = None,
     ) -> Queryable[None]:
         """Create a Queryable for the given key expression."""
 
@@ -1017,6 +1057,7 @@ class Session:
         priority: Priority | None = None,
         express: bool | None = None,
         reliability: Reliability | None = None,
+        allowed_destination: Locality | None = None,
     ) -> Publisher:
         """Create a Publisher for the given key expression."""
 
@@ -1030,6 +1071,7 @@ class Session:
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
         express: bool | None = None,
+        allowed_destination: Locality | None = None,
     ) -> Querier:
         """Create a Querier for the given key expression."""
 

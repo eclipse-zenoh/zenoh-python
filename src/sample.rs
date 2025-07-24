@@ -27,6 +27,18 @@ enum_mapper!(zenoh::sample::SampleKind: u8 {
     Delete = 1,
 });
 
+enum_mapper!(zenoh::sample::Locality: u8 {
+    SessionLocal,
+    Remote,
+    Any,
+});
+
+#[pymethods]
+impl Locality {
+    #[classattr]
+    const DEFAULT: Self = Self::Any;
+}
+
 wrapper!(zenoh::sample::Sample);
 
 #[pymethods]
