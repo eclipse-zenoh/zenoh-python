@@ -511,7 +511,6 @@ class Publisher:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-        allowed_destination: Locality | None = None,
     ):
         """Put data."""
 
@@ -519,8 +518,7 @@ class Publisher:
         self,
         *,
         attachment: _IntoZBytes | None = None,
-        timestamp: Timestamp | None,
-        allowed_destination: Locality | None = None,
+        timestamp: Timestamp | None = None,
     ):
         """Delete data."""
 
@@ -590,7 +588,7 @@ class Query:
         priority: Priority | None = None,
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
-        timestamp: Timestamp | None,
+        timestamp: Timestamp | None = None,
     ):
         """Sends a delete reply to this Query.
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
@@ -906,7 +904,7 @@ class Session:
         priority: Priority | None = None,
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
-        timestamp: Timestamp | None,
+        timestamp: Timestamp | None = None,
         allowed_destination: Locality | None = None,
     ):
         """Put data on zenoh for a given key expression."""
@@ -919,7 +917,7 @@ class Session:
         priority: Priority | None = None,
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
-        timestamp: Timestamp | None,
+        timestamp: Timestamp | None = None,
         allowed_destination: Locality | None = None,
     ):
         """Delete data for a given key expression."""
