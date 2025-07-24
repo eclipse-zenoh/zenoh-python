@@ -164,6 +164,7 @@ impl Query {
         wait(py, build)
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None, timestamp = None))]
     fn reply_del(
         &self,

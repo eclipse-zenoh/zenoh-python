@@ -114,6 +114,7 @@ impl Session {
         wait(py, build)
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None, timestamp = None, allowed_destination = None))]
     fn delete(
         &self,
