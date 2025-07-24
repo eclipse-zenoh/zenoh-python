@@ -18,13 +18,6 @@ from typing import Optional
 import zenoh
 
 
-def on_matching_status_update(status: zenoh.MatchingStatus):
-    if status.matching:
-        print("Querier has matching queryables.")
-    else:
-        print("Querier has NO MORE matching queryables")
-
-
 def main(
     conf: zenoh.Config,
     selector: str,
@@ -46,6 +39,13 @@ def main(
         )
 
         if add_matching_listener:
+
+            def on_matching_status_update(status: zenoh.MatchingStatus):
+                if status.matching:
+                    print("Querier has matching queryables.")
+                else:
+                    print("Querier has NO MORE matching queryables")
+
             querier.declare_matching_listener(on_matching_status_update)
 
         print("Press CTRL-C to quit...")

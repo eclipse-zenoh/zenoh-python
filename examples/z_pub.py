@@ -17,13 +17,6 @@ from typing import Optional
 import zenoh
 
 
-def on_matching_status_update(status: zenoh.MatchingStatus):
-    if status.matching:
-        print("Publisher has matching subscribers.")
-    else:
-        print("Publisher has NO MORE matching subscribers")
-
-
 def main(
     conf: zenoh.Config,
     key: str,
@@ -41,6 +34,13 @@ def main(
         pub = session.declare_publisher(key)
 
         if add_matching_listener:
+
+            def on_matching_status_update(status: zenoh.MatchingStatus):
+                if status.matching:
+                    print("Publisher has matching subscribers.")
+                else:
+                    print("Publisher has NO MORE matching subscribers")
+
             pub.declare_matching_listener(on_matching_status_update)
 
         print("Press CTRL-C to quit...")
