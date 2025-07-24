@@ -13,7 +13,7 @@
 #
 import itertools
 import time
-from typing import Optional, Tuple
+from typing import Optional
 
 import zenoh
 
@@ -25,6 +25,7 @@ def main(
     payload: str,
     timeout: float,
     iter: Optional[int],
+    add_matching_listener: bool,
 ):
     # initiate logging
     zenoh.init_log_from_env_or("error")
@@ -36,6 +37,16 @@ def main(
         querier = session.declare_querier(
             query_selector.key_expr, target=target, timeout=timeout
         )
+
+        if add_matching_listener:
+
+            def on_matching_status_update(status: zenoh.MatchingStatus):
+                if status.matching:
+                    print("Querier has matching queryables.")
+                else:
+                    print("Querier has NO MORE matching queryables")
+
+            querier.declare_matching_listener(on_matching_status_update)
 
         print("Press CTRL-C to quit...")
         for idx in itertools.count() if iter is None else range(iter):
@@ -99,6 +110,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--iter", dest="iter", type=int, help="How many gets to perform"
     )
+    parser.add_argument(
+        "--add-matching-listener",
+        default=False,
+        action="store_true",
+        help="Add matching listener",
+    )
 
     args = parser.parse_args()
     conf = common.get_config_from_args(args)
@@ -109,4 +126,12 @@ if __name__ == "__main__":
         "ALL_COMPLETE": zenoh.QueryTarget.ALL_COMPLETE,
     }.get(args.target)
 
-    main(conf, args.selector, target, args.payload, args.timeout, args.iter)
+    main(
+        conf,
+        args.selector,
+        target,
+        args.payload,
+        args.timeout,
+        args.iter,
+        args.add_matching_listener,
+    )

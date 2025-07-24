@@ -18,7 +18,12 @@ import zenoh
 
 
 def main(
-    conf: zenoh.Config, key: str, payload: str, iter: Optional[int], interval: int
+    conf: zenoh.Config,
+    key: str,
+    payload: str,
+    iter: Optional[int],
+    interval: int,
+    add_matching_listener: bool,
 ):
     # initiate logging
     zenoh.init_log_from_env_or("error")
@@ -27,6 +32,16 @@ def main(
     with zenoh.open(conf) as session:
         print(f"Declaring Publisher on '{key}'...")
         pub = session.declare_publisher(key)
+
+        if add_matching_listener:
+
+            def on_matching_status_update(status: zenoh.MatchingStatus):
+                if status.matching:
+                    print("Publisher has matching subscribers.")
+                else:
+                    print("Publisher has NO MORE matching subscribers")
+
+            pub.declare_matching_listener(on_matching_status_update)
 
         print("Press CTRL-C to quit...")
         for idx in itertools.count() if iter is None else range(iter):
@@ -71,8 +86,21 @@ if __name__ == "__main__":
         default=1.0,
         help="Interval between each put",
     )
+    parser.add_argument(
+        "--add-matching-listener",
+        default=False,
+        action="store_true",
+        help="Add matching listener",
+    )
 
     args = parser.parse_args()
     conf = common.get_config_from_args(args)
 
-    main(conf, args.key, args.payload, args.iter, args.interval)
+    main(
+        conf,
+        args.key,
+        args.payload,
+        args.iter,
+        args.interval,
+        args.add_matching_listener,
+    )

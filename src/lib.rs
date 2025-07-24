@@ -21,6 +21,7 @@ mod handlers;
 mod key_expr;
 mod liveliness;
 mod macros;
+mod matching;
 mod pubsub;
 mod qos;
 mod query;
@@ -57,6 +58,7 @@ pub(crate) mod zenoh {
         handlers::Handler,
         key_expr::{KeyExpr, SetIntersectionLevel},
         liveliness::{Liveliness, LivelinessToken},
+        matching::{MatchingListener, MatchingStatus},
         pubsub::{Publisher, Subscriber},
         qos::{CongestionControl, Priority, Reliability},
         query::{
