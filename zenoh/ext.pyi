@@ -7,10 +7,12 @@ from zenoh import (
     EntityGlobalId,
     Handler,
     KeyExpr,
+    Locality,
     Priority,
     Reliability,
     Sample,
     Subscriber,
+    Timestamp,
     ZBytes,
     handlers,
 )
@@ -116,8 +118,14 @@ class AdvancedPublisher:
         *,
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
+        timestamp: Timestamp | None = None,
     ): ...
-    def delete(self, *, attachment: _IntoZBytes | None = None): ...
+    def delete(
+        self,
+        *,
+        attachment: _IntoZBytes | None = None,
+        timestamp: Timestamp | None = None,
+    ): ...
     def undeclare(self): ...
 
 @_unstable
@@ -329,6 +337,7 @@ def declare_advanced_publisher(
     priority: Priority | None = None,
     express: bool | None = None,
     reliability: Reliability | None = None,
+    allowed_destination: Locality | None = None,
     cache: CacheConfig | None = None,
     sample_miss_detection: MissDetectionConfig | None = None,
     publisher_detection: bool | None = None,
@@ -342,6 +351,7 @@ def declare_advanced_subscriber(
     key_expr: _IntoKeyExpr,
     handler: _RustHandler[Sample] | None = None,
     *,
+    allowed_origin: Locality | None = None,
     history: HistoryConfig | None = None,
     recovery: RecoveryConfig | None = None,
     subscriber_detection: bool | None = None,
@@ -355,6 +365,7 @@ def declare_advanced_subscriber(
     key_expr: _IntoKeyExpr,
     handler: _PythonHandler[Sample, _H],
     *,
+    allowed_origin: Locality | None = None,
     history: HistoryConfig | None = None,
     recovery: RecoveryConfig | None = None,
     subscriber_detection: bool | None = None,
@@ -368,6 +379,7 @@ def declare_advanced_subscriber(
     key_expr: _IntoKeyExpr,
     handler: _PythonCallback[Sample],
     *,
+    allowed_origin: Locality | None = None,
     history: HistoryConfig | None = None,
     recovery: RecoveryConfig | None = None,
     subscriber_detection: bool | None = None,

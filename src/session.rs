@@ -29,6 +29,7 @@ use crate::{
     pubsub::{Publisher, Subscriber},
     qos::{CongestionControl, Priority, Reliability},
     query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
+    sample::Locality,
     time::Timestamp,
     utils::{duration, wait, IntoPython, MapInto},
 };
@@ -86,7 +87,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None, attachment = None))]
+    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None, attachment = None, timestamp = None, allowed_destination = None))]
     fn put(
         &self,
         py: Python,
@@ -97,6 +98,8 @@ impl Session {
         priority: Option<Priority>,
         express: Option<bool>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        timestamp: Option<Timestamp>,
+        allowed_destination: Option<Locality>,
     ) -> PyResult<()> {
         let build = build!(
             self.0.put(key_expr, payload),
@@ -105,11 +108,13 @@ impl Session {
             priority,
             express,
             attachment,
+            timestamp,
+            allowed_destination,
         );
         wait(py, build)
     }
 
-    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None))]
+    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None, timestamp = None, allowed_destination = None))]
     fn delete(
         &self,
         py: Python,
@@ -118,6 +123,8 @@ impl Session {
         priority: Option<Priority>,
         express: Option<bool>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        timestamp: Option<Timestamp>,
+        allowed_destination: Option<Locality>,
     ) -> PyResult<()> {
         let build = build!(
             self.0.delete(key_expr),
@@ -125,12 +132,14 @@ impl Session {
             priority,
             express,
             attachment,
+            timestamp,
+            allowed_destination,
         );
         wait(py, build)
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None))]
+    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None, allowed_destination = None))]
     fn get(
         &self,
         py: Python,
@@ -147,6 +156,7 @@ impl Session {
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] payload: Option<ZBytes>,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        allowed_destination: Option<Locality>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let (handler, _) = into_handler(py, handler)?;
         let builder = build!(
@@ -160,6 +170,7 @@ impl Session {
             payload,
             encoding,
             attachment,
+            allowed_destination,
         );
         wait(py, builder.with(handler)).map_into()
     }
@@ -169,15 +180,16 @@ impl Session {
         self.0.info().into()
     }
 
-    #[pyo3(signature = (key_expr, handler = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, allowed_origin = None))]
     fn declare_subscriber(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
+        allowed_origin: Option<Locality>,
     ) -> PyResult<Subscriber> {
         let (handler, background) = into_handler(py, handler)?;
-        let builder = self.0.declare_subscriber(key_expr);
+        let builder = build!(self.0.declare_subscriber(key_expr), allowed_origin);
         let mut subscriber = wait(py, builder.with(handler))?;
         if background {
             subscriber.set_background(true);
@@ -185,16 +197,17 @@ impl Session {
         Ok(subscriber.into())
     }
 
-    #[pyo3(signature = (key_expr, handler = None, *, complete = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, complete = None, allowed_origin = None))]
     fn declare_queryable(
         &self,
         py: Python,
         #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
         complete: Option<bool>,
+        allowed_origin: Option<Locality>,
     ) -> PyResult<Queryable> {
         let (handler, background) = into_handler(py, handler)?;
-        let builder = build!(self.0.declare_queryable(key_expr), complete);
+        let builder = build!(self.0.declare_queryable(key_expr), complete, allowed_origin);
         let mut queryable = wait(py, builder.with(handler))?;
         if background {
             queryable.set_background(true);
@@ -203,7 +216,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (key_expr, *, encoding = None, congestion_control = None, priority = None, express = None, reliability = None))]
+    #[pyo3(signature = (key_expr, *, encoding = None, congestion_control = None, priority = None, express = None, reliability = None, allowed_destination = None))]
     fn declare_publisher(
         &self,
         py: Python,
@@ -213,6 +226,7 @@ impl Session {
         priority: Option<Priority>,
         express: Option<bool>,
         reliability: Option<Reliability>,
+        allowed_destination: Option<Locality>,
     ) -> PyResult<Publisher> {
         let builder = build!(
             self.0.declare_publisher(key_expr),
@@ -221,12 +235,13 @@ impl Session {
             priority,
             express,
             reliability,
+            allowed_destination,
         );
         wait(py, builder).map_into()
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (key_expr, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None))]
+    #[pyo3(signature = (key_expr, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, allowed_destination = None))]
     fn declare_querier(
         &self,
         py: Python,
@@ -239,6 +254,7 @@ impl Session {
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
+        allowed_destination: Option<Locality>,
     ) -> PyResult<Querier> {
         let builder = build!(
             self.0.declare_querier(key_expr),
@@ -248,6 +264,7 @@ impl Session {
             congestion_control,
             priority,
             express,
+            allowed_destination,
         );
         wait(py, builder).map_into()
     }

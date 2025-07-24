@@ -21,8 +21,9 @@ use crate::{
     macros::{build, import, option_wrapper, py_static, try_import, wrapper},
     pubsub::Subscriber,
     qos::{CongestionControl, Priority, Reliability},
-    sample::Sample,
+    sample::{Locality, Sample},
     session::{EntityGlobalId, Session},
+    time::Timestamp,
     utils::{duration, generic, wait, MapInto},
     ZDeserializeError,
 };
@@ -481,26 +482,30 @@ impl AdvancedPublisher {
         Ok(self.get_ref()?.priority().into())
     }
 
-    // TODO add timestamp
-    #[pyo3(signature = (payload, *, encoding = None, attachment = None))]
+    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None))]
     fn put(
         &self,
         py: Python,
         #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
         #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
-        wait(py, build!(this.put(payload), encoding, attachment))
+        wait(
+            py,
+            build!(this.put(payload), encoding, attachment, timestamp),
+        )
     }
 
-    #[pyo3(signature = (*, attachment = None))]
+    #[pyo3(signature = (*, attachment = None, timestamp = None))]
     fn delete(
         &self,
         py: Python,
         #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
-        wait(py, build!(self.get_ref()?.delete(), attachment))
+        wait(py, build!(self.get_ref()?.delete(), attachment, timestamp))
     }
 
     fn undeclare(&mut self, py: Python) -> PyResult<()> {
@@ -743,7 +748,7 @@ impl SampleMissListener {
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (session, key_expr, *, encoding = None, congestion_control = None, priority = None, express = None, reliability = None, cache = None, sample_miss_detection = None, publisher_detection = None))]
+#[pyo3(signature = (session, key_expr, *, encoding = None, congestion_control = None, priority = None, express = None, reliability = None, allowed_destination = None, cache = None, sample_miss_detection = None, publisher_detection = None))]
 pub(crate) fn declare_advanced_publisher(
     py: Python,
     session: &Session,
@@ -753,6 +758,7 @@ pub(crate) fn declare_advanced_publisher(
     priority: Option<Priority>,
     express: Option<bool>,
     reliability: Option<Reliability>,
+    allowed_destination: Option<Locality>,
     cache: Option<CacheConfig>,
     sample_miss_detection: Option<MissDetectionConfig>,
     publisher_detection: Option<bool>,
@@ -764,6 +770,7 @@ pub(crate) fn declare_advanced_publisher(
         priority,
         express,
         reliability,
+        allowed_destination,
         cache,
         sample_miss_detection,
     );
@@ -775,12 +782,13 @@ pub(crate) fn declare_advanced_publisher(
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (session, key_expr, handler = None, *, history = None, recovery = None, subscriber_detection = None))]
+#[pyo3(signature = (session, key_expr, handler = None, *, allowed_origin = None, history = None, recovery = None, subscriber_detection = None))]
 pub(crate) fn declare_advanced_subscriber(
     session: &Session,
     py: Python,
     #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
     handler: Option<&Bound<PyAny>>,
+    allowed_origin: Option<Locality>,
     history: Option<HistoryConfig>,
     recovery: Option<RecoveryConfig>,
     subscriber_detection: Option<bool>,
@@ -788,6 +796,7 @@ pub(crate) fn declare_advanced_subscriber(
     let (handler, background) = into_handler(py, handler)?;
     let mut builder = build!(
         session.0.declare_subscriber(key_expr).advanced(),
+        allowed_origin,
         history,
         recovery
     );
