@@ -86,7 +86,7 @@ macro_rules! downcast_or_new {
 pub(crate) use downcast_or_new;
 
 macro_rules! enum_mapper {
-    ($($path:ident)::*: $repr:ty { $($variant:ident $(= $discriminator:literal)?),* $(,)? }) => {
+    ($($path:ident)::*: $repr:ty { $($variant:ident $(= $discriminator:literal)?,)* }) => {
         $crate::macros::enum_mapper!(@ $($path)::*, $($path)::*: $repr { $($variant $(= $discriminator)?,)* });
     };
     (@ $ty:ident::$($tt:ident)::*, $path:path: $repr:ty { $($variant:ident $(= $discriminator:literal)?,)* }) => {
