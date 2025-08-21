@@ -91,9 +91,9 @@ macro_rules! enum_mapper {
            $crate::macros::enum_mapper!(@ $($tt)::*, $path: $repr { $($variant $(= $discriminator)?,)* });
     };
     (@ $ty:ident, $path:path: $repr:ty { $($variant:ident $(= $discriminator:literal)?,)* }) => {paste::paste!{
-        #[pyo3::pyclass]
+        #[pyo3::pyclass(eq)]
         #[repr($repr)]
-        #[derive(Copy, Clone)]
+        #[derive(Copy, Clone, PartialEq, Eq)]
         pub enum $ty {$(
             #[pyo3(name = $variant:snake:upper)]
             $variant $(= $discriminator)?,
