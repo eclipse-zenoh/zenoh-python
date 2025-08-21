@@ -468,7 +468,7 @@ impl Parameters {
         self.0.remove(key)
     }
 
-    fn extend(&mut self, #[pyo3(from_py_with = Parameters::from_py)] parameters: Parameters) {
+    fn extend(&mut self, #[pyo3(from_py_with = Self::from_py)] parameters: Self) {
         self.0.extend(&parameters.0)
     }
 

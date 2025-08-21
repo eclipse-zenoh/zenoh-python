@@ -82,7 +82,7 @@ impl WhatAmI {
         Ok(s.parse::<zenoh::config::WhatAmI>().into_pyres()?.into())
     }
 
-    fn __or__(&self, #[pyo3(from_py_with = WhatAmI::from_py)] other: WhatAmI) -> WhatAmIMatcher {
+    fn __or__(&self, #[pyo3(from_py_with = Self::from_py)] other: Self) -> WhatAmIMatcher {
         (self.into_rust() | other.into_rust()).into()
     }
 

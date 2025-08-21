@@ -46,17 +46,17 @@ impl KeyExpr {
             .map_into()
     }
 
-    fn intersects(&self, #[pyo3(from_py_with = KeyExpr::from_py)] other: KeyExpr) -> bool {
+    fn intersects(&self, #[pyo3(from_py_with = Self::from_py)] other: Self) -> bool {
         self.0.intersects(&other.0)
     }
 
-    fn includes(&self, #[pyo3(from_py_with = KeyExpr::from_py)] other: KeyExpr) -> bool {
+    fn includes(&self, #[pyo3(from_py_with = Self::from_py)] other: Self) -> bool {
         self.0.includes(&other.0)
     }
 
     fn relation_to(
         &self,
-        #[pyo3(from_py_with = KeyExpr::from_py)] other: KeyExpr,
+        #[pyo3(from_py_with = Self::from_py)] other: Self,
     ) -> SetIntersectionLevel {
         self.0.relation_to(&other.0).into()
     }
@@ -69,9 +69,8 @@ impl KeyExpr {
         self.0.concat(&other).into_pyres().map_into()
     }
 
-    // Cannot use `#[pyo3(from_py_with = ...)]`, see https://github.com/PyO3/pyo3/issues/4113
-    fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
-        Ok(self.0 == Self::from_py(other)?.0)
+    fn __eq__(&self, #[pyo3(from_py_with = Self::from_py)] other: Self) -> bool {
+        self.0 == other.0
     }
 
     fn __repr__(&self) -> String {
@@ -86,8 +85,7 @@ impl KeyExpr {
         PyString::new(py, self.0.as_str()).hash()
     }
 
-    // Cannot use `#[pyo3(from_py_with = ...)]`, see https://github.com/PyO3/pyo3/issues/4113
-    fn __truediv__(&self, other: &Bound<PyAny>) -> PyResult<Self> {
-        Ok(Self(&self.0 / &Self::from_py(other)?.0))
+    fn __truediv__(&self, #[pyo3(from_py_with = Self::from_py)] other: Self) -> Self {
+        Self(&self.0 / &other.0)
     }
 }
