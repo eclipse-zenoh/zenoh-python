@@ -16,6 +16,7 @@ use std::ops::Deref;
 use pyo3::{
     prelude::*,
     types::{PyDict, PyIterator, PyList, PyTuple, PyType},
+    IntoPyObjectExt,
 };
 
 use crate::{
@@ -40,13 +41,9 @@ impl Hello {
     }
 
     #[getter]
-    fn locators<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
-        let locators = self
-            .0
-            .locators()
-            .iter()
-            .map(|loc| loc.as_str().to_object(py));
-        PyList::new_bound(py, locators)
+    fn locators<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let locators = self.0.locators().iter().map(|loc| loc.as_str());
+        PyList::new(py, locators)
     }
 
     fn __repr__(&self) -> String {
@@ -83,7 +80,7 @@ impl Scout {
 
     #[getter]
     fn handler(&self, py: Python) -> PyResult<PyObject> {
-        Ok(self.get_ref()?.deref().to_object(py))
+        self.get_ref()?.deref().into_py_any(py)
     }
 
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
@@ -101,7 +98,7 @@ impl Scout {
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
-        self.handler(py)?.bind(py).iter()
+        self.handler(py)?.bind(py).try_iter()
     }
 
     fn __repr__(&self) -> String {
@@ -114,7 +111,7 @@ impl Scout {
 pub(crate) fn scout(
     py: Python,
     handler: Option<&Bound<PyAny>>,
-    #[pyo3(from_py_with = "WhatAmIMatcher::from_py_opt")] what: Option<WhatAmIMatcher>,
+    #[pyo3(from_py_with = WhatAmIMatcher::from_py_opt)] what: Option<WhatAmIMatcher>,
     config: Option<Config>,
 ) -> PyResult<Scout> {
     let what = what.unwrap_or_default();

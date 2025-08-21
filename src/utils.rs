@@ -13,7 +13,7 @@
 //
 use std::time::Duration;
 
-use pyo3::{exceptions::PyValueError, prelude::*, types::PyType};
+use pyo3::{exceptions::PyValueError, prelude::*, types::PyType, IntoPyObjectExt};
 
 use crate::{
     macros::{import, into_rust},
@@ -61,10 +61,10 @@ pub(crate) trait IntoRust: 'static {
 into_rust!(bool, usize, f64, Duration);
 
 pub(crate) trait IntoPython: Sized + Send + Sync + 'static {
-    type Into: IntoPy<PyObject>;
+    type Into: for<'py> IntoPyObject<'py>;
     fn into_python(self) -> Self::Into;
     fn into_pyobject(self, py: Python) -> PyObject {
-        self.into_python().into_py(py)
+        self.into_python().into_py_any(py).unwrap()
     }
 }
 
@@ -125,7 +125,7 @@ pub(crate) fn duration(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
     if obj.is_none() {
         return Ok(None);
     }
-    Duration::try_from_secs_f64(f64::extract_bound(obj)?)
+    Duration::try_from_secs_f64(obj.extract::<f64>()?)
         .map(Some)
         .map_err(|_| PyValueError::new_err("negative timeout"))
 }

@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use pyo3::{
     prelude::*,
     types::{PyDict, PyIterator, PyList, PyTuple, PyType},
+    IntoPyObjectExt,
 };
 
 use crate::{
@@ -132,13 +133,13 @@ impl Query {
     fn reply(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
-        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
+        #[pyo3(from_py_with = ZBytes::from_py)] payload: ZBytes,
+        #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
         let build = build!(
@@ -157,8 +158,8 @@ impl Query {
     fn reply_err(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
-        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = ZBytes::from_py)] payload: ZBytes,
+        #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
     ) -> PyResult<()> {
         let build = build!(self.get_ref()?.reply_err(payload), encoding);
         wait(py, build)
@@ -169,11 +170,11 @@ impl Query {
     fn reply_del(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
         let build = build!(
@@ -291,7 +292,7 @@ impl Queryable {
 
     #[getter]
     fn handler(&self, py: Python) -> PyResult<PyObject> {
-        Ok(self.get_ref()?.handler().to_object(py))
+        self.get_ref()?.handler().into_py_any(py)
     }
 
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
@@ -307,7 +308,7 @@ impl Queryable {
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
-        self.handler(py)?.bind(py).iter()
+        self.handler(py)?.bind(py).try_iter()
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -355,10 +356,10 @@ impl Querier {
         &self,
         py: Python,
         handler: Option<&Bound<PyAny>>,
-        #[pyo3(from_py_with = "Parameters::from_py_opt")] parameters: Option<Parameters>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] payload: Option<ZBytes>,
-        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = Parameters::from_py_opt)] parameters: Option<Parameters>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] payload: Option<ZBytes>,
+        #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
         let (handler, _) = into_handler(py, handler)?;
@@ -398,16 +399,16 @@ impl Selector {
     #[pyo3(signature = (arg, /, parameters = None))]
     pub(crate) fn new(
         arg: &Bound<PyAny>,
-        #[pyo3(from_py_with = "Parameters::from_py_opt")] parameters: Option<Parameters>,
+        #[pyo3(from_py_with = Parameters::from_py_opt)] parameters: Option<Parameters>,
     ) -> PyResult<Self> {
         Ok(Self(if let Some(params) = parameters {
             (KeyExpr::from_py(arg)?.0, params.0).into()
-        } else if let Ok(s) = String::extract_bound(arg) {
+        } else if let Ok(s) = arg.extract::<String>() {
             s.parse().into_pyres()?
-        } else if let Ok(k) = KeyExpr::extract_bound(arg) {
+        } else if let Ok(k) = arg.extract::<KeyExpr>() {
             k.0.into()
         } else {
-            return Err(String::extract_bound(arg).unwrap_err());
+            return Err(arg.extract::<String>().unwrap_err());
         }))
     }
 
@@ -440,10 +441,10 @@ impl Parameters {
         let Some(obj) = obj else {
             return Ok(Self(zenoh::query::Parameters::empty()));
         };
-        if let Ok(map) = <HashMap<String, String>>::extract_bound(obj) {
+        if let Ok(map) = obj.extract::<HashMap<String, String>>() {
             return Ok(Self(map.into()));
         }
-        Ok(Self(String::extract_bound(obj)?.into()))
+        Ok(Self(obj.extract::<String>()?.into()))
     }
 
     fn is_empty(&self) -> bool {
@@ -467,7 +468,7 @@ impl Parameters {
         self.0.remove(key)
     }
 
-    fn extend(&mut self, #[pyo3(from_py_with = "Parameters::from_py")] parameters: Parameters) {
+    fn extend(&mut self, #[pyo3(from_py_with = Parameters::from_py)] parameters: Parameters) {
         self.0.extend(&parameters.0)
     }
 
@@ -488,11 +489,11 @@ impl Parameters {
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
-        let list = PyList::empty_bound(py);
+        let list = PyList::empty(py);
         for kv in self.0.iter() {
             list.append(kv)?;
         }
-        list.as_any().iter()
+        list.as_any().try_iter()
     }
 
     fn __repr__(&self) -> String {

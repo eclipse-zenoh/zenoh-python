@@ -82,7 +82,7 @@ impl WhatAmI {
         Ok(s.parse::<zenoh::config::WhatAmI>().into_pyres()?.into())
     }
 
-    fn __or__(&self, #[pyo3(from_py_with = "WhatAmI::from_py")] other: WhatAmI) -> WhatAmIMatcher {
+    fn __or__(&self, #[pyo3(from_py_with = WhatAmI::from_py)] other: WhatAmI) -> WhatAmIMatcher {
         (self.into_rust() | other.into_rust()).into()
     }
 
@@ -140,11 +140,11 @@ impl WhatAmIMatcher {
         self.0.is_empty()
     }
 
-    fn matches(&self, #[pyo3(from_py_with = "WhatAmI::from_py")] whatami: WhatAmI) -> bool {
+    fn matches(&self, #[pyo3(from_py_with = WhatAmI::from_py)] whatami: WhatAmI) -> bool {
         self.0.matches(whatami.into())
     }
 
-    fn __contains__(&self, #[pyo3(from_py_with = "WhatAmI::from_py")] whatami: WhatAmI) -> bool {
+    fn __contains__(&self, #[pyo3(from_py_with = WhatAmI::from_py)] whatami: WhatAmI) -> bool {
         self.0.matches(whatami.into())
     }
 

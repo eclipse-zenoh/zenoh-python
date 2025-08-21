@@ -28,9 +28,7 @@ macro_rules! try_import {
     }};
     ($py:expr, $module:expr, $attr:ident) => {{
         $crate::macros::py_static!($py, PyAny, || PyResult::Ok(
-            $py.import_bound($module)?
-                .getattr(stringify!($attr))?
-                .unbind()
+            $py.import($module)?.getattr(stringify!($attr))?.unbind()
         ))
     }};
 }
@@ -64,14 +62,14 @@ macro_rules! zerror {
 pub(crate) use zerror;
 
 macro_rules! downcast_or_new {
-    ($ty:ty $(=> $new:ty)? $(, $other:expr)?) => {
+    ($ty:ty $(=> $new:ty)? $(, $other:expr)*) => {
         #[allow(unused)]
         impl $ty {
             pub(crate) fn from_py(obj: &Bound<PyAny>) -> PyResult<Self> {
-                if let Ok(obj) = <Self as pyo3::FromPyObject>::extract_bound(obj) {
+                if let Ok(obj) = obj.extract::<Self>() {
                     return Ok(obj);
                 }
-                let this = Self::new(PyResult::Ok(obj)$(.and_then(<$new>::extract_bound))??.into(), $($other)?);
+                let this = Self::new(PyResult::Ok(obj)$(.and_then(|obj| obj.extract::<$new>()))??.into(), $($other,)*);
                 $crate::utils::IntoResult::into_result(this)
             }
             pub(crate) fn from_py_opt(obj: &Bound<PyAny>) -> PyResult<Option<Self>> {

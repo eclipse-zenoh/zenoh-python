@@ -14,6 +14,7 @@
 use pyo3::{
     prelude::*,
     types::{PyDict, PyIterator, PyTuple, PyType},
+    IntoPyObjectExt,
 };
 
 use crate::{
@@ -65,7 +66,7 @@ impl MatchingListener {
 
     #[getter]
     fn handler(&self, py: Python) -> PyResult<PyObject> {
-        Ok(self.get_ref()?.handler().to_object(py))
+        self.get_ref()?.handler().into_py_any(py)
     }
 
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
@@ -81,7 +82,7 @@ impl MatchingListener {
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
-        self.handler(py)?.bind(py).iter()
+        self.handler(py)?.bind(py).try_iter()
     }
 
     fn __repr__(&self) -> PyResult<String> {

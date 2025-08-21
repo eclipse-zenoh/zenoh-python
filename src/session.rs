@@ -81,7 +81,7 @@ impl Session {
     fn declare_keyexpr(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
     ) -> PyResult<KeyExpr> {
         wait(py, self.0.declare_keyexpr(key_expr)).map_into()
     }
@@ -91,13 +91,13 @@ impl Session {
     fn put(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
-        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
+        #[pyo3(from_py_with = ZBytes::from_py)] payload: ZBytes,
+        #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
         allowed_destination: Option<Locality>,
     ) -> PyResult<()> {
@@ -119,11 +119,11 @@ impl Session {
     fn delete(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
         allowed_destination: Option<Locality>,
     ) -> PyResult<()> {
@@ -144,19 +144,19 @@ impl Session {
     fn get(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "Selector::from_py")] selector: Selector,
+        #[pyo3(from_py_with = Selector::from_py)] selector: Selector,
         handler: Option<&Bound<PyAny>>,
         target: Option<QueryTarget>,
-        #[pyo3(from_py_with = "QueryConsolidation::from_py_opt")] consolidation: Option<
+        #[pyo3(from_py_with = QueryConsolidation::from_py_opt)] consolidation: Option<
             QueryConsolidation,
         >,
-        #[pyo3(from_py_with = "duration")] timeout: Option<Duration>,
+        #[pyo3(from_py_with = duration)] timeout: Option<Duration>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] payload: Option<ZBytes>,
-        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] payload: Option<ZBytes>,
+        #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         allowed_destination: Option<Locality>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let (handler, _) = into_handler(py, handler)?;
@@ -185,7 +185,7 @@ impl Session {
     fn declare_subscriber(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
         allowed_origin: Option<Locality>,
     ) -> PyResult<Subscriber> {
@@ -202,7 +202,7 @@ impl Session {
     fn declare_queryable(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
         complete: Option<bool>,
         allowed_origin: Option<Locality>,
@@ -221,8 +221,8 @@ impl Session {
     fn declare_publisher(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
+        #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
@@ -246,12 +246,12 @@ impl Session {
     fn declare_querier(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
         target: Option<QueryTarget>,
-        #[pyo3(from_py_with = "QueryConsolidation::from_py_opt")] consolidation: Option<
+        #[pyo3(from_py_with = QueryConsolidation::from_py_opt)] consolidation: Option<
             QueryConsolidation,
         >,
-        #[pyo3(from_py_with = "duration")] timeout: Option<Duration>,
+        #[pyo3(from_py_with = duration)] timeout: Option<Duration>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
         express: Option<bool>,
@@ -299,7 +299,7 @@ impl SessionInfo {
     }
 
     fn routers_zid<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        let list = PyList::empty_bound(py);
+        let list = PyList::empty(py);
         for zid in py.allow_threads(|| self.0.routers_zid().wait()) {
             list.append(zid.into_pyobject(py))?;
         }
@@ -307,7 +307,7 @@ impl SessionInfo {
     }
 
     fn peers_zid<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        let list = PyList::empty_bound(py);
+        let list = PyList::empty(py);
         for zid in py.allow_threads(|| self.0.peers_zid().wait()) {
             list.append(zid.into_pyobject(py))?;
         }

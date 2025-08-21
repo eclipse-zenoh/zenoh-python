@@ -67,12 +67,12 @@ fn handle_record(
     };
     if !logger
         .call_method1("isEnabledFor", (level,))
-        .and_then(|obj| bool::extract_bound(&obj))
+        .and_then(|obj| obj.extract::<bool>())
         .unwrap_or(false)
     {
         return Ok(());
     }
-    let extra = PyDict::new_bound(py);
+    let extra = PyDict::new(py);
     for (k, v) in &record.attributes {
         extra.set_item(k, v)?;
     }
@@ -199,7 +199,7 @@ pub(crate) fn init_logging(
     let filter = LogFilter::new(py);
     let logger = LOGGER.get(py).unwrap().bind(py);
     let cache = LoggerCache {
-        inner: PyDict::new_bound(py).unbind(),
+        inner: PyDict::new(py).unbind(),
         filter: filter.clone(),
     };
     logger.setattr("_cache", cache.into_py(py))?;
