@@ -12,18 +12,30 @@
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
 use std::{
-    hash::{Hash, Hasher},
+    hash::{DefaultHasher, Hash, Hasher},
     time::{Duration, SystemTime},
 };
 
-use pyo3::{prelude::*, types::PyType};
+use pyo3::{
+    prelude::*,
+    types::{PyBytes, PyType},
+};
 
-use crate::{macros::wrapper, utils::IntoPyResult};
+use crate::{
+    macros::{downcast_or_new, wrapper},
+    utils::IntoPyResult,
+};
 
 wrapper!(zenoh::time::TimestampId: Copy, Clone, PartialEq, PartialOrd);
+downcast_or_new!(TimestampId => Vec<u8>);
 
 #[pymethods]
 impl TimestampId {
+    #[new]
+    fn new(bytes: Vec<u8>) -> PyResult<Self> {
+        Ok(Self(bytes.as_slice().try_into().into_pyres()?))
+    }
+
     fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> bool {
         match op {
             pyo3::pyclass::CompareOp::Lt => self < other,
@@ -35,20 +47,20 @@ impl TimestampId {
         }
     }
 
-    fn __bytes__(&self) -> [u8; zenoh::time::TimestampId::MAX_SIZE] {
-        self.0.to_le_bytes()
+    pub(crate) fn __bytes__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        let len = self.0.size();
+        PyBytes::new_bound_with(py, len, |bytes| {
+            bytes.copy_from_slice(&self.0.to_le_bytes()[..len]);
+            Ok(())
+        })
     }
 
     fn __hash__(&self, py: Python) -> PyResult<isize> {
-        self.__bytes__().into_py(py).bind(py).hash()
+        self.__bytes__(py)?.hash()
     }
 
     fn __repr__(&self) -> String {
         format!("{:?}", self.0)
-    }
-
-    fn __str__(&self) -> String {
-        format!("{}", self.0)
     }
 }
 
@@ -56,6 +68,15 @@ wrapper!(zenoh::time::Timestamp: Clone, PartialEq, PartialOrd, Hash);
 
 #[pymethods]
 impl Timestamp {
+    #[new]
+    fn new(
+        time: SystemTime,
+        #[pyo3(from_py_with = "TimestampId::from_py")] id: TimestampId,
+    ) -> PyResult<Self> {
+        let timestamp = time.duration_since(SystemTime::UNIX_EPOCH).into_pyres()?;
+        Ok(Self(zenoh::time::Timestamp::new(timestamp.into(), id.0)))
+    }
+
     fn get_time(&self) -> SystemTime {
         self.0.get_time().to_system_time()
     }
@@ -93,7 +114,7 @@ impl Timestamp {
     }
 
     fn __hash__(&self) -> u64 {
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        let mut hasher = DefaultHasher::new();
         self.0.hash(&mut hasher);
         hasher.finish()
     }
