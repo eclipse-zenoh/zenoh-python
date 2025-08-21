@@ -56,7 +56,7 @@ impl ZBytes {
         })
     }
 
-    fn to_string(&self) -> PyResult<Cow<str>> {
+    fn to_string(&self) -> PyResult<Cow<'_, str>> {
         self.0
             .try_to_string()
             .map_err(|_| PyValueError::new_err("not an UTF8 error"))
@@ -74,7 +74,7 @@ impl ZBytes {
         self.to_bytes(py)
     }
 
-    fn __str__(&self) -> PyResult<Cow<str>> {
+    fn __str__(&self) -> PyResult<Cow<'_, str>> {
         self.to_string()
     }
 

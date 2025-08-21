@@ -107,5 +107,5 @@ pub(crate) mod zenoh {
 #[test]
 #[cfg(not(feature = "default"))]
 fn test_no_default_features() {
-    assert_eq!(::zenoh::FEATURES, concat!(" zenoh/unstable"));
+    assert_eq!(::zenoh::FEATURES, " zenoh/unstable");
 }
