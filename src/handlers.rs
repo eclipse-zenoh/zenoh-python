@@ -17,6 +17,7 @@ use pyo3::{
     exceptions::PyValueError,
     prelude::*,
     types::{PyCFunction, PyDict, PyType},
+    BoundObject,
 };
 use zenoh::handlers::IntoHandler;
 
@@ -39,7 +40,7 @@ warnings.filterwarnings(\"ignore\", message=\"Passing drop-callback\")";
 
 fn log_error(py: Python, result: PyResult<PyObject>) {
     if let Err(err) = result {
-        let kwargs = PyDict::new_bound(py);
+        let kwargs = PyDict::new(py);
         kwargs.set_item("exc_info", err.into_value(py)).unwrap();
         py_static!(py, PyAny, || Ok(import!(py, logging.getLogger)
             .call1(("zenoh.handlers",))?
@@ -153,7 +154,7 @@ impl Handler {
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct Callback {
     #[pyo3(get)]
     callback: PyObject,
@@ -166,7 +167,7 @@ pub(crate) struct Callback {
 #[pymethods]
 impl Callback {
     #[new]
-    #[pyo3(signature = (callback, drop, *, indirect = true))]
+    #[pyo3(signature = (callback, drop = None, *, indirect = true))]
     fn new(callback: PyObject, drop: Option<PyObject>, indirect: bool) -> Self {
         Self {
             callback,
@@ -188,8 +189,12 @@ pub(crate) struct PythonCallback(Callback);
 
 impl PythonCallback {
     fn new(obj: &Bound<PyAny>) -> Self {
-        if let Ok(cb) = Callback::extract_bound(obj) {
-            return Self(cb);
+        if let Ok(cb) = obj.downcast::<Callback>().map(Bound::borrow) {
+            return Self(Callback::new(
+                cb.callback.clone_ref(obj.py()),
+                cb.drop.as_ref().map(|d| d.clone_ref(obj.py())),
+                cb.indirect,
+            ));
         }
         Self(Callback::new(obj.clone().unbind(), None, true))
     }
@@ -223,21 +228,30 @@ impl<T> fmt::Debug for HandlerImpl<T> {
     }
 }
 
-impl<T> IntoPy<PyObject> for HandlerImpl<T> {
-    fn into_py(self, _: Python<'_>) -> PyObject {
-        match self {
-            Self::Rust(obj, _) => obj.into_any(),
-            Self::Python(obj) => obj,
+impl<'py, T> IntoPyObject<'py> for HandlerImpl<T> {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(match self {
+            HandlerImpl::Rust(obj, _) => obj.into_any(),
+            HandlerImpl::Python(obj) => obj,
         }
+        .into_bound(py))
     }
 }
 
-impl<T> ToPyObject for HandlerImpl<T> {
-    fn to_object(&self, py: Python<'_>) -> PyObject {
-        match self {
-            Self::Rust(obj, _) => obj.clone_ref(py).into_any(),
-            Self::Python(obj) => obj.clone_ref(py),
-        }
+impl<'a, 'py, T> IntoPyObject<'py> for &'a HandlerImpl<T> {
+    type Target = PyAny;
+    type Output = Borrowed<'a, 'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(match self {
+            HandlerImpl::Rust(obj, _) => obj.bind_borrowed(py).into_any(),
+            HandlerImpl::Python(obj) => obj.bind_borrowed(py),
+        })
     }
 }
 
@@ -388,8 +402,8 @@ fn python_callback<T: IntoPython>(callback: &Bound<PyAny>) -> PyResult<RustCallb
     let callback = PythonCallback::new(callback);
     Ok(if callback.0.indirect {
         let (rust_callback, receiver) = DefaultHandler.into_rust().into_handler();
-        let kwargs = PyDict::new_bound(py);
-        let target = PyCFunction::new_closure_bound(py, None, None, move |args, _| {
+        let kwargs = PyDict::new(py);
+        let target = PyCFunction::new_closure(py, None, None, move |args, _| {
             let py = args.py();
             // No need to call `Python::check_signals` because it's not the main thread.
             while let Ok(x) = py.allow_threads(|| receiver.recv()) {

@@ -7,7 +7,7 @@ use pyo3::{
         PyBool, PyByteArray, PyBytes, PyDict, PyFloat, PyFrozenSet, PyInt, PyIterator, PyList,
         PySet, PyString, PyTuple, PyType,
     },
-    PyTypeInfo,
+    IntoPyObjectExt, PyTypeInfo,
 };
 use zenoh_ext::{
     AdvancedPublisherBuilderExt, AdvancedSubscriberBuilderExt, Deserialize, VarInt, ZDeserializer,
@@ -59,11 +59,11 @@ enum SupportedType {
 
 impl SupportedType {
     fn init_dict(py: Python) -> Py<PyDict> {
-        let dict = PyDict::new_bound(py);
+        let dict = PyDict::new(py);
         fn add_type<T: PyTypeInfo>(py: Python, dict: &Bound<PyDict>, tp: SupportedType) {
-            dict.set_item(T::type_object_bound(py), tp as u8).unwrap()
+            dict.set_item(T::type_object(py), tp as u8).unwrap()
         }
-        let ext = py.import_bound("zenoh.ext").unwrap();
+        let ext = py.import("zenoh.ext").unwrap();
         let add_wrapper_type = |name, tp| {
             let wrapper = ext.getattr(name).unwrap();
             dict.set_item(wrapper, tp as u8).unwrap();
@@ -128,8 +128,7 @@ impl SupportedType {
     fn from_type(tp: &Bound<PyType>) -> Option<Self> {
         let py = tp.py();
         let dict = py_static!(py, PyDict, || Ok(Self::init_dict(py))).ok()?;
-        let int = u8::extract_bound(&dict.get_item(tp).ok()??).unwrap();
-        Some(Self::from_int(int))
+        Some(Self::from_int(dict.get_item(tp).ok()??.extract().unwrap()))
     }
 
     fn try_from_type(tp: &Bound<PyType>) -> PyResult<Self> {
@@ -171,28 +170,28 @@ fn serialize_impl(
         Ok(())
     };
     match tp {
-        SupportedType::ZBytes => serializer.serialize(ZBytes::extract_bound(obj)?.0),
+        SupportedType::ZBytes => serializer.serialize(obj.extract::<ZBytes>()?.0),
         // SAFETY: bytes are immediately copied
         SupportedType::ByteArray => {
             serializer.serialize(unsafe { obj.downcast::<PyByteArray>()?.as_bytes() })
         }
         SupportedType::Bytes => serializer.serialize(obj.downcast::<PyBytes>()?.as_bytes()),
         SupportedType::Str => serializer.serialize(&obj.downcast::<PyString>()?.to_cow()?),
-        SupportedType::Int8 => serializer.serialize(i8::extract_bound(obj)?),
-        SupportedType::Int16 => serializer.serialize(i16::extract_bound(obj)?),
-        SupportedType::Int | SupportedType::Int32 => serializer.serialize(i32::extract_bound(obj)?),
-        SupportedType::Int64 => serializer.serialize(i64::extract_bound(obj)?),
-        SupportedType::Int128 => serializer.serialize(i128::extract_bound(obj)?),
-        SupportedType::UInt8 => serializer.serialize(u8::extract_bound(obj)?),
-        SupportedType::UInt16 => serializer.serialize(u16::extract_bound(obj)?),
-        SupportedType::UInt32 => serializer.serialize(u32::extract_bound(obj)?),
-        SupportedType::UInt64 => serializer.serialize(u64::extract_bound(obj)?),
-        SupportedType::UInt128 => serializer.serialize(u128::extract_bound(obj)?),
+        SupportedType::Int8 => serializer.serialize(obj.extract::<i8>()?),
+        SupportedType::Int16 => serializer.serialize(obj.extract::<i16>()?),
+        SupportedType::Int | SupportedType::Int32 => serializer.serialize(obj.extract::<i32>()?),
+        SupportedType::Int64 => serializer.serialize(obj.extract::<i64>()?),
+        SupportedType::Int128 => serializer.serialize(obj.extract::<i128>()?),
+        SupportedType::UInt8 => serializer.serialize(obj.extract::<u8>()?),
+        SupportedType::UInt16 => serializer.serialize(obj.extract::<u16>()?),
+        SupportedType::UInt32 => serializer.serialize(obj.extract::<u32>()?),
+        SupportedType::UInt64 => serializer.serialize(obj.extract::<u64>()?),
+        SupportedType::UInt128 => serializer.serialize(obj.extract::<u128>()?),
         SupportedType::Float | SupportedType::Float64 => {
-            serializer.serialize(f64::extract_bound(obj)?)
+            serializer.serialize(obj.extract::<f64>()?)
         }
-        SupportedType::Float32 => serializer.serialize(f64::extract_bound(obj)? as f32),
-        SupportedType::Bool => serializer.serialize(bool::extract_bound(obj)?),
+        SupportedType::Float32 => serializer.serialize(obj.extract::<f64>()? as f32),
+        SupportedType::Bool => serializer.serialize(obj.extract::<bool>()?),
         SupportedType::List => serialize_iter(
             serializer,
             obj.downcast::<PyList>()?,
@@ -314,7 +313,7 @@ fn deserialize_impl(
         ($tp:ty, $wrapper:ident) => {
             import!(py, "zenoh.ext", $wrapper)
                 .call1((deserializer.deserialize::<$tp>()?,))?
-                .into_py(py)
+                .into_py_any(py)?
         };
     }
     let unwrap_args = || {
@@ -322,15 +321,17 @@ fn deserialize_impl(
         args.ok_or_else(|| PyValueError::new_err(err))
     };
     Ok(match tp {
-        SupportedType::ZBytes => ZBytes(deserializer.deserialize::<Vec<u8>>()?.into()).into_py(py),
+        SupportedType::ZBytes => {
+            ZBytes(deserializer.deserialize::<Vec<u8>>()?.into()).into_py_any(py)?
+        }
         SupportedType::ByteArray => {
-            PyByteArray::new_bound(py, &deserializer.deserialize::<Vec<u8>>()?).into_py(py)
+            PyByteArray::new(py, &deserializer.deserialize::<Vec<u8>>()?).into_py_any(py)?
         }
         SupportedType::Bytes => {
-            PyBytes::new_bound(py, &deserializer.deserialize::<Vec<u8>>()?).into_py(py)
+            PyBytes::new(py, &deserializer.deserialize::<Vec<u8>>()?).into_py_any(py)?
         }
-        SupportedType::Str => deserializer.deserialize::<String>()?.into_py(py),
-        SupportedType::Int => deserializer.deserialize::<i32>()?.into_py(py),
+        SupportedType::Str => deserializer.deserialize::<String>()?.into_py_any(py)?,
+        SupportedType::Int => deserializer.deserialize::<i32>()?.into_py_any(py)?,
         SupportedType::Int8 => deserialize_wrapper!(i8, Int8),
         SupportedType::Int16 => deserialize_wrapper!(i16, Int16),
         SupportedType::Int32 => deserialize_wrapper!(i32, Int32),
@@ -341,16 +342,20 @@ fn deserialize_impl(
         SupportedType::UInt32 => deserialize_wrapper!(u32, UInt32),
         SupportedType::UInt64 => deserialize_wrapper!(u64, UInt64),
         SupportedType::UInt128 => deserialize_wrapper!(u128, UInt128),
-        SupportedType::Float => deserializer.deserialize::<f64>()?.into_py(py),
+        SupportedType::Float => deserializer.deserialize::<f64>()?.into_py_any(py)?,
         SupportedType::Float32 => deserialize_wrapper!(f32, Float32),
         SupportedType::Float64 => deserialize_wrapper!(f64, Float64),
-        SupportedType::Bool => deserializer.deserialize::<bool>()?.into_py(py),
+        SupportedType::Bool => deserializer.deserialize::<bool>()?.into_py_any(py)?,
         tp @ (SupportedType::List | SupportedType::Set | SupportedType::FrozenSet) => {
             deserialize_collection(deserializer, py, tp, unwrap_args()?)?
         }
         SupportedType::Tuple => {
             let args = unwrap_args()?;
-            if args.get_item(1).ok().is_some_and(|arg| arg.is_ellipsis()) {
+            if args
+                .get_item(1)
+                .ok()
+                .is_some_and(|arg| arg.is(py.Ellipsis()))
+            {
                 return Err(DeserializationError(PyTypeError::new_err(
                     "any size tuples are not supported",
                 )));
@@ -359,10 +364,10 @@ fn deserialize_impl(
                 .iter()
                 .map(|arg| deserialize(deserializer, &arg))
                 .collect::<Result<Vec<_>, _>>()?;
-            PyTuple::new_bound(py, items).into_py(py)
+            PyTuple::new(py, items)?.into_py_any(py)?
         }
         SupportedType::Dict => {
-            let dict = PyDict::new_bound(py);
+            let dict = PyDict::new(py);
             let args = unwrap_args()?;
             let (k_tp, k_args) = get_deserialization_type(&args.get_item(0).expect("no key type"))?;
             let (v_tp, v_args) = get_deserialization_type(&args.get_item(1).expect("no key type"))?;
@@ -372,7 +377,7 @@ fn deserialize_impl(
                 let v = deserialize_impl(deserializer, py, v_tp, v_args.clone())?;
                 dict.set_item(k, v)?;
             }
-            dict.into_py(py)
+            dict.into_py_any(py)?
         }
     })
 }
@@ -385,16 +390,16 @@ fn deserialize_collection(
 ) -> Result<PyObject, DeserializationError> {
     let item = args.get_item(0).expect("no item type");
     let (item_tp, item_args) = get_deserialization_type(&item)?;
-    fn from_vec<T: Deserialize + ToPyObject>(
+    fn from_vec<'py, T: Deserialize + IntoPyObject<'py>>(
         deserializer: &mut ZDeserializer,
-        py: Python,
+        py: Python<'py>,
         tp: SupportedType,
     ) -> Result<PyObject, DeserializationError> {
         let vec: Vec<T> = deserializer.deserialize()?;
         Ok(match tp {
-            SupportedType::List => PyList::new_bound(py, vec).into_py(py),
-            SupportedType::Set => PySet::new_bound(py, &vec)?.into_py(py),
-            SupportedType::FrozenSet => PySet::new_bound(py, &vec)?.into_py(py),
+            SupportedType::List => PyList::new(py, vec)?.into_py_any(py)?,
+            SupportedType::Set => PySet::new(py, vec)?.into_py_any(py)?,
+            SupportedType::FrozenSet => PySet::new(py, vec)?.into_py_any(py)?,
             _ => unreachable!(),
         })
     }
@@ -412,7 +417,7 @@ fn deserialize_collection(
         SupportedType::Float32 => from_vec::<f32>(deserializer, py, tp),
         SupportedType::Float64 => from_vec::<f64>(deserializer, py, tp),
         _ => {
-            let list = PyList::empty_bound(py);
+            let list = PyList::empty(py);
             let len = deserializer.deserialize::<VarInt<usize>>()?.0;
             for _ in 0..len {
                 list.append(deserialize_impl(
@@ -423,11 +428,11 @@ fn deserialize_collection(
                 )?)?;
             }
             Ok(match tp {
-                SupportedType::List => list.into_py(py),
-                SupportedType::Set => PySet::type_object_bound(py).call1((list,))?.into_py(py),
-                SupportedType::FrozenSet => PyFrozenSet::type_object_bound(py)
+                SupportedType::List => list.into_py_any(py)?,
+                SupportedType::Set => PySet::type_object(py).call1((list,))?.into_py_any(py)?,
+                SupportedType::FrozenSet => PyFrozenSet::type_object(py)
                     .call1((list,))?
-                    .into_py(py),
+                    .into_py_any(py)?,
                 _ => unreachable!(),
             })
         }
@@ -486,9 +491,9 @@ impl AdvancedPublisher {
     fn put(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
-        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py)] payload: ZBytes,
+        #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
@@ -502,7 +507,7 @@ impl AdvancedPublisher {
     fn delete(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
         wait(py, build!(self.get_ref()?.delete(), attachment, timestamp))
@@ -547,7 +552,7 @@ impl AdvancedSubscriber {
 
     #[getter]
     fn handler(&self, py: Python) -> PyResult<PyObject> {
-        Ok(self.get_ref()?.handler().to_object(py))
+        self.get_ref()?.handler().into_py_any(py)
     }
 
     #[pyo3(signature = (handler = None))]
@@ -594,7 +599,7 @@ impl AdvancedSubscriber {
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
-        self.handler(py)?.bind(py).iter()
+        self.handler(py)?.bind(py).try_iter()
     }
 }
 
@@ -654,8 +659,8 @@ impl MissDetectionConfig {
     #[new]
     #[pyo3(signature = (*, heartbeat = None, sporadic_heartbeat = None))]
     fn new(
-        #[pyo3(from_py_with = "duration")] heartbeat: Option<Duration>,
-        #[pyo3(from_py_with = "duration")] sporadic_heartbeat: Option<Duration>,
+        #[pyo3(from_py_with = duration)] heartbeat: Option<Duration>,
+        #[pyo3(from_py_with = duration)] sporadic_heartbeat: Option<Duration>,
     ) -> Self {
         Self(build!(
             zenoh_ext::MissDetectionConfig::default(),
@@ -742,7 +747,7 @@ impl SampleMissListener {
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
-        (**self.get_ref()?).to_object(py).bind(py).iter()
+        (&**self.get_ref()?).into_pyobject(py)?.try_iter()
     }
 }
 
@@ -752,8 +757,8 @@ impl SampleMissListener {
 pub(crate) fn declare_advanced_publisher(
     py: Python,
     session: &Session,
-    #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
-    #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
+    #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
+    #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
     congestion_control: Option<CongestionControl>,
     priority: Option<Priority>,
     express: Option<bool>,
@@ -786,7 +791,7 @@ pub(crate) fn declare_advanced_publisher(
 pub(crate) fn declare_advanced_subscriber(
     session: &Session,
     py: Python,
-    #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+    #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
     handler: Option<&Bound<PyAny>>,
     allowed_origin: Option<Locality>,
     history: Option<HistoryConfig>,

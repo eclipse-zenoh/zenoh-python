@@ -14,6 +14,7 @@
 use pyo3::{
     prelude::*,
     types::{PyDict, PyIterator, PyTuple, PyType},
+    IntoPyObjectExt,
 };
 
 use crate::{
@@ -81,9 +82,9 @@ impl Publisher {
     fn put(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "ZBytes::from_py")] payload: ZBytes,
-        #[pyo3(from_py_with = "Encoding::from_py_opt")] encoding: Option<Encoding>,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py)] payload: ZBytes,
+        #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
@@ -97,7 +98,7 @@ impl Publisher {
     fn delete(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "ZBytes::from_py_opt")] attachment: Option<ZBytes>,
+        #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
     ) -> PyResult<()> {
         wait(py, build!(self.get_ref()?.delete(), attachment, timestamp))
@@ -160,7 +161,7 @@ impl Subscriber {
 
     #[getter]
     fn handler(&self, py: Python) -> PyResult<PyObject> {
-        Ok(self.get_ref()?.handler().to_object(py))
+        self.get_ref()?.handler().into_py_any(py)
     }
 
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
@@ -176,7 +177,7 @@ impl Subscriber {
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
-        self.handler(py)?.bind(py).iter()
+        self.handler(py)?.bind(py).try_iter()
     }
 
     fn __repr__(&self) -> PyResult<String> {

@@ -22,7 +22,7 @@ impl Liveliness {
     fn declare_token(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
     ) -> PyResult<LivelinessToken> {
         let liveliness = self.0.liveliness();
         let builder = liveliness.declare_token(key_expr);
@@ -33,7 +33,7 @@ impl Liveliness {
     fn declare_subscriber(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
         history: Option<bool>,
     ) -> PyResult<Subscriber> {
@@ -51,9 +51,9 @@ impl Liveliness {
     fn get(
         &self,
         py: Python,
-        #[pyo3(from_py_with = "KeyExpr::from_py")] key_expr: KeyExpr,
+        #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
-        #[pyo3(from_py_with = "duration")] timeout: Option<Duration>,
+        #[pyo3(from_py_with = duration)] timeout: Option<Duration>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let (handler, _) = into_handler(py, handler)?;
         let liveliness = self.0.liveliness();

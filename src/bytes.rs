@@ -51,7 +51,7 @@ impl ZBytes {
 
     fn to_bytes<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
         // Not using `ZBytes::to_bytes`
-        PyBytes::new_bound_with(py, self.0.len(), |bytes| {
+        PyBytes::new_with(py, self.0.len(), |bytes| {
             self.0.reader().read_exact(bytes).into_pyres()
         })
     }
@@ -78,8 +78,8 @@ impl ZBytes {
         self.to_string()
     }
 
-    fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
-        Ok(self.0 == Self::from_py(other)?.0)
+    fn __eq__(&self, #[pyo3(from_py_with = Self::from_py)] other: Self) -> bool {
+        self.0 == other.0
     }
 
     fn __hash__(&self, py: Python) -> PyResult<isize> {
@@ -105,13 +105,12 @@ impl Encoding {
         Self(self.0.clone().with_schema(schema))
     }
 
-    // Cannot use `#[pyo3(from_py_with = "...")]`, see https://github.com/PyO3/pyo3/issues/4113
-    fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
-        Ok(self.0 == Self::from_py(other)?.0)
+    fn __eq__(&self, #[pyo3(from_py_with = Self::from_py)] other: Self) -> bool {
+        self.0 == other.0
     }
 
     fn __hash__(&self, py: Python) -> PyResult<isize> {
-        PyString::new_bound(py, &self.__str__()).hash()
+        PyString::new(py, &self.__str__()).hash()
     }
 
     fn __repr__(&self) -> String {

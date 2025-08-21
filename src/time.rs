@@ -49,7 +49,7 @@ impl TimestampId {
 
     pub(crate) fn __bytes__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
         let len = self.0.size();
-        PyBytes::new_bound_with(py, len, |bytes| {
+        PyBytes::new_with(py, len, |bytes| {
             bytes.copy_from_slice(&self.0.to_le_bytes()[..len]);
             Ok(())
         })
@@ -71,7 +71,7 @@ impl Timestamp {
     #[new]
     fn new(
         time: SystemTime,
-        #[pyo3(from_py_with = "TimestampId::from_py")] id: TimestampId,
+        #[pyo3(from_py_with = TimestampId::from_py)] id: TimestampId,
     ) -> PyResult<Self> {
         let timestamp = time.duration_since(SystemTime::UNIX_EPOCH).into_pyres()?;
         Ok(Self(zenoh::time::Timestamp::new(timestamp.into(), id.0)))
