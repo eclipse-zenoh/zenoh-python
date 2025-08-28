@@ -19,7 +19,7 @@ use pyo3::{
     types::{PyCFunction, PyDict, PyType},
     BoundObject,
 };
-use zenoh::handlers::IntoHandler;
+use zenoh::handlers::{CallbackParameter, IntoHandler};
 
 use crate::{
     macros::{import, py_static},
@@ -271,7 +271,7 @@ impl<T> HandlerImpl<T> {
     }
 }
 
-struct RustHandler<H: IntoRust, T: IntoPython>
+struct RustHandler<H: IntoRust, T: IntoPython + CallbackParameter>
 where
     H::Into: IntoHandler<T>,
 {
@@ -313,7 +313,7 @@ impl<E: fmt::Display> fmt::Display for DeadlineError<E> {
     }
 }
 
-impl<T: IntoPython> Receiver for RustHandler<DefaultHandler, T> {
+impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<DefaultHandler, T> {
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
@@ -335,7 +335,7 @@ impl<T: IntoPython> Receiver for RustHandler<DefaultHandler, T> {
     }
 }
 
-impl<T: IntoPython> Receiver for RustHandler<FifoChannel, T> {
+impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<FifoChannel, T> {
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
@@ -357,7 +357,7 @@ impl<T: IntoPython> Receiver for RustHandler<FifoChannel, T> {
     }
 }
 
-impl<T: IntoPython> Receiver for RustHandler<RingChannel, T> {
+impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<RingChannel, T> {
     fn type_name(&self) -> &'static str {
         short_type_name::<T>()
     }
@@ -379,7 +379,7 @@ impl<T: IntoPython> Receiver for RustHandler<RingChannel, T> {
     }
 }
 
-fn rust_handler<H: IntoRust, T: IntoPython>(
+fn rust_handler<H: IntoRust, T: IntoPython + CallbackParameter>(
     py: Python,
     into_handler: H,
 ) -> (RustCallback<T>, HandlerImpl<T::Into>)
@@ -397,7 +397,9 @@ where
     (callback, HandlerImpl::Rust(handler, PhantomData))
 }
 
-fn python_callback<T: IntoPython>(callback: &Bound<PyAny>) -> PyResult<RustCallback<T>> {
+fn python_callback<T: IntoPython + CallbackParameter>(
+    callback: &Bound<PyAny>,
+) -> PyResult<RustCallback<T>> {
     let py = callback.py();
     let callback = PythonCallback::new(callback);
     Ok(if callback.0.indirect {
@@ -421,7 +423,7 @@ fn python_callback<T: IntoPython>(callback: &Bound<PyAny>) -> PyResult<RustCallb
     })
 }
 
-pub(crate) fn into_handler<T: IntoPython>(
+pub(crate) fn into_handler<T: IntoPython + CallbackParameter>(
     py: Python,
     obj: Option<&Bound<PyAny>>,
 ) -> PyResult<(impl IntoHandler<T, Handler = HandlerImpl<T::Into>>, bool)> {
