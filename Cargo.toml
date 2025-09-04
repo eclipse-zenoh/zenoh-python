@@ -49,5 +49,5 @@ pyo3 = { version = "0.25.1", features = [
   "abi3-py38",
 ] }
 validated_struct = "2.1.0"
-zenoh = { version = "1.5.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "release/1.5.1", features = ["unstable", "internal"], default-features = false }
-zenoh-ext = { version = "1.5.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "release/1.5.1", features = ["internal"], optional = true }
+zenoh = { version = "1.5.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["unstable", "internal"], default-features = false }
+zenoh-ext = { version = "1.5.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["internal"], optional = true }
