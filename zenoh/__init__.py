@@ -14,6 +14,6 @@
 from .zenoh import *
 
 try:
-    from . import ext
+    from . import ext, shm
 except ImportError:
     pass
