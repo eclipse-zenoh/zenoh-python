@@ -3805,7 +3805,6 @@ dependencies = [
  "json5",
  "paste",
  "pyo3",
- "validated_struct",
  "zenoh",
  "zenoh-ext",
 ]
