@@ -141,6 +141,9 @@ macro_rules! wrapper {
     ($($path:ident)::* $(<$arg:lifetime>)? $(:$($derive:ty),*)?) => {
         $crate::macros::wrapper!(@ $($path)::*, $($path)::* $(<$arg>)? $(:$($derive),*)?);
     };
+    ($($path:ident)::* $(<$($arg:ty),*>)? $(:$($derive:ty),*)?) => {
+        $crate::macros::wrapper!(@ $($path)::*, $($path)::* $(<$($arg),*>)? $(:$($derive),*)?);
+    };
     (@ $ty:ident::$($tt:ident)::*, $path:path $(:$($derive:ty),*)?) => {
         $crate::macros::wrapper!(@ $($tt)::*, $path $(:$($derive),*)?);
     };
@@ -183,8 +186,8 @@ macro_rules! option_wrapper {
     ($($path:ident)::* $(<$arg:lifetime>)?, $error:literal) => {
         $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
     };
-    ($($path:ident)::* $(<$arg:ty>)?, $error:literal) => {
-        $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$arg>)?, $error);
+    ($($path:ident)::* $(<$($arg:ty),*>)?, $error:literal) => {
+        $crate::macros::option_wrapper!(@ $($path)::*, $($path)::* $(<$($arg),*>)?, $error);
     };
     (@ $ty:ident::$($tt:ident)::*, $path:path, $error:literal) => {
         $crate::macros::option_wrapper!(@ $($tt)::*, $path, $error);

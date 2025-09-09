@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 //
 // Copyright (c) 2024 ZettaScale Technology
 //
@@ -12,16 +11,22 @@ use std::borrow::Cow;
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::io::Read;
+use std::{
+    borrow::Cow,
+    ffi::{c_int, c_void},
+    io::Read,
+    ptr,
+};
 
 use pyo3::{
-    exceptions::{PyTypeError, PyValueError},
+    exceptions::{PyBufferError, PyTypeError, PyValueError},
     prelude::*,
     types::{PyByteArray, PyBytes, PyString},
 };
 
 use crate::{
     macros::{downcast_or_new, wrapper},
+    shm::ZShmMut,
     utils::{IntoPyResult, MapInto},
 };
 
@@ -41,6 +46,8 @@ impl ZBytes {
             Ok(Self(bytes.as_bytes().into()))
         } else if let Ok(string) = obj.downcast::<PyString>() {
             Ok(Self(string.to_string().into()))
+        } else if let Ok(buf) = obj.downcast_exact::<ZShmMut>() {
+            Ok(Self(buf.borrow_mut().take()?.into()))
         } else {
             Err(PyTypeError::new_err(format!(
                 "expected bytes/str type, found '{}'",
@@ -48,6 +55,44 @@ impl ZBytes {
             )))
         }
     }
+
+    unsafe fn __getbuffer__(
+        this: Bound<'_, Self>,
+        view: *mut pyo3::ffi::Py_buffer,
+        flags: c_int,
+    ) -> PyResult<()> {
+        if view.is_null() {
+            return Err(PyBufferError::new_err("Buffer ptr is null"));
+        }
+        if flags & pyo3::ffi::PyBUF_WRITABLE != 0 {
+            return Err(PyBufferError::new_err("ZBytes is not writable"));
+        }
+        let mut borrow = this.borrow_mut();
+        let (buf, len) = match borrow.0.to_bytes() {
+            Cow::Borrowed(bytes) => (bytes.as_ptr(), bytes.len()),
+            Cow::Owned(bytes) => {
+                let (buf, len) = (bytes.as_ptr(), bytes.len());
+                borrow.0 = bytes.into();
+                (buf, len)
+            }
+        };
+        unsafe {
+            (*view).buf = buf as *mut c_void;
+            (*view).obj = this.into_ptr();
+            (*view).len = len as isize;
+            (*view).readonly = 1;
+            (*view).itemsize = 1;
+            (*view).format = ptr::null_mut();
+            (*view).ndim = 1;
+            (*view).shape = ptr::null_mut();
+            (*view).strides = ptr::null_mut();
+            (*view).suboffsets = ptr::null_mut();
+            (*view).internal = ptr::null_mut();
+        }
+        Ok(())
+    }
+
+    unsafe fn __releasebuffer__(&mut self, _view: *mut pyo3::ffi::Py_buffer) {}
 
     fn to_bytes<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
         // Not using `ZBytes::to_bytes`

@@ -11,14 +11,15 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Generic, Never, Self, TypeVar, final, overload
 
+from . import ext as ext
 from . import handlers as handlers
+from . import shm as shm
 from .handlers import Handler as Handler
 
 _T = TypeVar("_T")
@@ -1238,6 +1239,8 @@ class ZBytes:
     def __str__(self) -> str: ...
     def __eq__(self, other: Any) -> bool: ...
     def __hash__(self) -> int: ...
+    def __buffer__(self, flags: int) -> memoryview: ...
+    def __release_buffer__(self, view: memoryview) -> None: ...
 
 _IntoZBytes = Any
 
