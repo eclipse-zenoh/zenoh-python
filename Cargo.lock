@@ -3602,7 +3602,6 @@ version = "1.5.1"
 dependencies = [
  "paste",
  "pyo3",
- "validated_struct",
  "zenoh",
  "zenoh-ext",
 ]

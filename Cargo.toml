@@ -47,6 +47,5 @@ pyo3 = { version = "0.25.1", features = [
   "extension-module",
   "abi3-py311",
 ] }
-validated_struct = "2.1.0"
 zenoh = { version = "1.5.1", git = "https://github.com/ZettaScaleLabs/zenoh.git", branch = "shm-new-api", features = ["unstable", "internal"], default-features = false }
 zenoh-ext = { version = "1.5.1", git = "https://github.com/ZettaScaleLabs/zenoh.git", branch = "shm-new-api", features = ["internal"], optional = true }
