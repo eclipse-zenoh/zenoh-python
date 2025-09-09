@@ -1,3 +1,16 @@
+#
+# Copyright (c) 2025 ZettaScale Technology
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+#
+# Contributors:
+#   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
+#
 from typing import Self, final
 
 @final
@@ -11,11 +24,11 @@ class AllocAlignment:
 
     def __new__(cls, pow: int) -> Self: ...
 
-_AllocPolicy = JustAlloc | BlockOn
+_AllocPolicy = JustAlloc | BlockOn | Defragment | GarbageCollect
 
 @final
 class BlockOn:
-    def __new__(self, inner_policy: _AllocPolicy | None = JustAlloc()) -> Self: ...
+    def __new__(self, inner_policy: _AllocPolicy = JustAlloc()) -> Self: ...
 
 @final
 class Deallocate:
@@ -24,12 +37,12 @@ class Deallocate:
 
     def __new__(
         cls,
-        inner_policy: _AllocPolicy | None = JustAlloc(),
-        alt_policy: _AllocPolicy | None = JustAlloc(),
-        deallocate_policy: _DeallocatePolicy | None = DeallocOptimal(),
+        inner_policy: _AllocPolicy = JustAlloc(),
+        alt_policy: _AllocPolicy = JustAlloc(),
+        deallocate_policy: _ForceDeallocPolicy = DeallocOptimal(),
     ) -> Self: ...
 
-_DeallocatePolicy = DeallocEldest | DeallocOptimal | DeallocYoungest
+_ForceDeallocPolicy = DeallocEldest | DeallocOptimal | DeallocYoungest
 
 @final
 class DeallocEldest:
@@ -47,16 +60,18 @@ class DeallocYoungest:
 class Defragment:
     def __new__(
         self,
-        inner_policy: _AllocPolicy | None = JustAlloc(),
-        alt_policy: _AllocPolicy | None = JustAlloc(),
+        inner_policy: _AllocPolicy = JustAlloc(),
+        alt_policy: _AllocPolicy = JustAlloc(),
     ) -> Self: ...
 
 @final
 class GarbageCollect:
     def __new__(
         self,
-        inner_policy: _AllocPolicy | None = JustAlloc(),
-        alt_policy: _AllocPolicy | None = JustAlloc(),
+        inner_policy: _AllocPolicy = JustAlloc(),
+        alt_policy: _AllocPolicy = JustAlloc(),
+        *,
+        safe: bool = True,
     ) -> Self: ...
 
 @final
@@ -74,21 +89,16 @@ class MemoryLayout:
     def alignment(self) -> AllocAlignment: ...
 
 @final
-class ZShmMut:
-    """A mutable SHM buffer"""
-
-    def __buffer__(self, flags: int) -> memoryview: ...
-    def __release_buffer__(self, view: memoryview) -> None: ...
-
-@final
 class ShmProvider:
     """A generalized interface for shared memory data sources"""
 
     @classmethod
-    def default_backend(cls, memory: _IntoMemoryLayout) -> Self:
+    def default_backend(cls, layout: _IntoMemoryLayout) -> Self:
         """Set the default backend"""
 
-    def alloc(self, size: int, policy=None) -> ZShmMut:
+    def alloc(
+        self, layout: _IntoMemoryLayout, policy: _AllocPolicy = JustAlloc()
+    ) -> ZShmMut:
         """Rich interface for making allocations"""
 
     def defragment(self):
@@ -98,8 +108,21 @@ class ShmProvider:
         """Try to collect free chunks.
         Returns the size of largest collected chunk"""
 
+    def garbage_collect_unsafe(self) -> int:
+        """Try to collect free chunks.
+        Returns the size of largest collected chunk"""
+
     @property
     def available(self) -> int:
         """Bytes available for use"""
 
 _IntoMemoryLayout = MemoryLayout | tuple[int, AllocAlignment] | int
+
+@final
+class ZShmMut:
+    """A mutable SHM buffer"""
+
+    def __bytes__(self) -> bytes: ...
+    def __str__(self) -> str: ...
+    def __buffer__(self, flags: int) -> memoryview: ...
+    def __release_buffer__(self, view: memoryview) -> None: ...

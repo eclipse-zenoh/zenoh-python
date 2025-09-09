@@ -114,9 +114,9 @@ pub(crate) fn short_type_name<T: ?Sized>() -> &'static str {
     name.rsplit_once("::").map_or(name, |(_, name)| name)
 }
 
-pub(crate) fn wait<T: Send>(
+pub(crate) fn wait<T: Send, E: IntoPyErr + Send>(
     py: Python,
-    resolve: impl zenoh::Resolve<zenoh::Result<T>>,
+    resolve: impl zenoh::Wait<To = Result<T, E>> + Send,
 ) -> PyResult<T> {
     py.allow_threads(|| resolve.wait()).into_pyres()
 }

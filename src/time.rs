@@ -47,16 +47,12 @@ impl TimestampId {
         }
     }
 
-    pub(crate) fn __bytes__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
-        let len = self.0.size();
-        PyBytes::new_with(py, len, |bytes| {
-            bytes.copy_from_slice(&self.0.to_le_bytes()[..len]);
-            Ok(())
-        })
+    pub(crate) fn __bytes__<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.0.to_le_bytes()[..self.0.size()])
     }
 
     fn __hash__(&self, py: Python) -> PyResult<isize> {
-        self.__bytes__(py)?.hash()
+        self.__bytes__(py).hash()
     }
 
     fn __repr__(&self) -> String {

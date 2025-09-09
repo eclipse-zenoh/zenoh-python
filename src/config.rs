@@ -162,7 +162,7 @@ wrapper!(zenoh::config::ZenohId: Clone, Copy);
 #[pymethods]
 impl ZenohId {
     fn __bytes__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
-        TimestampId(self.0.to_le_bytes().try_into().into_pyres()?).__bytes__(py)
+        Ok(TimestampId(self.0.to_le_bytes().try_into().into_pyres()?).__bytes__(py))
     }
 
     fn __eq__(&self, other: ZenohId) -> PyResult<bool> {
