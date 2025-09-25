@@ -192,7 +192,7 @@ impl ZShmMut {
     fn get(&self) -> PyResult<&zenoh::shm::ZShmMut> {
         self.buf
             .as_ref()
-            .ok_or_else(|| zerror!("ZShmMut has be consumed by ZBytes conversion"))
+            .ok_or_else(|| zerror!("ZShmMut has been consumed by ZBytes conversion"))
     }
     fn get_mut(&mut self) -> PyResult<&mut zenoh::shm::ZShmMut> {
         self.get()?;
