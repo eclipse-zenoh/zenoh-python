@@ -47,6 +47,11 @@ class RemoveOverload(ast.NodeTransformer):
         # modified functions are stored here
         self.overloaded_by_class: defaultdict[str | None, set[str]] = defaultdict(set)
 
+    def visit_ImportFrom(self, node: ast.ImportFrom):
+        # remove `from . import ext` kind of imports,
+        # as they cause circular import outside of stubs
+        return node if node.module is not None else None
+
     def visit_ClassDef(self, node: ast.ClassDef):
         # register the current class for method name disambiguation
         self.current_cls = node.name
