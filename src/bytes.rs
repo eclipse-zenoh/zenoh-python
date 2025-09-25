@@ -16,7 +16,7 @@ use std::{borrow::Cow, io::Read};
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
     prelude::*,
-    types::{PyByteArray, PyBytes, PyMemoryView, PyString},
+    types::{PyByteArray, PyBytes, PyString},
 };
 
 use crate::{
@@ -45,49 +45,12 @@ impl ZBytes {
             if let Ok(buf) = obj.downcast_exact::<crate::shm::ZShmMut>() {
                 return Ok(Self(buf.borrow_mut().take()?.into()));
             }
-            #[cfg(Py_3_11)]
-            if let Ok(buffer) = pyo3::buffer::PyBuffer::<u8>::get(obj) {
-                return Ok(Self(buffer.to_vec(obj.py())?.into()));
-            }
             Err(PyTypeError::new_err(format!(
                 "expected bytes/str type, found '{}'",
                 obj.get_type().name().unwrap()
             )))
         }
     }
-
-    #[cfg(Py_3_11)]
-    unsafe fn __getbuffer__(
-        mut this: PyRefMut<Self>,
-        view: *mut pyo3::ffi::Py_buffer,
-        flags: std::ffi::c_int,
-    ) -> PyResult<()> {
-        if view.is_null() {
-            return Err(pyo3::exceptions::PyBufferError::new_err(
-                "Buffer ptr is null",
-            ));
-        }
-        if flags & pyo3::ffi::PyBUF_WRITABLE != 0 {
-            return Err(pyo3::exceptions::PyBufferError::new_err(
-                "ZBytes is not writable",
-            ));
-        }
-        let (buf, len) = match this.0.to_bytes() {
-            Cow::Borrowed(bytes) => (bytes.as_ptr(), bytes.len()),
-            Cow::Owned(bytes) => {
-                let (buf, len) = (bytes.as_ptr(), bytes.len());
-                this.0 = bytes.into();
-                (buf, len)
-            }
-        };
-        unsafe {
-            crate::utils::init_buffer(view, flags, buf.cast_mut(), len, true, this.into_ptr())
-        };
-        Ok(())
-    }
-
-    #[cfg(Py_3_11)]
-    unsafe fn __releasebuffer__(&mut self, _view: *mut pyo3::ffi::Py_buffer) {}
 
     fn to_bytes<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
         // Not using `ZBytes::to_bytes`
@@ -100,13 +63,6 @@ impl ZBytes {
         self.0
             .try_to_string()
             .map_err(|_| PyValueError::new_err("not an UTF8 error"))
-    }
-
-    fn __getitem__<'py>(
-        this: &Bound<'py, Self>,
-        obj: &Bound<'py, PyAny>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        PyMemoryView::from(this.as_any())?.get_item(obj)
     }
 
     fn __len__(&self) -> usize {

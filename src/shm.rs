@@ -3,7 +3,7 @@ use std::{str, sync::Arc};
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
     prelude::*,
-    types::{PyByteArray, PyBytes, PyMemoryView, PySlice, PyString, PyType},
+    types::{PyByteArray, PyBytes, PySlice, PyString, PyType},
 };
 use zenoh::shm::{ChunkAllocResult, PosixShmProviderBackend};
 
@@ -186,7 +186,6 @@ impl ShmProvider {
 #[pyclass]
 pub(crate) struct ZShmMut {
     buf: Option<zenoh::shm::ZShmMut>,
-    view_count: usize,
 }
 
 impl ZShmMut {
@@ -200,11 +199,6 @@ impl ZShmMut {
         Ok(self.buf.as_mut().unwrap())
     }
     pub(crate) fn take(&mut self) -> PyResult<zenoh::shm::ZShmMut> {
-        if self.view_count > 0 {
-            return Err(zerror!(
-                "ZShmMut cannot be converted to ZBytes if it has memoryview in use"
-            ));
-        }
         self.get()?;
         Ok(self.buf.take().unwrap())
     }
@@ -212,13 +206,6 @@ impl ZShmMut {
 
 #[pymethods]
 impl ZShmMut {
-    fn __getitem__<'py>(
-        this: &Bound<'py, Self>,
-        key: &Bound<'py, PyAny>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        PyMemoryView::from(this.as_any())?.get_item(key)
-    }
-
     fn __setitem__(this: &Bound<Self>, key: &Bound<PyAny>, value: &Bound<PyAny>) -> PyResult<()> {
         if let Ok(key) = key.extract::<usize>() {
             if let Ok(value) = value.extract::<u8>() {
@@ -245,15 +232,8 @@ impl ZShmMut {
             } else if let Ok(bytes) = value.downcast::<PyBytes>() {
                 return copy_bytes(bytes.as_bytes());
             }
-            #[cfg(Py_3_11)]
-            if let Ok(value) = pyo3::buffer::PyBuffer::<u8>::get(value) {
-                return value.copy_to_slice(
-                    this.py(),
-                    &mut slice[indices.start as usize..indices.stop as usize],
-                );
-            }
         }
-        PyMemoryView::from(this.as_any())?.set_item(key, value)
+        Err(PyTypeError::new_err("expected bytes like argument"))
     }
 
     fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyString>> {
@@ -264,37 +244,6 @@ impl ZShmMut {
         Ok(PyBytes::new(py, self.get()?))
     }
 
-    #[cfg(Py_3_11)]
-    unsafe fn __getbuffer__(
-        mut this: PyRefMut<Self>,
-        view: *mut pyo3::ffi::Py_buffer,
-        flags: std::ffi::c_int,
-    ) -> PyResult<()> {
-        if view.is_null() {
-            return Err(pyo3::exceptions::PyBufferError::new_err(
-                "Buffer ptr is null",
-            ));
-        }
-        this.view_count += 1;
-        let buffer = this.get_mut()?;
-        unsafe {
-            crate::utils::init_buffer(
-                view,
-                flags,
-                buffer.as_mut_ptr(),
-                buffer.len(),
-                false,
-                this.into_ptr(),
-            )
-        };
-        Ok(())
-    }
-
-    #[cfg(Py_3_11)]
-    unsafe fn __releasebuffer__(&mut self, _view: *mut pyo3::ffi::Py_buffer) {
-        self.view_count -= 1;
-    }
-
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("{:?}", self.get()?))
     }
@@ -302,15 +251,6 @@ impl ZShmMut {
 
 impl From<zenoh::shm::ZShmMut> for ZShmMut {
     fn from(value: zenoh::shm::ZShmMut) -> Self {
-        Self {
-            buf: Some(value),
-            view_count: 0,
-        }
-    }
-}
-
-impl Drop for ZShmMut {
-    fn drop(&mut self) {
-        assert_eq!(self.view_count, 0, "there should be no remaining views");
+        Self { buf: Some(value) }
     }
 }

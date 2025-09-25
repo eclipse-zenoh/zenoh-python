@@ -3946,7 +3946,6 @@ version = "1.5.1"
 dependencies = [
  "paste",
  "pyo3",
- "pyo3-build-config",
  "zenoh",
  "zenoh-ext",
 ]
