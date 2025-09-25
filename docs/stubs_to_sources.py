@@ -27,8 +27,6 @@ from collections import defaultdict
 from pathlib import Path
 
 PACKAGE = (Path(__file__) / "../../zenoh").resolve()
-__INIT__ = PACKAGE / "__init__.py"
-EXT = PACKAGE / "ext.py"
 
 
 def _unstable(item):
@@ -40,7 +38,7 @@ def _unstable(item):
     return item
 
 
-class RemoveOverload(ast.NodeTransformer):
+class Sourcify(ast.NodeTransformer):
     def __init__(self):
         self.current_cls = None
         # only the first overloaded signature is modified, others are removed
@@ -60,6 +58,9 @@ class RemoveOverload(ast.NodeTransformer):
         return res
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
+        # replace _unstable
+        if node.name == "_unstable":
+            return ast.parse(inspect.getsource(_unstable))
         for decorator in node.decorator_list:
             if isinstance(decorator, ast.Name) and decorator.id == "overload":
                 if node.name in self.overloaded_by_class[self.current_cls]:
@@ -80,20 +81,20 @@ class RemoveOverload(ast.NodeTransformer):
                 node.decorator_list.clear()
                 if node.name not in ("recv", "try_recv", "__iter__"):
                     # retrieve the handled type (Scout/Reply/etc.) from the return type
-                    assert isinstance(node.returns, ast.Subscript)
-                    if isinstance(node.returns.slice, ast.Subscript):
-                        # `Subscriber[Handler[Sample]]` case
-                        tp = node.returns.slice.slice
-                    else:
-                        # `Handler[Reply]` case
-                        tp = node.returns.slice
-                    assert isinstance(tp, ast.Name)
-                    # replace `handler` parameter annotation
-                    annotation = f"_RustHandler[{tp.id}] | tuple[Callable[[{tp.id}], Any], Any] | Callable[[{tp.id}], Any] | None"
-                    for arg in (*node.args.args, *node.args.kwonlyargs):
-                        if arg.arg == "handler":
-                            arg.annotation = ast.parse(annotation)
-                    node.returns = node.returns.value
+                    if isinstance(node.returns, ast.Subscript):
+                        if isinstance(node.returns.slice, ast.Subscript):
+                            # `Subscriber[Handler[Sample]]` case
+                            tp = node.returns.slice.slice
+                        else:
+                            # `Handler[Reply]` case
+                            tp = node.returns.slice
+                        assert isinstance(tp, ast.Name)
+                        # replace `handler` parameter annotation
+                        annotation = f"_RustHandler[{tp.id}] | tuple[Callable[[{tp.id}], Any], Any] | Callable[[{tp.id}], Any] | None"
+                        for arg in (*node.args.args, *node.args.kwonlyargs):
+                            if arg.arg == "handler":
+                                arg.annotation = ast.parse(annotation)
+                        node.returns = node.returns.value
         # stringify all parameters and return annotation
         for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
             if ann := arg.annotation:
@@ -104,26 +105,17 @@ class RemoveOverload(ast.NodeTransformer):
 
 
 def main():
-    fnames = [__INIT__, EXT]
-    for fname in fnames:
-        # remove *.py
-        fname.unlink()
-    # rename stubs
     for entry in PACKAGE.glob("*.pyi"):
-        entry.rename(PACKAGE / f"{entry.stem}.py")
-    for fname in fnames:
-        # read stub code
-        with open(fname) as f:
+        # read stub file
+        with open(entry) as f:
             stub: ast.Module = ast.parse(f.read())
-            # replace _unstable
-            for i, stmt in enumerate(stub.body):
-                if isinstance(stmt, ast.FunctionDef) and stmt.name == "_unstable":
-                    stub.body[i] = ast.parse(inspect.getsource(_unstable))
-            # remove overload
-            stub = RemoveOverload().visit(stub)
-        # write modified code
-        with open(fname, "w") as f:
+            # update ast to make it like source
+            stub = Sourcify().visit(stub)
+        # write modified code into source file
+        with open(PACKAGE / f"{entry.stem}.py", "w") as f:
             f.write(ast.unparse(stub))
+        # remove stub file
+        entry.unlink()
 
 
 if __name__ == "__main__":
