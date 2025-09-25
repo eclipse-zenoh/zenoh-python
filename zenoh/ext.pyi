@@ -24,12 +24,12 @@ from zenoh import (
     Priority,
     Reliability,
     Sample,
+    Session,
     Subscriber,
     Timestamp,
     ZBytes,
     handlers,
 )
-from zenoh.zenoh import Session
 
 _T = TypeVar("_T")
 _H = TypeVar("_H")
