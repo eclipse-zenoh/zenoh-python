@@ -97,11 +97,11 @@ pub(crate) mod zenoh {
 
     #[cfg(feature = "shared-memory")]
     #[pymodule]
-    mod _shm {
+    mod shm {
         #[pymodule_export]
         use crate::shm::{
-            AllocAlignment, BlockOn, DeallocEldest, DeallocOptimal, DeallocYoungest, Deallocate,
-            Defragment, GarbageCollect, JustAlloc, ShmProvider, ZShmMut,
+            AllocAlignment, BlockOn, Deallocate, Defragment, GarbageCollect, JustAlloc,
+            ShmProvider, ZShmMut,
         };
     }
 
@@ -112,7 +112,7 @@ pub(crate) mod zenoh {
         #[cfg(feature = "zenoh-ext")]
         sys_modules.set_item("zenoh._ext", m.getattr("_ext")?)?;
         #[cfg(feature = "shared-memory")]
-        sys_modules.set_item("zenoh._shm", m.getattr("_shm")?)?;
+        sys_modules.set_item("zenoh.shm", m.getattr("shm")?)?;
         // TODO
         // crate::logging::init_logger(m.py())?;
         Ok(())

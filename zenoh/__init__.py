@@ -14,6 +14,17 @@
 from .zenoh import *
 
 try:
-    from . import ext, shm
+    from . import ext
 except ImportError:
     pass
+try:
+    from . import shm
+except ImportError:
+    pass
+
+
+def __getattr__(name):
+    if name == "ext":
+        import zenoh.ext
+    elif name == "shm":
+        import zenoh.shm

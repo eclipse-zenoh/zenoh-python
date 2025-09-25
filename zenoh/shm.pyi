@@ -11,7 +11,8 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from typing import Self, final
+from collections.abc import Buffer
+from typing import Self, final, overload
 
 @final
 class AllocAlignment:
@@ -39,22 +40,7 @@ class Deallocate:
         cls,
         inner_policy: _AllocPolicy = JustAlloc(),
         alt_policy: _AllocPolicy = JustAlloc(),
-        deallocate_policy: _ForceDeallocPolicy = DeallocOptimal(),
     ) -> Self: ...
-
-_ForceDeallocPolicy = DeallocEldest | DeallocOptimal | DeallocYoungest
-
-@final
-class DeallocEldest:
-    """Try to dealloc eldest chunk"""
-
-@final
-class DeallocOptimal:
-    """Try to dealloc optimal (currently eldest+1) chunk"""
-
-@final
-class DeallocYoungest:
-    """Try to dealloc youngest chunk"""
 
 @final
 class Defragment:
@@ -124,5 +110,13 @@ class ZShmMut:
 
     def __bytes__(self) -> bytes: ...
     def __str__(self) -> str: ...
+    @overload
+    def __getitem__(self, item: int) -> int: ...
+    @overload
+    def __getitem__(self, item: slice) -> memoryview: ...
+    @overload
+    def __setitem__(self, item: int, value: int): ...
+    @overload
+    def __setitem__(self, item: slice, value: Buffer): ...
     def __buffer__(self, flags: int) -> memoryview: ...
     def __release_buffer__(self, view: memoryview) -> None: ...

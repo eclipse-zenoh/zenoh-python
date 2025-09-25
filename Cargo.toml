@@ -34,18 +34,19 @@ name = "zenoh"
 crate-type = ["cdylib"]
 
 [features]
-default = ["shared-memory", "zenoh/default", "zenoh-ext"]
+default = ["pyo3/abi3-py310", "shared-memory", "zenoh-ext", "zenoh/default"]
 shared-memory = ["zenoh/shared-memory"]
-zenoh-ext = ["dep:zenoh-ext", "zenoh-ext/unstable", "zenoh-ext/internal"]
+zenoh-ext = ["dep:zenoh-ext", "zenoh-ext/internal", "zenoh-ext/unstable"]
 
 [badges]
 maintenance = { status = "actively-developed" }
 
 [dependencies]
 paste = "1.0.14"
-pyo3 = { version = "0.25.1", features = [
-  "extension-module",
-  "abi3-py311",
-] }
-zenoh = { version = "1.5.1", git = "https://github.com/ZettaScaleLabs/zenoh.git", branch = "shm-new-api", features = ["unstable", "internal"], default-features = false }
-zenoh-ext = { version = "1.5.1", git = "https://github.com/ZettaScaleLabs/zenoh.git", branch = "shm-new-api", features = ["internal"], optional = true }
+pyo3 = { version = "0.25.1", features = ["extension-module"] }
+zenoh = { version = "1.5.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["internal", "unstable"], default-features = false }
+zenoh-ext = { version = "1.5.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["internal"], optional = true }
+
+[build-dependencies]
+pyo3-build-config = { version = "0.25.1", features = ["resolve-config"] }
+

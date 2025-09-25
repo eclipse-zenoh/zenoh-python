@@ -1,13 +1,9 @@
-use std::{
-    ffi::{c_int, c_void},
-    ptr, str,
-    sync::Arc,
-};
+use std::{str, sync::Arc};
 
 use pyo3::{
-    exceptions::{PyBufferError, PyTypeError},
+    exceptions::{PyTypeError, PyValueError},
     prelude::*,
-    types::{PyBytes, PyString, PyType},
+    types::{PyByteArray, PyBytes, PyMemoryView, PySlice, PyString, PyType},
 };
 use zenoh::shm::{ChunkAllocResult, PosixShmProviderBackend};
 
@@ -62,37 +58,6 @@ impl zenoh::shm::AllocPolicy<PosixShmProviderBackend> for AllocPolicy {
     }
 }
 
-#[derive(Clone)]
-pub enum ForceDeallocPolicy {
-    Eldest,
-    Optimal,
-    Youngest,
-}
-
-impl FromPyObject<'_> for ForceDeallocPolicy {
-    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        if ob.is_exact_instance_of::<DeallocOptimal>() {
-            Ok(Self::Optimal)
-        } else if ob.is_exact_instance_of::<DeallocEldest>() {
-            Ok(Self::Eldest)
-        } else if ob.is_exact_instance_of::<DeallocYoungest>() {
-            Ok(Self::Youngest)
-        } else {
-            Err(PyTypeError::new_err("expected dealloc policy type"))
-        }
-    }
-}
-
-impl zenoh::shm::ForceDeallocPolicy<PosixShmProviderBackend> for ForceDeallocPolicy {
-    fn dealloc(&self, provider: &zenoh::shm::ShmProvider<PosixShmProviderBackend>) -> bool {
-        match self {
-            Self::Eldest => zenoh::shm::DeallocEldest.dealloc(provider),
-            Self::Optimal => zenoh::shm::DeallocOptimal.dealloc(provider),
-            Self::Youngest => zenoh::shm::DeallocYoungest.dealloc(provider),
-        }
-    }
-}
-
 wrapper!(zenoh::shm::BlockOn<AllocPolicy>: Clone);
 
 #[pymethods]
@@ -104,55 +69,15 @@ impl BlockOn {
     }
 }
 
-wrapper!(zenoh::shm::Deallocate<usize, AllocPolicy, AllocPolicy, ForceDeallocPolicy>: Clone);
+wrapper!(zenoh::shm::Deallocate<usize, AllocPolicy, AllocPolicy>: Clone);
 
 #[pymethods]
 impl Deallocate {
     #[new]
-    #[pyo3(signature = (limit, inner_policy = AllocPolicy(None), alt_policy = AllocPolicy(None), deallocate_policy = ForceDeallocPolicy::Optimal)
+    #[pyo3(signature = (limit, inner_policy = AllocPolicy(None), alt_policy = AllocPolicy(None))
     )]
-    fn new(
-        limit: usize,
-        inner_policy: AllocPolicy,
-        alt_policy: AllocPolicy,
-        deallocate_policy: ForceDeallocPolicy,
-    ) -> Self {
-        Self(zenoh::shm::Deallocate::new(
-            limit,
-            inner_policy,
-            alt_policy,
-            deallocate_policy,
-        ))
-    }
-}
-
-wrapper!(zenoh::shm::DeallocEldest);
-
-#[pymethods]
-impl DeallocEldest {
-    #[new]
-    fn new() -> Self {
-        Self(zenoh::shm::DeallocEldest)
-    }
-}
-
-wrapper!(zenoh::shm::DeallocOptimal);
-
-#[pymethods]
-impl DeallocOptimal {
-    #[new]
-    fn new() -> Self {
-        Self(zenoh::shm::DeallocOptimal)
-    }
-}
-
-wrapper!(zenoh::shm::DeallocYoungest);
-
-#[pymethods]
-impl DeallocYoungest {
-    #[new]
-    fn new() -> Self {
-        Self(zenoh::shm::DeallocYoungest)
+    fn new(limit: usize, inner_policy: AllocPolicy, alt_policy: AllocPolicy) -> Self {
+        Self(zenoh::shm::Deallocate::new(limit, inner_policy, alt_policy))
     }
 }
 
@@ -287,6 +212,50 @@ impl ZShmMut {
 
 #[pymethods]
 impl ZShmMut {
+    fn __getitem__<'py>(
+        this: &Bound<'py, Self>,
+        key: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        PyMemoryView::from(this.as_any())?.get_item(key)
+    }
+
+    fn __setitem__(this: &Bound<Self>, key: &Bound<PyAny>, value: &Bound<PyAny>) -> PyResult<()> {
+        if let Ok(key) = key.extract::<usize>() {
+            if let Ok(value) = value.extract::<u8>() {
+                if let Some(entry) = this.borrow_mut().get_mut()?.get_mut(key) {
+                    *entry = value;
+                    return Ok(());
+                }
+            }
+        } else if let Ok(key) = key.downcast::<PySlice>() {
+            let mut buffer = this.borrow_mut();
+            let slice = buffer.get_mut()?;
+            let indices = key.indices(slice.len() as isize)?;
+            let mut copy_bytes = |b: &[u8]| {
+                if b.len() != indices.slicelength {
+                    return Err(PyValueError::new_err(
+                        "memoryview assignment: lvalue and rvalue have different structures",
+                    ));
+                }
+                slice[indices.start as usize..indices.stop as usize].copy_from_slice(b);
+                Ok(())
+            };
+            if let Ok(bytes) = value.downcast::<PyByteArray>() {
+                return copy_bytes(unsafe { bytes.as_bytes() });
+            } else if let Ok(bytes) = value.downcast::<PyBytes>() {
+                return copy_bytes(bytes.as_bytes());
+            }
+            #[cfg(Py_3_11)]
+            if let Ok(value) = pyo3::buffer::PyBuffer::<u8>::get(value) {
+                return value.copy_to_slice(
+                    this.py(),
+                    &mut slice[indices.start as usize..indices.stop as usize],
+                );
+            }
+        }
+        PyMemoryView::from(this.as_any())?.set_item(key, value)
+    }
+
     fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyString>> {
         Ok(PyString::new(py, str::from_utf8(self.get()?).into_pyres()?))
     }
@@ -295,34 +264,33 @@ impl ZShmMut {
         Ok(PyBytes::new(py, self.get()?))
     }
 
+    #[cfg(Py_3_11)]
     unsafe fn __getbuffer__(
-        this: Bound<'_, Self>,
+        mut this: PyRefMut<Self>,
         view: *mut pyo3::ffi::Py_buffer,
-        _flags: c_int,
+        flags: std::ffi::c_int,
     ) -> PyResult<()> {
-        let mut borrow = this.borrow_mut();
-        let buffer = borrow.get_mut()?;
-        let slice = buffer.as_mut();
         if view.is_null() {
-            return Err(PyBufferError::new_err("Buffer ptr is null"));
+            return Err(pyo3::exceptions::PyBufferError::new_err(
+                "Buffer ptr is null",
+            ));
         }
+        this.view_count += 1;
+        let buffer = this.get_mut()?;
         unsafe {
-            (*view).buf = slice.as_ptr() as *mut c_void;
-            (*view).obj = this.into_ptr();
-            (*view).len = slice.len() as isize;
-            (*view).readonly = 0;
-            (*view).itemsize = 1;
-            (*view).format = ptr::null_mut();
-            (*view).ndim = 1;
-            (*view).shape = ptr::null_mut();
-            (*view).strides = ptr::null_mut();
-            (*view).suboffsets = ptr::null_mut();
-            (*view).internal = ptr::null_mut();
-        }
-        borrow.view_count += 1;
+            crate::utils::init_buffer(
+                view,
+                flags,
+                buffer.as_mut_ptr(),
+                buffer.len(),
+                false,
+                this.into_ptr(),
+            )
+        };
         Ok(())
     }
 
+    #[cfg(Py_3_11)]
     unsafe fn __releasebuffer__(&mut self, _view: *mut pyo3::ffi::Py_buffer) {
         self.view_count -= 1;
     }

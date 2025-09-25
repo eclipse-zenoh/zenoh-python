@@ -11,22 +11,16 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::{
-    borrow::Cow,
-    ffi::{c_int, c_void},
-    io::Read,
-    ptr,
-};
+use std::{borrow::Cow, io::Read};
 
 use pyo3::{
-    exceptions::{PyBufferError, PyTypeError, PyValueError},
+    exceptions::{PyTypeError, PyValueError},
     prelude::*,
-    types::{PyByteArray, PyBytes, PyString},
+    types::{PyByteArray, PyBytes, PyMemoryView, PyString},
 };
 
 use crate::{
     macros::{downcast_or_new, wrapper},
-    shm::ZShmMut,
     utils::{IntoPyResult, MapInto},
 };
 
@@ -46,9 +40,15 @@ impl ZBytes {
             Ok(Self(bytes.as_bytes().into()))
         } else if let Ok(string) = obj.downcast::<PyString>() {
             Ok(Self(string.to_string().into()))
-        } else if let Ok(buf) = obj.downcast_exact::<ZShmMut>() {
-            Ok(Self(buf.borrow_mut().take()?.into()))
         } else {
+            #[cfg(feature = "shared-memory")]
+            if let Ok(buf) = obj.downcast_exact::<crate::shm::ZShmMut>() {
+                return Ok(Self(buf.borrow_mut().take()?.into()));
+            }
+            #[cfg(Py_3_11)]
+            if let Ok(buffer) = pyo3::buffer::PyBuffer::<u8>::get(obj) {
+                return Ok(Self(buffer.to_vec(obj.py())?.into()));
+            }
             Err(PyTypeError::new_err(format!(
                 "expected bytes/str type, found '{}'",
                 obj.get_type().name().unwrap()
@@ -56,42 +56,37 @@ impl ZBytes {
         }
     }
 
+    #[cfg(Py_3_11)]
     unsafe fn __getbuffer__(
-        this: Bound<'_, Self>,
+        mut this: PyRefMut<Self>,
         view: *mut pyo3::ffi::Py_buffer,
-        flags: c_int,
+        flags: std::ffi::c_int,
     ) -> PyResult<()> {
         if view.is_null() {
-            return Err(PyBufferError::new_err("Buffer ptr is null"));
+            return Err(pyo3::exceptions::PyBufferError::new_err(
+                "Buffer ptr is null",
+            ));
         }
         if flags & pyo3::ffi::PyBUF_WRITABLE != 0 {
-            return Err(PyBufferError::new_err("ZBytes is not writable"));
+            return Err(pyo3::exceptions::PyBufferError::new_err(
+                "ZBytes is not writable",
+            ));
         }
-        let mut borrow = this.borrow_mut();
-        let (buf, len) = match borrow.0.to_bytes() {
+        let (buf, len) = match this.0.to_bytes() {
             Cow::Borrowed(bytes) => (bytes.as_ptr(), bytes.len()),
             Cow::Owned(bytes) => {
                 let (buf, len) = (bytes.as_ptr(), bytes.len());
-                borrow.0 = bytes.into();
+                this.0 = bytes.into();
                 (buf, len)
             }
         };
         unsafe {
-            (*view).buf = buf as *mut c_void;
-            (*view).obj = this.into_ptr();
-            (*view).len = len as isize;
-            (*view).readonly = 1;
-            (*view).itemsize = 1;
-            (*view).format = ptr::null_mut();
-            (*view).ndim = 1;
-            (*view).shape = ptr::null_mut();
-            (*view).strides = ptr::null_mut();
-            (*view).suboffsets = ptr::null_mut();
-            (*view).internal = ptr::null_mut();
-        }
+            crate::utils::init_buffer(view, flags, buf.cast_mut(), len, true, this.into_ptr())
+        };
         Ok(())
     }
 
+    #[cfg(Py_3_11)]
     unsafe fn __releasebuffer__(&mut self, _view: *mut pyo3::ffi::Py_buffer) {}
 
     fn to_bytes<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
@@ -105,6 +100,13 @@ impl ZBytes {
         self.0
             .try_to_string()
             .map_err(|_| PyValueError::new_err("not an UTF8 error"))
+    }
+
+    fn __getitem__<'py>(
+        this: &Bound<'py, Self>,
+        obj: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        PyMemoryView::from(this.as_any())?.get_item(obj)
     }
 
     fn __len__(&self) -> usize {

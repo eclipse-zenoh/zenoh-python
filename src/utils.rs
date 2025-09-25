@@ -129,3 +129,40 @@ pub(crate) fn duration(obj: &Bound<PyAny>) -> PyResult<Option<Duration>> {
         .map(Some)
         .map_err(|_| PyValueError::new_err("negative timeout"))
 }
+
+#[cfg(Py_3_11)]
+pub(crate) unsafe fn init_buffer(
+    view: *mut pyo3::ffi::Py_buffer,
+    flags: std::ffi::c_int,
+    buf: *mut u8,
+    len: usize,
+    readonly: bool,
+    owner: *mut pyo3::ffi::PyObject,
+) {
+    unsafe {
+        (*view).obj = owner;
+        (*view).buf = buf as *mut std::ffi::c_void;
+        (*view).len = len as isize;
+        (*view).readonly = readonly as std::ffi::c_int;
+        (*view).itemsize = 1;
+        (*view).format = if (flags & pyo3::ffi::PyBUF_FORMAT) != 0 {
+            static B: &std::ffi::CStr = pyo3::ffi::c_str!("B");
+            B.as_ptr().cast_mut()
+        } else {
+            std::ptr::null_mut()
+        };
+        (*view).ndim = 1;
+        (*view).shape = if (flags & pyo3::ffi::PyBUF_ND) != 0 {
+            &mut (*view).len
+        } else {
+            std::ptr::null_mut()
+        };
+        (*view).strides = if (flags & pyo3::ffi::PyBUF_STRIDES) != 0 {
+            &mut (*view).itemsize
+        } else {
+            std::ptr::null_mut()
+        };
+        (*view).suboffsets = std::ptr::null_mut();
+        (*view).internal = std::ptr::null_mut();
+    }
+}
