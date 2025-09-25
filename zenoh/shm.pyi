@@ -25,6 +25,10 @@ class AllocAlignment:
     def __new__(cls, pow: int) -> Self: ...
 
 @final
+class JustAlloc:
+    """Just try to allocate"""
+
+@final
 class BlockOn:
     def __new__(self, inner_policy: _AllocPolicy = JustAlloc()) -> Self: ...
 
@@ -56,10 +60,6 @@ class GarbageCollect:
         *,
         safe: bool = True,
     ) -> Self: ...
-
-@final
-class JustAlloc:
-    """Just try to allocate"""
 
 _AllocPolicy = JustAlloc | BlockOn | Defragment | GarbageCollect
 
