@@ -1,4 +1,4 @@
-use std::{str, sync::Arc};
+use std::{num::NonZeroUsize, str, sync::Arc};
 
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
@@ -28,6 +28,14 @@ impl AllocAlignment {
     #[new]
     fn new(pow: u8) -> PyResult<Self> {
         Ok(Self(zenoh::shm::AllocAlignment::new(pow).into_pyres()?))
+    }
+
+    fn get_alignment_value(&self) -> NonZeroUsize {
+        self.0.get_alignment_value()
+    }
+
+    fn align_size(&self, size: NonZeroUsize) -> NonZeroUsize {
+        self.0.align_size(size)
     }
 }
 
@@ -144,6 +152,16 @@ impl MemoryLayout {
             ));
         };
         Ok(Self(layout.into_pyres()?))
+    }
+
+    #[getter]
+    fn size(&self) -> NonZeroUsize {
+        self.0.size()
+    }
+
+    #[getter]
+    fn alignment(&self) -> AllocAlignment {
+        AllocAlignment(self.0.alignment())
     }
 }
 

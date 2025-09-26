@@ -29,6 +29,12 @@ class AllocAlignment:
     ALIGN_8_BYTE: Self
 
     def __new__(cls, pow: int) -> Self: ...
+    def get_alignment_value(self) -> int:
+        """Get alignment in normal units (bytes)"""
+
+    def align_size(self, size: int) -> int:
+        """Align size according to inner alignment.
+        This call may extend the size"""
 
 @_unstable
 @final

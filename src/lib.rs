@@ -101,7 +101,7 @@ pub(crate) mod zenoh {
         #[pymodule_export]
         use crate::shm::{
             AllocAlignment, BlockOn, Deallocate, Defragment, GarbageCollect, JustAlloc,
-            ShmProvider, ZShmMut,
+            MemoryLayout, ShmProvider, ZShmMut,
         };
     }
 
