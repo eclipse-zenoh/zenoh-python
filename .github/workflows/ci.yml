@@ -34,10 +34,10 @@ jobs:
 
       - name: Install rust components
         run: |
-          rustup component add clippy rustfmt
+          rustup +stable component add clippy rustfmt
 
       - name: Run rustfmt
-        run: cargo fmt --check -- --config "unstable_features=true,imports_granularity=Crate,group_imports=StdExternalCrate"
+        run: cargo +stable fmt --check -- --config "unstable_features=true,imports_granularity=Crate,group_imports=StdExternalCrate"
 
       - name: Clippy no-default-features
         run: cargo +stable clippy --no-default-features --all-targets -- --deny warnings
