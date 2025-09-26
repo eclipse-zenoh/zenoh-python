@@ -36,9 +36,9 @@ impl FromPyObject<'_> for AllocPolicy {
         } else if let Ok(policy) = ob.extract::<Deallocate>() {
             Ok(Self(Some(Arc::new(policy.0))))
         } else if let Ok(policy) = ob.extract::<Defragment>() {
-            return Ok(Self(Some(Arc::new(policy.0))));
+            Ok(Self(Some(Arc::new(policy.0))))
         } else if let Ok(policy) = ob.extract::<GarbageCollect>() {
-            return Ok(Self(Some(Arc::new(policy.0))));
+            Ok(Self(Some(Arc::new(policy.0))))
         } else {
             Err(PyTypeError::new_err("expected policy type"))
         }
