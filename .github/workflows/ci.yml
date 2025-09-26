@@ -29,6 +29,9 @@ jobs:
         with:
           options: "--check --diff -C"
 
+      - name: Update Stable Rust toolchain
+        run: rustup update stable
+
       - name: Install rust components
         run: |
           rustup component add clippy rustfmt
