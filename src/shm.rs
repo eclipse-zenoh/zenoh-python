@@ -16,6 +16,15 @@ wrapper!(zenoh::shm::AllocAlignment: Clone);
 
 #[pymethods]
 impl AllocAlignment {
+    #[classattr]
+    const ALIGN_1_BYTE: Self = Self(zenoh::shm::AllocAlignment::ALIGN_1_BYTE);
+    #[classattr]
+    const ALIGN_2_BYTE: Self = Self(zenoh::shm::AllocAlignment::ALIGN_2_BYTES);
+    #[classattr]
+    const ALIGN_4_BYTE: Self = Self(zenoh::shm::AllocAlignment::ALIGN_4_BYTES);
+    #[classattr]
+    const ALIGN_8_BYTE: Self = Self(zenoh::shm::AllocAlignment::ALIGN_8_BYTES);
+
     #[new]
     fn new(pow: u8) -> PyResult<Self> {
         Ok(Self(zenoh::shm::AllocAlignment::new(pow).into_pyres()?))
