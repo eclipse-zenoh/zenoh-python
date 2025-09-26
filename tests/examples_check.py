@@ -386,3 +386,28 @@ def test_z_advanced_pub_z_advanced_sub():
 
     assert not pub.errors
     assert not sub.errors
+
+
+def test_z_pub_shm():
+    """Test z_pub_shm."""
+    ## Run z_sub
+    sub = Pyrun("z_sub.py")
+    time.sleep(3)
+    ## z_pub: Put two messages (to storage & sub)
+    pub = Pyrun("z_pub.py", ["--iter=1", "--interval=0"])
+    if error := pub.status():
+        pub.dbg()
+        pub.errors.append(error)
+    ## z_sub_queued: Should receive two messages
+    if error := sub.interrupt():
+        sub.dbg()
+        sub.errors.append(error)
+    sub_out = "".join(sub.stdout)
+    if not (
+        "Received SampleKind.PUT ('demo/example/zenoh-python-pub': '[   0] Pub from Python!')"
+        in sub_out
+    ):
+        sub.errors.append("z_sub_queued didn't catch the first z_pub")
+
+    assert not pub.errors
+    assert not sub.errors

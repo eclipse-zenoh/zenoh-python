@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024 ZettaScale Technology
+# Copyright (c) 2025 ZettaScale Technology
 #
 # This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
@@ -11,20 +11,11 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from .zenoh import *
-
 try:
-    from . import ext
+    from zenoh._shm import *
 except ImportError:
-    pass
-try:
-    from . import shm
-except ImportError:
-    pass
+    import warnings
 
-
-def __getattr__(name):
-    if name == "ext":
-        import zenoh.ext
-    elif name == "shm":
-        import zenoh.shm
+    raise ModuleNotFoundError(
+        "No module named 'zenoh.shm'.\nzenoh must be built with shared-memory feature to enable it."
+    ) from None

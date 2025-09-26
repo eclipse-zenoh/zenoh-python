@@ -11,14 +11,15 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Generic, Never, Self, TypeVar, final, overload
 
+from . import ext as ext
 from . import handlers as handlers
+from . import shm as shm
 from .handlers import Handler as Handler
 
 _T = TypeVar("_T")
@@ -1229,7 +1230,7 @@ class ZBytes:
     encouraged to use any data format of their choice like JSON, protobuf,
     flatbuffers, etc."""
 
-    def __new__(cls, bytes: bytearray | bytes | str = None) -> Self: ...
+    def __new__(cls, bytes: bytearray | bytes | str | shm.ZShmMut = None) -> Self: ...
     def to_bytes(self) -> bytes: ...
     def to_string(self) -> str: ...
     def __bool__(self) -> bool: ...
