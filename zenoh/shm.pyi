@@ -11,8 +11,14 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from typing import Self, final, overload
+from typing import Self, TypeVar, final, overload
 
+_T = TypeVar("_T")
+
+def _unstable(item: _T) -> _T:
+    """marker for unstable functionality"""
+
+@_unstable
 @final
 class AllocAlignment:
     """alignment in powers of 2: 0 == 1-byte alignment, 1 == 2byte, 2 == 4byte, 3 == 8byte etc"""
@@ -24,14 +30,17 @@ class AllocAlignment:
 
     def __new__(cls, pow: int) -> Self: ...
 
+@_unstable
 @final
 class JustAlloc:
     """Just try to allocate"""
 
+@_unstable
 @final
 class BlockOn:
     def __new__(self, inner_policy: _AllocPolicy = JustAlloc()) -> Self: ...
 
+@_unstable
 @final
 class Deallocate:
     """Deallocating policy.
@@ -43,6 +52,7 @@ class Deallocate:
         alt_policy: _AllocPolicy = JustAlloc(),
     ) -> Self: ...
 
+@_unstable
 @final
 class Defragment:
     def __new__(
@@ -51,6 +61,7 @@ class Defragment:
         alt_policy: _AllocPolicy = JustAlloc(),
     ) -> Self: ...
 
+@_unstable
 @final
 class GarbageCollect:
     def __new__(
@@ -63,6 +74,7 @@ class GarbageCollect:
 
 _AllocPolicy = JustAlloc | BlockOn | Defragment | GarbageCollect
 
+@_unstable
 @final
 class MemoryLayout:
     """Memory layout representation: alignment and size aligned for this alignment"""
@@ -73,6 +85,7 @@ class MemoryLayout:
     @property
     def alignment(self) -> AllocAlignment: ...
 
+@_unstable
 @final
 class ShmProvider:
     """A generalized interface for shared memory data sources"""
@@ -103,6 +116,7 @@ class ShmProvider:
 
 _IntoMemoryLayout = MemoryLayout | tuple[int, AllocAlignment] | int
 
+@_unstable
 @final
 class ZShmMut:
     """A mutable SHM buffer"""
