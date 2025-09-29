@@ -81,3 +81,10 @@ module zenoh.ext
 .. automodule:: zenoh.ext
     :members:
     :undoc-members:
+
+module zenoh.shm
+================
+
+.. automodule:: zenoh.shm
+    :members:
+    :undoc-members:

@@ -27,6 +27,8 @@ import tomllib
 
 import zenoh
 import zenoh.ext
+import zenoh.handlers
+import zenoh.shm
 
 # -- Project information -----------------------------------------------------
 
