@@ -13,18 +13,15 @@
 #
 from .zenoh import *
 
-try:
-    from . import ext
-except ImportError:
-    pass
-try:
-    from . import shm
-except ImportError:
-    pass
-
 
 def __getattr__(name):
     if name == "ext":
         import zenoh.ext
+
+        return zenoh.ext
     elif name == "shm":
         import zenoh.shm
+
+        return zenoh.shm
+
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

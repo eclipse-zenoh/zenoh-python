@@ -24,7 +24,7 @@ use crate::{
     macros::{build, option_wrapper},
     matching::{MatchingListener, MatchingStatus},
     qos::{CongestionControl, Priority, Reliability},
-    sample::Sample,
+    sample::{Sample, SourceInfo},
     session::EntityGlobalId,
     time::Timestamp,
     utils::{generic, wait},
@@ -84,7 +84,7 @@ impl Publisher {
         Ok(wait(py, self.get_ref()?.matching_status())?.into())
     }
 
-    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None))]
+    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None, source_info = None))]
     fn put(
         &self,
         py: Python,
@@ -92,22 +92,29 @@ impl Publisher {
         #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
+        source_info: Option<SourceInfo>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
-        wait(
-            py,
-            build!(this.put(payload), encoding, attachment, timestamp),
-        )
+        let builder = build!(
+            this.put(payload),
+            encoding,
+            attachment,
+            timestamp,
+            source_info
+        );
+        wait(py, builder)
     }
 
-    #[pyo3(signature = (*, attachment = None, timestamp = None))]
+    #[pyo3(signature = (*, attachment = None, timestamp = None, source_info = None))]
     fn delete(
         &self,
         py: Python,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
+        source_info: Option<SourceInfo>,
     ) -> PyResult<()> {
-        wait(py, build!(self.get_ref()?.delete(), attachment, timestamp))
+        let builder = build!(self.get_ref()?.delete(), attachment, timestamp, source_info);
+        wait(py, builder)
     }
 
     #[pyo3(signature = (handler = None))]

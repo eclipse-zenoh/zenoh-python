@@ -515,6 +515,7 @@ class Publisher:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
+        source_info: SourceInfo | None = None,
     ):
         """Put data."""
 
@@ -523,6 +524,7 @@ class Publisher:
         *,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
+        source_info: SourceInfo | None = None,
     ):
         """Delete data."""
 
@@ -665,6 +667,7 @@ class Querier:
         payload: _IntoZBytes | None = None,
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
+        source_info: SourceInfo | None = None,
     ) -> Handler[Reply]:
         """Sends a query."""
 
@@ -677,6 +680,7 @@ class Querier:
         payload: _IntoZBytes | None = None,
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
+        source_info: SourceInfo | None = None,
     ) -> _H:
         """Sends a query."""
 
@@ -689,6 +693,7 @@ class Querier:
         payload: _IntoZBytes | None = None,
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
+        source_info: SourceInfo | None = None,
     ) -> None:
         """Send a query."""
 
@@ -814,6 +819,9 @@ class Sample:
 
     @property
     def attachment(self) -> ZBytes | None: ...
+    @_unstable
+    @property
+    def source_info(self) -> SourceInfo: ...
 
 @final
 class Scout(Generic[_H]):
@@ -919,6 +927,7 @@ class Session:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
         allowed_destination: Locality | None = None,
+        source_info: SourceInfo | None = None,
     ):
         """Put data on zenoh for a given key expression."""
 
@@ -932,6 +941,7 @@ class Session:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
         allowed_destination: Locality | None = None,
+        source_info: SourceInfo | None = None,
     ):
         """Delete data for a given key expression."""
 
@@ -951,6 +961,7 @@ class Session:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
+        source_info: SourceInfo | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -972,6 +983,7 @@ class Session:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
+        source_info: SourceInfo | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -993,6 +1005,7 @@ class Session:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
+        source_info: SourceInfo | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -1148,6 +1161,19 @@ class MatchingListener(Generic[_H]):
     ) -> Handler[MatchingStatus]: ...
     @overload
     def __iter__(self) -> Never: ...
+
+@_unstable
+@final
+class SourceInfo:
+    def __new__(
+        cls, source_id: EntityGlobalId | None = None, source_sn: SourceSn | None = None
+    ) -> Self: ...
+    @property
+    def source_id(self) -> EntityGlobalId | None: ...
+    @property
+    def source_sn(self) -> SourceSn | None: ...
+
+SourceSn = int
 
 @final
 class Subscriber(Generic[_H]):

@@ -26,6 +26,7 @@ use crate::{
     macros::{build, downcast_or_new, enum_mapper, option_wrapper, wrapper},
     matching::{MatchingListener, MatchingStatus},
     qos::{CongestionControl, Priority},
+    sample::SourceInfo,
     session::EntityGlobalId,
     time::Timestamp,
     utils::{generic, wait, IntoPyResult, IntoPython, IntoRust, MapInto},
@@ -361,7 +362,7 @@ impl Querier {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (handler = None, *, parameters = None, payload = None, encoding = None, attachment = None))]
+    #[pyo3(signature = (handler = None, *, parameters = None, payload = None, encoding = None, attachment = None, source_info = None))]
     fn get(
         &self,
         py: Python,
@@ -370,10 +371,18 @@ impl Querier {
         #[pyo3(from_py_with = ZBytes::from_py_opt)] payload: Option<ZBytes>,
         #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
+        source_info: Option<SourceInfo>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
         let (handler, _) = into_handler(py, handler)?;
-        let builder = build!(this.get(), parameters, payload, encoding, attachment);
+        let builder = build!(
+            this.get(),
+            parameters,
+            payload,
+            encoding,
+            attachment,
+            source_info
+        );
         wait(py, builder.with(handler)).map_into()
     }
 
