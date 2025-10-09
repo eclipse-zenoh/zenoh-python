@@ -54,6 +54,11 @@ impl Session {
         Ok(py.None())
     }
 
+    #[getter]
+    fn id(&self) -> EntityGlobalId {
+        self.0.id().into()
+    }
+
     fn zid(&self) -> PyResult<ZenohId> {
         Ok(self.0.zid().into())
     }
