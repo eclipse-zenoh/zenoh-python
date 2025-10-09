@@ -25,6 +25,7 @@ use crate::{
     matching::{MatchingListener, MatchingStatus},
     qos::{CongestionControl, Priority, Reliability},
     sample::Sample,
+    session::EntityGlobalId,
     time::Timestamp,
     utils::{generic, wait},
 };
@@ -46,6 +47,11 @@ impl Publisher {
     ) -> PyResult<PyObject> {
         self.undeclare(py)?;
         Ok(py.None())
+    }
+
+    #[getter]
+    fn id(&self) -> PyResult<EntityGlobalId> {
+        Ok(self.get_ref()?.id().into())
     }
 
     #[getter]
@@ -152,6 +158,11 @@ impl Subscriber {
     ) -> PyResult<PyObject> {
         self.undeclare(py)?;
         Ok(py.None())
+    }
+
+    #[getter]
+    fn id(&self) -> PyResult<EntityGlobalId> {
+        Ok(self.get_ref()?.id().into())
     }
 
     #[getter]

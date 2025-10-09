@@ -468,6 +468,11 @@ impl AdvancedPublisher {
     }
 
     #[getter]
+    fn id(&self) -> PyResult<EntityGlobalId> {
+        Ok(self.get_ref()?.id().into())
+    }
+
+    #[getter]
     fn key_expr(&self) -> PyResult<KeyExpr> {
         Ok(self.get_ref()?.key_expr().clone().into())
     }
@@ -543,6 +548,11 @@ impl AdvancedSubscriber {
     ) -> PyResult<PyObject> {
         self.undeclare(py)?;
         Ok(py.None())
+    }
+
+    #[getter]
+    fn id(&self) -> PyResult<EntityGlobalId> {
+        Ok(self.get_ref()?.id().into())
     }
 
     #[getter]
