@@ -68,7 +68,7 @@ pub(crate) mod zenoh {
             ConsolidationMode, Parameters, Querier, Query, QueryConsolidation, QueryTarget,
             Queryable, Reply, ReplyError, Selector,
         },
-        sample::{Locality, Sample, SampleKind},
+        sample::{Locality, Sample, SampleKind, SourceInfo},
         scouting::{scout, Hello, Scout},
         session::{open, EntityGlobalId, Session, SessionInfo},
         time::{Timestamp, TimestampId},
