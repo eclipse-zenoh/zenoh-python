@@ -124,6 +124,15 @@ _IntoMemoryLayout = MemoryLayout | tuple[int, AllocAlignment] | int
 
 @_unstable
 @final
+class ZShm:
+    """A SHM buffer"""
+
+    def is_valid(self) -> bool: ...
+    def __bytes__(self) -> bytes: ...
+    def __str__(self) -> str: ...
+
+@_unstable
+@final
 class ZShmMut:
     """A mutable SHM buffer"""
 
