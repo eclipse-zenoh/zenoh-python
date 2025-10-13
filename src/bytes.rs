@@ -21,7 +21,6 @@ use pyo3::{
 
 use crate::{
     macros::{downcast_or_new, wrapper},
-    shm::ZShm,
     utils::{IntoPyResult, MapInto},
 };
 
@@ -70,7 +69,8 @@ impl ZBytes {
             .map_err(|_| PyValueError::new_err("not an UTF8 error"))
     }
 
-    fn as_shm(&self) -> Option<ZShm> {
+    #[cfg(feature = "shared-memory")]
+    fn as_shm(&self) -> Option<crate::shm::ZShm> {
         self.0.as_shm().map(ToOwned::to_owned).map_into()
     }
 
