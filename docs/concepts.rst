@@ -75,7 +75,72 @@ Query/Reply
 -----------
 
 In the query/reply paradigm, data is made available by :class:`zenoh.Queryable` and requested by 
-:class:`zenoh.Querier` or directly via :meth:`zenoh.Session.get` operations. 
+:class:`zenoh.Querier` or directly via :meth:`zenoh.Session.get` operations.
+
+A :class:`zenoh.Queryable` is declared by the :meth:`zenoh.Session.declare_queryable` method and serves queries 
+(:class:`zenoh.Query`). 
+The :class:`zenoh.Query` has the methods :meth:`zenoh.Query.reply` to reply with a data sample
+with a :attr:`zenoh.SampleKind.PUT` :attr:`zenoh.Sample.kind`, and
+:meth:`zenoh.Query.reply_del` to send a reply with a :attr:`zenoh.SampleKind.DELETE` kind. See the `Publish/Subscribe` section for more details on the difference between the two kinds of samples.
+The :meth:`zenoh.Query.reply_err` method is used to send a reply with error information.
+
+Data is requested from queryables via the :meth:`zenoh.Session.get` function or by a :class:`zenoh.Querier` object. 
+Each request returns zero or more :class:`zenoh.Reply` structures, each one from each queryable that matches 
+the request. The reply contains either a :class:`zenoh.Sample` or a :class:`zenoh.ReplyError`.
+
+Query Parameters
+^^^^^^^^^^^^^^^^
+
+The query/reply API allows specifying additional parameters for the request. These parameters are passed to 
+the get operation using the :class:`zenoh.Selector` syntax. The selector string has a syntax similar to a URL: 
+it's a key expression followed by a question mark and the list of parameters in the format "name=value" 
+separated by ';'. For example ``key/expression?param1=value1;param2=value2``.
+
+Examples
+^^^^^^^^
+
+**Declaring a queryable**
+
+.. code-block:: python
+
+    # Queryable that replies with temperature data for a given day
+    queryable = session.declare_queryable("room/temperature/history")
+    for query in queryable:
+        if "day" in query.selector.parameters:
+            day = query.selector.parameters["day"]
+            if day in temperature_data:
+                query.reply("room/temperature/history", temperature_data[day])
+            else:
+                query.reply_del("no data for this day")
+        else:
+            query.reply_err("missing day parameter")
+
+**Requesting data using Session.get**
+
+.. code-block:: python
+
+    # Request temperature for a specific day
+    replies = session.get("room/temperature/history?day=2023-03-15")
+    for reply in replies:
+        if reply.ok:
+            print(f">> Temperature is {reply.ok.payload.to_string()}")
+        else:
+            print(f">> Error: {reply.err.payload.to_string()}")
+
+**Using a Querier**
+
+.. code-block:: python
+
+    # Declare a querier for multiple queries
+    querier = session.declare_querier("room/temperature/history")
+    
+    # Send a query with parameters
+    replies = querier.get(parameters="?day=2023-03-15")
+    for reply in replies:
+        if reply.ok:
+            print(f">> Temperature is {reply.ok.payload.to_string()}")
+        else:
+            print(f">> Error: {reply.err.payload.to_string()}") 
 
 Key Expressions
 ---------------
