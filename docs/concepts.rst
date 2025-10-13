@@ -26,7 +26,50 @@ takes a :class:`zenoh.Config` as an argument.
 Publish/Subscribe
 -----------------
 
-In the publish/subscribe paradigm, data is produced by :class:`zenoh.Publisher` and consumed by :class:`zenoh.Subscriber`.
+Data is published via the :class:`zenoh.Publisher` which is declared by the :meth:`zenoh.Session.declare_publisher` method or directly from the session via the :meth:`zenoh.Session.put` and :meth:`zenoh.Session.delete` methods.
+
+:class:`zenoh.Sample` data is received by :class:`zenoh.Subscriber`\s declared with :meth:`zenoh.Session.declare_subscriber`.
+
+There are two operations in the publisher: ``put`` and ``delete`` (or in the session as mentioned above).
+
+Publishing may express two different semantics:
+
+• producing a sequence of values
+• updating a single value associated with a key expression
+
+In the second case, it's necessary to be able to declare that some key is no longer associated with any value. The ``delete`` operation is used for this.
+
+On the receiving side, the subscriber distinguishes between the ``Put`` and ``Delete`` operations by the ``kind`` field of the :class:`zenoh.Sample` structure.
+
+The delete operation allows the subscriber to work with a :class:`zenoh.Queryable` which caches the values associated with key expressions.
+
+Examples
+^^^^^^^^
+
+**Declaring a publisher and publishing data**
+
+.. code-block:: python
+
+    publisher = session.declare_publisher("key/expression")
+    publisher.put("value")
+
+**Declaring a subscriber and receiving data**
+
+.. code-block:: python
+
+    subscriber = session.declare_subscriber("key/expression")
+    for sample in subscriber:
+        print(f">> Received {sample.payload.to_string()}")
+
+**Using session methods directly**
+
+.. code-block:: python
+
+    # Direct put operation
+    session.put("key/expression", "value")
+    
+    # Direct delete operation  
+    session.delete("key/expression")
 
 Query/Reply
 -----------

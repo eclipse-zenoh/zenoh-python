@@ -1,0 +1,12 @@
+To build documentation perform these steps:
+
+- ... install sphinx, etc. To be verified on clean repository
+
+run and view the docs
+
+```sh
+python docs/stubs_to_sources.py
+cd docs
+make html
+open _build/html/index.html
+```
