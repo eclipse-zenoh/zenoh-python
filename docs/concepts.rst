@@ -223,12 +223,81 @@ by declaring special publishers and queryables, but this task is not straightfor
 
 The :meth:`zenoh.Session.liveliness` API allows a node to declare a :class:`zenoh.LivelinessToken` 
 by :meth:`zenoh.Liveliness.declare_token` with a key expression assigned to it. Other nodes can use the 
-liveliness API to query this key expression or subscribe to it to be notified when the token appears or disappears on the network using the corresponding functions get and declare_subscriber.
+liveliness API to query this key expression with :meth:`zenoh.Liveliness.get` or subscribe to it 
+with :meth:`zenoh.Liveliness.declare_subscriber` to be notified when the token appears or disappears on the network.
+The `history` parameter of the :meth:`zenoh.Liveliness.declare_subscriber` allows to immediately receive the 
+alive tokens that are already present on the network. 
+
+Examples
+^^^^^^^^
+
+Declare a liveliness token
+
+.. code-block:: python
+
+    token = session.liveliness.declare_token("node/A")
+
+Get currently present liveliness tokens
+
+.. code-block:: python
+
+        replies = session.liveliness().get("node/A", timeout=5)
+        for reply in replies:
+            if reply.ok:
+                print(f"Alive token ('{reply.ok.key_expr}')")
+            else:
+                print(f"Received (ERROR: '{reply.err.payload.to_string()}')")
+
+
+Check if a liveliness token is present and subscribe to changes
+
+.. code-block:: python
+
+    with session.liveliness().declare_subscriber("node/A", history=True) as sub:
+        for sample in sub:
+            if sample.kind == zenoh.SampleKind.PUT:
+                print(f"Alive token ('{sample.key_expr}')")
+            elif sample.kind == zenoh.SampleKind.DELETE:
+                print(f"Dropped token ('{sample.key_expr}')")
+
 
 Matching
 --------
 
-The matching API allows the active side of communication (publisher, querier) to know whether there are any interested parties on the other side (subscriber, queryable), which allows saving bandwidth and CPU resources.
+The matching API allows the active side of communication (publisher, querier) to know whether there are any interested parties on the other side (subscriber, queryable),
+which can save bandwidth and CPU resources.
+
+A MatchingListener can be declared via the :meth:`zenoh.Publisher.matching_listener` or :meth:`zenoh.Querier.matching_listener` methods.
+
+The matching listener behaves like a subscriber, but instead of producing data samples it yields :class:`zenoh.MatchingStatus` instances whenever the matching status changes,
+i.e., when the first matching subscriber or queryable appears, or when the last one disappears.
+
+Examples
+^^^^^^^^
+
+**Declare a matching listener for a publisher**
+
+.. code-block:: python
+
+    publisher = session.declare_publisher("key/expression")
+    listener = publisher.matching_listener()
+    for status in listener:
+        if status.matching:
+            print(">> Publisher has at least one matching subscriber")
+        else:
+            print(">> Publisher has no matching subscribers")
+
+**Declare a matching listener for a querier**
+
+.. code-block:: python
+
+    querier = session.declare_querier("service/endpoint")
+    listener = querier.matching_listener()
+    for status in listener:
+        if status.matching:
+            print(">> Querier has at least one matching queryable")
+        else:
+            print(">> Querier has no matching queryables")
 
 Channels and callbacks
 ----------------------
