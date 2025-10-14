@@ -145,27 +145,85 @@ Examples
 Key Expressions
 ---------------
 
-Data is associated with keys in the form of a slash-separated path, e.g., ``robot/sensor/temp``. The 
+`Key expressions <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md>`_ are Zenoh's address space.
+
+In Zenoh, data is associated with keys in the form of a slash-separated path, e.g., ``robot/sensor/temp``. The 
 requesting side uses key expressions to address the data of interest. Key expressions can contain 
-wildcards, e.g., ``robot/sensor/*`` or ``robot/**``.
+wildcards:
+
+- ``*`` matches any chunk (a chunk is a sequence of characters between ``/`` separators)
+- ``**`` matches any number of chunks (including zero chunks)
+
+For example:
+- ``robot/sensor/*`` matches ``robot/sensor/temp``, ``robot/sensor/humidity``, etc.
+- ``robot/**`` matches ``robot/sensor/temp``, ``robot/actuator/motor``, ``robot/status``, etc.
+
+The :class:`zenoh.KeyExpr` class provides validation and operations on key expressions. Key expressions 
+can be created using the constructor, which validates the syntax of the provided string:
+
+.. code-block:: python
+
+    from zenoh import KeyExpr
+    
+    # Create a key expression with validation
+    sensor_ke = KeyExpr("robot/sensor")
+    
+    # Join with another segment
+    temp_ke = sensor_ke.join("temp")
+    
+    # Create a wildcard expression
+    all_sensors = sensor_ke.join("**")
+
+Key expressions support various operations to check relationships between them,
+like intersection and inclusion, which are useful for determining how different key expressions relate to each other, like :meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`.
+
+The key expressions can also be declared with the session to optimize routing and network usage:
+
+.. code-block:: python
+
+    # Declare a key expression for optimized routing
+    declared_ke = session.declare_keyexpr("robot/sensor/temperature")
+    
+    # Use the declared key expression
+    publisher = session.declare_publisher(declared_ke)
 
 Data representation
 -------------------
 
 Data is received as :class:`zenoh.Sample`\s, which contain the payload and all metadata associated with 
-the data. The raw byte payload object is :class:`zenoh.ZBytes`. The serialization and deserialization 
-of basic types and structures is provided in the :mod:`zenoh.ext` module.
+the data.
+The raw byte payload object is :class:`zenoh.ZBytes`. The serialization and deserialization 
+of basic types and structures is provided in the :mod:`zenoh.ext` module with functions :func:`zenoh.ext.z_serialize` and :func:`zenoh.ext.z_deserialize`.
 
 Scouting
 --------
 
-Scouting is the process of discovering Zenoh nodes in the network. Note that it's not necessary to 
-explicitly discover other nodes just to publish, subscribe, or query data.
+Scouting is the process of discovering Zenoh nodes in the network. The scouting process depends on the transport 
+layer and the Zenoh configuration. Note that it's not necessary to explicitly discover other nodes just to publish,
+subscribe, or query data.
+See more details at `scouting documentation <https://zenoh.io/docs/getting-started/deployment/#scouting>`_.
+
+Examples
+^^^^^^^^
+
+.. code-block:: python
+
+    scout = zenoh.scout(what="peer|router")
+    threading.Timer(1.0, lambda: scout.stop()).start()
+    for hello in scout:
+        print(hello)
 
 Liveliness
 ----------
 
 Zenoh allows monitoring of liveliness to be notified when a specified resource appears or disappears in the network.
+
+Sometimes it's necessary to know whether a Zenoh node is available on the network. It's possible to achieve this 
+by declaring special publishers and queryables, but this task is not straightforward, so a dedicated API is provided.
+
+The :meth:`zenoh.Session.liveliness` API allows a node to declare a :class:`zenoh.LivelinessToken` 
+by :meth:`zenoh.Liveliness.declare_token` with a key expression assigned to it. Other nodes can use the 
+liveliness API to query this key expression or subscribe to it to be notified when the token appears or disappears on the network using the corresponding functions get and declare_subscriber.
 
 Matching
 --------
