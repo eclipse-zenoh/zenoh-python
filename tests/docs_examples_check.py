@@ -17,7 +17,6 @@ Examples are validated by actually executing them with a timeout to catch any ru
 errors including invalid API usage.
 
 Usage:
-  python tests/docs_examples_check.py                    # Test all examples in docs/examples/
   python tests/docs_examples_check.py docs/concepts.rst  # Test examples from RST file
 """
 
@@ -108,43 +107,26 @@ def extract_literalinclude_files(rst_file: Path) -> list[Path]:
     return py_files
 
 
-def test_docs_examples(input_path: Path = None):
+def test_docs_examples(rst_file: Path):
     """
-    Test Python files either from docs/examples directory or from an RST file.
+    Test Python files referenced in an RST file's literalinclude directives.
 
     Args:
-        input_path: Optional path to RST file. If None, tests all files in docs/examples/
+        rst_file: Path to RST file
     """
-    repo_root = Path(__file__).parent.parent
+    if not rst_file.exists():
+        raise FileNotFoundError(f"RST file not found: {rst_file}")
 
-    if input_path is None:
-        # Default: test all Python files in docs/examples/
-        docs_examples = repo_root / "docs" / "examples"
+    if rst_file.suffix != '.rst':
+        raise ValueError(f"Expected .rst file, got: {rst_file.suffix}")
 
-        if not docs_examples.exists():
-            raise FileNotFoundError(f"docs/examples directory not found at {docs_examples}")
+    # Extract Python files from RST literalinclude directives
+    example_files = extract_literalinclude_files(rst_file)
 
-        example_files = sorted(docs_examples.glob("*.py"))
+    if not example_files:
+        raise RuntimeError(f"No Python files referenced in {rst_file}")
 
-        if not example_files:
-            raise RuntimeError(f"No Python files found in {docs_examples}")
-
-        print(f"\nChecking {len(example_files)} documentation examples from docs/examples/...")
-
-    elif input_path.suffix == '.rst':
-        # Extract Python files from RST literalinclude directives
-        if not input_path.exists():
-            raise FileNotFoundError(f"RST file not found: {input_path}")
-
-        example_files = extract_literalinclude_files(input_path)
-
-        if not example_files:
-            raise RuntimeError(f"No Python files referenced in {input_path}")
-
-        print(f"\nChecking {len(example_files)} examples from {input_path.name}...")
-
-    else:
-        raise ValueError(f"Unsupported file type: {input_path.suffix}. Expected .rst file.")
+    print(f"\nChecking {len(example_files)} examples from {rst_file.name}...")
 
     errors = []
 
@@ -172,13 +154,15 @@ def test_docs_examples(input_path: Path = None):
 
 
 if __name__ == "__main__":
-    # Allow running the script directly with optional RST file argument
+    # Require RST file argument
     try:
-        if len(sys.argv) > 1:
-            input_path = Path(sys.argv[1])
-            test_docs_examples(input_path)
-        else:
-            test_docs_examples()
+        if len(sys.argv) < 2:
+            print("Usage: python tests/docs_examples_check.py <rst_file>", file=sys.stderr)
+            print("Example: python tests/docs_examples_check.py docs/concepts.rst", file=sys.stderr)
+            sys.exit(1)
+
+        rst_file = Path(sys.argv[1])
+        test_docs_examples(rst_file)
         sys.exit(0)
     except (AssertionError, FileNotFoundError, RuntimeError, ValueError) as e:
         print(f"\nError: {e}", file=sys.stderr)
