@@ -54,28 +54,21 @@ Examples
 
 **Declaring a publisher and publishing data**
 
-.. code-block:: python
-
-    publisher = session.declare_publisher("key/expression")
-    publisher.put("value")
+.. literalinclude:: examples/pubsub_publisher.py
+   :language: python
+   :lines: 6-8
 
 **Declaring a subscriber and receiving data**
 
-.. code-block:: python
-
-    subscriber = session.declare_subscriber("key/expression")
-    for sample in subscriber:
-        print(f">> Received {sample.payload.to_string()}")
+.. literalinclude:: examples/pubsub_subscriber.py
+   :language: python
+   :lines: 6-9
 
 **Using session methods directly**
 
-.. code-block:: python
-
-    # Direct put operation
-    session.put("key/expression", "value")
-    
-    # Direct delete operation  
-    session.delete("key/expression")
+.. literalinclude:: examples/pubsub_session_direct.py
+   :language: python
+   :lines: 6-10
 
 Query/Reply
 -----------
@@ -110,46 +103,21 @@ Examples
 
 **Declaring a queryable**
 
-.. code-block:: python
-
-    # Queryable that replies with temperature data for a given day
-    queryable = session.declare_queryable("room/temperature/history")
-    for query in queryable:
-        if "day" in query.selector.parameters:
-            day = query.selector.parameters["day"]
-            if day in temperature_data:
-                query.reply("room/temperature/history", temperature_data[day])
-            else:
-                query.reply_del("no data for this day")
-        else:
-            query.reply_err("missing day parameter")
+.. literalinclude:: examples/query_queryable.py
+   :language: python
+   :lines: 11-21
 
 **Requesting data using Session.get**
 
-.. code-block:: python
-
-    # Request temperature for a specific day
-    replies = session.get("room/temperature/history?day=2023-03-15")
-    for reply in replies:
-        if reply.ok:
-            print(f">> Temperature is {reply.ok.payload.to_string()}")
-        else:
-            print(f">> Error: {reply.err.payload.to_string()}")
+.. literalinclude:: examples/query_session_get.py
+   :language: python
+   :lines: 6-12
 
 **Using a Querier**
 
-.. code-block:: python
-
-    # Declare a querier for multiple queries
-    querier = session.declare_querier("room/temperature/history")
-    
-    # Send a query with parameters
-    replies = querier.get(parameters="?day=2023-03-15")
-    for reply in replies:
-        if reply.ok:
-            print(f">> Temperature is {reply.ok.payload.to_string()}")
-        else:
-            print(f">> Error: {reply.err.payload.to_string()}") 
+.. literalinclude:: examples/query_querier.py
+   :language: python
+   :lines: 6-14 
 
 Key Expressions
 ---------------
@@ -171,18 +139,9 @@ The :class:`zenoh.KeyExpr` class provides validation and operations on key
 expressions. Key expressions can be created using the constructor, which
 validates the syntax of the provided string:
 
-.. code-block:: python
-
-    from zenoh import KeyExpr
-    
-    # Create a key expression with validation
-    sensor_ke = KeyExpr("robot/sensor")
-    
-    # Join with another segment
-    temp_ke = sensor_ke.join("temp")
-    
-    # Create a wildcard expression
-    all_sensors = sensor_ke.join("**")
+.. literalinclude:: examples/keyexpr_operations.py
+   :language: python
+   :lines: 4-11
 
 Key expressions support operations such as intersection and inclusion (see
 :meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
@@ -191,13 +150,9 @@ help determine how different expressions relate to each other.
 Key expressions can also be declared with the session to optimize routing and
 network usage:
 
-.. code-block:: python
-
-    # Declare a key expression for optimized routing
-    declared_ke = session.declare_keyexpr("robot/sensor/temperature")
-    
-    # Use the declared key expression
-    publisher = session.declare_publisher(declared_ke)
+.. literalinclude:: examples/keyexpr_declare.py
+   :language: python
+   :lines: 6-10
 
 Data representation
 -------------------
@@ -220,12 +175,9 @@ See more details at `scouting documentation <https://zenoh.io/docs/getting-start
 Examples
 ^^^^^^^^
 
-.. code-block:: python
-
-    scout = zenoh.scout(what="peer|router")
-    threading.Timer(1.0, lambda: scout.stop()).start()
-    for hello in scout:
-        print(hello)
+.. literalinclude:: examples/scouting.py
+   :language: python
+   :lines: 4-7
 
 Liveliness
 ----------
@@ -249,34 +201,24 @@ that are already present on the network.
 Examples
 ^^^^^^^^
 
-Declare a liveliness token
+**Declare a liveliness token**
 
-.. code-block:: python
+.. literalinclude:: examples/liveliness_token.py
+   :language: python
+   :lines: 6-7
 
-    token = session.liveliness.declare_token("node/A")
+**Get currently present liveliness tokens**
 
-Get currently present liveliness tokens
-
-.. code-block:: python
-
-        replies = session.liveliness().get("node/A", timeout=5)
-        for reply in replies:
-            if reply.ok:
-                print(f"Alive token ('{reply.ok.key_expr}')")
-            else:
-                print(f"Received (ERROR: '{reply.err.payload.to_string()}')")
+.. literalinclude:: examples/liveliness_get.py
+   :language: python
+   :lines: 6-12
 
 
-Check if a liveliness token is present and subscribe to changes
+**Check if a liveliness token is present and subscribe to changes**
 
-.. code-block:: python
-
-    with session.liveliness().declare_subscriber("node/A", history=True) as sub:
-        for sample in sub:
-            if sample.kind == zenoh.SampleKind.PUT:
-                print(f"Alive token ('{sample.key_expr}')")
-            elif sample.kind == zenoh.SampleKind.DELETE:
-                print(f"Dropped token ('{sample.key_expr}')")
+.. literalinclude:: examples/liveliness_subscriber.py
+   :language: python
+   :lines: 6-12
 
 
 Matching
@@ -300,27 +242,15 @@ Examples
 
 **Declare a matching listener for a publisher**
 
-.. code-block:: python
-
-    publisher = session.declare_publisher("key/expression")
-    listener = publisher.declare_matching_listener()
-    for status in listener:
-        if status.matching:
-            print(">> Publisher has at least one matching subscriber")
-        else:
-            print(">> Publisher has no matching subscribers")
+.. literalinclude:: examples/matching_publisher.py
+   :language: python
+   :lines: 6-12
 
 **Declare a matching listener for a querier**
 
-.. code-block:: python
-
-    querier = session.declare_querier("service/endpoint")
-    listener = querier.declare_matching_listener()
-    for status in listener:
-        if status.matching:
-            print(">> Querier has at least one matching queryable")
-        else:
-            print(">> Querier has no matching queryables")
+.. literalinclude:: examples/matching_querier.py
+   :language: python
+   :lines: 6-12
 
 Channels and callbacks
 ----------------------

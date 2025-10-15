@@ -38,3 +38,5 @@ docs/_*
 
 **/pycache
 **/__pycache__
+
+CLAUDE.md

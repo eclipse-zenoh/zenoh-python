@@ -21,26 +21,20 @@ started with. The more detailed documentation is available in the other sections
 Publish a key/value pair onto Zenoh
 -----------------------------------
 
->>> import zenoh
->>> with zenoh.open() as session:
->>>     session.put('demo/example/hello', 'Hello World!')
+.. literalinclude:: examples/quickstart_put.py
+   :language: python
+   :lines: 4-5
 
 Subscribe to a set of keys with Zenoh
 -------------------------------------
 
->>> import zenoh, time
->>> def listener(sample):
->>>     print(f"{sample.key_expr} => {sample.payload.to_string()}")
->>>
->>> with zenoh.open() as session:
->>>     with session.declare_subscriber('demo/example/**', listener) as subscriber:
->>>         time.sleep(60)
+.. literalinclude:: examples/quickstart_sub.py
+   :language: python
+   :lines: 4-10
 
 Get keys/values from zenoh
 --------------------------
 
->>> import zenoh
->>> with zenoh.open() as session:
->>>     for response in session.get('demo/example/**'):
->>>         response = response.ok
->>>         print(f"{response.key_expr} => {response.payload.to_string()}")
+.. literalinclude:: examples/quickstart_get.py
+   :language: python
+   :lines: 4-7
