@@ -185,9 +185,9 @@ Liveliness
 Zenoh supports liveliness monitoring to notify when a specified resource appears
 or disappears on the network.
 
-Sometimes it is necessary to know whether a Zenoh node is available. While this
-can be approximated by declaring special publishers and queryables, there is a
-dedicated liveliness API for this use case.
+Sometimes it is necessary to know whether a Zenoh node is available. This
+can be achieved by declaring special publishers and queryables, but the 
+dedicated liveliness API is more convenient and efficient.
 
 The :meth:`zenoh.Session.liveliness` API allows a node to declare a
 :class:`zenoh.LivelinessToken` using :meth:`zenoh.Liveliness.declare_token`,
