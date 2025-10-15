@@ -4,15 +4,17 @@ import threading
 
 
 def liveliness_subscriber_example(session, max_samples=2):
+    count = 0
     """Example: Subscribe to liveliness token changes."""
+    # DOC_EXAMPLE_START
     # Check if a liveliness token is present and subscribe to changes
     with session.liveliness().declare_subscriber("node/A", history=True) as sub:
-        count = 0
         for sample in sub:
-            if sample.kind == zenoh.SampleKind.GET:
+            if sample.kind == zenoh.SampleKind.PUT:
                 print(f"Alive token ('{sample.key_expr}')")
             elif sample.kind == zenoh.SampleKind.DELETE:
                 print(f"Dropped token ('{sample.key_expr}')")
+    # DOC_EXAMPLE_END
             count += 1
             if count >= max_samples:
                 break
