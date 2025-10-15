@@ -305,8 +305,20 @@ Channels and callbacks
 
 There are two ways to get sequential data from Zenoh primitives (e.g., a series of :class:`zenoh.Sample`\s from a :class:`zenoh.Subscriber` or :class:`zenoh.Reply`\s from a :class:`zenoh.Query`): by channel or by callback.
 
-As 
+This behavior is controlled by the `handler` parameter of the declare methods 
+(:meth:`zenoh.Session.declare_subscriber`, :meth:`zenoh.Session.declare_querier`, etc).
+This parameter can be either a callable (a function or a method) or a predefined 
+channel type (blocking :class:`zenoh.FifoChannel` or non-blocking :class:`zenoh.RingChannel`).
+By default the `handler` parameter is set to a `FifoChannel`.
 
-In channel mode, methods like ``recv()`` become available on the subscriber or query object. By default, the ``FifoChannel`` is used.
+When constructed with a channel, the returned object is iterable and can be used 
+in a `for` loop to receive data sequentially. It also provides explicit methods
+:meth:`zenoh.Subscriber.recv` waiting for data and `zenoh.Subscriber.try_recv` to 
+attempt to receive data without blocking. The subscriber (or queryable) will be 
+stopped when the object goes out of scope or when the :meth:`zenoh.Subscriber.undeclare`
+is called.
 
-The builders provide methods ``with_handler()`` to assign an arbitrary channel instead of the default one, and ``callback()`` to assign a callback function.
+When constructed with a callback, the returned object is not iterable. Instead, the callable is invoked for each
+received :class:`zenoh.Sample` or :class:`zenoh.Reply`. With the callback the object is started in "background"
+mode. This means that the subscriber or queryable will be alive even if the object goes out of scope. This
+allows just declaring the subscriber or queryable without caring about the returned object lifetime.
