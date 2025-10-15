@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from typing import Any, Generic, Protocol, Self, TypeVar, final
+
 _T = TypeVar('_T')
 
 @final

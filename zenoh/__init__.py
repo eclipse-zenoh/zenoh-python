@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Generic, Never, Self, TypeVar, final, overload
+
 from .handlers import Handler as Handler
+
 _T = TypeVar('_T')
 _H = TypeVar('_H')
 _RustHandler = handlers.DefaultHandler[_T] | handlers.FifoChannel[_T] | handlers.RingChannel[_T]

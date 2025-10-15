@@ -1,6 +1,23 @@
 from collections.abc import Callable
 from typing import Any, Generic, Literal, Never, Self, TypeVar, final, overload
-from zenoh import CongestionControl, Encoding, EntityGlobalId, Handler, KeyExpr, Locality, Priority, Reliability, Sample, Session, Subscriber, Timestamp, ZBytes, handlers
+
+from zenoh import (
+    CongestionControl,
+    Encoding,
+    EntityGlobalId,
+    Handler,
+    KeyExpr,
+    Locality,
+    Priority,
+    Reliability,
+    Sample,
+    Session,
+    Subscriber,
+    Timestamp,
+    ZBytes,
+    handlers,
+)
+
 _T = TypeVar('_T')
 _H = TypeVar('_H')
 _RustHandler = handlers.DefaultHandler[_T] | handlers.FifoChannel[_T] | handlers.RingChannel[_T]

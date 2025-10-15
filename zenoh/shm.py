@@ -1,4 +1,5 @@
 from typing import Self, TypeVar, final, overload
+
 _T = TypeVar('_T')
 
 def _unstable(item):

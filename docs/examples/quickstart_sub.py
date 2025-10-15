@@ -1,5 +1,7 @@
-import zenoh
 import time
+
+import zenoh
+
 
 def listener(sample):
     print(f"{sample.key_expr} => {sample.payload.to_string()}")
