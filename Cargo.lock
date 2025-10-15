@@ -3975,7 +3975,7 @@ dependencies = [
 
 [[package]]
 name = "zenoh-python"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "paste",
  "pyo3",
