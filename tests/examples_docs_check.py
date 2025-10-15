@@ -33,14 +33,14 @@ def check_example(example_path: Path) -> tuple[bool, str]:
         Tuple of (success: bool, error_message: str)
     """
     try:
-        with open(example_path, 'r', encoding='utf-8') as f:
+        with open(example_path, "r", encoding="utf-8") as f:
             code = f.read()
 
         # Try to parse the file as valid Python
         ast.parse(code, filename=str(example_path))
 
         # Try to compile the code
-        compile(code, str(example_path), 'exec')
+        compile(code, str(example_path), "exec")
 
         return True, ""
     except SyntaxError as e:

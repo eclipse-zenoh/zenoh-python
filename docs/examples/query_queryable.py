@@ -4,10 +4,7 @@ import zenoh
 session = zenoh.open(zenoh.Config())
 
 # Sample data
-temperature_data = {
-    "2023-03-15": "22.5°C",
-    "2023-03-16": "23.1°C",
-}
+temperature_data = {"2023-03-15": "22.5°C", "2023-03-16": "23.1°C"}
 
 # Queryable that replies with temperature data for a given day
 queryable = session.declare_queryable("room/temperature/history")
