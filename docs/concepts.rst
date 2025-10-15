@@ -264,12 +264,13 @@ Check if a liveliness token is present and subscribe to changes
 Matching
 --------
 
-The matching API allows the active side of communication (publisher, querier) to know whether there are any interested parties on the other side (subscriber, queryable),
-which can save bandwidth and CPU resources.
+The matching API allows the active side of communication (publisher, querier) to know whether there are any 
+interested parties on the other side (subscriber, queryable), which can save bandwidth and CPU resources.
 
-A MatchingListener can be declared via the :meth:`zenoh.Publisher.matching_listener` or :meth:`zenoh.Querier.matching_listener` methods.
+A :class:`zenoh.MatchingListener` can be declared via the :meth:`zenoh.Publisher.declare_matching_listener` or :meth:`zenoh.Querier.declare_matching_listener` methods.
 
-The matching listener behaves like a subscriber, but instead of producing data samples it yields :class:`zenoh.MatchingStatus` instances whenever the matching status changes,
+The matching listener behaves like a subscriber, but instead of producing data samples it yields 
+:class:`zenoh.MatchingStatus` instances whenever the matching status changes,
 i.e., when the first matching subscriber or queryable appears, or when the last one disappears.
 
 Examples
@@ -280,7 +281,7 @@ Examples
 .. code-block:: python
 
     publisher = session.declare_publisher("key/expression")
-    listener = publisher.matching_listener()
+    listener = publisher.declare_matching_listener()
     for status in listener:
         if status.matching:
             print(">> Publisher has at least one matching subscriber")
@@ -292,7 +293,7 @@ Examples
 .. code-block:: python
 
     querier = session.declare_querier("service/endpoint")
-    listener = querier.matching_listener()
+    listener = querier.declare_matching_listener()
     for status in listener:
         if status.matching:
             print(">> Querier has at least one matching queryable")
@@ -303,6 +304,8 @@ Channels and callbacks
 ----------------------
 
 There are two ways to get sequential data from Zenoh primitives (e.g., a series of :class:`zenoh.Sample`\s from a :class:`zenoh.Subscriber` or :class:`zenoh.Reply`\s from a :class:`zenoh.Query`): by channel or by callback.
+
+As 
 
 In channel mode, methods like ``recv()`` become available on the subscriber or query object. By default, the ``FifoChannel`` is used.
 
