@@ -45,6 +45,10 @@ impl ZBytes {
             if let Ok(buf) = obj.downcast_exact::<crate::shm::ZShmMut>() {
                 return Ok(Self(buf.borrow_mut().take()?.into()));
             }
+            #[cfg(feature = "shared-memory")]
+            if let Ok(buf) = obj.downcast_exact::<crate::shm::ZShm>() {
+                return Ok(Self(buf.borrow().0.clone().into()));
+            }
             Err(PyTypeError::new_err(format!(
                 "expected bytes/str type, found '{}'",
                 obj.get_type().name().unwrap()
@@ -63,6 +67,11 @@ impl ZBytes {
         self.0
             .try_to_string()
             .map_err(|_| PyValueError::new_err("not an UTF8 error"))
+    }
+
+    #[cfg(feature = "shared-memory")]
+    fn as_shm(&self) -> Option<crate::shm::ZShm> {
+        self.0.as_shm().map(ToOwned::to_owned).map_into()
     }
 
     fn __len__(&self) -> usize {

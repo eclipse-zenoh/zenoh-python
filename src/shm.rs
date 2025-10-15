@@ -5,7 +5,7 @@ use pyo3::{
     prelude::*,
     types::{PyByteArray, PyBytes, PySlice, PyString, PyType},
 };
-use zenoh::shm::{ChunkAllocResult, PosixShmProviderBackend};
+use zenoh::shm::{ChunkAllocResult, PosixShmProviderBackend, ShmBuf};
 
 use crate::{
     macros::{downcast_or_new, wrapper, zerror},
@@ -207,6 +207,23 @@ impl ShmProvider {
     #[getter]
     fn available(&self) -> usize {
         self.0.available()
+    }
+}
+
+wrapper!(zenoh::shm::ZShm);
+
+#[pymethods]
+impl ZShm {
+    fn is_valid(&self) -> bool {
+        self.0.is_valid()
+    }
+
+    fn __str__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyString>> {
+        Ok(PyString::new(py, str::from_utf8(&self.0).into_pyres()?))
+    }
+
+    fn __bytes__<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
+        PyBytes::new(py, &self.0)
     }
 }
 
