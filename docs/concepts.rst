@@ -23,6 +23,9 @@ that perform communication (for example, publishers, subscribers, queriers, and 
 declared through a :class:`zenoh.Session`. A session is created by the :func:`zenoh.open` function,
 which takes a :class:`zenoh.Config` as an argument.
 
+The configuration is stored in a json file. The file format is documented in the Zenoh Rust API
+`Config <https://docs.rs/zenoh/latest/zenoh/config/struct.Config.html>`_ reference.
+
 Publish/Subscribe
 -----------------
 
