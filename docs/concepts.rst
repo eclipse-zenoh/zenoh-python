@@ -218,7 +218,7 @@ Examples
 
 .. literalinclude:: examples/liveliness_subscriber.py
    :language: python
-   :lines: 15-21
+   :lines: 21-27
 
 
 Matching

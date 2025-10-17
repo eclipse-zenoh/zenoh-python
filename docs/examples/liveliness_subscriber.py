@@ -3,13 +3,19 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
-# Test support: declare liveliness token in background
+# Test support: declare and undeclare liveliness token in background
 import time
 import threading
 def provide_token():
     time.sleep(0.1)
-    session.liveliness().declare_token("node/A")
+    token = session.liveliness().declare_token("node/A")
+    time.sleep(0.2)  # Keep token alive briefly
+    token.undeclare()  # Trigger DELETE
 threading.Thread(target=provide_token, daemon=True).start()
+
+# Test verification counters
+put_count = 0
+delete_count = 0
 
 # DOC_EXAMPLE_START
 # Check if a liveliness token is present and subscribe to changes
@@ -20,4 +26,15 @@ for sample in subscriber:
     elif sample.kind == zenoh.SampleKind.DELETE:
         print(f"Dropped token ('{sample.key_expr}')")
 # DOC_EXAMPLE_END
-    break  # Exit after first sample for testing
+    # Test verification
+    if sample.kind == zenoh.SampleKind.PUT:
+        put_count += 1
+    elif sample.kind == zenoh.SampleKind.DELETE:
+        delete_count += 1
+
+    # Exit after receiving both events
+    if put_count > 0 and delete_count > 0:
+        break
+
+assert put_count > 0, "Expected at least one PUT sample"
+assert delete_count > 0, "Expected at least one DELETE sample"
