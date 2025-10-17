@@ -8,6 +8,6 @@ def listener(sample):
 
 
 # Subscribe to a set of keys with Zenoh
-with zenoh.open() as session:
+with zenoh.open(zenoh.Config()) as session:
     with session.declare_subscriber("demo/example/**", listener) as subscriber:
         time.sleep(60)

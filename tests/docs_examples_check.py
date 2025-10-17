@@ -78,7 +78,7 @@ def check_example(example_path: Path) -> tuple[bool, str]:
         return False, f"Error: {type(e).__name__}: {e}"
 
 
-def extract_literalinclude_files(rst_file: Path) -> list[Path]:
+def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int]]:
     """
     Extract Python file references from literalinclude directives in an RST file.
 
@@ -86,25 +86,100 @@ def extract_literalinclude_files(rst_file: Path) -> list[Path]:
         rst_file: Path to the RST file
 
     Returns:
-        List of absolute paths to Python files referenced in literalinclude directives
+        List of tuples (file_path, start_line, end_line) for each literalinclude directive
     """
     with open(rst_file, 'r', encoding='utf-8') as f:
-        content = f.read()
+        lines = f.readlines()
 
     # Pattern to match literalinclude directives with .py files
     # Example: .. literalinclude:: examples/pubsub_publisher.py
-    pattern = r'\.\.\s+literalinclude::\s+([^\s]+\.py)'
-    matches = re.findall(pattern, content)
+    literalinclude_pattern = r'\.\.\s+literalinclude::\s+([^\s]+\.py)'
+    lines_pattern = r':lines:\s+(\d+)-(\d+)'
 
-    # Resolve paths relative to the RST file's directory
     rst_dir = rst_file.parent
     py_files = []
-    for match in matches:
-        py_path = (rst_dir / match).resolve()
-        if py_path not in py_files:  # Avoid duplicates
-            py_files.append(py_path)
+    seen_files = {}
+
+    i = 0
+    while i < len(lines):
+        match = re.search(literalinclude_pattern, lines[i])
+        if match:
+            py_path = (rst_dir / match.group(1)).resolve()
+
+            # Look for :lines: directive in the next few lines
+            start_line = None
+            end_line = None
+            for j in range(i + 1, min(i + 5, len(lines))):
+                lines_match = re.search(lines_pattern, lines[j])
+                if lines_match:
+                    start_line = int(lines_match.group(1))
+                    end_line = int(lines_match.group(2))
+                    break
+                # Stop if we hit another directive or empty line after indented content
+                if lines[j].strip() and not lines[j].startswith(' '):
+                    break
+
+            # Store with line numbers if specified
+            file_key = (py_path, start_line, end_line)
+            if file_key not in seen_files:
+                py_files.append((py_path, start_line, end_line))
+                seen_files[file_key] = True
+        i += 1
 
     return py_files
+
+
+def validate_doc_markers(py_file: Path, start_line: int, end_line: int) -> tuple[bool, str]:
+    """
+    Validate that literalinclude line range is within DOC_EXAMPLE_START/END markers.
+
+    Args:
+        py_file: Path to Python file
+        start_line: First included line (1-indexed)
+        end_line: Last included line (1-indexed)
+
+    Returns:
+        Tuple of (success: bool, error_message: str)
+    """
+    if start_line is None or end_line is None:
+        # No line range specified, skip validation
+        return True, ""
+
+    with open(py_file, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    # Find DOC_EXAMPLE_START and DOC_EXAMPLE_END markers
+    doc_start = None
+    doc_end = None
+
+    for i, line in enumerate(lines, start=1):
+        if 'DOC_EXAMPLE_START' in line:
+            doc_start = i
+        elif 'DOC_EXAMPLE_END' in line:
+            doc_end = i
+
+    # If no markers found, skip validation
+    if doc_start is None and doc_end is None:
+        return True, ""
+
+    errors = []
+
+    if doc_start is not None and start_line <= doc_start:
+        errors.append(
+            f"Line range starts at {start_line} but should be after "
+            f"DOC_EXAMPLE_START at line {doc_start}"
+        )
+
+    if doc_end is not None and end_line >= doc_end:
+        errors.append(
+            f"Line range ends at {end_line} but should be before "
+            f"DOC_EXAMPLE_END at line {doc_end}"
+        )
+
+    if errors:
+        return False, "; ".join(errors)
+
+    return True, ""
 
 
 def test_docs_examples(rst_file: Path):
@@ -130,19 +205,27 @@ def test_docs_examples(rst_file: Path):
 
     errors = []
 
-    for example_file in example_files:
-        if not example_file.exists():
-            print(f"  ✗ {example_file.name}: File not found")
-            errors.append(f"{example_file.name}: File not found")
+    for py_file, start_line, end_line in example_files:
+        if not py_file.exists():
+            print(f"  ✗ {py_file.name}: File not found")
+            errors.append(f"{py_file.name}: File not found")
             continue
 
-        success, error_msg = check_example(example_file)
+        # Validate DOC_EXAMPLE markers
+        marker_valid, marker_error = validate_doc_markers(py_file, start_line, end_line)
+        if not marker_valid:
+            print(f"  ✗ {py_file.name} (lines {start_line}-{end_line}): {marker_error}")
+            errors.append(f"{py_file.name} (lines {start_line}-{end_line}): {marker_error}")
+            continue
+
+        # Execute the file
+        success, error_msg = check_example(py_file)
 
         if success:
-            print(f"  ✓ {example_file.name}")
+            print(f"  ✓ {py_file.name}")
         else:
-            print(f"  ✗ {example_file.name}: {error_msg}")
-            errors.append(f"{example_file.name}: {error_msg}")
+            print(f"  ✗ {py_file.name}: {error_msg}")
+            errors.append(f"{py_file.name}: {error_msg}")
 
     if errors:
         print(f"\n{len(errors)} example(s) failed:")
