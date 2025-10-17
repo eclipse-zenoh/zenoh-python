@@ -19,14 +19,22 @@ are merged, and return type is unspecialized, while handler delegated methods ar
 kept without the `Never` overload. `serializer`/`deserializer` are kept untouched,
 because it's ok.
 Moreover, all function parameters annotations are stringified in order to allow
-referencing a type not declared yet (i.e. forward reference)."""
+referencing a type not declared yet (i.e. forward reference).
 
+Usage:
+    python stubs_to_sources.py          # Convert stubs to sources
+    python stubs_to_sources.py --recover # Restore original files from backups
+"""
+
+import argparse
 import ast
 import inspect
+import shutil
 from collections import defaultdict
 from pathlib import Path
 
 PACKAGE = (Path(__file__) / "../../zenoh").resolve()
+BACKUP_DIR = Path(__file__).parent / "_stubs_backup"
 
 
 def _unstable(item):
@@ -104,18 +112,124 @@ class Sourcify(ast.NodeTransformer):
         return node
 
 
-def main():
+def backup_files():
+    """Backup existing .py and .pyi files before conversion."""
+    BACKUP_DIR.mkdir(exist_ok=True)
+
+    backed_up = []
+    for pattern in ["*.py", "*.pyi"]:
+        for entry in PACKAGE.glob(pattern):
+            backup_path = BACKUP_DIR / entry.name
+            shutil.copy2(entry, backup_path)
+            backed_up.append(entry.name)
+            print(f"Backed up: {entry.name}")
+
+    # Save a manifest of what was backed up for accurate recovery
+    manifest_path = BACKUP_DIR / ".manifest"
+    with open(manifest_path, "w") as f:
+        f.write("\n".join(sorted(backed_up)))
+
+    return backed_up
+
+
+def convert_stubs():
+    """Convert stub files to source files for documentation."""
+    print(f"Converting stubs in: {PACKAGE}")
+
+    # First, backup all files
+    backed_up = backup_files()
+    if not backed_up:
+        print("No files to backup")
+        return
+
+    print(f"\nBacked up {len(backed_up)} files to: {BACKUP_DIR}")
+
+    # Now convert stubs
+    converted = []
     for entry in PACKAGE.glob("*.pyi"):
         # read stub file
         with open(entry) as f:
             stub: ast.Module = ast.parse(f.read())
             # update ast to make it like source
             stub = Sourcify().visit(stub)
+
         # write modified code into source file
-        with open(PACKAGE / f"{entry.stem}.py", "w") as f:
+        target_path = PACKAGE / f"{entry.stem}.py"
+        with open(target_path, "w") as f:
             f.write(ast.unparse(stub))
+        converted.append(entry.stem)
+        print(f"Converted: {entry.name} -> {target_path.name}")
+
         # remove stub file
         entry.unlink()
+        print(f"Removed: {entry.name}")
+
+    print(f"\nConverted {len(converted)} stub files")
+    print(f"To restore, run: python {Path(__file__).name} --recover")
+
+
+def recover_files():
+    """Restore original files from backup."""
+    if not BACKUP_DIR.exists():
+        print(f"Error: Backup directory not found: {BACKUP_DIR}")
+        print("Cannot recover - no backups available")
+        return
+
+    manifest_path = BACKUP_DIR / ".manifest"
+    if not manifest_path.exists():
+        print(f"Error: Backup manifest not found: {manifest_path}")
+        print("Cannot recover - backup may be corrupted")
+        return
+
+    # Read the manifest to know what files should exist
+    with open(manifest_path) as f:
+        backed_up_files = set(f.read().strip().split("\n"))
+
+    print(f"Restoring files from: {BACKUP_DIR}")
+
+    # First, remove all current .py and .pyi files
+    print("\nCleaning up current files...")
+    for pattern in ["*.py", "*.pyi"]:
+        for entry in PACKAGE.glob(pattern):
+            entry.unlink()
+            print(f"Removed: {entry.name}")
+
+    # Now restore only the files that were backed up
+    print("\nRestoring backed up files...")
+    restored = []
+    for filename in backed_up_files:
+        if not filename:  # Skip empty lines
+            continue
+        backup_file = BACKUP_DIR / filename
+        if backup_file.exists():
+            target_path = PACKAGE / filename
+            shutil.copy2(backup_file, target_path)
+            restored.append(filename)
+            print(f"Restored: {filename}")
+
+    print(f"\nRestored {len(restored)} files")
+
+    # Clean up backup directory
+    shutil.rmtree(BACKUP_DIR)
+    print(f"Removed backup directory: {BACKUP_DIR}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Convert Python stub files to source files for documentation generation"
+    )
+    parser.add_argument(
+        "--recover",
+        action="store_true",
+        help="Restore original files from backup"
+    )
+
+    args = parser.parse_args()
+
+    if args.recover:
+        recover_files()
+    else:
+        convert_stubs()
 
 
 if __name__ == "__main__":
