@@ -3,9 +3,12 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+import threading
+
 # Test support: declare and undeclare liveliness token in background
 import time
-import threading
+
+
 def provide_token():
     time.sleep(0.1)
     token = session.liveliness().declare_token("node/A")

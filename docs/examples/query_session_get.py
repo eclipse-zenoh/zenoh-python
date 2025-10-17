@@ -3,9 +3,11 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+import threading
+
 # Test support: provide queryables in background (one success, one error)
 import time
-import threading
+
 
 def provide_queryable_ok():
     time.sleep(0.05)

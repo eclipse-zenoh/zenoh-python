@@ -62,7 +62,7 @@ Examples
 
 .. literalinclude:: examples/pubsub_subscriber.py
    :language: python
-   :lines: 15-18
+   :lines: 18-21
 
 **Using session methods directly**
 
@@ -105,19 +105,19 @@ Examples
 
 .. literalinclude:: examples/query_queryable.py
    :language: python
-   :lines: 26-37
+   :lines: 29-40
 
 **Requesting data using Session.get**
 
 .. literalinclude:: examples/query_session_get.py
    :language: python
-   :lines: 33-39
+   :lines: 35-41
 
 **Using a Querier**
 
 .. literalinclude:: examples/query_querier.py
    :language: python
-   :lines: 33-42 
+   :lines: 35-44 
 
 Key Expressions
 ---------------
@@ -211,14 +211,14 @@ Examples
 
 .. literalinclude:: examples/liveliness_get.py
    :language: python
-   :lines: 17-23
+   :lines: 20-26
 
 
 **Check if a liveliness token is present and subscribe to changes**
 
 .. literalinclude:: examples/liveliness_subscriber.py
    :language: python
-   :lines: 21-27
+   :lines: 24-30
 
 
 Matching
@@ -244,13 +244,13 @@ Examples
 
 .. literalinclude:: examples/matching_publisher.py
    :language: python
-   :lines: 22-29
+   :lines: 24-31
 
 **Declare a matching listener for a querier**
 
 .. literalinclude:: examples/matching_querier.py
    :language: python
-   :lines: 22-29
+   :lines: 24-31
 
 Channels and callbacks
 ----------------------

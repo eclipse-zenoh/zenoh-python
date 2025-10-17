@@ -3,9 +3,11 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+import threading
+
 # Test support: declare queryable, then undeclare to trigger both states
 import time
-import threading
+
 queryable = session.declare_queryable("service/endpoint")
 
 def undeclare_queryable():

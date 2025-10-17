@@ -3,9 +3,12 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+import threading
+
 # Test support: send data in background
 import time
-import threading
+
+
 def send_data():
     time.sleep(0.1)
     session.put("key/expression", "test data")

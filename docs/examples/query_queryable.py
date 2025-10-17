@@ -6,9 +6,12 @@ session = zenoh.open(zenoh.Config())
 # Sample data
 temperature_data = {"2023-03-15": "22.5°C", "2023-03-16": "23.1°C"}
 
+import threading
+
 # Test support: send all 3 query variants in background
 import time
-import threading
+
+
 def send_queries():
     time.sleep(0.2)  # Wait for queryable to be ready
     # Send all 3 queries with callback (non-blocking)

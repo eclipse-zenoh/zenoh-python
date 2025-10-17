@@ -3,9 +3,11 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+import threading
+
 # Test support: declare subscriber, then undeclare to trigger both states
 import time
-import threading
+
 subscriber = session.declare_subscriber("key/expression")
 
 def undeclare_subscriber():
