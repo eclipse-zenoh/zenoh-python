@@ -2,6 +2,7 @@ import time
 
 import zenoh
 
+TIMEOUT = 1
 # DOC_EXAMPLE_START
 
 def listener(sample):
@@ -11,5 +12,5 @@ def listener(sample):
 # Subscribe to a set of keys with Zenoh
 with zenoh.open(zenoh.Config()) as session:
     with session.declare_subscriber("demo/example/**", listener) as subscriber:
-        time.sleep(60)
+        time.sleep(TIMEOUT)
 # DOC_EXAMPLE_END

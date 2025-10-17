@@ -78,7 +78,7 @@ def check_example(example_path: Path) -> tuple[bool, str]:
         return False, f"Error: {type(e).__name__}: {e}"
 
 
-def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int]]:
+def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int, int]]:
     """
     Extract Python file references from literalinclude directives in an RST file.
 
@@ -86,7 +86,7 @@ def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int]]:
         rst_file: Path to the RST file
 
     Returns:
-        List of tuples (file_path, start_line, end_line) for each literalinclude directive
+        List of tuples (file_path, start_line, end_line, rst_line_num) for each literalinclude directive
     """
     with open(rst_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -105,15 +105,18 @@ def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int]]:
         match = re.search(literalinclude_pattern, lines[i])
         if match:
             py_path = (rst_dir / match.group(1)).resolve()
+            rst_line_num = i + 1  # 1-indexed line number in RST file
 
             # Look for :lines: directive in the next few lines
             start_line = None
             end_line = None
+            lines_line_num = None
             for j in range(i + 1, min(i + 5, len(lines))):
                 lines_match = re.search(lines_pattern, lines[j])
                 if lines_match:
                     start_line = int(lines_match.group(1))
                     end_line = int(lines_match.group(2))
+                    lines_line_num = j + 1  # 1-indexed line number of :lines: directive
                     break
                 # Stop if we hit another directive or empty line after indented content
                 if lines[j].strip() and not lines[j].startswith(' '):
@@ -122,14 +125,14 @@ def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int]]:
             # Store with line numbers if specified
             file_key = (py_path, start_line, end_line)
             if file_key not in seen_files:
-                py_files.append((py_path, start_line, end_line))
+                py_files.append((py_path, start_line, end_line, lines_line_num or rst_line_num))
                 seen_files[file_key] = True
         i += 1
 
     return py_files
 
 
-def validate_doc_markers(py_file: Path, start_line: int, end_line: int) -> tuple[bool, str]:
+def validate_doc_markers(py_file: Path, start_line: int, end_line: int, rst_line_num: int) -> tuple[bool, str]:
     """
     Validate that literalinclude line range is within DOC_EXAMPLE_START/END markers.
 
@@ -137,6 +140,7 @@ def validate_doc_markers(py_file: Path, start_line: int, end_line: int) -> tuple
         py_file: Path to Python file
         start_line: First included line (1-indexed)
         end_line: Last included line (1-indexed)
+        rst_line_num: Line number in RST file where :lines: directive appears
 
     Returns:
         Tuple of (success: bool, error_message: str)
@@ -162,21 +166,33 @@ def validate_doc_markers(py_file: Path, start_line: int, end_line: int) -> tuple
 
     # Check if markers are missing
     if doc_start is None:
-        errors.append("Missing DOC_EXAMPLE_START marker")
+        errors.append(
+            f"Missing DOC_EXAMPLE_START marker (expected before line {start_line})"
+        )
     if doc_end is None:
-        errors.append("Missing DOC_EXAMPLE_END marker")
+        errors.append(
+            f"Missing DOC_EXAMPLE_END marker (expected after line {end_line})"
+        )
 
     # If markers exist, check if they're correctly placed
     if doc_start is not None and start_line <= doc_start:
+        # Calculate the correct range for RST
+        correct_start = doc_start + 1
+        correct_end = doc_end - 1 if doc_end else end_line
         errors.append(
-            f"Line range starts at {start_line} but should be after "
-            f"DOC_EXAMPLE_START at line {doc_start}"
+            f"RST line {rst_line_num}: :lines: {start_line}-{end_line} is incorrect. "
+            f"Python has DOC_EXAMPLE_START at line {doc_start}. "
+            f"Change to: :lines: {correct_start}-{correct_end}"
         )
 
     if doc_end is not None and end_line >= doc_end:
+        # Calculate the correct range for RST
+        correct_start = doc_start + 1 if doc_start else start_line
+        correct_end = doc_end - 1
         errors.append(
-            f"Line range ends at {end_line} but should be before "
-            f"DOC_EXAMPLE_END at line {doc_end}"
+            f"RST line {rst_line_num}: :lines: {start_line}-{end_line} is incorrect. "
+            f"Python has DOC_EXAMPLE_END at line {doc_end}. "
+            f"Change to: :lines: {correct_start}-{correct_end}"
         )
 
     if errors:
@@ -208,17 +224,17 @@ def test_docs_examples(rst_file: Path):
 
     errors = []
 
-    for py_file, start_line, end_line in example_files:
+    for py_file, start_line, end_line, rst_line_num in example_files:
         if not py_file.exists():
             print(f"  ✗ {py_file.name}: File not found")
             errors.append(f"{py_file.name}: File not found")
             continue
 
         # Validate DOC_EXAMPLE markers
-        marker_valid, marker_error = validate_doc_markers(py_file, start_line, end_line)
+        marker_valid, marker_error = validate_doc_markers(py_file, start_line, end_line, rst_line_num)
         if not marker_valid:
-            print(f"  ✗ {py_file.name} (lines {start_line}-{end_line}): {marker_error}")
-            errors.append(f"{py_file.name} (lines {start_line}-{end_line}): {marker_error}")
+            print(f"  ✗ {py_file.name}: {marker_error}")
+            errors.append(f"{py_file.name}: {marker_error}")
             continue
 
         # Execute the file

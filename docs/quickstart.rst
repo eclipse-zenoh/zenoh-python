@@ -30,7 +30,7 @@ Subscribe to a set of keys with Zenoh
 
 .. literalinclude:: examples/quickstart_sub.py
    :language: python
-   :lines: 6-7,10-13
+   :lines: 8-9,13-15
 
 Get keys/values from zenoh
 --------------------------
