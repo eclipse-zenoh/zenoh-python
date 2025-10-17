@@ -68,7 +68,7 @@ Examples
 
 .. literalinclude:: examples/pubsub_session_direct.py
    :language: python
-   :lines: 6-10
+   :lines: 7-11
 
 Query/Reply
 -----------
