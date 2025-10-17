@@ -78,7 +78,7 @@ def check_example(example_path: Path) -> tuple[bool, str]:
         return False, f"Error: {type(e).__name__}: {e}"
 
 
-def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int, int]]:
+def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, list[tuple[int, int]], int]]:
     """
     Extract Python file references from literalinclude directives in an RST file.
 
@@ -86,15 +86,17 @@ def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int, i
         rst_file: Path to the RST file
 
     Returns:
-        List of tuples (file_path, start_line, end_line, rst_line_num) for each literalinclude directive
+        List of tuples (file_path, line_ranges, rst_line_num) where:
+        - line_ranges is a list of (start, end) tuples for each range
+        - rst_line_num is the line number in RST where :lines: appears
     """
     with open(rst_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
     # Pattern to match literalinclude directives with .py files
-    # Example: .. literalinclude:: examples/pubsub_publisher.py
     literalinclude_pattern = r'\.\.\s+literalinclude::\s+([^\s]+\.py)'
-    lines_pattern = r':lines:\s+(\d+)-(\d+)'
+    # Pattern to match :lines: with comma-separated ranges like "4-5,10-13"
+    lines_pattern = r':lines:\s+([\d,\-]+)'
 
     rst_dir = rst_file.parent
     py_files = []
@@ -108,95 +110,79 @@ def extract_literalinclude_files(rst_file: Path) -> list[tuple[Path, int, int, i
             rst_line_num = i + 1  # 1-indexed line number in RST file
 
             # Look for :lines: directive in the next few lines
-            start_line = None
-            end_line = None
+            line_ranges = []
             lines_line_num = None
             for j in range(i + 1, min(i + 5, len(lines))):
                 lines_match = re.search(lines_pattern, lines[j])
                 if lines_match:
-                    start_line = int(lines_match.group(1))
-                    end_line = int(lines_match.group(2))
+                    # Parse comma-separated ranges like "4-5,10-13"
+                    ranges_str = lines_match.group(1)
+                    for range_str in ranges_str.split(','):
+                        parts = range_str.strip().split('-')
+                        if len(parts) == 2:
+                            line_ranges.append((int(parts[0]), int(parts[1])))
                     lines_line_num = j + 1  # 1-indexed line number of :lines: directive
                     break
                 # Stop if we hit another directive or empty line after indented content
                 if lines[j].strip() and not lines[j].startswith(' '):
                     break
 
-            # Store with line numbers if specified
-            file_key = (py_path, start_line, end_line)
+            # Store with line ranges if specified
+            file_key = (py_path, tuple(line_ranges))
             if file_key not in seen_files:
-                py_files.append((py_path, start_line, end_line, lines_line_num or rst_line_num))
+                py_files.append((py_path, line_ranges if line_ranges else None, lines_line_num or rst_line_num))
                 seen_files[file_key] = True
         i += 1
 
     return py_files
 
 
-def validate_doc_markers(py_file: Path, start_line: int, end_line: int, rst_line_num: int) -> tuple[bool, str]:
+def validate_doc_markers(py_file: Path, line_ranges: list[tuple[int, int]] | None, rst_file: Path, rst_line_num: int) -> tuple[bool, str]:
     """
-    Validate that literalinclude line range is within DOC_EXAMPLE_START/END markers.
+    Validate that each line range has a corresponding DOC_EXAMPLE_START/END marker pair.
+    Each range must be exactly bounded by markers: START at (range_start - 1), END at (range_end + 1).
 
     Args:
         py_file: Path to Python file
-        start_line: First included line (1-indexed)
-        end_line: Last included line (1-indexed)
+        line_ranges: List of (start, end) tuples for each range, or None if no :lines: specified
+        rst_file: Path to RST file (for error messages)
         rst_line_num: Line number in RST file where :lines: directive appears
 
     Returns:
         Tuple of (success: bool, error_message: str)
     """
-    if start_line is None or end_line is None:
+    if line_ranges is None:
         # No line range specified, skip validation
         return True, ""
 
     with open(py_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
-    # Find DOC_EXAMPLE_START and DOC_EXAMPLE_END markers
-    doc_start = None
-    doc_end = None
-
+    # Find all DOC_EXAMPLE_START/END marker pairs
+    marker_pairs = []
+    start = None
     for i, line in enumerate(lines, start=1):
         if 'DOC_EXAMPLE_START' in line:
-            doc_start = i
-        elif 'DOC_EXAMPLE_END' in line:
-            doc_end = i
+            start = i
+        elif 'DOC_EXAMPLE_END' in line and start is not None:
+            marker_pairs.append((start, i))
+            start = None
 
-    errors = []
+    # Check that we have the same number of ranges and marker pairs
+    if len(line_ranges) != len(marker_pairs):
+        corrected_str = ','.join(f"{ms + 1}-{me - 1}" for ms, me in marker_pairs) if marker_pairs else "N/A"
+        return False, f"{rst_file.resolve()}:{rst_line_num}: Change to :lines: {corrected_str}"
 
-    # Check if markers are missing
-    if doc_start is None:
-        errors.append(
-            f"Missing DOC_EXAMPLE_START marker (expected before line {start_line})"
-        )
-    if doc_end is None:
-        errors.append(
-            f"Missing DOC_EXAMPLE_END marker (expected after line {end_line})"
-        )
+    # Match each range to its corresponding marker pair - they should be in the same order
+    for idx, (start_line, end_line) in enumerate(line_ranges):
+        marker_start, marker_end = marker_pairs[idx]
+        expected_start = marker_start + 1
+        expected_end = marker_end - 1
 
-    # If markers exist, check if they're correctly placed
-    if doc_start is not None and start_line <= doc_start:
-        # Calculate the correct range for RST
-        correct_start = doc_start + 1
-        correct_end = doc_end - 1 if doc_end else end_line
-        errors.append(
-            f"RST line {rst_line_num}: :lines: {start_line}-{end_line} is incorrect. "
-            f"Python has DOC_EXAMPLE_START at line {doc_start}. "
-            f"Change to: :lines: {correct_start}-{correct_end}"
-        )
-
-    if doc_end is not None and end_line >= doc_end:
-        # Calculate the correct range for RST
-        correct_start = doc_start + 1 if doc_start else start_line
-        correct_end = doc_end - 1
-        errors.append(
-            f"RST line {rst_line_num}: :lines: {start_line}-{end_line} is incorrect. "
-            f"Python has DOC_EXAMPLE_END at line {doc_end}. "
-            f"Change to: :lines: {correct_start}-{correct_end}"
-        )
-
-    if errors:
-        return False, "; ".join(errors)
+        if start_line != expected_start or end_line != expected_end:
+            corrected = [f"{ms + 1}-{me - 1}" for ms, me in marker_pairs]
+            corrected_str = ','.join(corrected)
+            return False, f"{rst_file.resolve()}:{rst_line_num}: Range-markers mismatch.Change to :lines: {corrected_str}"
 
     return True, ""
 
@@ -224,14 +210,14 @@ def test_docs_examples(rst_file: Path):
 
     errors = []
 
-    for py_file, start_line, end_line, rst_line_num in example_files:
+    for py_file, line_ranges, rst_line_num in example_files:
         if not py_file.exists():
             print(f"  ✗ {py_file.name}: File not found")
             errors.append(f"{py_file.name}: File not found")
             continue
 
         # Validate DOC_EXAMPLE markers
-        marker_valid, marker_error = validate_doc_markers(py_file, start_line, end_line, rst_line_num)
+        marker_valid, marker_error = validate_doc_markers(py_file, line_ranges, rst_file, rst_line_num)
         if not marker_valid:
             print(f"  ✗ {py_file.name}: {marker_error}")
             errors.append(f"{py_file.name}: {marker_error}")

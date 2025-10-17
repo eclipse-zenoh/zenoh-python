@@ -23,18 +23,18 @@ Publish a key/value pair onto Zenoh
 
 .. literalinclude:: examples/quickstart_put.py
    :language: python
-   :lines: 4-5
+   :lines: 4-6
 
 Subscribe to a set of keys with Zenoh
 -------------------------------------
 
 .. literalinclude:: examples/quickstart_sub.py
    :language: python
-   :lines: 8-9,13-15
+   :lines: 8-9,13-16
 
 Get keys/values from zenoh
 --------------------------
 
 .. literalinclude:: examples/quickstart_get.py
    :language: python
-   :lines: 4-7
+   :lines: 4-8
