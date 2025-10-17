@@ -799,7 +799,7 @@ class Sample:
         """Gets the encoding of this sample."""
 
     @property
-    def timestamp(self) -> Timestamp:
+    def timestamp(self) -> Timestamp | None:
         """Gets the timestamp of this Sample."""
 
     @property
