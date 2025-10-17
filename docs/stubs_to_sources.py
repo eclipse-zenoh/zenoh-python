@@ -13,7 +13,7 @@
 #
 """Transform Python stubs into Python code.
 
-Rename `*.pyi` to `*.py`. Also, because overloaded functions doesn't render nicely,
+Create `*.py` from `*.pyi`. Also, because overloaded functions doesn't render nicely,
 overloaded functions are rewritten in a non-overloaded form. Handler parameter types
 are merged, and return type is unspecialized, while handler delegated methods are
 kept without the `Never` overload. `serializer`/`deserializer` are kept untouched,
@@ -113,25 +113,20 @@ class Sourcify(ast.NodeTransformer):
 
 
 def backup_files():
-    """Backup existing .py files before conversion.
+    """Backup .py files that have corresponding .pyi stubs.
 
-    We only backup .py files because:
-    - .pyi files remain unchanged during conversion
-    - We create new .py files from .pyi stubs, potentially overwriting existing .py files
+    Only backs up .py files that will be overwritten during conversion.
     """
     BACKUP_DIR.mkdir(exist_ok=True)
 
     backed_up = []
-    for entry in PACKAGE.glob("*.py"):
-        backup_path = BACKUP_DIR / entry.name
-        shutil.copy2(entry, backup_path)
-        backed_up.append(entry.name)
-        print(f"Backed up: {entry.name}")
-
-    # Save a manifest of what was backed up for accurate recovery
-    manifest_path = BACKUP_DIR / ".manifest"
-    with open(manifest_path, "w") as f:
-        f.write("\n".join(sorted(backed_up)))
+    for pyi_file in PACKAGE.glob("*.pyi"):
+        py_file = PACKAGE / f"{pyi_file.stem}.py"
+        if py_file.exists():
+            backup_path = BACKUP_DIR / py_file.name
+            shutil.copy2(py_file, backup_path)
+            backed_up.append(py_file.name)
+            print(f"Backed up: {py_file.name}")
 
     return backed_up
 
@@ -164,11 +159,6 @@ def convert_stubs():
         converted.append(entry.stem)
         print(f"Converted: {entry.name} -> {target_path.name}")
 
-        # NOTE: We keep the .pyi files because:
-        # - Python runtime ignores .pyi files and only imports .py files
-        # - Sphinx autodoc uses runtime imports, so it will use our generated .py files
-        # - Keeping .pyi files preserves type information for IDE/type checkers
-
     print(f"\nConverted {len(converted)} stub files")
     print(f"To restore, run: python {Path(__file__).name} --recover")
 
@@ -177,46 +167,32 @@ def recover_files():
     """Restore original .py files from backup.
 
     This removes any .py files created from .pyi stubs and restores the originals.
-    .pyi files are left untouched since they were never modified.
     """
     if not BACKUP_DIR.exists():
         print(f"Error: Backup directory not found: {BACKUP_DIR}")
         print("Cannot recover - no backups available")
         return
 
-    manifest_path = BACKUP_DIR / ".manifest"
-    if not manifest_path.exists():
-        print(f"Error: Backup manifest not found: {manifest_path}")
-        print("Cannot recover - backup may be corrupted")
-        return
-
-    # Read the manifest to know what .py files were originally present
-    with open(manifest_path) as f:
-        backed_up_files = set(f.read().strip().split("\n"))
-
     print(f"Restoring files from: {BACKUP_DIR}")
 
-    # First, remove all current .py files (including ones created from stubs)
-    print("\nCleaning up .py files...")
-    for entry in PACKAGE.glob("*.py"):
-        entry.unlink()
-        print(f"Removed: {entry.name}")
+    # Remove .py files that were created from .pyi stubs
+    print("\nCleaning up generated .py files...")
+    for pyi_file in PACKAGE.glob("*.pyi"):
+        py_file = PACKAGE / f"{pyi_file.stem}.py"
+        if py_file.exists():
+            py_file.unlink()
+            print(f"Removed: {py_file.name}")
 
-    # Now restore only the original .py files that were backed up
+    # Restore the backed-up .py files
     print("\nRestoring original .py files...")
     restored = []
-    for filename in backed_up_files:
-        if not filename:  # Skip empty lines
-            continue
-        backup_file = BACKUP_DIR / filename
-        if backup_file.exists():
-            target_path = PACKAGE / filename
-            shutil.copy2(backup_file, target_path)
-            restored.append(filename)
-            print(f"Restored: {filename}")
+    for backup_file in BACKUP_DIR.glob("*.py"):
+        target_path = PACKAGE / backup_file.name
+        shutil.copy2(backup_file, target_path)
+        restored.append(backup_file.name)
+        print(f"Restored: {backup_file.name}")
 
     print(f"\nRestored {len(restored)} .py files")
-    print("Note: .pyi files were left unchanged")
 
     # Clean up backup directory
     shutil.rmtree(BACKUP_DIR)
