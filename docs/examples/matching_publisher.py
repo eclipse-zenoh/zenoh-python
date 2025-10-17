@@ -3,8 +3,20 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
-# Test support: declare subscriber first, then matching will be immediate
+# Test support: declare subscriber, then undeclare to trigger both states
+import time
+import threading
 subscriber = session.declare_subscriber("key/expression")
+
+def undeclare_subscriber():
+    time.sleep(0.2)  # Let matching=True be received first
+    subscriber.undeclare()  # Trigger matching=False
+
+threading.Thread(target=undeclare_subscriber, daemon=True).start()
+
+# Test verification counters
+matching_true_count = 0
+matching_false_count = 0
 
 # DOC_EXAMPLE_START
 # Declare a matching listener for a publisher
@@ -16,4 +28,15 @@ for status in listener:
     else:
         print(">> Publisher has no matching subscribers")
 # DOC_EXAMPLE_END
-    break  # Exit after first status for testing
+    # Test verification
+    if status.matching:
+        matching_true_count += 1
+    else:
+        matching_false_count += 1
+
+    # Exit after receiving both events
+    if matching_true_count > 0 and matching_false_count > 0:
+        break
+
+assert matching_true_count > 0, "Expected at least one matching=True status"
+assert matching_false_count > 0, "Expected at least one matching=False status"

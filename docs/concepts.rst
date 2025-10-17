@@ -244,13 +244,13 @@ Examples
 
 .. literalinclude:: examples/matching_publisher.py
    :language: python
-   :lines: 10-17
+   :lines: 22-29
 
 **Declare a matching listener for a querier**
 
 .. literalinclude:: examples/matching_querier.py
    :language: python
-   :lines: 10-17
+   :lines: 22-29
 
 Channels and callbacks
 ----------------------
