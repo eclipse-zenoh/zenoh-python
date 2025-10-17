@@ -117,7 +117,7 @@ Examples
 
 .. literalinclude:: examples/query_querier.py
    :language: python
-   :lines: 18-27 
+   :lines: 33-42 
 
 Key Expressions
 ---------------
