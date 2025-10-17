@@ -111,7 +111,7 @@ Examples
 
 .. literalinclude:: examples/query_session_get.py
    :language: python
-   :lines: 18-24
+   :lines: 33-39
 
 **Using a Querier**
 
