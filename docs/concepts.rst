@@ -105,7 +105,7 @@ Examples
 
 .. literalinclude:: examples/query_queryable.py
    :language: python
-   :lines: 19-29
+   :lines: 26-37
 
 **Requesting data using Session.get**
 
