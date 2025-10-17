@@ -12,6 +12,8 @@ import time
 def send_data():
     time.sleep(0.1)
     session.put("key/expression", "test data")
+
+
 threading.Thread(target=send_data, daemon=True).start()
 
 # DOC_EXAMPLE_START
@@ -19,5 +21,5 @@ threading.Thread(target=send_data, daemon=True).start()
 subscriber = session.declare_subscriber("key/expression")
 for sample in subscriber:
     print(f">> Received {sample.payload.to_string()}")
-# DOC_EXAMPLE_END
+    # DOC_EXAMPLE_END
     break  # Exit after first sample for testing

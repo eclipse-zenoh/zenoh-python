@@ -10,9 +10,11 @@ import time
 
 subscriber = session.declare_subscriber("key/expression")
 
+
 def undeclare_subscriber():
     time.sleep(0.2)  # Let matching=True be received first
     subscriber.undeclare()  # Trigger matching=False
+
 
 threading.Thread(target=undeclare_subscriber, daemon=True).start()
 
@@ -29,7 +31,7 @@ for status in listener:
         print(">> Publisher has at least one matching subscriber")
     else:
         print(">> Publisher has no matching subscribers")
-# DOC_EXAMPLE_END
+    # DOC_EXAMPLE_END
     # Test verification
     if status.matching:
         matching_true_count += 1

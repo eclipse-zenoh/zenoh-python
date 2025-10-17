@@ -14,15 +14,19 @@ import time
 
 def send_queries():
     time.sleep(0.2)  # Wait for queryable to be ready
+
     # Send all 3 queries with callback (non-blocking)
     def callback(reply):
         pass
+
     # Query 1: has data (reply)
     session.get("room/temperature/history?day=2023-03-15", callback)
     # Query 2: no data (reply_del)
     session.get("room/temperature/history?day=2023-03-17", callback)
     # Query 3: missing parameter (reply_err)
     session.get("room/temperature/history", callback)
+
+
 threading.Thread(target=send_queries, daemon=True).start()
 
 # DOC_EXAMPLE_START
@@ -38,7 +42,7 @@ for query in queryable:
             query.reply_del("room/temperature/history")
     else:
         query.reply_err("missing day parameter")
-# DOC_EXAMPLE_END
+    # DOC_EXAMPLE_END
     query_count += 1
     if query_count >= 3:  # Exit after handling all 3 queries
         break

@@ -14,6 +14,8 @@ def provide_token():
     token = session.liveliness().declare_token("node/A")
     time.sleep(0.2)  # Keep token alive briefly
     token.undeclare()  # Trigger DELETE
+
+
 threading.Thread(target=provide_token, daemon=True).start()
 
 # Test verification counters
@@ -28,7 +30,7 @@ for sample in subscriber:
         print(f"Alive token ('{sample.key_expr}')")
     elif sample.kind == zenoh.SampleKind.DELETE:
         print(f"Dropped token ('{sample.key_expr}')")
-# DOC_EXAMPLE_END
+    # DOC_EXAMPLE_END
     # Test verification
     if sample.kind == zenoh.SampleKind.PUT:
         put_count += 1

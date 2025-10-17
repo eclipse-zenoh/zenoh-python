@@ -10,9 +10,11 @@ import time
 
 queryable = session.declare_queryable("service/endpoint")
 
+
 def undeclare_queryable():
     time.sleep(0.2)  # Let matching=True be received first
     queryable.undeclare()  # Trigger matching=False
+
 
 threading.Thread(target=undeclare_queryable, daemon=True).start()
 
@@ -29,7 +31,7 @@ for status in listener:
         print(">> Querier has at least one matching queryable")
     else:
         print(">> Querier has no matching queryables")
-# DOC_EXAMPLE_END
+    # DOC_EXAMPLE_END
     # Test verification
     if status.matching:
         matching_true_count += 1

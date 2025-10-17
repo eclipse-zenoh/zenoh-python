@@ -16,12 +16,14 @@ def provide_queryable_ok():
         query.reply("room/temperature/history", "22.5°C")
         break
 
+
 def provide_queryable_err():
     time.sleep(0.05)
     queryable = session.declare_queryable("room/temperature/history")
     for query in queryable:
         query.reply_err("sensor malfunction")
         break
+
 
 threading.Thread(target=provide_queryable_ok, daemon=True).start()
 threading.Thread(target=provide_queryable_err, daemon=True).start()
@@ -39,7 +41,7 @@ for reply in replies:
         print(f">> Temperature is {reply.ok.payload.to_string()}")
     else:
         print(f">> Error: {reply.err.payload.to_string()}")
-# DOC_EXAMPLE_END
+    # DOC_EXAMPLE_END
     # Test verification
     if reply.ok:
         ok_count += 1

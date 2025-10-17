@@ -13,6 +13,8 @@ def provide_token():
     time.sleep(0.1)
     token = session.liveliness().declare_token("node/A")
     time.sleep(0.5)
+
+
 threading.Thread(target=provide_token, daemon=True).start()
 time.sleep(0.2)  # Wait for token to be declared
 
@@ -24,5 +26,5 @@ for reply in replies:
         print(f"Alive token ('{reply.ok.key_expr}')")
     else:
         print(f"Received (ERROR: '{reply.err.payload.to_string()}')")
-# DOC_EXAMPLE_END
+    # DOC_EXAMPLE_END
     break  # Exit after first reply for testing

@@ -6,6 +6,8 @@ import zenoh
 # DOC_EXAMPLE_START
 def listener(sample):
     print(f"{sample.key_expr} => {sample.payload.to_string()}")
+
+
 # DOC_EXAMPLE_END
 TIMEOUT = 1
 # DOC_EXAMPLE_START
