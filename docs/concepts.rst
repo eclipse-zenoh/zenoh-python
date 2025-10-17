@@ -150,13 +150,18 @@ The :class:`zenoh.KeyExpr` class provides validation and operations on key
 expressions. The key expressions constructor validates the syntax of the provided string
 and raises a :class:`zenoh.ZError` exception if the syntax is invalid.
 
-.. literalinclude:: examples/keyexpr_operations.py
+.. literalinclude:: examples/keyexpr_validation.py
    :language: python
-   :lines: 5-12
+   :lines: 9-15,19-24
+
 
 Key expressions support operations such as intersection and inclusion (see
 :meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
 help determine how different expressions relate to each other.
+
+.. literalinclude:: examples/keyexpr_operations.py
+   :language: python
+   :lines: 5-12
 
 Key expressions can also be declared with the session to optimize routing and
 network usage:
