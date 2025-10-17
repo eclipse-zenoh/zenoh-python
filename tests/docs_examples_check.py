@@ -158,12 +158,15 @@ def validate_doc_markers(py_file: Path, start_line: int, end_line: int) -> tuple
         elif 'DOC_EXAMPLE_END' in line:
             doc_end = i
 
-    # If no markers found, skip validation
-    if doc_start is None and doc_end is None:
-        return True, ""
-
     errors = []
 
+    # Check if markers are missing
+    if doc_start is None:
+        errors.append("Missing DOC_EXAMPLE_START marker")
+    if doc_end is None:
+        errors.append("Missing DOC_EXAMPLE_END marker")
+
+    # If markers exist, check if they're correctly placed
     if doc_start is not None and start_line <= doc_start:
         errors.append(
             f"Line range starts at {start_line} but should be after "
