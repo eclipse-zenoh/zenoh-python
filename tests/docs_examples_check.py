@@ -194,13 +194,14 @@ def validate_doc_markers(py_file: Path, line_ranges: list[tuple[int, int]] | Non
     return True, ""
 
 
-def test_docs_examples(rst_file: Path, example_filter: str | None = None):
+def test_docs_examples(rst_file: Path, example_filter: str | None = None, skip_lines_check: bool = False):
     """
     Test Python files referenced in an RST file's literalinclude directives.
 
     Args:
         rst_file: Path to RST file
         example_filter: Optional filename to test only one example (e.g., "quickstart_sub.py")
+        skip_lines_check: Skip DOC_EXAMPLE marker validation (useful for debugging)
     """
     if not rst_file.exists():
         raise FileNotFoundError(f"RST file not found: {rst_file}")
@@ -231,11 +232,12 @@ def test_docs_examples(rst_file: Path, example_filter: str | None = None):
             continue
 
         # Validate DOC_EXAMPLE markers
-        marker_valid, marker_error = validate_doc_markers(py_file, line_ranges, rst_file, rst_line_num)
-        if not marker_valid:
-            print(f"  ✗ {py_file.name}: {marker_error}")
-            errors.append(f"{py_file.name}: {marker_error}")
-            continue
+        if not skip_lines_check:
+            marker_valid, marker_error = validate_doc_markers(py_file, line_ranges, rst_file, rst_line_num)
+            if not marker_valid:
+                print(f"  ✗ {py_file.name}: {marker_error}")
+                errors.append(f"{py_file.name}: {marker_error}")
+                continue
 
         # Execute the file
         success, error_msg = check_example(py_file)
@@ -259,14 +261,24 @@ if __name__ == "__main__":
     # Require RST file argument
     try:
         if len(sys.argv) < 2:
-            print("Usage: python tests/docs_examples_check.py <rst_file> [example_name]", file=sys.stderr)
+            print("Usage: python tests/docs_examples_check.py <rst_file> [example_name] [--skip-lines-check]", file=sys.stderr)
             print("Example: python tests/docs_examples_check.py docs/concepts.rst", file=sys.stderr)
             print("Example: python tests/docs_examples_check.py docs/concepts.rst quickstart_sub.py", file=sys.stderr)
+            print("Example: python tests/docs_examples_check.py docs/concepts.rst quickstart_sub.py --skip-lines-check", file=sys.stderr)
             sys.exit(1)
 
         rst_file = Path(sys.argv[1])
-        example_filter = sys.argv[2] if len(sys.argv) > 2 else None
-        test_docs_examples(rst_file, example_filter)
+        example_filter = None
+        skip_lines_check = False
+
+        # Parse remaining arguments
+        for arg in sys.argv[2:]:
+            if arg == "--skip-lines-check":
+                skip_lines_check = True
+            else:
+                example_filter = arg
+
+        test_docs_examples(rst_file, example_filter, skip_lines_check)
         sys.exit(0)
     except (AssertionError, FileNotFoundError, RuntimeError, ValueError) as e:
         print(f"\nError: {e}", file=sys.stderr)

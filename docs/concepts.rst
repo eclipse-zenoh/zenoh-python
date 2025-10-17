@@ -111,13 +111,13 @@ Examples
 
 .. literalinclude:: examples/query_session_get.py
    :language: python
-   :lines: 6-12
+   :lines: 18-24
 
 **Using a Querier**
 
 .. literalinclude:: examples/query_querier.py
    :language: python
-   :lines: 6-15 
+   :lines: 18-27 
 
 Key Expressions
 ---------------
@@ -141,7 +141,7 @@ validates the syntax of the provided string:
 
 .. literalinclude:: examples/keyexpr_operations.py
    :language: python
-   :lines: 4-11
+   :lines: 5-12
 
 Key expressions support operations such as intersection and inclusion (see
 :meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
@@ -152,7 +152,7 @@ network usage:
 
 .. literalinclude:: examples/keyexpr_declare.py
    :language: python
-   :lines: 6-10
+   :lines: 7-11
 
 Data representation
 -------------------
@@ -177,7 +177,7 @@ Examples
 
 .. literalinclude:: examples/scouting.py
    :language: python
-   :lines: 5-8
+   :lines: 6-9
 
 Liveliness
 ----------
@@ -205,20 +205,20 @@ Examples
 
 .. literalinclude:: examples/liveliness_token.py
    :language: python
-   :lines: 6-7
+   :lines: 7-8
 
 **Get currently present liveliness tokens**
 
 .. literalinclude:: examples/liveliness_get.py
    :language: python
-   :lines: 6-12
+   :lines: 17-23
 
 
 **Check if a liveliness token is present and subscribe to changes**
 
 .. literalinclude:: examples/liveliness_subscriber.py
    :language: python
-   :lines: 6-12
+   :lines: 15-21
 
 
 Matching
@@ -244,13 +244,13 @@ Examples
 
 .. literalinclude:: examples/matching_publisher.py
    :language: python
-   :lines: 6-12
+   :lines: 10-17
 
 **Declare a matching listener for a querier**
 
 .. literalinclude:: examples/matching_querier.py
    :language: python
-   :lines: 6-12
+   :lines: 10-17
 
 Channels and callbacks
 ----------------------

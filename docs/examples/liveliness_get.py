@@ -3,6 +3,17 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+# Test support: declare liveliness token in background
+import time
+import threading
+def provide_token():
+    time.sleep(0.1)
+    token = session.liveliness().declare_token("node/A")
+    time.sleep(0.5)
+threading.Thread(target=provide_token, daemon=True).start()
+time.sleep(0.2)  # Wait for token to be declared
+
+# DOC_EXAMPLE_START
 # Get currently present liveliness tokens
 replies = session.liveliness().get("node/A", timeout=5)
 for reply in replies:
@@ -10,3 +21,5 @@ for reply in replies:
         print(f"Alive token ('{reply.ok.key_expr}')")
     else:
         print(f"Received (ERROR: '{reply.err.payload.to_string()}')")
+# DOC_EXAMPLE_END
+    break  # Exit after first reply for testing

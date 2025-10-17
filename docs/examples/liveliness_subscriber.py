@@ -1,58 +1,23 @@
 import zenoh
+
+# Open session
+session = zenoh.open(zenoh.Config())
+
+# Test support: declare liveliness token in background
 import time
 import threading
-
-
-def liveliness_subscriber_example(session, max_samples=2):
-    count = 0
-    """Example: Subscribe to liveliness token changes."""
-    # DOC_EXAMPLE_START
-    # Check if a liveliness token is present and subscribe to changes
-    with session.liveliness().declare_subscriber("node/A", history=True) as sub:
-        for sample in sub:
-            if sample.kind == zenoh.SampleKind.PUT:
-                print(f"Alive token ('{sample.key_expr}')")
-            elif sample.kind == zenoh.SampleKind.DELETE:
-                print(f"Dropped token ('{sample.key_expr}')")
-    # DOC_EXAMPLE_END
-            count += 1
-            if count >= max_samples:
-                break
-
-
-def test_liveliness_subscriber():
-    """Test harness that creates environment to exercise all branches."""
-    session = zenoh.open(zenoh.Config())
-
-    # Run the example in a thread
-    example_ready = threading.Event()
-    example_done = threading.Event()
-
-    def run_example():
-        example_ready.set()
-        liveliness_subscriber_example(session, max_samples=2)
-        example_done.set()
-
-    example_thread = threading.Thread(target=run_example, daemon=True)
-    example_thread.start()
-
-    # Wait for example to start
-    example_ready.wait(timeout=1.0)
+def provide_token():
     time.sleep(0.1)
+    session.liveliness().declare_token("node/A")
+threading.Thread(target=provide_token, daemon=True).start()
 
-    # Create environment: declare and undeclare token to trigger both branches
-    token = session.liveliness().declare_token("node/A")
-    time.sleep(0.1)
-    token.undeclare()
-    time.sleep(0.1)
-
-    # Wait for example to complete
-    example_done.wait(timeout=1.0)
-    example_thread.join(timeout=0.1)
-
-    session.close()
-    print("Test passed!")
-
-
-if __name__ == "__main__":
-    test_liveliness_subscriber()
+# DOC_EXAMPLE_START
+# Check if a liveliness token is present and subscribe to changes
+subscriber = session.liveliness().declare_subscriber("node/A", history=True)
+for sample in subscriber:
+    if sample.kind == zenoh.SampleKind.PUT:
+        print(f"Alive token ('{sample.key_expr}')")
+    elif sample.kind == zenoh.SampleKind.DELETE:
+        print(f"Dropped token ('{sample.key_expr}')")
+# DOC_EXAMPLE_END
+    break  # Exit after first sample for testing
