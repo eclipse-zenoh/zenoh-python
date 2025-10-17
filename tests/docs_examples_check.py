@@ -194,12 +194,13 @@ def validate_doc_markers(py_file: Path, line_ranges: list[tuple[int, int]] | Non
     return True, ""
 
 
-def test_docs_examples(rst_file: Path):
+def test_docs_examples(rst_file: Path, example_filter: str | None = None):
     """
     Test Python files referenced in an RST file's literalinclude directives.
 
     Args:
         rst_file: Path to RST file
+        example_filter: Optional filename to test only one example (e.g., "quickstart_sub.py")
     """
     if not rst_file.exists():
         raise FileNotFoundError(f"RST file not found: {rst_file}")
@@ -213,7 +214,13 @@ def test_docs_examples(rst_file: Path):
     if not example_files:
         raise RuntimeError(f"No Python files referenced in {rst_file}")
 
-    print(f"\nChecking {len(example_files)} examples from {rst_file.name}...")
+    # Filter examples if requested
+    if example_filter:
+        example_files = [(f, r, l) for f, r, l in example_files if f.name == example_filter]
+        if not example_files:
+            raise RuntimeError(f"No example matching '{example_filter}' found in {rst_file}")
+
+    print(f"\nChecking {len(example_files)} example(s) from {rst_file.name}...")
 
     errors = []
 
@@ -252,12 +259,14 @@ if __name__ == "__main__":
     # Require RST file argument
     try:
         if len(sys.argv) < 2:
-            print("Usage: python tests/docs_examples_check.py <rst_file>", file=sys.stderr)
+            print("Usage: python tests/docs_examples_check.py <rst_file> [example_name]", file=sys.stderr)
             print("Example: python tests/docs_examples_check.py docs/concepts.rst", file=sys.stderr)
+            print("Example: python tests/docs_examples_check.py docs/concepts.rst quickstart_sub.py", file=sys.stderr)
             sys.exit(1)
 
         rst_file = Path(sys.argv[1])
-        test_docs_examples(rst_file)
+        example_filter = sys.argv[2] if len(sys.argv) > 2 else None
+        test_docs_examples(rst_file, example_filter)
         sys.exit(0)
     except (AssertionError, FileNotFoundError, RuntimeError, ValueError) as e:
         print(f"\nError: {e}", file=sys.stderr)
