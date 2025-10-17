@@ -56,13 +56,13 @@ Examples
 
 .. literalinclude:: examples/pubsub_publisher.py
    :language: python
-   :lines: 6-8
+   :lines: 7-9
 
 **Declaring a subscriber and receiving data**
 
 .. literalinclude:: examples/pubsub_subscriber.py
    :language: python
-   :lines: 6-9
+   :lines: 15-18
 
 **Using session methods directly**
 
