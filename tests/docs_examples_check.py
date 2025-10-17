@@ -171,7 +171,11 @@ def validate_doc_markers(py_file: Path, line_ranges: list[tuple[int, int]] | Non
     # Check that we have the same number of ranges and marker pairs
     if len(line_ranges) != len(marker_pairs):
         corrected_str = ','.join(f"{ms + 1}-{me - 1}" for ms, me in marker_pairs) if marker_pairs else "N/A"
-        return False, f"{rst_file.resolve()}:{rst_line_num}: Change to :lines: {corrected_str}"
+        return False, (
+            f"{rst_file.resolve()}:{rst_line_num}: "
+            f"Range count mismatch ({len(line_ranges)} ranges vs {len(marker_pairs)} marker pairs). "
+            f"Change to :lines: {corrected_str}"
+        )
 
     # Match each range to its corresponding marker pair - they should be in the same order
     for idx, (start_line, end_line) in enumerate(line_ranges):
@@ -182,7 +186,10 @@ def validate_doc_markers(py_file: Path, line_ranges: list[tuple[int, int]] | Non
         if start_line != expected_start or end_line != expected_end:
             corrected = [f"{ms + 1}-{me - 1}" for ms, me in marker_pairs]
             corrected_str = ','.join(corrected)
-            return False, f"{rst_file.resolve()}:{rst_line_num}: Range-markers mismatch.Change to :lines: {corrected_str}"
+            return False, (
+                f"{rst_file.resolve()}:{rst_line_num}: "
+                f"Markers mismatch. Change to :lines: {corrected_str}"
+            )
 
     return True, ""
 
