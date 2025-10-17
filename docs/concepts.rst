@@ -26,6 +26,8 @@ which takes a :class:`zenoh.Config` as an argument.
 The configuration is stored in a json file. The file format is documented in the Zenoh Rust API
 `Config <https://docs.rs/zenoh/latest/zenoh/config/struct.Config.html>`_ reference.
 
+.. _publish-subscribe:
+
 Publish/Subscribe
 -----------------
 
@@ -35,7 +37,8 @@ Data is published via a :class:`zenoh.Publisher`, which is declared using
 directly from the session via :meth:`zenoh.Session.put` and :meth:`zenoh.Session.delete`.
 
 Published data is received as :class:`zenoh.Sample` instances by a :class:`zenoh.Subscriber`,
-which is declared using :meth:`zenoh.Session.declare_subscriber`.
+which is declared using :meth:`zenoh.Session.declare_subscriber`. The samples are delivered to the
+callback or channel (:ref:`channels-and-callbacks`).
 
 Publishing can express two different semantics:
 
@@ -79,25 +82,30 @@ Query/Reply
 In the query/reply paradigm, data is made available by a :class:`zenoh.Queryable` and
 requested by a :class:`zenoh.Querier` or directly via :meth:`zenoh.Session.get`.
 
-A :class:`zenoh.Queryable` is declared using :meth:`zenoh.Session.declare_queryable` and
-serves :class:`zenoh.Query` requests. The :class:`zenoh.Query` provides
-:meth:`zenoh.Query.reply` to send a data sample with :attr:`zenoh.SampleKind.PUT`, and
-:meth:`zenoh.Query.reply_del` to send a reply with :attr:`zenoh.SampleKind.DELETE`.
-See the Publish/Subscribe section for more details on the difference between the
-two sample kinds. Use :meth:`zenoh.Query.reply_err` to send a reply containing
-error information.
+A :class:`zenoh.Queryable` is declared using :meth:`zenoh.Session.declare_queryable`. 
+It serves :class:`zenoh.Query` requests via a callback or channel
+(:ref:`channels-and-callbacks`).
+
+The :class:`zenoh.Query` provides
+:meth:`zenoh.Query.reply` to reply with a data sample of the :attr:`zenoh.SampleKind.PUT` kind, and
+:meth:`zenoh.Query.reply_del` to send a :attr:`zenoh.SampleKind.DELETE` reply.
+See :ref:`publish-subscribe` for more details on the difference between the
+two sample kinds. There is also :meth:`zenoh.Query.reply_err` method 
+which can be used to send a reply containing error information.
 
 Data is requested from queryables via :meth:`zenoh.Session.get` or via a
 :class:`zenoh.Querier` object. Each request returns zero or more
 :class:`zenoh.Reply` structures — one per queryable that matches the request.
-Each reply contains either a :class:`zenoh.Sample` or a :class:`zenoh.ReplyError`.
+Each reply contains either a :class:`zenoh.Sample` from `reply` and `reply_del`
+or a :class:`zenoh.ReplyError` from `reply_err`.
 
 Query Parameters
 ^^^^^^^^^^^^^^^^
 
-The query/reply API allows specifying additional parameters for the request. These
+The query/reply API allows specifying additional :meth:`zenoh.Query.parameters` 
+parameters for the request. These
 parameters are passed to the get operation using the :class:`zenoh.Selector`
-syntax. The selector string has a syntax similar to a URL: it is a key expression
+syntax. The selector string has a syntax similar to an URL: it is a key expression
 followed by a question mark and a list of parameters in the format "name=value",
 separated by ``;``. For example: ``key/expression?param1=value1;param2=value2``.
 
@@ -139,8 +147,8 @@ For example:
 - ``robot/**`` matches ``robot/sensor/temp``, ``robot/actuator/motor``, ``robot/status``, etc.
 
 The :class:`zenoh.KeyExpr` class provides validation and operations on key
-expressions. Key expressions can be created using the constructor, which
-validates the syntax of the provided string:
+expressions. The key expressions constructor validates the syntax of the provided string
+and raises a :class:`zenoh.ZError` exception if the syntax is invalid.
 
 .. literalinclude:: examples/keyexpr_operations.py
    :language: python
@@ -254,6 +262,8 @@ Examples
 .. literalinclude:: examples/matching_querier.py
    :language: python
    :lines: 26-33
+
+.. _channels-and-callbacks:
 
 Channels and callbacks
 ----------------------
