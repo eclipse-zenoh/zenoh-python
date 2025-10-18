@@ -80,9 +80,11 @@ The `stubs_to_sources.py` script:
 - Keeps `.pyi` files unchanged (they're ignored at runtime)
 - Can restore everything with `--recover`
 
-## Testing Documentation Examples
+## Documentation Examples
 
-All code examples in the documentation should be validated:
+All code examples embedded in `.rst` files must be executable and validated. Each `.rst` file that contains `literalinclude` directives should be tested.
+
+### Testing Examples
 
 ```bash
 # Test all examples in a file
@@ -91,3 +93,9 @@ python3 ../tests/docs_examples_check.py concepts.rst
 # Test a specific example
 python3 ../tests/docs_examples_check.py concepts.rst data_representation.py
 ```
+
+### Example Requirements
+
+1. **Section Markers**: Code sections included in documentation must be marked with `# DOC_EXAMPLE_START` and `# DOC_EXAMPLE_END` comments. The test validates that the `:lines:` ranges in `.rst` files match these markers.
+
+2. **Runtime Validation**: Python's dynamic nature means syntax correctness is insufficient. Examples must execute successfully and include assertions in the surrounding code to verify correctness and exercise all code paths.
