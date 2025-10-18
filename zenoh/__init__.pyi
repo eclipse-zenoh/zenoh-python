@@ -137,10 +137,15 @@ ConsolidationMode.LATEST.__doc__ = """Holds back samples to only send the set of
 
 @final
 class Encoding:
-    """Default encoding values used by Zenoh.
-    An encoding has a similar role to Content-type in HTTP: it indicates, when present, how data should be interpreted by the application.
-    Please note the Zenoh protocol does not impose any encoding value nor it operates on it. It can be seen as some optional metadata that is carried over by Zenoh in such a way the application may perform different operations depending on the encoding value.
-    A set of associated constants are provided to cover the most common encodings for user convenience. This is parcticular useful in helping Zenoh to perform additional network optimizations.
+    """Encoding information for Zenoh payloads.
+
+    Represents how data should be interpreted by the application, similar to HTTP Content-type.
+    Encodings use MIME-like format: ``type/subtype[;schema]``.
+
+    Predefined class attributes are provided for common encodings (e.g., :attr:`ZENOH_BYTES`,
+    :attr:`APPLICATION_JSON`). Using these is more efficient than custom strings.
+
+    See also: :ref:`encoding`
     """
 
     def __new__(cls, encoding: str | None = None) -> Self: ...

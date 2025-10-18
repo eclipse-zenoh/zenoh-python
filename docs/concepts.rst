@@ -219,6 +219,39 @@ module via :func:`zenoh.ext.z_serialize` and :func:`zenoh.ext.z_deserialize`.
    :language: python
    :lines: 17-40
 
+.. _encoding:
+
+Encoding
+--------
+
+Zenoh uses :class:`zenoh.Encoding` to indicate how data should be interpreted by the application. An encoding has a similar role to Content-type in HTTP and is represented as a string in MIME-like format: ``type/subtype[;schema]``.
+
+To optimize network usage, Zenoh internally maps some predefined encoding strings to integer identifiers. These encodings are provided as class attributes of the :class:`zenoh.Encoding` class, such as :attr:`zenoh.Encoding.ZENOH_BYTES`, :attr:`zenoh.Encoding.APPLICATION_JSON`, etc. This internal mapping is not exposed to the application layer, but using these predefined encodings is more efficient than custom strings.
+
+The Zenoh protocol does not impose any encoding value nor operates on it. It can be seen as optional metadata that is carried over by Zenoh, allowing applications to perform different operations depending on the encoding value.
+
+**String operations:**
+
+Create an :class:`zenoh.Encoding` from a string and vice versa.
+
+.. code-block:: python
+
+    encoding = zenoh.Encoding("text/plain")
+    text = str(encoding)
+    assert text == "text/plain"
+
+**Schema:**
+
+Additionally, a schema can be associated with the encoding. The convention is to use the ``;`` separator if an encoding is created from a string. Alternatively, :meth:`zenoh.Encoding.with_schema` can be used to add a schema to one of the predefined class attributes.
+
+.. code-block:: python
+
+    encoding1 = zenoh.Encoding("text/plain;utf-8")
+    encoding2 = zenoh.Encoding.TEXT_PLAIN.with_schema("utf-8")
+    assert encoding1 == encoding2
+    assert str(encoding1) == "text/plain;utf-8"
+    assert str(encoding2) == "text/plain;utf-8"
+
 Scouting
 --------
 
