@@ -55,9 +55,6 @@ On the receiving side, the subscriber distinguishes between
 The delete operation allows a subscriber to work with a :class:`zenoh.Queryable`
 that caches the values associated with key expressions.
 
-Examples
-^^^^^^^^
-
 **Declaring a publisher and publishing data**
 
 .. literalinclude:: examples/pubsub_publisher.py
@@ -116,9 +113,6 @@ with a key expression to create a :class:`zenoh.Selector`.
 On the receiving side, queryables can access these parameters via
 :attr:`zenoh.Query.parameters`.
 
-Examples
-^^^^^^^^
-
 **Declaring a queryable**
 
 .. literalinclude:: examples/query_queryable.py
@@ -169,6 +163,8 @@ For example, ``robot/sensor/**/*`` is valid but it's canon form is ``robot/senso
 The :meth:`zenoh.KeyExpr.autocanonize` method can accept such key expressions and
 convert them to their canon form.
 
+**Validating key expressions**
+
 .. literalinclude:: examples/keyexpr_validation.py
    :language: python
    :lines: 12-23
@@ -177,12 +173,16 @@ Key expressions support operations such as intersection and inclusion (see
 :meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
 help determine how different expressions relate to each other.
 
+**Performing operations on key expressions**
+
 .. literalinclude:: examples/keyexpr_operations.py
    :language: python
    :lines: 5-24
 
 Key expressions can also be declared with the session to optimize routing and
 network usage:
+
+**Declaring key expressions**
 
 .. literalinclude:: examples/keyexpr_declare.py
    :language: python
@@ -201,8 +201,7 @@ Both :attr:`zenoh.Sample.payload` and :attr:`zenoh.Sample.attachment` are of typ
 deserialization of basic types and structures is provided in the :mod:`zenoh.ext`
 module via :func:`zenoh.ext.z_serialize` and :func:`zenoh.ext.z_deserialize`.
 
-Examples
-^^^^^^^^
+**Serializing and deserializing data**
 
 .. literalinclude:: examples/data_representation.py
    :language: python
@@ -217,8 +216,7 @@ it is not necessary to explicitly discover other nodes to publish, subscribe, or
 query data.
 See more details at `scouting documentation <https://zenoh.io/docs/getting-started/deployment/#scouting>`_.
 
-Examples
-^^^^^^^^
+**Scouting for Zenoh nodes**
 
 .. literalinclude:: examples/scouting.py
    :language: python
@@ -242,9 +240,6 @@ associated with a key expression. Other nodes can query this key expression via
 appears or disappears. The ``history`` parameter of
 :meth:`zenoh.Liveliness.declare_subscriber` allows immediate receipt of tokens
 that are already present on the network.
-
-Examples
-^^^^^^^^
 
 **Declare a liveliness token**
 
@@ -281,9 +276,6 @@ The matching listener behaves like a subscriber, but instead of producing data
 samples it yields :class:`zenoh.MatchingStatus` instances whenever the matching
 status changes — for example, when the first matching subscriber or queryable
 appears or when the last one disappears.
-
-Examples
-^^^^^^^^
 
 **Declare a matching listener for a publisher**
 
@@ -327,9 +319,6 @@ callable is invoked for each received :class:`zenoh.Sample` or
 mode, which means the subscriber or queryable remains active even if the
 returned object goes out of scope. This allows declaring a subscriber or
 queryable without managing the returned object's lifetime.
-
-Examples
-^^^^^^^^
 
 The following examples demonstrate both approaches using queryables and get operations:
 
