@@ -26,6 +26,61 @@ which takes a :class:`zenoh.Config` as an argument.
 The configuration is stored in a json file. The file format is documented in the Zenoh Rust API
 `Config <https://docs.rs/zenoh/latest/zenoh/config/struct.Config.html>`_ reference.
 
+.. literalinclude:: examples/keyexpr_declare.py
+   :language: python
+   :lines: 5-5
+
+Key Expressions
+---------------
+
+`Key expressions <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md>`_ are Zenoh's address space.
+
+In Zenoh, data is associated with keys in the form of a slash-separated path, e.g., ``robot/sensor/temp``. The
+requesting side uses key expressions to address the data of interest. Key expressions can contain
+wildcards:
+
+- ``*`` matches any chunk (a chunk is a sequence of characters between ``/`` separators)
+- ``**`` matches any number of chunks (including zero chunks)
+
+For example:
+- ``robot/sensor/*`` matches ``robot/sensor/temp``, ``robot/sensor/humidity``, etc.
+- ``robot/**`` matches ``robot/sensor/temp``, ``robot/actuator/motor``, ``robot/status``, etc.
+
+The :class:`zenoh.KeyExpr` class provides validation and operations on key
+expressions. The key expressions constructor validates the syntax of the provided string
+and raises a :class:`zenoh.ZError` exception if the syntax is invalid (e.g. contains spaces, other illegal characters, have empty chunks `foo//bar` or `/foo`).
+
+The `KeyExpr` constructor fires exception on key expressions which are valid, but not in
+`canon form <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md#canon-forms>`_.
+For example, ``robot/sensor/**/*`` is valid but it's canon form is ``robot/sensor/*/**``.
+The :meth:`zenoh.KeyExpr.autocanonize` method can accept such key expressions and
+convert them to their canon form.
+
+**Validating key expressions**
+
+.. literalinclude:: examples/keyexpr_validation.py
+   :language: python
+   :lines: 12-23
+
+Key expressions support operations such as intersection and inclusion (see
+:meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
+help determine how different expressions relate to each other.
+
+**Performing operations on key expressions**
+
+.. literalinclude:: examples/keyexpr_operations.py
+   :language: python
+   :lines: 5-24
+
+Key expressions can also be declared with the session to optimize routing and
+network usage:
+
+**Declaring key expressions**
+
+.. literalinclude:: examples/keyexpr_declare.py
+   :language: python
+   :lines: 9-13
+
 .. _publish-subscribe:
 
 Publish/Subscribe
@@ -96,23 +151,6 @@ Data is requested from queryables via :meth:`zenoh.Session.get` or via a
 Each reply contains either a :class:`zenoh.Sample` from `reply` and `reply_del`
 or a :class:`zenoh.ReplyError` from `reply_err`.
 
-Query Parameters
-^^^^^^^^^^^^^^^^
-
-The query/reply API allows specifying additional parameters for the request.
-A :class:`zenoh.Selector` is passed to the :meth:`zenoh.Session.get` operation
-and combines a key expression with optional parameters. The selector string has
-a syntax similar to a URL: it is a key expression followed by a question mark
-and a list of parameters in the format "name=value", separated by ``;``.
-For example: ``key/expression?param1=value1;param2=value2``.
-
-Alternatively, parameters can be constructed programmatically using the
-:class:`zenoh.Parameters` class, which accepts a dictionary, and then combined
-with a key expression to create a :class:`zenoh.Selector`.
-
-On the receiving side, queryables can access these parameters via
-:attr:`zenoh.Query.parameters`.
-
 **Declaring a queryable**
 
 .. literalinclude:: examples/query_queryable.py
@@ -125,68 +163,35 @@ On the receiving side, queryables can access these parameters via
    :language: python
    :lines: 37-43
 
-**Creating a Selector from Parameters**
-
-.. literalinclude:: examples/query_parameters.py
-   :language: python
-   :lines: 28-38
-
 **Using a Querier**
 
 .. literalinclude:: examples/query_querier.py
    :language: python
    :lines: 37-46 
 
-Key Expressions
----------------
+Query Parameters
+----------------
 
-`Key expressions <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md>`_ are Zenoh's address space.
+The query/reply API allows specifying additional parameters for the request.
+A :class:`zenoh.Selector` object is passed to the :meth:`zenoh.Session.get` operation.
+It combines a key expression with optional parameters and can be constructed from these
+elements or by parsing a selector string. The selector string has
+a syntax similar to a URL: it is a key expression followed by a question mark
+and a list of parameters in the format "name=value", separated by ``;``.
+For example: ``key/expression?param1=value1;param2=value2``.
 
-In Zenoh, data is associated with keys in the form of a slash-separated path, e.g., ``robot/sensor/temp``. The
-requesting side uses key expressions to address the data of interest. Key expressions can contain
-wildcards:
+Alternatively, parameters can be constructed programmatically using the
+:class:`zenoh.Parameters` class, which accepts a dictionary, and then combined
+with a key expression to create a :class:`zenoh.Selector`.
 
-- ``*`` matches any chunk (a chunk is a sequence of characters between ``/`` separators)
-- ``**`` matches any number of chunks (including zero chunks)
+On the receiving side, queryables can access these parameters via
+:attr:`zenoh.Query.parameters`.
 
-For example:
-- ``robot/sensor/*`` matches ``robot/sensor/temp``, ``robot/sensor/humidity``, etc.
-- ``robot/**`` matches ``robot/sensor/temp``, ``robot/actuator/motor``, ``robot/status``, etc.
+**Creating a Selector from Parameters**
 
-The :class:`zenoh.KeyExpr` class provides validation and operations on key
-expressions. The key expressions constructor validates the syntax of the provided string
-and raises a :class:`zenoh.ZError` exception if the syntax is invalid (e.g. contains spaces, other illegal characters, have empty chunks `foo//bar` or `/foo`).
-
-The `KeyExpr` constructor fires exception on key expressions which are valid, but not in
-`canon form <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md#canon-forms>`_.
-For example, ``robot/sensor/**/*`` is valid but it's canon form is ``robot/sensor/*/**``.
-The :meth:`zenoh.KeyExpr.autocanonize` method can accept such key expressions and
-convert them to their canon form.
-
-**Validating key expressions**
-
-.. literalinclude:: examples/keyexpr_validation.py
+.. literalinclude:: examples/query_parameters.py
    :language: python
-   :lines: 12-23
-
-Key expressions support operations such as intersection and inclusion (see
-:meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
-help determine how different expressions relate to each other.
-
-**Performing operations on key expressions**
-
-.. literalinclude:: examples/keyexpr_operations.py
-   :language: python
-   :lines: 5-24
-
-Key expressions can also be declared with the session to optimize routing and
-network usage:
-
-**Declaring key expressions**
-
-.. literalinclude:: examples/keyexpr_declare.py
-   :language: python
-   :lines: 7-11
+   :lines: 28-38
 
 Data representation
 -------------------

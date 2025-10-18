@@ -1,7 +1,9 @@
 import zenoh
 
 # Open session
+# DOC_EXAMPLE_START
 session = zenoh.open(zenoh.Config())
+# DOC_EXAMPLE_END
 
 # DOC_EXAMPLE_START
 # Declare a key expression for optimized routing
