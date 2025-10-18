@@ -28,11 +28,12 @@ import argparse
 import re
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 def extract_literalinclude_files(
     rst_file: Path,
-) -> list[tuple[Path, list[tuple[int, int]], int]]:
+) -> list[tuple[Path, Optional[list[tuple[int, int]]], int]]:
     """
     Extract Python file references from literalinclude directives in an RST file.
 
@@ -98,7 +99,7 @@ def extract_literalinclude_files(
 
 def validate_doc_markers(
     py_file: Path,
-    line_ranges: list[tuple[int, int]] | None,
+    line_ranges: Optional[list[tuple[int, int]]],
     rst_file: Path,
     rst_line_num: int,
 ) -> tuple[bool, str]:
