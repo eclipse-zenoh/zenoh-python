@@ -114,12 +114,29 @@ class CongestionControl(Enum):
 
 @final
 class ConsolidationMode(Enum):
-    """The kind of consolidation."""
+    """The kind of consolidation to apply to a query.
+
+    Consolidation determines how multiple samples for the same key are handled
+    during query operations, balancing between latency and bandwidth efficiency.
+
+    See also:
+        - Parameters in: :meth:`Session.get`, :meth:`Session.declare_querier`
+    """
 
     AUTO = auto()
+    """Apply automatic consolidation based on queryable's preferences."""
+
     NONE = auto()
+    """No consolidation applied: multiple samples may be received for the same key-timestamp."""
+
     MONOTONIC = auto()
+    """Monotonic consolidation immediately forwards samples, except if one with an equal or more recent timestamp has already been sent with the same key.
+
+    This optimizes latency while potentially reducing bandwidth. Note that this doesn't cause re-ordering, but drops the samples for which a more recent timestamp has already been observed with the same key.
+    """
+
     LATEST = auto()
+    """Holds back samples to only send the set of samples that had the highest timestamp for their key."""
 
     DEFAULT = AUTO
 
