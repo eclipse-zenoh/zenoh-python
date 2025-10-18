@@ -16,8 +16,10 @@ import time
 
 import zenoh
 
-queries_received = []
-replies_received = []
+global query_received
+query_received = False
+global reply_received
+reply_received = False
 
 session = zenoh.open(zenoh.Config())
 
@@ -30,7 +32,8 @@ def handle_queries():
     for query in queryable:
         query.reply("room/humidity", zenoh.ZBytes("Humidity: 65%"))
 # DOC_EXAMPLE_END
-        queries_received.append(query.key_expr)
+        global query_received
+        query_received = True
         break
 
 
@@ -42,20 +45,20 @@ time.sleep(0.1)
 def reply_handler(reply):
     if reply.ok:
         print(f"Received reply: {reply.ok.payload.to_string()}")
+# DOC_EXAMPLE_END
+        global reply_received
+        reply_received = True
 
+# DOC_EXAMPLE_START
 session.get("room/humidity", reply_handler)
 # DOC_EXAMPLE_END
-
-# Wait for callback to complete
-time.sleep(0.3)
-replies_received.append("verified")
 
 # Wait for processing
 time.sleep(0.5)
 
 # Verify
-assert len(queries_received) == 1
-assert len(replies_received) == 1
+assert query_received
+assert reply_received
 
 # Clean up
 session.close()

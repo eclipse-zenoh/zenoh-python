@@ -345,10 +345,10 @@ Queryable with channel:
 
 .. literalinclude:: examples/channel_queryable_callback_get.py
    :language: python
-   :lines: 29-31
+   :lines: 31-33
 
 Get with callback:
 
 .. literalinclude:: examples/channel_queryable_callback_get.py
    :language: python
-   :lines: 41-46
+   :lines: 44-47,53-53
