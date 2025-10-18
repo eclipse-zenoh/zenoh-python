@@ -335,9 +335,17 @@ The following examples demonstrate both approaches using queryables and get oper
 
 **Example 1: Queryable with callback, Get with channel**
 
+Queryable with callback:
+
 .. literalinclude:: examples/callback_queryable_channel_get.py
    :language: python
-   :lines: 22-39
+   :lines: 26-28,34-34
+
+Get with channel:
+
+.. literalinclude:: examples/callback_queryable_channel_get.py
+   :language: python
+   :lines: 41-44
 
 **Example 2: Queryable with channel, Get with callback**
 

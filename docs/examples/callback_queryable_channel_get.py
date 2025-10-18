@@ -16,32 +16,39 @@ import time
 
 import zenoh
 
-replies_received = []
-
-# DOC_EXAMPLE_START
-# Example 1: Queryable with callback, Get with channel
-
-# Queryable with callback - handler is called for each query
-def query_handler(query):
-    print(f"Received query: {query.key_expr}")
-    query.reply(query.key_expr, zenoh.ZBytes("Temperature: 23.5°C"))
-
+global query_received
+query_received = False
+reply_received = False
 
 session = zenoh.open(zenoh.Config())
-queryable = session.declare_queryable("room/temperature", query_handler)
 
-# Get with channel (default) - iterate over replies
+# DOC_EXAMPLE_START
+def query_handler(query):
+    print(f"Received query: {query.key_expr}")
+    query.reply("room/temperature", zenoh.ZBytes("Temperature: 23.5°C"))
+# DOC_EXAMPLE_END
+    global query_received
+    query_received = True
+
+# DOC_EXAMPLE_START
+queryable = session.declare_queryable("room/temperature", query_handler)
+# DOC_EXAMPLE_END
+
+# Wait for processing
+time.sleep(0.5)
+
+# DOC_EXAMPLE_START
 replies = session.get("room/temperature")
 for reply in replies:
     if reply.ok:
         print(f"Received reply: {reply.ok.payload.to_string()}")
-        replies_received.append(reply.ok.payload.to_string())  # For verification
-        break
 # DOC_EXAMPLE_END
+        reply_received = True
+        break
 
 # Verify
-assert len(replies_received) == 1
-assert "Temperature" in replies_received[0]
+assert query_received
+assert reply_received
 
 # Clean up
 queryable.undeclare()
