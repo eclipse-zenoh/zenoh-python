@@ -98,7 +98,7 @@ class CongestionControl(Enum):
 
     This parameter controls how messages are handled when a node's transmission queue is full.
     Set this when declaring publishers/queriers or in put, get, delete, and reply operations to specify congestion behavior.
-    It can also be retrieved from Sample and Publisher objects.
+    It can also be retrieved from :class:`Sample` and :class:`Publisher` objects.
 
     See also:
         - Parameters in: :meth:`Session.declare_publisher`, :meth:`Session.declare_querier`,
@@ -417,15 +417,22 @@ class Hello:
 
 @final
 class KeyExpr:
-    """A possibly-owned version of keyexpr that may carry optimisations for use with a Session that may have declared it.
-    Check keyexpr's documentation for detailed explainations of the Key Expression Language
+    """Key expressions are Zenoh's address space for data routing and selection.
+
+    A KeyExpr represents a set of keys in a hierarchical namespace using slash-separated paths
+    with wildcard support (``*`` and ``**``). It may carry optimizations for use with a Session that has declared it.
+
+    For detailed information about key expressions, see :ref:`key-expressions`.
     """
 
-    def __new__(cls, key_expr: str) -> Self: ...
+    def __new__(cls, key_expr: str) -> Self:
+        """Creates a new KeyExpr from a string.
+        Raises :exc:`ZError` if the key_expr is not a valid key expression.
+        """
     @classmethod
     def autocanonize(cls, key_expr: str) -> Self:
-        """Canonizes the passed value before returning it as a KeyExpr.
-        Will return Err if the passed value isn't a valid key expression despite canonization.
+        """`Canonizes <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md#canon-forms>`_ the passed value before returning it as a KeyExpr.
+        Raises :exc:`ZError` if the passed value isn't a valid key expression despite canonization.
         """
 
     def intersects(self, other: _IntoKeyExpr) -> bool:
@@ -436,8 +443,8 @@ class KeyExpr:
 
     @_unstable
     def relation_to(self, other: _IntoKeyExpr) -> SetIntersectionLevel:
-        """Returns the relation between self and other from self's point of view (SetIntersectionLevel::Includes signifies that self includes other).
-        Note that this is slower than keyexpr::intersects and keyexpr::includes, so you should favor these methods for most applications.
+        """Returns the relation between self and other from self's point of view (:attr:`SetIntersectionLevel.INCLUDES` signifies that self includes other).
+        Note that this is slower than :meth:`intersects` and :meth:`includes`, so you should favor these methods for most applications.
         """
 
     def join(self, other: str) -> KeyExpr:
@@ -445,8 +452,9 @@ class KeyExpr:
         This should be your prefered method when concatenating path segments."""
 
     def concat(self, other: str) -> KeyExpr:
-        """Performs string concatenation and returns the result as a KeyExpr if possible.
-        You should probably prefer KeyExpr::join as Zenoh may then take advantage of the hierachical separation it inserts.
+        """Performs string concatenation and returns the result as a KeyExpr.
+        Raises :exc:`ZError` if the result is not a valid key expression.
+        You should probably prefer :meth:`join` as Zenoh may then take advantage of the hierachical separation it inserts.
         """
 
     def __str__(self) -> str: ...
@@ -668,7 +676,7 @@ class Query:
         timestamp: Timestamp | None = None,
     ):
         """Sends a reply to this Query.
-        By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
+        By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through :meth:`accepts_replies`), replying on a disjoint key expression will result in an error when resolving the reply.
         """
 
     def reply_err(self, payload: _IntoZBytes, *, encoding: _IntoEncoding | None = None):
@@ -685,7 +693,7 @@ class Query:
         timestamp: Timestamp | None = None,
     ):
         """Sends a delete reply to this Query.
-        By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through Query::accepts_replies), replying on a disjoint key expression will result in an error when resolving the reply.
+        By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through :meth:`accepts_replies`), replying on a disjoint key expression will result in an error when resolving the reply.
         """
 
     def drop(self):
@@ -706,7 +714,7 @@ class Query:
 @final
 class Queryable(Generic[_H]):
     """A queryable that provides data through a Handler.
-    Queryables can be created from a zenoh Session with the declare_queryable function and the with function of the resulting builder.
+    Queryables can be created from a zenoh Session with the :meth:`Session.declare_queryable` function and the with function of the resulting builder.
     Queryables are automatically undeclared when dropped."""
 
     def __enter__(self) -> Self: ...
@@ -1052,7 +1060,7 @@ class Session:
         source_info: SourceInfo | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
-        Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
+        Unless explicitly requested via :meth:`GetBuilder.accept_replies`, replies are guaranteed to have key expressions that match the requested selector.
         """
 
     @overload
@@ -1074,7 +1082,7 @@ class Session:
         source_info: SourceInfo | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
-        Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
+        Unless explicitly requested via :meth:`GetBuilder.accept_replies`, replies are guaranteed to have key expressions that match the requested selector.
         """
 
     @overload
@@ -1096,7 +1104,7 @@ class Session:
         source_info: SourceInfo | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
-        Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
+        Unless explicitly requested via :meth:`GetBuilder.accept_replies`, replies are guaranteed to have key expressions that match the requested selector.
         """
 
     @overload
@@ -1266,7 +1274,7 @@ SourceSn = int
 @final
 class Subscriber(Generic[_H]):
     """A subscriber that provides data through a Handler.
-    Subscribers can be created from a zenoh Session with the declare_subscriber function and the with function of the resulting builder.
+    Subscribers can be created from a zenoh Session with the :meth:`Session.declare_subscriber` function and the with function of the resulting builder.
     Subscribers are automatically undeclared when dropped."""
 
     def __enter__(self) -> Self: ...
