@@ -260,6 +260,8 @@ Additionally, a schema can be associated with the encoding. The convention is to
    :start-after: [schema]
    :end-before: # [schema]
 
+.. _scouting:
+
 Scouting
 --------
 
@@ -274,7 +276,7 @@ discovered Zenoh node.
 
 Scouting is different from :ref:`liveliness <liveliness>` requesting and monitoring. Liveliness
 works on the zenoh-protocol logical level and allows getting information about resources in terms of
-:ref:`key expressions <key-expressions>`. On the other hand, scouting is about discovering Zenoh nodes visible
+:ref:`key expressions <key-expressions>`. On the other hand, :ref:`scouting <scouting>` is about discovering Zenoh nodes visible
 to the local node on the network. The result of scouting is a list of :class:`zenoh.Hello` messages,
 each containing information about a discovered Zenoh node:
 

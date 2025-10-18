@@ -384,6 +384,10 @@ EntityId = int
 @_unstable
 @final
 class EntityGlobalId:
+    """
+    The ID globally identifying an entity in a zenoh system.
+    """
+
     @property
     def zid(self) -> ZenohId:
         """Returns the `ZenohId`, i.e. the Zenoh session, this ID is associated to."""
@@ -394,13 +398,22 @@ class EntityGlobalId:
 
 @final
 class Hello:
+    """A zenoh Hello message.
+
+    A Hello message is returned in the ::ref::`scouting` process for each found Zenoh node on the network. It contains information about the node's
+    identity and its addresses in `locators <https://docs.rs/zenoh/latest/zenoh/config/struct.Locator.html>`_ format.
+    """
     @property
-    def whatami(self) -> WhatAmI: ...
+    def whatami(self) -> WhatAmI:
+        """Get the `WhatAmI` type of the Zenoh node."""
     @property
-    def zid(self) -> ZenohId: ...
+    def zid(self) -> ZenohId:
+        """Get the `ZenohId` of the Zenoh node."""
     @property
-    def locators(self) -> list[str]: ...
-    def __str__(self) -> str: ...
+    def locators(self) -> list[str]:
+        """Get the locators (network addresses) of the Zenoh node."""
+    def __str__(self) -> str:
+        """Returns a string representation of the Hello message."""
 
 @final
 class KeyExpr:
