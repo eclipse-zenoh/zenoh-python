@@ -206,7 +206,7 @@ Examples
 
 .. literalinclude:: examples/data_representation.py
    :language: python
-   :lines: 17-33
+   :lines: 17-40
 
 Scouting
 --------
