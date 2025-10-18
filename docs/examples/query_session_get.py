@@ -33,7 +33,7 @@ time.sleep(0.1)  # Wait for queryables to be ready
 ok_count = 0
 err_count = 0
 
-# DOC_EXAMPLE_START
+# [query_session_get]
 # Request temperature for a specific day
 replies = session.get("room/temperature/history?day=2023-03-15")
 for reply in replies:
@@ -41,7 +41,7 @@ for reply in replies:
         print(f">> Temperature is {reply.ok.payload.to_string()}")
     else:
         print(f">> Error: {reply.err.payload.to_string()}")
-    # DOC_EXAMPLE_END
+    # [query_session_get]
     # Test verification
     if reply.ok:
         ok_count += 1

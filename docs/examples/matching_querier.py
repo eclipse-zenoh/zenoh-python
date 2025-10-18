@@ -22,7 +22,7 @@ threading.Thread(target=undeclare_queryable, daemon=True).start()
 matching_true_count = 0
 matching_false_count = 0
 
-# DOC_EXAMPLE_START
+# [matching_querier]
 # Declare a matching listener for a querier
 querier = session.declare_querier("service/endpoint")
 listener = querier.declare_matching_listener()
@@ -31,7 +31,7 @@ for status in listener:
         print(">> Querier has at least one matching queryable")
     else:
         print(">> Querier has no matching queryables")
-    # DOC_EXAMPLE_END
+    # [matching_querier]
     # Test verification
     if status.matching:
         matching_true_count += 1

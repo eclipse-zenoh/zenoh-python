@@ -31,7 +31,8 @@ The file format is documented in the Zenoh Rust API
 
 .. literalinclude:: examples/keyexpr_declare.py
    :language: python
-   :lines: 5-5
+   :start-after: [session_creation]
+   :end-before: # [session_creation]
 
 .. _key-expressions:
 
@@ -65,7 +66,8 @@ convert them to their canon form.
 
 .. literalinclude:: examples/keyexpr_validation.py
    :language: python
-   :lines: 12-23
+   :start-after: [keyexpr_validation]
+   :end-before: # [keyexpr_validation]
 
 Key expressions support operations such as intersection and inclusion (see
 :meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
@@ -75,7 +77,8 @@ help determine how different expressions relate to each other.
 
 .. literalinclude:: examples/keyexpr_operations.py
    :language: python
-   :lines: 5-24
+   :start-after: [keyexpr_operations]
+   :end-before: # [keyexpr_operations]
 
 Key expressions can also be declared with the session to optimize routing and
 network usage:
@@ -84,7 +87,8 @@ network usage:
 
 .. literalinclude:: examples/keyexpr_declare.py
    :language: python
-   :lines: 9-13
+   :start-after: [keyexpr_declare]
+   :end-before: # [keyexpr_declare]
 
 .. _publish-subscribe:
 
@@ -119,19 +123,22 @@ that caches the values associated with key expressions.
 
 .. literalinclude:: examples/pubsub_publisher.py
    :language: python
-   :lines: 7-9
+   :start-after: [pubsub_publisher]
+   :end-before: # [pubsub_publisher]
 
 **Declaring a subscriber and receiving data**
 
 .. literalinclude:: examples/pubsub_subscriber.py
    :language: python
-   :lines: 20-23
+   :start-after: [pubsub_subscriber]
+   :end-before: # [pubsub_subscriber]
 
 **Using session methods directly**
 
 .. literalinclude:: examples/pubsub_session_direct.py
    :language: python
-   :lines: 7-11
+   :start-after: [pubsub_session_direct]
+   :end-before: # [pubsub_session_direct]
 
 .. _query-reply:
 
@@ -162,19 +169,22 @@ or a :class:`zenoh.ReplyError` from `reply_err`.
 
 .. literalinclude:: examples/query_queryable.py
    :language: python
-   :lines: 33-44
+   :start-after: [query_queryable]
+   :end-before: # [query_queryable]
 
 **Requesting data using Session.get**
 
 .. literalinclude:: examples/query_session_get.py
    :language: python
-   :lines: 37-43
+   :start-after: [query_session_get]
+   :end-before: # [query_session_get]
 
 **Using a Querier**
 
 .. literalinclude:: examples/query_querier.py
    :language: python
-   :lines: 37-46 
+   :start-after: [query_querier]
+   :end-before: # [query_querier] 
 
 Query Parameters
 ----------------
@@ -198,7 +208,8 @@ On the receiving side, queryables can access these parameters via
 
 .. literalinclude:: examples/query_parameters.py
    :language: python
-   :lines: 28-38
+   :start-after: [query_parameters]
+   :end-before: # [query_parameters]
 
 Data representation
 -------------------
@@ -217,7 +228,8 @@ module via :func:`zenoh.ext.z_serialize` and :func:`zenoh.ext.z_deserialize`.
 
 .. literalinclude:: examples/data_representation.py
    :language: python
-   :lines: 17-40
+   :start-after: [data_representation]
+   :end-before: # [data_representation]
 
 .. _encoding:
 
@@ -276,7 +288,8 @@ See more details at `scouting documentation <https://zenoh.io/docs/getting-start
 
 .. literalinclude:: examples/scouting.py
    :language: python
-   :lines: 6-9
+   :start-after: [scouting]
+   :end-before: # [scouting]
 
 .. _liveliness:
 
@@ -303,20 +316,23 @@ that are already present on the network.
 
 .. literalinclude:: examples/liveliness_token.py
    :language: python
-   :lines: 7-8
+   :start-after: [liveliness_token]
+   :end-before: # [liveliness_token]
 
 **Get currently present liveliness tokens**
 
 .. literalinclude:: examples/liveliness_get.py
    :language: python
-   :lines: 22-28
+   :start-after: [liveliness_get]
+   :end-before: # [liveliness_get]
 
 
 **Check if a liveliness token is present and subscribe to changes**
 
 .. literalinclude:: examples/liveliness_subscriber.py
    :language: python
-   :lines: 26-32
+   :start-after: [liveliness_subscriber]
+   :end-before: # [liveliness_subscriber]
 
 
 Matching
@@ -339,13 +355,15 @@ appears or when the last one disappears.
 
 .. literalinclude:: examples/matching_publisher.py
    :language: python
-   :lines: 26-33
+   :start-after: [matching_publisher]
+   :end-before: # [matching_publisher]
 
 **Declare a matching listener for a querier**
 
 .. literalinclude:: examples/matching_querier.py
    :language: python
-   :lines: 26-33
+   :start-after: [matching_querier]
+   :end-before: # [matching_querier]
 
 .. _channels-and-callbacks:
 
@@ -386,13 +404,20 @@ Queryable with callback:
 
 .. literalinclude:: examples/callback_queryable_channel_get.py
    :language: python
-   :lines: 26-28,34-34
+   :start-after: [queryable_callback]
+   :end-before: # [queryable_callback]
+
+.. literalinclude:: examples/callback_queryable_channel_get.py
+   :language: python
+   :start-after: [declare_queryable]
+   :end-before: # [declare_queryable]
 
 Get with channel:
 
 .. literalinclude:: examples/callback_queryable_channel_get.py
    :language: python
-   :lines: 41-44
+   :start-after: [get_channel]
+   :end-before: # [get_channel]
 
 **Example 2: Queryable with channel, Get with callback**
 
@@ -400,10 +425,17 @@ Queryable with channel:
 
 .. literalinclude:: examples/channel_queryable_callback_get.py
    :language: python
-   :lines: 31-33
+   :start-after: [queryable_channel]
+   :end-before: # [queryable_channel]
 
 Get with callback:
 
 .. literalinclude:: examples/channel_queryable_callback_get.py
    :language: python
-   :lines: 44-47,53-53
+   :start-after: [get_callback_handler]
+   :end-before: # [get_callback_handler]
+
+.. literalinclude:: examples/channel_queryable_callback_get.py
+   :language: python
+   :start-after: [get_callback]
+   :end-before: # [get_callback]

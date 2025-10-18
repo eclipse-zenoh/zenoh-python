@@ -1,7 +1,7 @@
 import zenoh
 from zenoh import KeyExpr
 
-# DOC_EXAMPLE_START
+# [keyexpr_operations]
 # Create a key expression with validation
 sensor_ke = KeyExpr("robot/sensor")
 assert str(sensor_ke) == "robot/sensor"
@@ -21,5 +21,4 @@ assert not temp_ke.includes(all_sensors)
 # Check intersection
 assert all_sensors.intersects(temp_ke)
 assert not sensor_ke.intersects(KeyExpr("robot/actuator"))
-
-# DOC_EXAMPLE_END
+# [keyexpr_operations]

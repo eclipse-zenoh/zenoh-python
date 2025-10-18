@@ -22,7 +22,7 @@ threading.Thread(target=provide_token, daemon=True).start()
 put_count = 0
 delete_count = 0
 
-# DOC_EXAMPLE_START
+# [liveliness_subscriber]
 # Check if a liveliness token is present and subscribe to changes
 subscriber = session.liveliness().declare_subscriber("node/A", history=True)
 for sample in subscriber:
@@ -30,7 +30,7 @@ for sample in subscriber:
         print(f"Alive token ('{sample.key_expr}')")
     elif sample.kind == zenoh.SampleKind.DELETE:
         print(f"Dropped token ('{sample.key_expr}')")
-    # DOC_EXAMPLE_END
+    # [liveliness_subscriber]
     # Test verification
     if sample.kind == zenoh.SampleKind.PUT:
         put_count += 1

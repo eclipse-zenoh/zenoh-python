@@ -29,7 +29,7 @@ def send_queries():
 
 threading.Thread(target=send_queries, daemon=True).start()
 
-# DOC_EXAMPLE_START
+# [query_queryable]
 # Queryable that replies with temperature data for a given day
 queryable = session.declare_queryable("room/temperature/history")
 query_count = 0
@@ -42,7 +42,7 @@ for query in queryable:
             query.reply_del("room/temperature/history")
     else:
         query.reply_err("missing day parameter")
-    # DOC_EXAMPLE_END
+    # [query_queryable]
     query_count += 1
     if query_count >= 3:  # Exit after handling all 3 queries
         break

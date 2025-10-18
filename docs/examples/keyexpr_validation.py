@@ -8,7 +8,7 @@ error_caught = False
 # Example: Key expression validation
 # The KeyExpr constructor validates the syntax and raises ZError on invalid input
 
-# DOC_EXAMPLE_START
+# [keyexpr_validation]
 try:
     # Valid key expressions
     valid_ke = KeyExpr("robot/sensor/temperature")
@@ -21,4 +21,4 @@ try:
     assert True, "This line should not be reached"
 except zenoh.ZError as e:
     print(f"Validation error: {e}")
-# DOC_EXAMPLE_END
+# [keyexpr_validation]

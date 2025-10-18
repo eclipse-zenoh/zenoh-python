@@ -24,7 +24,7 @@ time.sleep(0.1)  # Wait for queryable to be ready
 # Test verification
 reply_count = 0
 
-# DOC_EXAMPLE_START
+# [query_parameters]
 # Create parameters from a dictionary
 params = zenoh.Parameters({"day": "2023-03-15", "format": "celsius"})
 
@@ -36,7 +36,7 @@ replies = session.get(selector)
 for reply in replies:
     if reply.ok:
         print(f">> {reply.ok.payload.to_string()}")
-    # DOC_EXAMPLE_END
+    # [query_parameters]
     # Test verification
     if reply.ok:
         reply_count += 1

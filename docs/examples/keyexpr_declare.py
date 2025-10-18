@@ -1,14 +1,14 @@
 import zenoh
 
 # Open session
-# DOC_EXAMPLE_START
+# [session_creation]
 session = zenoh.open(zenoh.Config())
-# DOC_EXAMPLE_END
+# [session_creation]
 
-# DOC_EXAMPLE_START
+# [keyexpr_declare]
 # Declare a key expression for optimized routing
 declared_ke = session.declare_keyexpr("robot/sensor/temperature")
 
 # Use the declared key expression
 publisher = session.declare_publisher(declared_ke)
-# DOC_EXAMPLE_END
+# [keyexpr_declare]

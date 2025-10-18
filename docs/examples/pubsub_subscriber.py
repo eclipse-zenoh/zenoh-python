@@ -16,10 +16,10 @@ def send_data():
 
 threading.Thread(target=send_data, daemon=True).start()
 
-# DOC_EXAMPLE_START
+# [pubsub_subscriber]
 # Declare a subscriber and receive data
 subscriber = session.declare_subscriber("key/expression")
 for sample in subscriber:
     print(f">> Received {sample.payload.to_string()}")
-    # DOC_EXAMPLE_END
+    # [pubsub_subscriber]
     break  # Exit after first sample for testing

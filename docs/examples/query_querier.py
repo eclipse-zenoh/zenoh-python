@@ -33,7 +33,7 @@ time.sleep(0.1)  # Wait for queryables to be ready
 ok_count = 0
 err_count = 0
 
-# DOC_EXAMPLE_START
+# [query_querier]
 # Declare a querier for multiple queries
 querier = session.declare_querier("room/temperature/history")
 
@@ -44,7 +44,7 @@ for reply in replies:
         print(f">> Temperature is {reply.ok.payload.to_string()}")
     else:
         print(f">> Error: {reply.err.payload.to_string()}")
-    # DOC_EXAMPLE_END
+    # [query_querier]
     # Test verification
     if reply.ok:
         ok_count += 1

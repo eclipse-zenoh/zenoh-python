@@ -22,7 +22,7 @@ threading.Thread(target=undeclare_subscriber, daemon=True).start()
 matching_true_count = 0
 matching_false_count = 0
 
-# DOC_EXAMPLE_START
+# [matching_publisher]
 # Declare a matching listener for a publisher
 publisher = session.declare_publisher("key/expression")
 listener = publisher.declare_matching_listener()
@@ -31,7 +31,7 @@ for status in listener:
         print(">> Publisher has at least one matching subscriber")
     else:
         print(">> Publisher has no matching subscribers")
-    # DOC_EXAMPLE_END
+    # [matching_publisher]
     # Test verification
     if status.matching:
         matching_true_count += 1
