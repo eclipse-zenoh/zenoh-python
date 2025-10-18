@@ -88,11 +88,27 @@ class Config:
 
 @final
 class CongestionControl(Enum):
-    """The kind of congestion control."""
+    """Congestion control strategy.
+
+    This parameter controls how messages are handled when a node's transmission queue is full.
+    Set this when declaring publishers/queriers or in put, get, delete, and reply operations to specify congestion behavior.
+    It can also be retrieved from Sample and Publisher objects.
+
+    See also:
+        - Parameters in: :meth:`Session.declare_publisher`, :meth:`Session.declare_querier`,
+          :meth:`Session.put`, :meth:`Session.delete`, :meth:`Session.get`,
+          :meth:`Query.reply`, :meth:`Query.reply_del`
+        - Properties in: :attr:`Sample.congestion_control`, :attr:`Publisher.congestion_control`
+    """
 
     DROP = auto()
+    """When transmitting a message in a node with a full queue, the node may drop the message."""
+
     BLOCK = auto()
+    """When transmitting a message in a node with a full queue, the node will wait for queue to progress."""
+
     BLOCK_FIRST = _unstable(auto())
+    """When transmitting a message in a node with a full queue, the node will wait for queue to progress, but only for the first message sent with this strategy; other messages will be dropped."""
 
     DEFAULT = DROP
 
