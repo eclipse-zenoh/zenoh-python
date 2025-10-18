@@ -22,8 +22,6 @@ This script does not validate that all line ranges in a file are covered.
 Usage:
   python tests/docs_examples_check.py docs/concepts.rst  # Test examples from RST file
   python tests/docs_examples_check.py docs/*.rst         # Test all RST files
-  python tests/docs_examples_check.py -R pattern         # Include matching examples
-  python tests/docs_examples_check.py -E pattern         # Exclude matching examples
 """
 
 import argparse
@@ -164,18 +162,12 @@ def validate_doc_markers(
     return True, ""
 
 
-def test_docs_examples(
-    rst_file: Path,
-    include_pattern: str | None = None,
-    exclude_pattern: str | None = None,
-):
+def test_docs_examples(rst_file: Path):
     """
     Validate line ranges in RST file's literalinclude directives match DOC_EXAMPLE markers.
 
     Args:
         rst_file: Path to RST file
-        include_pattern: Optional regex pattern to include only matching examples
-        exclude_pattern: Optional regex pattern to exclude matching examples
     """
     if not rst_file.exists():
         raise FileNotFoundError(f"RST file not found: {rst_file}")
@@ -188,28 +180,6 @@ def test_docs_examples(
 
     if not example_files:
         raise RuntimeError(f"No Python files referenced in {rst_file}")
-
-    # Filter examples by include pattern
-    if include_pattern:
-        include_re = re.compile(include_pattern)
-        example_files = [
-            (f, r, l) for f, r, l in example_files if include_re.search(f.name)
-        ]
-        if not example_files:
-            raise RuntimeError(
-                f"No examples matching pattern '{include_pattern}' found in {rst_file}"
-            )
-
-    # Filter examples by exclude pattern
-    if exclude_pattern:
-        exclude_re = re.compile(exclude_pattern)
-        example_files = [
-            (f, r, l) for f, r, l in example_files if not exclude_re.search(f.name)
-        ]
-
-    if not example_files:
-        print(f"\nNo examples to check in {rst_file.name} (all filtered out)")
-        return
 
     print(f"\nChecking {len(example_files)} line range(s) from {rst_file.name}...")
 
@@ -253,27 +223,10 @@ if __name__ == "__main__":
 Examples:
   python tests/docs_examples_check.py docs/concepts.rst
   python tests/docs_examples_check.py docs/*.rst
-  python tests/docs_examples_check.py docs/*.rst -R quickstart
-  python tests/docs_examples_check.py docs/*.rst -E matching
-  python tests/docs_examples_check.py docs/*.rst -R pub -E shm
         """,
     )
     parser.add_argument(
         "rst_files", nargs="+", type=Path, help="RST files to validate"
-    )
-    parser.add_argument(
-        "-R",
-        "--tests-regex",
-        metavar="PATTERN",
-        dest="include_regex",
-        help="Include only examples matching regex pattern",
-    )
-    parser.add_argument(
-        "-E",
-        "--exclude-regex",
-        metavar="PATTERN",
-        dest="exclude_regex",
-        help="Exclude examples matching regex pattern",
     )
 
     args = parser.parse_args()
@@ -282,11 +235,7 @@ Examples:
     total_errors = 0
     for rst_file in args.rst_files:
         try:
-            test_docs_examples(
-                rst_file,
-                include_pattern=args.include_regex,
-                exclude_pattern=args.exclude_regex,
-            )
+            test_docs_examples(rst_file)
         except (AssertionError, FileNotFoundError, RuntimeError, ValueError) as e:
             print(f"\nError in {rst_file}: {e}", file=sys.stderr)
             total_errors += 1
