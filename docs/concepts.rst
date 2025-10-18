@@ -148,12 +148,17 @@ For example:
 
 The :class:`zenoh.KeyExpr` class provides validation and operations on key
 expressions. The key expressions constructor validates the syntax of the provided string
-and raises a :class:`zenoh.ZError` exception if the syntax is invalid.
+and raises a :class:`zenoh.ZError` exception if the syntax is invalid (e.g. contains spaces, other illegal characters, have empty chunks `foo//bar` or `/foo`).
+
+The `KeyExpr` constructor fires exception on key expressions which are valid, but not in
+`canon form <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md#canon-forms>`_.
+For example, ``robot/sensor/**/*`` is valid but it's canon form is ``robot/sensor/*/**``.
+The :meth:`zenoh.KeyExpr.autocanonize` method can accept such key expressions and
+convert them to their canon form.
 
 .. literalinclude:: examples/keyexpr_validation.py
    :language: python
-   :lines: 9-15,19-24
-
+   :lines: 12-23
 
 Key expressions support operations such as intersection and inclusion (see
 :meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
@@ -161,7 +166,7 @@ help determine how different expressions relate to each other.
 
 .. literalinclude:: examples/keyexpr_operations.py
    :language: python
-   :lines: 5-12
+   :lines: 5-24
 
 Key expressions can also be declared with the session to optimize routing and
 network usage:
