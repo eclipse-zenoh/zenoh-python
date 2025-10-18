@@ -178,11 +178,22 @@ network usage:
 Data representation
 -------------------
 
-Data is received as :class:`zenoh.Sample` objects, which contain the payload and
-associated metadata.
-The raw byte payload object is :class:`zenoh.ZBytes`. Serialization and
+Data is received as :class:`zenoh.Sample` objects, which contain the
+:attr:`zenoh.Sample.payload` and associated metadata like :attr:`zenoh.Sample.timestamp`,
+:attr:`zenoh.Sample.encoding`, and :attr:`zenoh.Sample.kind`. Additionally, optional
+user-defined metadata can be attached via :attr:`zenoh.Sample.attachment`.
+
+Both :attr:`zenoh.Sample.payload` and :attr:`zenoh.Sample.attachment` are of type
+:class:`zenoh.ZBytes`, which represents raw byte data. Serialization and
 deserialization of basic types and structures is provided in the :mod:`zenoh.ext`
 module via :func:`zenoh.ext.z_serialize` and :func:`zenoh.ext.z_deserialize`.
+
+Examples
+^^^^^^^^
+
+.. literalinclude:: examples/data_representation.py
+   :language: python
+   :lines: 17-33
 
 Scouting
 --------
