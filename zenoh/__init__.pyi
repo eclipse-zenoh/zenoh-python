@@ -52,6 +52,7 @@ class ZError(Exception):
 
     The error message can be accessed via str(e) or by printing the exception directly.
     """
+
     ...
 
 @final
@@ -73,16 +74,21 @@ class Config:
     @classmethod
     def from_env(cls) -> Self:
         """Load configuration from the file path specified in the ZENOH_CONFIG environment variable."""
+
     @classmethod
     def from_file(cls, path: str | Path) -> Self:
         """Load configuration from the file at path."""
+
     @classmethod
     def from_json5(cls, json: str) -> Self:
         """Load configuration from the JSON5 string json."""
+
     def get_json(self, key: str) -> Any:
         """Returns a JSON string containing the configuration at key."""
+
     def insert_json5(self, key: str, value: Any):
         """Inserts configuration value value at key."""
+
     def __str__(self) -> str:
         """Returns a string representation of the configuration."""
 
@@ -127,7 +133,9 @@ class ConsolidationMode(Enum):
     LATEST = auto()
     DEFAULT = AUTO
 
-ConsolidationMode.AUTO.__doc__ = """Apply automatic consolidation based on queryable's preferences."""
+ConsolidationMode.AUTO.__doc__ = (
+    """Apply automatic consolidation based on queryable's preferences."""
+)
 ConsolidationMode.NONE.__doc__ = """No consolidation applied: multiple samples may be received for the same key-timestamp."""
 ConsolidationMode.MONOTONIC.__doc__ = """Monotonic consolidation immediately forwards samples, except if one with an equal or more recent timestamp has already been sent with the same key.
 

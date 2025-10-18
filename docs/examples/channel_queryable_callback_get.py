@@ -25,13 +25,14 @@ session = zenoh.open(zenoh.Config())
 
 # Queryable with channel (default) - iterate over queries
 
+
 # Test setup: Run queryable iteration in thread
 def handle_queries():
-# [queryable_channel]
+    # [queryable_channel]
     queryable = session.declare_queryable("room/humidity")
     for query in queryable:
         query.reply("room/humidity", zenoh.ZBytes("Humidity: 65%"))
-# [queryable_channel]
+        # [queryable_channel]
         global query_received
         query_received = True
         break
@@ -40,14 +41,16 @@ def handle_queries():
 threading.Thread(target=handle_queries, daemon=True).start()
 time.sleep(0.1)
 
+
 # [get_callback_handler]
 # Get with callback - handler is called for each reply
 def reply_handler(reply):
     if reply.ok:
         print(f"Received reply: {reply.ok.payload.to_string()}")
-# [get_callback_handler]
+        # [get_callback_handler]
         global reply_received
         reply_received = True
+
 
 # [get_callback]
 session.get("room/humidity", reply_handler)

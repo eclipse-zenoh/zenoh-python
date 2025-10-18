@@ -22,13 +22,15 @@ reply_received = False
 
 session = zenoh.open(zenoh.Config())
 
+
 # [queryable_callback]
 def query_handler(query):
     print(f"Received query: {query.key_expr}")
     query.reply("room/temperature", zenoh.ZBytes("Temperature: 23.5°C"))
-# [queryable_callback]
+    # [queryable_callback]
     global query_received
     query_received = True
+
 
 # [declare_queryable]
 queryable = session.declare_queryable("room/temperature", query_handler)
@@ -42,7 +44,7 @@ replies = session.get("room/temperature")
 for reply in replies:
     if reply.ok:
         print(f"Received reply: {reply.ok.payload.to_string()}")
-# [get_channel]
+        # [get_channel]
         reply_received = True
         break
 
