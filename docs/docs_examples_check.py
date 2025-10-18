@@ -132,31 +132,30 @@ def validate_doc_markers(
             marker_pairs.append((start, i))
             start = None
 
-    # Check that we have the same number of ranges and marker pairs
-    if len(line_ranges) != len(marker_pairs):
-        corrected_str = (
-            ",".join(f"{ms + 1}-{me - 1}" for ms, me in marker_pairs)
-            if marker_pairs
-            else "N/A"
-        )
-        return False, (
-            f"{rst_file.resolve()}:{rst_line_num}: "
-            f"Range count mismatch ({len(line_ranges)} ranges vs {len(marker_pairs)} marker pairs). "
-            f"Change to :lines: {corrected_str}"
-        )
+    # Match each specified range to a marker pair
+    # Ranges can be a subset of all marker pairs (allows referencing individual sections)
+    for start_line, end_line in line_ranges:
+        # Find matching marker pair
+        matched = False
+        for marker_start, marker_end in marker_pairs:
+            expected_start = marker_start + 1
+            expected_end = marker_end - 1
 
-    # Match each range to its corresponding marker pair - they should be in the same order
-    for idx, (start_line, end_line) in enumerate(line_ranges):
-        marker_start, marker_end = marker_pairs[idx]
-        expected_start = marker_start + 1
-        expected_end = marker_end - 1
+            if start_line == expected_start and end_line == expected_end:
+                matched = True
+                break
 
-        if start_line != expected_start or end_line != expected_end:
-            corrected = [f"{ms + 1}-{me - 1}" for ms, me in marker_pairs]
-            corrected_str = ",".join(corrected)
+        if not matched:
+            # Provide helpful error message with all available marker pairs
+            corrected_str = (
+                ",".join(f"{ms + 1}-{me - 1}" for ms, me in marker_pairs)
+                if marker_pairs
+                else "N/A"
+            )
             return False, (
                 f"{rst_file.resolve()}:{rst_line_num}: "
-                f"Markers mismatch. Change to :lines: {corrected_str}"
+                f"Range {start_line}-{end_line} doesn't match any marker pair. "
+                f"Available ranges: {corrected_str}"
             )
 
     return True, ""

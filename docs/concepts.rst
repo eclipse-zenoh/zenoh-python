@@ -327,3 +327,26 @@ callable is invoked for each received :class:`zenoh.Sample` or
 mode, which means the subscriber or queryable remains active even if the
 returned object goes out of scope. This allows declaring a subscriber or
 queryable without managing the returned object's lifetime.
+
+Examples
+^^^^^^^^
+
+The following examples demonstrate both approaches using queryables and get operations:
+
+**Example 1: Queryable with callback, Get with channel**
+
+.. literalinclude:: examples/callback_queryable_channel_get.py
+   :language: python
+   :lines: 22-39
+
+**Example 2: Queryable with channel**
+
+.. literalinclude:: examples/channel_queryable_callback_get.py
+   :language: python
+   :lines: 25-36
+
+**Example 3: Get with callback**
+
+.. literalinclude:: examples/channel_queryable_callback_get.py
+   :language: python
+   :lines: 40-48
