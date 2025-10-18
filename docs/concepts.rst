@@ -102,12 +102,16 @@ or a :class:`zenoh.ReplyError` from `reply_err`.
 Query Parameters
 ^^^^^^^^^^^^^^^^
 
-The query/reply API allows specifying additional :meth:`zenoh.Query.parameters` 
+The query/reply API allows specifying additional :meth:`zenoh.Query.parameters`
 parameters for the request. These
 parameters are passed to the get operation using the :class:`zenoh.Selector`
 syntax. The selector string has a syntax similar to an URL: it is a key expression
 followed by a question mark and a list of parameters in the format "name=value",
 separated by ``;``. For example: ``key/expression?param1=value1;param2=value2``.
+
+Alternatively, parameters can be constructed programmatically using the
+:class:`zenoh.Parameters` class, which accepts a dictionary, and then combined
+with a key expression to create a :class:`zenoh.Selector`.
 
 Examples
 ^^^^^^^^
@@ -123,6 +127,12 @@ Examples
 .. literalinclude:: examples/query_session_get.py
    :language: python
    :lines: 37-43
+
+**Creating a Selector from Parameters**
+
+.. literalinclude:: examples/query_parameters.py
+   :language: python
+   :lines: 28-38
 
 **Using a Querier**
 
