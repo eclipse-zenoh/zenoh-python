@@ -234,23 +234,19 @@ The Zenoh protocol does not impose any encoding value nor operates on it. It can
 
 Create an :class:`zenoh.Encoding` from a string and vice versa.
 
-.. code-block:: python
-
-    encoding = zenoh.Encoding("text/plain")
-    text = str(encoding)
-    assert text == "text/plain"
+.. literalinclude:: examples/encoding.py
+   :language: python
+   :start-after: [string_operations]
+   :end-before: # [string_operations]
 
 **Schema:**
 
 Additionally, a schema can be associated with the encoding. The convention is to use the ``;`` separator if an encoding is created from a string. Alternatively, :meth:`zenoh.Encoding.with_schema` can be used to add a schema to one of the predefined class attributes.
 
-.. code-block:: python
-
-    encoding1 = zenoh.Encoding("text/plain;utf-8")
-    encoding2 = zenoh.Encoding.TEXT_PLAIN.with_schema("utf-8")
-    assert encoding1 == encoding2
-    assert str(encoding1) == "text/plain;utf-8"
-    assert str(encoding2) == "text/plain;utf-8"
+.. literalinclude:: examples/encoding.py
+   :language: python
+   :start-after: [schema]
+   :end-before: # [schema]
 
 Scouting
 --------
