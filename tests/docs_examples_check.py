@@ -18,8 +18,12 @@ errors including invalid API usage.
 
 Usage:
   python tests/docs_examples_check.py docs/concepts.rst  # Test examples from RST file
+  python tests/docs_examples_check.py docs/*.rst         # Test all RST files
+  python tests/docs_examples_check.py -R pattern         # Include matching examples
+  python tests/docs_examples_check.py -E pattern         # Exclude matching examples
 """
 
+import argparse
 import re
 import subprocess
 import sys
@@ -214,14 +218,18 @@ def validate_doc_markers(
 
 
 def test_docs_examples(
-    rst_file: Path, example_filter: str | None = None, skip_lines_check: bool = False
+    rst_file: Path,
+    include_pattern: str | None = None,
+    exclude_pattern: str | None = None,
+    skip_lines_check: bool = False,
 ):
     """
     Test Python files referenced in an RST file's literalinclude directives.
 
     Args:
         rst_file: Path to RST file
-        example_filter: Optional filename to test only one example (e.g., "quickstart_sub.py")
+        include_pattern: Optional regex pattern to include only matching examples
+        exclude_pattern: Optional regex pattern to exclude matching examples
         skip_lines_check: Skip DOC_EXAMPLE marker validation (useful for debugging)
     """
     if not rst_file.exists():
@@ -236,15 +244,27 @@ def test_docs_examples(
     if not example_files:
         raise RuntimeError(f"No Python files referenced in {rst_file}")
 
-    # Filter examples if requested
-    if example_filter:
+    # Filter examples by include pattern
+    if include_pattern:
+        include_re = re.compile(include_pattern)
         example_files = [
-            (f, r, l) for f, r, l in example_files if f.name == example_filter
+            (f, r, l) for f, r, l in example_files if include_re.search(f.name)
         ]
         if not example_files:
             raise RuntimeError(
-                f"No example matching '{example_filter}' found in {rst_file}"
+                f"No examples matching pattern '{include_pattern}' found in {rst_file}"
             )
+
+    # Filter examples by exclude pattern
+    if exclude_pattern:
+        exclude_re = re.compile(exclude_pattern)
+        example_files = [
+            (f, r, l) for f, r, l in example_files if not exclude_re.search(f.name)
+        ]
+
+    if not example_files:
+        print(f"\nNo examples to check in {rst_file.name} (all filtered out)")
+        return
 
     print(f"\nChecking {len(example_files)} example(s) from {rst_file.name}...")
 
@@ -285,40 +305,55 @@ def test_docs_examples(
 
 
 if __name__ == "__main__":
-    # Require RST file argument
-    try:
-        if len(sys.argv) < 2:
-            print(
-                "Usage: python tests/docs_examples_check.py <rst_file> [example_name] [--skip-lines-check]",
-                file=sys.stderr,
-            )
-            print(
-                "Example: python tests/docs_examples_check.py docs/concepts.rst",
-                file=sys.stderr,
-            )
-            print(
-                "Example: python tests/docs_examples_check.py docs/concepts.rst quickstart_sub.py",
-                file=sys.stderr,
-            )
-            print(
-                "Example: python tests/docs_examples_check.py docs/concepts.rst quickstart_sub.py --skip-lines-check",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Test documentation examples from RST files",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python tests/docs_examples_check.py docs/concepts.rst
+  python tests/docs_examples_check.py docs/*.rst
+  python tests/docs_examples_check.py docs/*.rst -R quickstart
+  python tests/docs_examples_check.py docs/*.rst -E matching
+  python tests/docs_examples_check.py docs/*.rst -R pub -E shm
+        """,
+    )
+    parser.add_argument(
+        "rst_files", nargs="+", type=Path, help="RST files to test"
+    )
+    parser.add_argument(
+        "-R",
+        "--include-regex",
+        metavar="PATTERN",
+        help="Include only examples matching regex pattern",
+    )
+    parser.add_argument(
+        "-E",
+        "--exclude-regex",
+        metavar="PATTERN",
+        help="Exclude examples matching regex pattern",
+    )
+    parser.add_argument(
+        "--skip-lines-check",
+        action="store_true",
+        help="Skip DOC_EXAMPLE marker validation",
+    )
 
-        rst_file = Path(sys.argv[1])
-        example_filter = None
-        skip_lines_check = False
+    args = parser.parse_args()
 
-        # Parse remaining arguments
-        for arg in sys.argv[2:]:
-            if arg == "--skip-lines-check":
-                skip_lines_check = True
-            else:
-                example_filter = arg
+    # Test all RST files
+    total_errors = 0
+    for rst_file in args.rst_files:
+        try:
+            test_docs_examples(
+                rst_file,
+                include_pattern=args.include_regex,
+                exclude_pattern=args.exclude_regex,
+                skip_lines_check=args.skip_lines_check,
+            )
+        except (AssertionError, FileNotFoundError, RuntimeError, ValueError) as e:
+            print(f"\nError in {rst_file}: {e}", file=sys.stderr)
+            total_errors += 1
 
-        test_docs_examples(rst_file, example_filter, skip_lines_check)
-        sys.exit(0)
-    except (AssertionError, FileNotFoundError, RuntimeError, ValueError) as e:
-        print(f"\nError: {e}", file=sys.stderr)
+    if total_errors > 0:
         sys.exit(1)
+    sys.exit(0)

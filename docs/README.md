@@ -87,11 +87,20 @@ All code examples embedded in `.rst` files must be executable and validated. Eac
 ### Testing Examples
 
 ```bash
-# Test all examples in a file
+# Test all .rst files
+python3 ../tests/docs_examples_check.py *.rst
+
+# Test a single file
 python3 ../tests/docs_examples_check.py concepts.rst
 
-# Test a specific example
-python3 ../tests/docs_examples_check.py concepts.rst data_representation.py
+# Include only examples matching a pattern
+python3 ../tests/docs_examples_check.py *.rst -R quickstart
+
+# Exclude examples matching a pattern
+python3 ../tests/docs_examples_check.py *.rst -E matching
+
+# Combine include and exclude filters
+python3 ../tests/docs_examples_check.py *.rst -R pub -E shm
 ```
 
 ### Example Requirements
