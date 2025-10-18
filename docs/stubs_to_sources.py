@@ -119,16 +119,12 @@ def backup_files():
     """
     BACKUP_DIR.mkdir(exist_ok=True)
 
-    backed_up = []
     for pyi_file in PACKAGE.glob("*.pyi"):
         py_file = PACKAGE / f"{pyi_file.stem}.py"
         if py_file.exists():
             backup_path = BACKUP_DIR / py_file.name
             shutil.copy2(py_file, backup_path)
-            backed_up.append(py_file.name)
             print(f"Backed up: {py_file.name}")
-
-    return backed_up
 
 
 def convert_stubs():
@@ -136,15 +132,10 @@ def convert_stubs():
     print(f"Converting stubs in: {PACKAGE}")
 
     # First, backup all files
-    backed_up = backup_files()
-    if not backed_up:
-        print("No files to backup")
-        return
-
-    print(f"\nBacked up {len(backed_up)} files to: {BACKUP_DIR}")
+    backup_files()
 
     # Now convert stubs
-    converted = []
+    print()
     for entry in PACKAGE.glob("*.pyi"):
         # read stub file
         with open(entry) as f:
@@ -156,11 +147,9 @@ def convert_stubs():
         target_path = PACKAGE / f"{entry.stem}.py"
         with open(target_path, "w") as f:
             f.write(ast.unparse(stub))
-        converted.append(entry.stem)
         print(f"Converted: {entry.name} -> {target_path.name}")
 
-    print(f"\nConverted {len(converted)} stub files")
-    print(f"To restore, run: python {Path(__file__).name} --recover")
+    print(f"\nTo restore, run: python {Path(__file__).name} --recover")
 
 
 def recover_files():
@@ -176,7 +165,7 @@ def recover_files():
     print(f"Restoring files from: {BACKUP_DIR}")
 
     # Remove .py files that were created from .pyi stubs
-    print("\nCleaning up generated .py files...")
+    print()
     for pyi_file in PACKAGE.glob("*.pyi"):
         py_file = PACKAGE / f"{pyi_file.stem}.py"
         if py_file.exists():
@@ -184,19 +173,15 @@ def recover_files():
             print(f"Removed: {py_file.name}")
 
     # Restore the backed-up .py files
-    print("\nRestoring original .py files...")
-    restored = []
+    print()
     for backup_file in BACKUP_DIR.glob("*.py"):
         target_path = PACKAGE / backup_file.name
         shutil.copy2(backup_file, target_path)
-        restored.append(backup_file.name)
         print(f"Restored: {backup_file.name}")
-
-    print(f"\nRestored {len(restored)} .py files")
 
     # Clean up backup directory
     shutil.rmtree(BACKUP_DIR)
-    print(f"Removed backup directory: {BACKUP_DIR}")
+    print(f"\nRemoved backup directory: {BACKUP_DIR}")
 
 
 def main():
