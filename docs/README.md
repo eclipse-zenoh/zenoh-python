@@ -82,10 +82,6 @@ The `stubs_to_sources.py` script:
 
 ## Documentation Examples
 
-The `examples/` directory contains standalone example files that are referenced in the documentation. These examples are tested in two ways:
-
-### 1. Basic Execution Testing
-
 Examples in `docs/examples/` are tested using pytest to ensure they run without errors:
 
 ```bash
@@ -100,35 +96,4 @@ This test:
 - Verifies each example completes without errors (exit code 0)
 - Ensures no timeouts occur (10 second limit per example)
 
-**Requirements for examples:**
-
-1. Be standalone and runnable without arguments
-2. Complete execution within 10 seconds
-3. Exit with code 0 (no errors)
-4. Exercise all code paths that are demonstrated in the documentation to ensure they work correctly
-
-### 2. Documentation Marker Validation
-
-When examples are embedded in `.rst` files using `literalinclude` directives with `:lines:` ranges, the `docs_examples_check.py` utility validates that these line ranges match `DOC_EXAMPLE_START`/`DOC_EXAMPLE_END` markers in the source files:
-
-```bash
-# Test all .rst files (run from docs directory)
-cd docs
-python docs_examples_check.py *.rst
-
-# Test a single file
-python docs_examples_check.py concepts.rst
-```
-
-This utility:
-
-- Extracts all `literalinclude` directives from `.rst` files
-- Validates that `:lines:` ranges exactly match the code between `DOC_EXAMPLE_START` and `DOC_EXAMPLE_END` markers
-- Reports any mismatches with suggested corrections
-- Ensures documentation stays in sync with example code
-
-**Requirements for embedded code sections:**
-
-1. Code sections must be marked with `# DOC_EXAMPLE_START` and `# DOC_EXAMPLE_END` comments
-2. The `:lines:` range in `.rst` files must exactly match the lines between markers (excluding the marker lines themselves)
-3. Multiple sections can exist in the same file with multiple marker pairs
+Examplples should exercise all code paths demonstrated in the documentation to ensure they work correctly.

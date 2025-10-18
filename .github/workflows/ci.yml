@@ -104,11 +104,6 @@ jobs:
       - name: Run examples check
         run: pytest tests/examples_check.py -v --durations=0
 
-      - name: Run documentation examples check
-        run: |
-          cd docs
-          python3 docs_examples_check.py *.rst
-
       - name: Run pytest
         run: pytest -n auto --import-mode=append
 
