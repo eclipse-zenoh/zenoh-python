@@ -102,15 +102,13 @@ class CongestionControl(Enum):
     """
 
     DROP = auto()
-    """When transmitting a message in a node with a full queue, the node may drop the message."""
-
     BLOCK = auto()
-    """When transmitting a message in a node with a full queue, the node will wait for queue to progress."""
-
     BLOCK_FIRST = _unstable(auto())
-    """When transmitting a message in a node with a full queue, the node will wait for queue to progress, but only for the first message sent with this strategy; other messages will be dropped."""
-
     DEFAULT = DROP
+
+CongestionControl.DROP.__doc__ = """When transmitting a message in a node with a full queue, the node may drop the message."""
+CongestionControl.BLOCK.__doc__ = """When transmitting a message in a node with a full queue, the node will wait for queue to progress."""
+CongestionControl.BLOCK_FIRST.__doc__ = """When transmitting a message in a node with a full queue, the node will wait for queue to progress, but only for the first message sent with this strategy; other messages will be dropped."""
 
 @final
 class ConsolidationMode(Enum):
@@ -124,21 +122,18 @@ class ConsolidationMode(Enum):
     """
 
     AUTO = auto()
-    """Apply automatic consolidation based on queryable's preferences."""
-
     NONE = auto()
-    """No consolidation applied: multiple samples may be received for the same key-timestamp."""
-
     MONOTONIC = auto()
-    """Monotonic consolidation immediately forwards samples, except if one with an equal or more recent timestamp has already been sent with the same key.
-
-    This optimizes latency while potentially reducing bandwidth. Note that this doesn't cause re-ordering, but drops the samples for which a more recent timestamp has already been observed with the same key.
-    """
-
     LATEST = auto()
-    """Holds back samples to only send the set of samples that had the highest timestamp for their key."""
-
     DEFAULT = AUTO
+
+ConsolidationMode.AUTO.__doc__ = """Apply automatic consolidation based on queryable's preferences."""
+ConsolidationMode.NONE.__doc__ = """No consolidation applied: multiple samples may be received for the same key-timestamp."""
+ConsolidationMode.MONOTONIC.__doc__ = """Monotonic consolidation immediately forwards samples, except if one with an equal or more recent timestamp has already been sent with the same key.
+
+This optimizes latency while potentially reducing bandwidth. Note that this doesn't cause re-ordering, but drops the samples for which a more recent timestamp has already been observed with the same key.
+"""
+ConsolidationMode.LATEST.__doc__ = """Holds back samples to only send the set of samples that had the highest timestamp for their key."""
 
 @final
 class Encoding:
