@@ -322,14 +322,16 @@ Examples:
     )
     parser.add_argument(
         "-R",
-        "--include-regex",
+        "--tests-regex",
         metavar="PATTERN",
+        dest="include_regex",
         help="Include only examples matching regex pattern",
     )
     parser.add_argument(
         "-E",
         "--exclude-regex",
         metavar="PATTERN",
+        dest="exclude_regex",
         help="Exclude examples matching regex pattern",
     )
     parser.add_argument(
