@@ -84,35 +84,6 @@ pygments_style = None
 autodoc_typehints = "description"
 autodoc_mock_imports = ["zenoh"]
 
-# Enable enum member documentation
-autodoc_default_options = {
-    'members': True,
-    'member-order': 'bysource',
-    'undoc-members': True,
-}
-
-# Use separated signature style for better enum rendering
-autodoc_class_signature = 'separated'
-
-# Enable documenting attributes with comments
-autodoc_preserve_defaults = True
-napoleon_use_ivar = True
-
-
-# -- Setup function for enum documentation -----------------------------------
-
-def setup(app):
-    """Sphinx setup hook to enable enum member documentation."""
-    # Import here to avoid issues during config phase
-    from enum_tools.autoenum import EnumDocumenter, EnumMemberDocumenter
-    from sphinx.ext.autodoc import AttributeDocumenter
-
-    # Make EnumMemberDocumenter have higher priority than AttributeDocumenter
-    # This ensures enum members are documented with their #: comments
-    app.add_autodocumenter(EnumDocumenter, override=True)
-    app.add_autodocumenter(EnumMemberDocumenter, override=True)
-
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
