@@ -127,6 +127,80 @@ def backup_files():
             print(f"Backed up: {py_file.name}")
 
 
+def convert_enum_docstrings(source_code: str) -> str:
+    """Convert enum member docstrings to actual __doc__ assignments after class definition.
+
+    This converts:
+        class MyEnum(Enum):
+            AUTO = auto()
+            'Docstring here'
+            OTHER = auto()
+            'Other docstring'
+
+    To:
+        class MyEnum(Enum):
+            AUTO = auto()
+            OTHER = auto()
+        MyEnum.AUTO.__doc__ = 'Docstring here'
+        MyEnum.OTHER.__doc__ = 'Other docstring'
+    """
+    import re
+
+    # Find all enum classes and their members with docstrings
+    # Pattern: class NAME(Enum): ... MEMBER = auto()\n    'docstring'
+    enum_class_pattern = r"^class (\w+)\(Enum\):"
+
+    lines = source_code.split('\n')
+    result_lines = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        result_lines.append(line)
+
+        # Check if this is an enum class definition
+        match = re.match(enum_class_pattern, line)
+        if match:
+            enum_name = match.group(1)
+            i += 1
+            member_docs = []
+
+            # Process the class body
+            while i < len(lines):
+                current_line = lines[i]
+
+                # Check if we're still inside the class (indented)
+                if current_line and not current_line[0].isspace():
+                    # End of class - add all member doc assignments
+                    for member_name, doc in member_docs:
+                        result_lines.append(f"{enum_name}.{member_name}.__doc__ = {doc}")
+                    break
+
+                # Check for member = auto() followed by docstring
+                member_match = re.match(r"^\s+(\w+)\s*=\s*auto\(\)\s*$", current_line)
+                if member_match and i + 1 < len(lines):
+                    member_name = member_match.group(1)
+                    next_line = lines[i + 1]
+
+                    # Check if next line is a string literal (docstring)
+                    doc_match = re.match(r"^\s+(['\"])(.+)\1\s*$", next_line)
+                    if doc_match:
+                        doc_quote = doc_match.group(1)
+                        doc_content = doc_match.group(2)
+                        # Store the member and its docstring
+                        member_docs.append((member_name, f"{doc_quote}{doc_content}{doc_quote}"))
+                        # Add the member line but skip the docstring line
+                        result_lines.append(current_line)
+                        i += 2
+                        continue
+
+                result_lines.append(current_line)
+                i += 1
+        else:
+            i += 1
+
+    return '\n'.join(result_lines)
+
+
 def convert_stubs():
     """Convert stub files to source files for documentation."""
     print(f"Converting stubs in: {PACKAGE}")
@@ -145,8 +219,13 @@ def convert_stubs():
 
         # write modified code into source file
         target_path = PACKAGE / f"{entry.stem}.py"
+        source_code = ast.unparse(stub)
+
+        # Convert enum member docstrings to #: comments
+        source_code = convert_enum_docstrings(source_code)
+
         with open(target_path, "w") as f:
-            f.write(ast.unparse(stub))
+            f.write(source_code)
         print(f"Converted: {entry.name} -> {target_path.name}")
 
     print(f"\nTo restore, run: python {Path(__file__).name} --recover")
