@@ -21,22 +21,16 @@ replies_received = []
 
 session = zenoh.open(zenoh.Config())
 
-# DOC_EXAMPLE_START
 # Queryable with channel (default) - iterate over queries
-queryable = session.declare_queryable("room/humidity")
-# DOC_EXAMPLE_END
-
-# In practice, you would iterate over queries like this:
-# for query in queryable:
-#     print(f"Received query: {query.key_expr}")
-#     query.reply(query.key_expr, zenoh.ZBytes("Humidity: 65%"))
 
 # Test setup: Run queryable iteration in thread
 def handle_queries():
+# DOC_EXAMPLE_START
+    queryable = session.declare_queryable("room/humidity")
     for query in queryable:
-        print(f"Received query: {query.key_expr}")
+        query.reply("room/humidity", zenoh.ZBytes("Humidity: 65%"))
+# DOC_EXAMPLE_END
         queries_received.append(query.key_expr)
-        query.reply(query.key_expr, zenoh.ZBytes("Humidity: 65%"))
         break
 
 
@@ -48,7 +42,6 @@ time.sleep(0.1)
 def reply_handler(reply):
     if reply.ok:
         print(f"Received reply: {reply.ok.payload.to_string()}")
-
 
 session.get("room/humidity", reply_handler)
 # DOC_EXAMPLE_END
@@ -65,5 +58,4 @@ assert len(queries_received) == 1
 assert len(replies_received) == 1
 
 # Clean up
-queryable.undeclare()
 session.close()
