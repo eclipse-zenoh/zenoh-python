@@ -16,8 +16,8 @@ try:
     canonized_ke = KeyExpr.autocanonize("robot/sensor/**/*/**/**")
     assert str(canonized_ke) == "robot/sensor/*/**"
 
-    # Invalid key expression (** should not precede *)
-    invalid_ke = KeyExpr("robot/sensor/**/*")
+    # Invalid key expression (empty segment)
+    invalid_ke = KeyExpr("robot/sensor//*")
     assert True, "This line should not be reached"
 except zenoh.ZError as e:
     print(f"Validation error: {e}")

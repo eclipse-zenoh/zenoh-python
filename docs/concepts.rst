@@ -18,17 +18,22 @@ Components and Concepts
 Session and Config
 ------------------
 
-Zenoh supports two paradigms of communication: publish/subscribe and query/reply. The entities
+Zenoh supports two paradigms of communication: :ref:`publish-subscribe` and :ref:`query-reply`. The entities
 that perform communication (for example, publishers, subscribers, queriers, and queryables) are
 declared through a :class:`zenoh.Session`. A session is created by the :func:`zenoh.open` function,
 which takes a :class:`zenoh.Config` as an argument.
 
-The configuration is stored in a json file. The file format is documented in the Zenoh Rust API
+The configuration is stored in a json file and can be read with :func:`zenoh.Config.from_file`. 
+The file format is documented in the Zenoh Rust API
 `Config <https://docs.rs/zenoh/latest/zenoh/config/struct.Config.html>`_ reference.
+
+**Creating a zenoh session**
 
 .. literalinclude:: examples/keyexpr_declare.py
    :language: python
    :lines: 5-5
+
+.. _key-expressions:
 
 Key Expressions
 ---------------
@@ -128,6 +133,8 @@ that caches the values associated with key expressions.
    :language: python
    :lines: 7-11
 
+.. _query-reply:
+
 Query/Reply
 -----------
 
@@ -138,8 +145,8 @@ A :class:`zenoh.Queryable` is declared using :meth:`zenoh.Session.declare_querya
 It serves :class:`zenoh.Query` requests via a callback or channel
 (:ref:`channels-and-callbacks`).
 
-The :class:`zenoh.Query` provides
-:meth:`zenoh.Query.reply` to reply with a data sample of the :attr:`zenoh.SampleKind.PUT` kind, and
+The :class:`zenoh.Query` provides :meth:`zenoh.Query.reply` method to reply with a
+data sample of the :attr:`zenoh.SampleKind.PUT` kind, and
 :meth:`zenoh.Query.reply_del` to send a :attr:`zenoh.SampleKind.DELETE` reply.
 See :ref:`publish-subscribe` for more details on the difference between the
 two sample kinds. There is also :meth:`zenoh.Query.reply_err` method 
@@ -219,6 +226,21 @@ Scouting is the process of discovering Zenoh nodes on the network. The scouting
 process depends on the transport layer and the Zenoh configuration. Note that
 it is not necessary to explicitly discover other nodes to publish, subscribe, or
 query data.
+
+Scouting is performed using the :func:`zenoh.scout` function, which returns a
+:class:`zenoh.Scout` object that yields :class:`zenoh.Hello` messages for each
+discovered Zenoh node.
+
+Scouting is different from :ref:`liveliness <liveliness>` requesting and monitoring. Liveliness
+works on the zenoh-protocol logical level and allows getting information about resources in terms of
+:ref:`key expressions <key-expressions>`. On the other hand, scouting is about discovering Zenoh nodes visible
+to the local node on the network. The result of scouting is a list of :class:`zenoh.Hello` messages,
+each containing information about a discovered Zenoh node:
+
+- unique node identifier (:attr:`zenoh.Hello.zid`)
+- node type (:attr:`zenoh.Hello.whatami`)
+- list of node's network addresses (:attr:`zenoh.Hello.locators`)
+
 See more details at `scouting documentation <https://zenoh.io/docs/getting-started/deployment/#scouting>`_.
 
 **Scouting for Zenoh nodes**
@@ -226,6 +248,8 @@ See more details at `scouting documentation <https://zenoh.io/docs/getting-start
 .. literalinclude:: examples/scouting.py
    :language: python
    :lines: 6-9
+
+.. _liveliness:
 
 Liveliness
 ----------
