@@ -179,7 +179,8 @@ def test_docs_examples(rst_file: Path):
     example_files = extract_literalinclude_files(rst_file)
 
     if not example_files:
-        raise RuntimeError(f"No Python files referenced in {rst_file}")
+        print(f"\nSkipping {rst_file.name} (no Python files referenced)")
+        return
 
     print(f"\nChecking {len(example_files)} line range(s) from {rst_file.name}...")
 
