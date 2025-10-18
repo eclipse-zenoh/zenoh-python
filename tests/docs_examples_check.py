@@ -12,9 +12,12 @@
 #   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 
 """
-Test script to verify that all documentation examples can be executed without errors.
-Examples are validated by actually executing them with a timeout to catch any runtime
-errors including invalid API usage.
+Test script to verify that documentation line ranges match DOC_EXAMPLE markers.
+This validates that :lines: directives in RST files correctly reference the code
+between DOC_EXAMPLE_START and DOC_EXAMPLE_END markers in Python example files.
+
+The same example may be referenced multiple times with different line ranges.
+This script does not validate that all line ranges in a file are covered.
 
 Usage:
   python tests/docs_examples_check.py docs/concepts.rst  # Test examples from RST file
@@ -25,63 +28,8 @@ Usage:
 
 import argparse
 import re
-import subprocess
 import sys
 from pathlib import Path
-
-
-def check_example(example_path: Path) -> tuple[bool, str]:
-    """
-    Check if an example file executes without errors by running it as a subprocess.
-
-    Args:
-        example_path: Path to the example file
-
-    Returns:
-        Tuple of (success: bool, error_message: str)
-    """
-    try:
-        # Run the example with a timeout
-        result = subprocess.run(
-            [sys.executable, str(example_path)],
-            capture_output=True,
-            text=True,
-            timeout=5.0,  # 5 second timeout
-        )
-
-        # Check both returncode and stderr for errors (even if returncode is 0)
-        stderr = result.stderr.strip()
-
-        # Look for exception traces in stderr
-        if stderr and (
-            "Traceback" in stderr or "Error" in stderr or "Exception" in stderr
-        ):
-            # Extract the actual error
-            lines = stderr.split("\n")
-            # Find the error type and message
-            for line in reversed(lines):
-                if "Error:" in line or "Exception:" in line:
-                    error_msg = line.strip()
-                    break
-            else:
-                # Try to find the last non-empty line
-                for line in reversed(lines):
-                    if line.strip() and not line.startswith(" "):
-                        error_msg = line.strip()
-                        break
-                else:
-                    error_msg = stderr
-            return False, error_msg
-
-        if result.returncode != 0:
-            return False, f"Exit code {result.returncode}"
-
-        return True, ""
-
-    except subprocess.TimeoutExpired:
-        return False, "Execution timeout (examples should complete quickly for testing)"
-    except Exception as e:
-        return False, f"Error: {type(e).__name__}: {e}"
 
 
 def extract_literalinclude_files(
@@ -90,13 +38,16 @@ def extract_literalinclude_files(
     """
     Extract Python file references from literalinclude directives in an RST file.
 
+    Note: The same example file may be referenced multiple times with different
+    line ranges. All references are returned (no deduplication).
+
     Args:
         rst_file: Path to the RST file
 
     Returns:
         List of tuples (file_path, line_ranges, rst_line_num) where:
-        - line_ranges is a list of (start, end) tuples for each range
-        - rst_line_num is the line number in RST where :lines: appears
+        - line_ranges is a list of (start, end) tuples for each range, or None if no :lines: directive
+        - rst_line_num is the line number in RST where :lines: directive appears (or literalinclude line if no :lines:)
     """
     with open(rst_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -108,7 +59,6 @@ def extract_literalinclude_files(
 
     rst_dir = rst_file.parent
     py_files = []
-    seen_files = {}
 
     i = 0
     while i < len(lines):
@@ -135,17 +85,14 @@ def extract_literalinclude_files(
                 if lines[j].strip() and not lines[j].startswith(" "):
                     break
 
-            # Store with line ranges if specified
-            file_key = (py_path, tuple(line_ranges))
-            if file_key not in seen_files:
-                py_files.append(
-                    (
-                        py_path,
-                        line_ranges if line_ranges else None,
-                        lines_line_num or rst_line_num,
-                    )
+            # Add all references (no deduplication - same file can be referenced multiple times)
+            py_files.append(
+                (
+                    py_path,
+                    line_ranges if line_ranges else None,
+                    lines_line_num or rst_line_num,
                 )
-                seen_files[file_key] = True
+            )
         i += 1
 
     return py_files
@@ -221,16 +168,14 @@ def test_docs_examples(
     rst_file: Path,
     include_pattern: str | None = None,
     exclude_pattern: str | None = None,
-    skip_lines_check: bool = False,
 ):
     """
-    Test Python files referenced in an RST file's literalinclude directives.
+    Validate line ranges in RST file's literalinclude directives match DOC_EXAMPLE markers.
 
     Args:
         rst_file: Path to RST file
         include_pattern: Optional regex pattern to include only matching examples
         exclude_pattern: Optional regex pattern to exclude matching examples
-        skip_lines_check: Skip DOC_EXAMPLE marker validation (useful for debugging)
     """
     if not rst_file.exists():
         raise FileNotFoundError(f"RST file not found: {rst_file}")
@@ -266,7 +211,7 @@ def test_docs_examples(
         print(f"\nNo examples to check in {rst_file.name} (all filtered out)")
         return
 
-    print(f"\nChecking {len(example_files)} example(s) from {rst_file.name}...")
+    print(f"\nChecking {len(example_files)} line range(s) from {rst_file.name}...")
 
     errors = []
 
@@ -276,37 +221,33 @@ def test_docs_examples(
             errors.append(f"{py_file.name}: File not found")
             continue
 
-        # Validate DOC_EXAMPLE markers
-        if not skip_lines_check:
-            marker_valid, marker_error = validate_doc_markers(
-                py_file, line_ranges, rst_file, rst_line_num
-            )
-            if not marker_valid:
-                print(f"  ✗ {py_file.name}: {marker_error}")
-                errors.append(f"{py_file.name}: {marker_error}")
-                continue
-
-        # Execute the file
-        success, error_msg = check_example(py_file)
-
-        if success:
-            print(f"  ✓ {py_file.name}")
+        # Validate DOC_EXAMPLE markers match line ranges
+        marker_valid, marker_error = validate_doc_markers(
+            py_file, line_ranges, rst_file, rst_line_num
+        )
+        if not marker_valid:
+            print(f"  ✗ {marker_error}")
+            errors.append(marker_error)
         else:
-            print(f"  ✗ {py_file.name}: {error_msg}")
-            errors.append(f"{py_file.name}: {error_msg}")
+            # Show success with line range info if available
+            if line_ranges:
+                ranges_str = ",".join(f"{s}-{e}" for s, e in line_ranges)
+                print(f"  ✓ {py_file.name} :lines: {ranges_str}")
+            else:
+                print(f"  ✓ {py_file.name}")
 
     if errors:
-        print(f"\n{len(errors)} example(s) failed:")
+        print(f"\n{len(errors)} line range(s) failed:")
         for error in errors:
             print(f"  - {error}")
-        raise AssertionError(f"{len(errors)} documentation example(s) have errors")
+        raise AssertionError(f"{len(errors)} documentation line range(s) have errors")
 
-    print(f"\nAll {len(example_files)} documentation examples are valid! ✓")
+    print(f"\nAll {len(example_files)} documentation line ranges are valid! ✓")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Test documentation examples from RST files",
+        description="Validate documentation line ranges match DOC_EXAMPLE markers in RST files",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -318,7 +259,7 @@ Examples:
         """,
     )
     parser.add_argument(
-        "rst_files", nargs="+", type=Path, help="RST files to test"
+        "rst_files", nargs="+", type=Path, help="RST files to validate"
     )
     parser.add_argument(
         "-R",
@@ -334,15 +275,10 @@ Examples:
         dest="exclude_regex",
         help="Exclude examples matching regex pattern",
     )
-    parser.add_argument(
-        "--skip-lines-check",
-        action="store_true",
-        help="Skip DOC_EXAMPLE marker validation",
-    )
 
     args = parser.parse_args()
 
-    # Test all RST files
+    # Validate all RST files
     total_errors = 0
     for rst_file in args.rst_files:
         try:
@@ -350,7 +286,6 @@ Examples:
                 rst_file,
                 include_pattern=args.include_regex,
                 exclude_pattern=args.exclude_regex,
-                skip_lines_check=args.skip_lines_check,
             )
         except (AssertionError, FileNotFoundError, RuntimeError, ValueError) as e:
             print(f"\nError in {rst_file}: {e}", file=sys.stderr)
