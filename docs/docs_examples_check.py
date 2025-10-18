@@ -12,16 +12,16 @@
 #   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 
 """
-Test script to verify that documentation line ranges match DOC_EXAMPLE markers.
+Utility script to verify that documentation line ranges match DOC_EXAMPLE markers.
 This validates that :lines: directives in RST files correctly reference the code
 between DOC_EXAMPLE_START and DOC_EXAMPLE_END markers in Python example files.
 
 The same example may be referenced multiple times with different line ranges.
 This script does not validate that all line ranges in a file are covered.
 
-Usage:
-  python tests/docs_examples_check.py docs/concepts.rst  # Test examples from RST file
-  python tests/docs_examples_check.py docs/*.rst         # Test all RST files
+Usage (run from docs directory):
+  python docs_examples_check.py concepts.rst  # Test examples from RST file
+  python docs_examples_check.py *.rst         # Test all RST files
 """
 
 import argparse
@@ -220,9 +220,9 @@ if __name__ == "__main__":
         description="Validate documentation line ranges match DOC_EXAMPLE markers in RST files",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  python tests/docs_examples_check.py docs/concepts.rst
-  python tests/docs_examples_check.py docs/*.rst
+Examples (run from docs directory):
+  python docs_examples_check.py concepts.rst
+  python docs_examples_check.py *.rst
         """,
     )
     parser.add_argument(

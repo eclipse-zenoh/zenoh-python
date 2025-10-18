@@ -82,29 +82,53 @@ The `stubs_to_sources.py` script:
 
 ## Documentation Examples
 
-All code examples embedded in `.rst` files must be executable and validated. Each `.rst` file that contains `literalinclude` directives should be tested.
+The `examples/` directory contains standalone example files that are referenced in the documentation. These examples are tested in two ways:
 
-### Testing Examples
+### 1. Basic Execution Testing
+
+Examples in `docs/examples/` are tested using pytest to ensure they run without errors:
 
 ```bash
-# Test all .rst files
-python3 ../tests/docs_examples_check.py *.rst
-
-# Test a single file
-python3 ../tests/docs_examples_check.py concepts.rst
-
-# Include only examples matching a pattern
-python3 ../tests/docs_examples_check.py *.rst -R quickstart
-
-# Exclude examples matching a pattern
-python3 ../tests/docs_examples_check.py *.rst -E matching
-
-# Combine include and exclude filters
-python3 ../tests/docs_examples_check.py *.rst -R pub -E shm
+# Test all docs examples (from project root)
+python3 -m pytest tests/examples_check.py::test_docs_examples -v
 ```
 
-### Example Requirements
+This test:
 
-1. **Section Markers**: Code sections included in documentation must be marked with `# DOC_EXAMPLE_START` and `# DOC_EXAMPLE_END` comments. The test validates that the `:lines:` ranges in `.rst` files match these markers.
+- Finds all `.py` files in `docs/examples/` using glob patterns
+- Runs each example individually as a standalone script
+- Verifies each example completes without errors (exit code 0)
+- Ensures no timeouts occur (10 second limit per example)
 
-2. **Runtime Validation**: Python's dynamic nature means syntax correctness is insufficient. Examples must execute successfully and include assertions in the surrounding code to verify correctness and exercise all code paths.
+**Requirements for examples:**
+
+1. Be standalone and runnable without arguments
+2. Complete execution within 10 seconds
+3. Exit with code 0 (no errors)
+4. Exercise all code paths that are demonstrated in the documentation to ensure they work correctly
+
+### 2. Documentation Marker Validation
+
+When examples are embedded in `.rst` files using `literalinclude` directives with `:lines:` ranges, the `docs_examples_check.py` utility validates that these line ranges match `DOC_EXAMPLE_START`/`DOC_EXAMPLE_END` markers in the source files:
+
+```bash
+# Test all .rst files (run from docs directory)
+cd docs
+python docs_examples_check.py *.rst
+
+# Test a single file
+python docs_examples_check.py concepts.rst
+```
+
+This utility:
+
+- Extracts all `literalinclude` directives from `.rst` files
+- Validates that `:lines:` ranges exactly match the code between `DOC_EXAMPLE_START` and `DOC_EXAMPLE_END` markers
+- Reports any mismatches with suggested corrections
+- Ensures documentation stays in sync with example code
+
+**Requirements for embedded code sections:**
+
+1. Code sections must be marked with `# DOC_EXAMPLE_START` and `# DOC_EXAMPLE_END` comments
+2. The `:lines:` range in `.rst` files must exactly match the lines between markers (excluding the marker lines themselves)
+3. Multiple sections can exist in the same file with multiple marker pairs
