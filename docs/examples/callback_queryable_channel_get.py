@@ -23,6 +23,7 @@ replies_received = []
 
 # Queryable with callback - handler is called for each query
 def query_handler(query):
+    print(f"Received query: {query.key_expr}")
     query.reply(query.key_expr, zenoh.ZBytes("Temperature: 23.5°C"))
 
 
@@ -33,14 +34,14 @@ queryable = session.declare_queryable("room/temperature", query_handler)
 replies = session.get("room/temperature")
 for reply in replies:
     if reply.ok:
-        result = reply.ok.payload.to_string()
-        replies_received.append(result)
-        assert "Temperature" in result
+        print(f"Received reply: {reply.ok.payload.to_string()}")
+        replies_received.append(reply.ok.payload.to_string())  # For verification
         break
 # DOC_EXAMPLE_END
 
 # Verify
 assert len(replies_received) == 1
+assert "Temperature" in replies_received[0]
 
 # Clean up
 queryable.undeclare()
