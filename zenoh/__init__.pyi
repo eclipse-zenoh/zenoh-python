@@ -35,22 +35,56 @@ def _unstable(item: _T) -> _T:
     """marker for unstable functionality"""
 
 @final
-class ZError(Exception): ...
+class ZError(Exception):
+    """Exception raised for Zenoh-related errors.
+
+    This exception is raised by various Zenoh operations when they encounter errors,
+    such as invalid :class:`KeyExpr` instances or connection failures.
+
+    To handle ZError, wrap Zenoh operations in try-except blocks:
+
+    .. code-block:: python
+
+        try:
+            ke = KeyExpr("invalid/key")
+        except ZError as e:
+            print(f"Error: {e}")  # Get error message
+
+    The error message can be accessed via str(e) or by printing the exception directly.
+    """
+    ...
 
 @final
 class Config:
-    """The main configuration structure for Zenoh."""
+    """The main configuration structure for Zenoh.
+
+    Zenoh configuration can be loaded from various sources:
+
+    - From a specific file path using :meth:`from_file`.
+    - From a file specified by the ZENOH_CONFIG environment variable using :meth:`from_env`.
+    - From a JSON5 string using :meth:`from_json5`.
+
+    Configuration values can be retrieved as JSON using :meth:`get_json` and modified using :meth:`insert_json5`.
+
+    For detailed format information, see: https://docs.rs/zenoh/latest/zenoh/config/struct.Config.html
+    """
 
     def __new__(cls) -> Self: ...
     @classmethod
-    def from_env(cls) -> Self: ...
+    def from_env(cls) -> Self:
+        """Load configuration from the file path specified in the ZENOH_CONFIG environment variable."""
     @classmethod
-    def from_file(cls, path: str | Path) -> Self: ...
+    def from_file(cls, path: str | Path) -> Self:
+        """Load configuration from the file at path."""
     @classmethod
-    def from_json5(cls, json: str) -> Self: ...
-    def get_json(self, key: str) -> Any: ...
-    def insert_json5(self, key: str, value: Any): ...
-    def __str__(self) -> str: ...
+    def from_json5(cls, json: str) -> Self:
+        """Load configuration from the JSON5 string json."""
+    def get_json(self, key: str) -> Any:
+        """Returns a JSON string containing the configuration at key."""
+    def insert_json5(self, key: str, value: Any):
+        """Inserts configuration value value at key."""
+    def __str__(self) -> str:
+        """Returns a string representation of the configuration."""
 
 @final
 class CongestionControl(Enum):
@@ -1272,7 +1306,7 @@ class ZBytes:
     flatbuffers, etc."""
 
     def __new__(
-        cls, bytes: bytearray | bytes | str | shm.ZShm | shm.ZShmMut = None
+        cls, bytes: bytearray | bytes | str | shm.ZShm | shm.ZShmMut | None = None
     ) -> Self: ...
     def to_bytes(self) -> bytes: ...
     def to_string(self) -> str: ...
