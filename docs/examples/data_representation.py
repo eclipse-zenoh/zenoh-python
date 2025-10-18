@@ -23,7 +23,7 @@ payload = zenoh.ZBytes("Hello, World!")
 text = payload.to_string()
 
 # Using zenoh.ext for serialization
-from zenoh.ext import z_serialize, z_deserialize
+from zenoh.ext import z_deserialize, z_serialize
 
 # Serialize a dictionary
 data = {"temperature": 25.5, "humidity": 60.0}

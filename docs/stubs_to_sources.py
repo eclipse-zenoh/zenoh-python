@@ -189,9 +189,7 @@ def main():
         description="Convert Python stub files to source files for documentation generation"
     )
     parser.add_argument(
-        "--recover",
-        action="store_true",
-        help="Restore original files from backup"
+        "--recover", action="store_true", help="Restore original files from backup"
     )
 
     args = parser.parse_args()

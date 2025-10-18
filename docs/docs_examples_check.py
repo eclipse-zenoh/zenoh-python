@@ -225,9 +225,7 @@ Examples (run from docs directory):
   python docs_examples_check.py *.rst
         """,
     )
-    parser.add_argument(
-        "rst_files", nargs="+", type=Path, help="RST files to validate"
-    )
+    parser.add_argument("rst_files", nargs="+", type=Path, help="RST files to validate")
 
     args = parser.parse_args()
 
