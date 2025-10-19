@@ -548,7 +548,7 @@ class LivelinessToken:
 class Parameters:
     """A collection of key-value parameters used in query operations.
 
-    Parameters allow attaching additional metadata to queries in the query/reply paradigm.
+    Parameters allow attaching additional metadata to queries.
     They can be constructed from dictionaries, strings, or built programmatically.
     When combined with a key expression, they form a :class:`Selector` for query operations.
 
@@ -587,7 +587,20 @@ _IntoParameters = Parameters | dict[str, str] | str
 
 @final
 class Priority(Enum):
-    """The Priority of zenoh messages."""
+    """The priority of Zenoh messages.
+
+    Priority determines the transmission priority of messages, with higher priority messages
+    being delivered before lower priority ones when network congestion occurs.
+
+    See also: https://docs.rs/zenoh/latest/zenoh/qos/enum.Priority.html
+
+    Used in:
+        - :meth:`Query.reply`
+        - :meth:`Query.reply_del`
+        - :meth:`Session.put`
+        - :meth:`Session.delete`
+        - :meth:`Session.get`
+    """
 
     REAL_TIME = auto()
     INTERACTIVE_HIGH = auto()
@@ -603,27 +616,41 @@ class Priority(Enum):
 
 @final
 class Publisher:
-    """A publisher that allows to send data through a stream.
-    Publishers are automatically undeclared when dropped."""
+    """A publisher that allows sending data through a stream.
+
+    Publishers are automatically undeclared when dropped.
+
+    A publisher is created using :meth:`zenoh.Session.declare_publisher` and is used to publish
+    data to subscribers matching the publisher's key expression.
+
+    For more information about publish/subscribe operations, see :ref:`publish-subscribe`.
+    """
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @_unstable
     @property
-    def id(self) -> EntityGlobalId: ...
+    def id(self) -> EntityGlobalId:
+        """The global ID of this publisher."""
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr:
+        """The key expression this publisher publishes to."""
     @property
-    def encoding(self) -> Encoding: ...
+    def encoding(self) -> Encoding:
+        """The encoding used when publishing data."""
     @property
-    def congestion_control(self) -> CongestionControl: ...
+    def congestion_control(self) -> CongestionControl:
+        """The congestion control strategy applied when routing data."""
     @property
-    def priority(self) -> Priority: ...
+    def priority(self) -> Priority:
+        """The priority of the published data."""
     @property
     @_unstable
-    def reliability(self) -> Reliability: ...
+    def reliability(self) -> Reliability:
+        """The reliability applied when routing data."""
     @property
-    def matching_status(self) -> bool: ...
+    def matching_status(self) -> bool:
+        """Whether there are subscribers matching this publisher's key expression."""
     def put(
         self,
         payload: _IntoZBytes,
@@ -633,7 +660,11 @@ class Publisher:
         timestamp: Timestamp | None = None,
         source_info: SourceInfo | None = None,
     ):
-        """Put data."""
+        """Publish data to subscribers matching this publisher's key expression.
+
+        Subscribers will receive the data as a :class:`zenoh.Sample` with
+        :attr:`zenoh.SampleKind.PUT` kind.
+        """
 
     def delete(
         self,
@@ -642,10 +673,14 @@ class Publisher:
         timestamp: Timestamp | None = None,
         source_info: SourceInfo | None = None,
     ):
-        """Delete data."""
+        """Declare that data associated with this publisher's key expression is deleted.
+
+        Subscribers will receive a :class:`zenoh.Sample` with :attr:`zenoh.SampleKind.DELETE` kind,
+        indicating that the data is no longer associated with the key expression.
+        """
 
     def undeclare(self):
-        """Undeclares the Publisher, informing the network that it needn't optimize publications for its key expression anymore."""
+        """Undeclare the publisher, informing the network that it needn't optimize publications for its key expression anymore."""
 
     @overload
     def declare_matching_listener(
