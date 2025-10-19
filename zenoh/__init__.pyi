@@ -621,7 +621,10 @@ class Publisher:
     Publishers are automatically undeclared when dropped.
 
     A publisher is created using :meth:`zenoh.Session.declare_publisher` and is used to publish
-    data to subscribers matching the publisher's key expression.
+    data to :class:`Subscriber` instances matching the publisher's key expression.
+
+    Publishers can declare :class:`MatchingListener` instances to monitor if subscribers
+    matching the publisher's key expression are present in the network.
 
     For more information about publish/subscribe operations, see :ref:`publish-subscribe`.
     """
@@ -631,7 +634,8 @@ class Publisher:
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """The global ID of this publisher."""
+        """The global ID of this publisher.
+        """
     @property
     def key_expr(self) -> KeyExpr:
         """The key expression this publisher publishes to."""
@@ -650,7 +654,8 @@ class Publisher:
         """The reliability applied when routing data."""
     @property
     def matching_status(self) -> bool:
-        """Whether there are subscribers matching this publisher's key expression."""
+        """Whether there are subscribers matching this publisher's key expression.
+        """
     def put(
         self,
         payload: _IntoZBytes,
@@ -660,7 +665,7 @@ class Publisher:
         timestamp: Timestamp | None = None,
         source_info: SourceInfo | None = None,
     ):
-        """Publish data to subscribers matching this publisher's key expression.
+        """Publish data to :class:`Subscriber` instances matching this publisher's key expression.
 
         Subscribers will receive the data as a :class:`zenoh.Sample` with
         :attr:`zenoh.SampleKind.PUT` kind.
@@ -675,7 +680,7 @@ class Publisher:
     ):
         """Declare that data associated with this publisher's key expression is deleted.
 
-        Subscribers will receive a :class:`zenoh.Sample` with :attr:`zenoh.SampleKind.DELETE` kind,
+        :class:`Subscriber` instances will receive a :class:`zenoh.Sample` with :attr:`zenoh.SampleKind.DELETE` kind,
         indicating that the data is no longer associated with the key expression.
         """
 
@@ -686,19 +691,19 @@ class Publisher:
     def declare_matching_listener(
         self, handler: _RustHandler[MatchingStatus] | None = None
     ) -> MatchingListener[Handler[MatchingStatus]]:
-        """Create a Matching listener. It will send notifications each time the matching status of this publisher changes."""
+        """Create a :class:`MatchingListener`. It will send notifications each time the matching status of this publisher changes."""
 
     @overload
     def declare_matching_listener(
         self, handler: _PythonHandler[MatchingStatus, _H]
     ) -> MatchingListener[_H]:
-        """Create a Matching listener. It will send notifications each time the matching status of this publisher changes."""
+        """Create a :class:`MatchingListener`. It will send notifications each time the matching status of this publisher changes."""
 
     @overload
     def declare_matching_listener(
         self, handler: _PythonCallback[MatchingStatus]
     ) -> MatchingListener[None]:
-        """Create a Matching listener. It will send notifications each time the matching status of this publisher changes."""
+        """Create a :class:`MatchingListener`. It will send notifications each time the matching status of this publisher changes."""
 
 @final
 class Query:
