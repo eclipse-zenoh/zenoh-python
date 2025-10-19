@@ -723,6 +723,13 @@ class Query:
        with key expression ``foo/bar`` and another one with ``foo/baz``, and it should reply
        respectively on ``foo/bar`` and ``foo/baz``.
 
+    .. note::
+        By default, queries only accept replies whose key expression intersects with the query's. 
+        I.e. it's not possible to send reply with key expression ``foo/bar`` to a query with 
+        key expression ``baz/*``.
+        The query may contain special unstable parameter ``_anyke`` which enables disjoint replies.
+        See the :class:`Selector` documentation for more information about this parameter.
+
     See :ref:`query-reply` for more information on the query/reply paradigm.
     """
 
@@ -764,8 +771,6 @@ class Query:
         timestamp: Timestamp | None = None,
     ):
         """Sends a :class:`Sample` of kind :attr:`SampleKind.PUT` as a reply to this query.
-
-        By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through :meth:`accepts_replies`), replying on a disjoint key expression will result in an error when resolving the reply.
 
         .. note::
            See the class documentation for important details about which key expression to use for replies.
@@ -1193,11 +1198,11 @@ class Selector:
 
     Zenoh intends to standardize the usage of a set of parameter names. To avoid conflicting with RPC parameters, the Zenoh team has settled on reserving the set of parameter names that start with non-alphanumeric characters.
 
-    The full specification for selectors is available `here <https://github.com/eclipse-zenoh/roadmap/tree/main/rfcs/ALL/Selectors>`_, it includes standardized parameters.
-
     :class:`Queryable` implementers are encouraged to prefer these standardized parameter names when implementing their associated features, and to prefix their own parameter names to avoid having conflicting parameter names with other queryables.
 
-    Here are the currently standardized parameters for Zenoh (check the specification page for the exhaustive list):
+    Here are the currently standardized parameters for Zenoh (check the
+    `specification page <https://github.com/eclipse-zenoh/roadmap/tree/main/rfcs/ALL/Selectors>`_,
+    for the exhaustive list):
 
     - ``[unstable]`` ``_time``: used to express interest in only values dated within a certain time range, values for this parameter must be readable by the Zenoh Time DSL for the value to be considered valid.
     - ``[unstable]`` ``_anyke``: used in queries to express interest in replies coming from any key expression. By default, only replies whose key expression match query's key expression are accepted. ``_anyke`` disables the query-reply key expression matching check.
@@ -1224,36 +1229,51 @@ _IntoSelector = Selector | _IntoKeyExpr
 
 @final
 class Session:
-    """A zenoh session."""
+    """The Session is the main component of Zenoh. It holds the zenoh runtime object, which maintains the state of the connection of the node to the Zenoh network.
+
+    The session allows declaring other zenoh entities like :class:`Publisher`, :class:`Subscriber`, :class:`Querier`, :class:`Queryable`, and obtaining :class:`Liveliness` instances, and keeps them functioning. Closing the session will undeclare all objects declared by it.
+
+    A Zenoh session is instantiated using :func:`open` with parameters specified in the :class:`Config` object.
+    """
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @property
-    def info(self) -> SessionInfo: ...
+    def info(self) -> SessionInfo:
+        """Get information about the session: the session id, the connected nodes."""
     @_unstable
     @property
-    def id(self) -> EntityGlobalId: ...
+    def id(self) -> EntityGlobalId:
+        """Returns the global identifier of the session object.
+        """
     def zid(self) -> ZenohId:
-        """Returns the identifier of the current session. zid() is a convenient shortcut."""
+        """Returns the identifier of the current session."""
 
     def close(self):
         """Close the zenoh Session.
-        Sessions are automatically closed when dropped, but you may want to use this function to handle errors or close the Session asynchronously.
+
+        Every :class:`Subscriber` and :class:`Queryable` declared will stop receiving data, and further
+        attempts to publish or query will result in an
+        error. Undeclaring an entity after session closing is a no-op. Session state can be
+        checked with :meth:`is_closed`.
+
+        Sessions are automatically closed when all their instances are dropped. But it can
+        be useful to close the session explicitly.
         """
 
     def is_closed(self) -> bool:
         """Check if the session has been closed."""
 
-    def undeclare(self, obj: KeyExpr): ...
+    def undeclare(self, obj: KeyExpr):
+        """Undeclare a zenoh entity declared by the session."""
     def new_timestamp(self) -> Timestamp:
-        """Get a new Timestamp from a Zenoh session.
+        """Get a new :class:`Timestamp` from a Zenoh session.
 
-        The returned timestamp has the current time, with the session's runtime ZenohId.
+        The returned timestamp has the current time, with the session's runtime :class:`ZenohId`.
         """
 
     def declare_keyexpr(self, key_expr: _IntoKeyExpr):
         """Informs Zenoh that you intend to use the provided key_expr multiple times and that it should optimize its transmission.
-        The returned KeyExpr's internal structure may differ from what you would have obtained through a simple key_expr.try_into(), to save time on detecting the optimizations that have been associated with it.
         """
 
     def put(
@@ -1270,7 +1290,10 @@ class Session:
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
     ):
-        """Put data on zenoh for a given key expression."""
+        """Publish data directly from the session.
+
+        This is a shortcut for declaring a :class:`Publisher` and calling put on it.
+        """
 
     def delete(
         self,
@@ -1284,7 +1307,10 @@ class Session:
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
     ):
-        """Delete data for a given key expression."""
+        """Publish a delete sample directly from the session.
+
+        This is a shortcut for declaring a :class:`Publisher` and calling delete on it.
+        """
 
     @overload
     def get(
@@ -1305,7 +1331,8 @@ class Session:
         source_info: SourceInfo | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
-        Unless explicitly requested via :meth:`GetBuilder.accept_replies`, replies are guaranteed to have key expressions that match the requested selector.
+
+        This is a shortcut for declaring a :class:`Querier` and calling get on it.
         """
 
     @overload
@@ -1327,7 +1354,8 @@ class Session:
         source_info: SourceInfo | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
-        Unless explicitly requested via :meth:`GetBuilder.accept_replies`, replies are guaranteed to have key expressions that match the requested selector.
+
+        This is a shortcut for declaring a :class:`Querier` and calling get on it.
         """
 
     @overload
@@ -1349,7 +1377,8 @@ class Session:
         source_info: SourceInfo | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
-        Unless explicitly requested via :meth:`GetBuilder.accept_replies`, replies are guaranteed to have key expressions that match the requested selector.
+
+        This is a shortcut for declaring a :class:`Querier` and calling get on it.
         """
 
     @overload
@@ -1360,7 +1389,7 @@ class Session:
         *,
         allowed_origin: Locality | None = None,
     ) -> Subscriber[Handler[Sample]]:
-        """Create a Subscriber for the given key expression."""
+        """Create a :class:`Subscriber` for the given key expression."""
 
     @overload
     def declare_subscriber(
@@ -1370,7 +1399,7 @@ class Session:
         *,
         allowed_origin: Locality | None = None,
     ) -> Subscriber[_H]:
-        """Create a Subscriber for the given key expression."""
+        """Create a :class:`Subscriber` for the given key expression."""
 
     @overload
     def declare_subscriber(
@@ -1380,7 +1409,7 @@ class Session:
         *,
         allowed_origin: Locality | None = None,
     ) -> Subscriber[None]:
-        """Create a Subscriber for the given key expression."""
+        """Create a :class:`Subscriber` for the given key expression."""
 
     @overload
     def declare_queryable(
@@ -1391,7 +1420,7 @@ class Session:
         complete: bool | None = None,
         allowed_origin: Locality | None = None,
     ) -> Queryable[Handler[Query]]:
-        """Create a Queryable for the given key expression."""
+        """Create a :class:`Queryable` for the given key expression."""
 
     @overload
     def declare_queryable(
@@ -1402,7 +1431,7 @@ class Session:
         complete: bool | None = None,
         allowed_origin: Locality | None = None,
     ) -> Queryable[_H]:
-        """Create a Queryable for the given key expression."""
+        """Create a :class:`Queryable` for the given key expression."""
 
     @overload
     def declare_queryable(
@@ -1413,7 +1442,7 @@ class Session:
         complete: bool | None = None,
         allowed_origin: Locality | None = None,
     ) -> Queryable[None]:
-        """Create a Queryable for the given key expression."""
+        """Create a :class:`Queryable` for the given key expression."""
 
     def declare_publisher(
         self,
@@ -1426,7 +1455,7 @@ class Session:
         reliability: Reliability | None = None,
         allowed_destination: Locality | None = None,
     ) -> Publisher:
-        """Create a Publisher for the given key expression."""
+        """Create a :class:`Publisher` for the given key expression."""
 
     def declare_querier(
         self,
@@ -1440,21 +1469,21 @@ class Session:
         express: bool | None = None,
         allowed_destination: Locality | None = None,
     ) -> Querier:
-        """Create a Querier for the given key expression."""
+        """Create a :class:`Querier` for the given key expression."""
 
     def liveliness(self) -> Liveliness:
-        """Obtain a Liveliness instance tied to this Zenoh session."""
+        """Obtain a :class:`Liveliness` instance tied to this Zenoh session."""
 
 @final
 class SessionInfo:
     def zid(self) -> ZenohId:
-        """Return the ZenohId of the current zenoh Session."""
+        """Return the :class:`ZenohId` of the current zenoh Session."""
 
     def routers_zid(self) -> list[ZenohId]:
-        """Return the ZenohId of the zenoh routers this process is currently connected to or the ZenohId of the current router if this code is run from a router (plugin)."""
+        """Return the :class:`ZenohId` of the zenoh routers this process is currently connected to."""
 
     def peers_zid(self) -> list[ZenohId]:
-        """Return the ZenohId of the zenoh peers this process is currently connected to."""
+        """Return the :class:`ZenohId` of the zenoh peers this process is currently connected to."""
 
 @_unstable
 @final
