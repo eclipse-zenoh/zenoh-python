@@ -1494,10 +1494,27 @@ class SessionInfo:
 @_unstable
 @final
 class SetIntersectionLevel(Enum):
+    """The possible relations between two sets of key expressions defined by glob patterns.
+
+    Each glob key expression defines a set of possible concrete key expressions that it matches.
+    This enum describes how two such sets relate to each other.
+
+    Returned by :meth:`KeyExpr.relation_to`.
+
+    Note that :attr:`EQUALS` implies :attr:`INCLUDES`, which itself implies :attr:`INTERSECTS`.
+
+    You can check for intersection with `level >= SetIntersectionLevel.INTERSECTS` and for inclusion with `level >= SetIntersectionLevel.INCLUDES`.
+    """
+
     DISJOINT = auto()
     INTERSECTS = auto()
     INCLUDES = auto()
     EQUALS = auto()
+
+SetIntersectionLevel.DISJOINT.__doc__ = "The sets have no key expressions in common. Example: ``foo/*`` and ``bar/*`` - no overlap."
+SetIntersectionLevel.INTERSECTS.__doc__ = "The sets have some key expressions in common, but neither fully contains the other. Example: ``foo/*`` and ``*/bar`` - ``foo/bar`` matches both."
+SetIntersectionLevel.INCLUDES.__doc__ = "The first set fully contains the second set. Example: ``foo/**`` includes ``foo/*`` (where ``**`` matches any number of sections)."
+SetIntersectionLevel.EQUALS.__doc__ = "The sets are identical. Example: ``foo/*`` and ``foo/*``."
 
 @final
 class MatchingStatus:
