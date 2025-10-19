@@ -989,8 +989,16 @@ QueryTarget.ALL_COMPLETE.__doc__ = """Deliver the query to all queryables matchi
 @final
 @_unstable
 class Reliability(Enum):
+    """Reliability guarantees for message delivery.
+
+    Used when declaring publishers with :meth:`Session.declare_publisher` and
+    accessible via the :attr:`Publisher.reliability` property.
+    """
     BEST_EFFORT = auto()
     RELIABLE = auto()
+
+Reliability.BEST_EFFORT.__doc__ = """Messages may be lost."""
+Reliability.RELIABLE.__doc__ = """Messages are guaranteed to be delivered."""
 
 @final
 class Locality(Enum):
