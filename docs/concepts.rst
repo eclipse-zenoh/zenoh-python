@@ -15,6 +15,8 @@
 Components and Concepts
 =======================
 
+.. _session-and-config:
+
 Session and Config
 ------------------
 

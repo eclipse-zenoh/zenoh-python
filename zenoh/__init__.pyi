@@ -1880,7 +1880,26 @@ def init_log_from_env_or(level: str):
     If `RUST_LOG` is not set, then logging is set to the provided level."""
 
 def open(config: Config) -> Session:
-    """Open a zenoh Session."""
+    """Open a zenoh :class:`zenoh.Session`.
+
+    For more information about sessions and configuration, see :ref:`session-and-config`.
+    """
+
+# Common docstring for all scout function overloads
+_SCOUT_DOC = """Scout for routers and/or peers.
+
+`scout` spawns a task that periodically sends scout messages and waits for :class:`zenoh.Hello` replies.
+The scouting process can be stopped by calling :meth:`zenoh.Scout.stop` on the returned :class:`zenoh.Scout` object,
+or by letting the :class:`zenoh.Scout` object go out of scope (dropping it).
+
+Args:
+    handler: Optional handler for processing received :class:`zenoh.Hello` messages.
+    what: Optional :class:`zenoh.WhatAmIMatcher` or string specifying which node types to scout for
+        (e.g., "peer|router"). If None, scouts for all node types.
+    config: Optional :class:`zenoh.Config` for the scouting session.
+
+For more information about scouting, see :ref:`scouting`.
+"""
 
 @overload
 def scout(
@@ -1888,10 +1907,9 @@ def scout(
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
 ) -> Scout[Handler[Hello]]:
-    """Scout for routers and/or peers.
+    ...
 
-    scout spawns a task that periodically sends scout messages and waits for Hello replies.
-    Drop the returned Scout to stop the scouting task."""
+scout.__doc__ = _SCOUT_DOC
 
 @overload
 def scout(
@@ -1899,10 +1917,7 @@ def scout(
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
 ) -> Scout[_H]:
-    """Scout for routers and/or peers.
-
-    scout spawns a task that periodically sends scout messages and waits for Hello replies.
-    Drop the returned Scout to stop the scouting task."""
+    ...
 
 @overload
 def scout(
@@ -1910,7 +1925,4 @@ def scout(
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
 ) -> Scout[None]:
-    """Scout for routers and/or peers.
-
-    scout spawns a task that periodically sends scout messages and waits for Hello replies.
-    Drop the returned Scout to stop the scouting task."""
+    ...
