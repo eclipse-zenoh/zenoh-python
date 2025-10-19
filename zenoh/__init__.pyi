@@ -1676,7 +1676,7 @@ class Timestamp:
         """Returns the time component of the timestamp as a datetime object."""
 
     def get_id(self) -> TimestampId:
-        """Returns the unique identifier component of the timestamp."""
+        """Returns the unique identifier component of the timestamp as a :class:`TimestampId`."""
 
     def get_diff_duration(self, other: Timestamp) -> timedelta:
         """Returns the duration difference between this timestamp and another.
@@ -1724,13 +1724,36 @@ class Timestamp:
 
 @final
 class TimestampId:
+    """A unique identifier used in :class:`Timestamp`.
+
+    TimestampId represents a unique identifier that is part of every :class:`Timestamp`.
+    It is typically derived from a :class:`ZenohId` (session identifier) to ensure that
+    timestamps from different sessions remain unique even when created simultaneously.
+
+    The identifier is stored as a fixed-size byte array and provides methods for
+    comparison, hashing, and conversion to/from bytes.
+
+    **Used in:**
+
+    - :meth:`Timestamp.__new__` - accepts ``_IntoTimestampId`` (bytearray, bytes, or TimestampId)
+    - :meth:`Timestamp.get_id` - returns a TimestampId
+    - :meth:`Session.new_timestamp` - creates timestamps with session's ZenohId as TimestampId
+    """
+
     def __new__(cls, bytes: bytearray | bytes) -> Self: ...
-    def __bytes__(self) -> bytes: ...
+    def __bytes__(self) -> bytes:
+        """Returns the identifier as bytes."""
+
     def __eq__(self, other: Any) -> bool: ...
     def __ge__(self, other) -> bool: ...
     def __hash__(self) -> int: ...
 
 _IntoTimestampId = bytearray | bytes | TimestampId
+"""Type alias for values that can be converted to a TimestampId.
+
+Used in :meth:`Timestamp.__new__` to accept various byte representations
+that can be converted to a :class:`TimestampId`.
+"""
 
 @final
 class WhatAmI(Enum):
