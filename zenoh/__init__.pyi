@@ -1476,6 +1476,12 @@ class Session:
 
 @final
 class SessionInfo:
+    """Struct returned by :class:`Session`.info() that allows access to information about the current zenoh :class:`Session`.
+
+    This information includes the :class:`ZenohId` identifier of the current session, and the identifiers of the connected routers
+    and peers (see also :class:`WhatAmI` for more information about peers and routers).
+    """
+
     def zid(self) -> ZenohId:
         """Return the :class:`ZenohId` of the current zenoh Session."""
 
