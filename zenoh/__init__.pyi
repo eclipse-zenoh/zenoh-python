@@ -463,8 +463,16 @@ _IntoKeyExpr = KeyExpr | str
 
 @final
 class Liveliness:
+    """A structure with functions to declare a :class:`LivelinessToken`, query existing :class:`LivelinessToken`\\s and subscribe to liveliness changes.
+
+    A :class:`LivelinessToken` is a token whose liveliness is tied to the Zenoh :class:`Session` and can be monitored by remote applications.
+
+    The Liveliness structure can be obtained with the :meth:`Session.liveliness` method of the :class:`Session` class.
+
+    For more information, see :ref:`liveliness`.
+    """
     def declare_token(self, key_expr: _IntoKeyExpr) -> LivelinessToken:
-        """Create a LivelinessToken for the given key expression."""
+        """Create a :class:`LivelinessToken` for the given key expression."""
 
     @overload
     def get(
@@ -474,7 +482,7 @@ class Liveliness:
         *,
         timeout: float | int | None = None,
     ) -> Handler[Reply]:
-        """Query liveliness tokens with matching key expressions."""
+        """Query :class:`LivelinessToken` with matching key expressions."""
 
     @overload
     def get(
@@ -484,7 +492,7 @@ class Liveliness:
         *,
         timeout: float | int | None = None,
     ) -> _H:
-        """Query liveliness tokens with matching key expressions."""
+        """Query :class:`LivelinessToken` with matching key expressions."""
 
     @overload
     def get(
@@ -494,7 +502,7 @@ class Liveliness:
         *,
         timeout: float | int | None = None,
     ) -> None:
-        """Query liveliness tokens with matching key expressions."""
+        """Query :class:`LivelinessToken` with matching key expressions."""
 
     @overload
     def declare_subscriber(
@@ -504,7 +512,7 @@ class Liveliness:
         *,
         history: bool | None = None,
     ) -> Subscriber[Handler[Sample]]:
-        """Create a Subscriber for liveliness changes matching the given key expression."""
+        """Create a :class:`Subscriber` for liveliness changes matching the given key expression."""
 
     @overload
     def declare_subscriber(
@@ -514,7 +522,7 @@ class Liveliness:
         *,
         history: bool | None = None,
     ) -> Subscriber[_H]:
-        """Create a Subscriber for liveliness changes matching the given key expression."""
+        """Create a :class:`Subscriber` for liveliness changes matching the given key expression."""
 
     @overload
     def declare_subscriber(
@@ -524,14 +532,17 @@ class Liveliness:
         *,
         history: bool | None = None,
     ) -> Subscriber[None]:
-        """Create a Subscriber for liveliness changes matching the given key expression."""
+        """Create a :class:`Subscriber` for liveliness changes matching the given key expression."""
 
 @final
 class LivelinessToken:
+    """A token whose liveliness is tied to the Zenoh :class:`Session` and can be monitored by 
+    remote applications using the :class:`Liveliness` structure.
+    """
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     def undeclare(self):
-        """Undeclare the LivelinessToken."""
+        """Undeclare the :class:`LivelinessToken`."""
 
 @final
 class Parameters:

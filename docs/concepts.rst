@@ -305,12 +305,14 @@ Sometimes it is necessary to know whether a Zenoh node is available. This
 can be achieved by declaring special publishers and queryables, but the 
 dedicated liveliness API is more convenient and efficient.
 
-The :meth:`zenoh.Session.liveliness` API allows a node to declare a
-:class:`zenoh.LivelinessToken` using :meth:`zenoh.Liveliness.declare_token`,
-associated with a key expression. Other nodes can query this key expression via
-:meth:`zenoh.Liveliness.get` or subscribe using
-:meth:`zenoh.Liveliness.declare_subscriber` to be notified when the token
-appears or disappears. The ``history`` parameter of
+The :class:`zenoh.Liveliness` object is created by calling :meth:`zenoh.Session.liveliness`.
+It allows a node to declare a :class:`zenoh.LivelinessToken` associated with a key expression.
+To declare the token, use :meth:`zenoh.Liveliness.declare_token`.
+
+Other nodes can query this key expression using :meth:`zenoh.Liveliness.get`.
+They can also subscribe using :meth:`zenoh.Liveliness.declare_subscriber` to be notified when the token appears or disappears.
+
+The ``history`` parameter of
 :meth:`zenoh.Liveliness.declare_subscriber` allows immediate receipt of tokens
 that are already present on the network.
 
