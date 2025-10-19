@@ -1025,32 +1025,53 @@ Locality.ANY.__doc__ = """Request/serve data to both local and remote entities."
 
 @final
 class Reply:
-    """Structs returned by a get."""
+    """An answer received from a :class:`Queryable`.
+
+    Contains the result of a request to a :class:`Queryable` by :meth:`Session.get`
+    or :meth:`Querier.get`. May be either a successful result with a :class:`Sample`
+    or an error with a :class:`ReplyError`.
+    """
 
     @property
-    def result(self) -> Sample | ReplyError: ...
+    def result(self) -> Sample | ReplyError:
+        """Gets the result of this reply which may be either a successful :class:`Sample` or an error :class:`ReplyError`."""
     @property
-    def ok(self) -> Sample | None: ...
+    def ok(self) -> Sample | None:
+        """Returns the successful result if this reply is successful, `None` otherwise."""
     @property
-    def err(self) -> ReplyError | None: ...
+    def err(self) -> ReplyError | None:
+        """Returns the error if this reply failed, `None` otherwise."""
     @property
     @_unstable
-    def replier_id(self) -> EntityGlobalId | None: ...
+    def replier_id(self) -> EntityGlobalId | None:
+        """Returns the ID of the zenoh instance that answered this reply.
+        """
 
 @final
 class ReplyError:
+    """An error reply received from a :class:`Queryable` and available in the :class:`Reply` structure."""
     @property
-    def payload(self) -> ZBytes: ...
+    def payload(self) -> ZBytes:
+        """Gets the payload of this `ReplyError`, usually an error message."""
     @property
-    def encoding(self) -> Encoding: ...
+    def encoding(self) -> Encoding:
+        """Gets the encoding of this `ReplyError`."""
 
 @final
 class SampleKind(Enum):
+    """The kind of a :class:`Sample`, indicating whether it contains data or indicates deletion."""
     PUT = auto()
     DELETE = auto()
 
+SampleKind.PUT.__doc__ = """A `PUT` sample containing data."""
+SampleKind.DELETE.__doc__ = """A `DELETE` sample indicating data removal."""
+
 @final
 class Sample:
+    """The Sample structure is the data unit received by :class:`Subscriber`, or by :class:`Querier` or :meth:`Session.get` as part of the :class:`Reply`.
+
+    It contains the payload and all metadata associated with the data.
+    """
     @property
     def key_expr(self) -> KeyExpr:
         """Gets the key expression on which this Sample was published."""
@@ -1087,10 +1108,12 @@ class Sample:
         """
 
     @property
-    def attachment(self) -> ZBytes | None: ...
+    def attachment(self) -> ZBytes | None:
+        """Gets the sample attachment: a map of key-value pairs."""
     @_unstable
     @property
-    def source_info(self) -> SourceInfo: ...
+    def source_info(self) -> SourceInfo:
+        """Gets info on the source of this Sample."""
 
 @final
 class Scout(Generic[_H]):
@@ -1139,11 +1162,13 @@ class Selector:
         cls, arg: _IntoKeyExpr | str, /, parameters: _IntoParameters | None = None
     ): ...
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr:
+        """The key expression part of this selector."""
     @key_expr.setter
     def key_expr(self, key_expr: _IntoKeyExpr): ...
     @property
-    def parameters(self) -> Parameters: ...
+    def parameters(self) -> Parameters:
+        """The parameters part of this selector."""
     @parameters.setter
     def parameters(self, parameters: _IntoParameters): ...
     def __str__(self) -> str: ...
