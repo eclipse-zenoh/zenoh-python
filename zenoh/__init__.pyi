@@ -835,7 +835,7 @@ class Queryable(Generic[_H]):
         """Returns the :class:`KeyExpr` this queryable responds to."""
     @property
     def handler(self) -> _H:
-        """Returns a reference to this queryable's handler.
+        """The handler associated with this Queryable instance.
 
         See :ref:`channels-and-callbacks` for more information on handlers."""
     def undeclare(self):
@@ -1136,7 +1136,9 @@ class Scout(Generic[_H]):
         """Exit the Scout context manager and stop scouting."""
     @property
     def handler(self) -> _H: 
-        """The handler associated with this Scout instance."""
+        """The handler associated with this Scout instance.
+
+        See :ref:`channels-and-callbacks` for more information on handlers."""
     def stop(self): 
         """Stop the scouting process."""
     @overload
@@ -1542,6 +1544,9 @@ class MatchingListener(Generic[_H]):
     def __exit__(self, *_args, **_kwargs): ...
     @property
     def handler(self) -> _H: ...
+        """The handler associated with this MatchingListener instance.
+
+        See :ref:`channels-and-callbacks` for more information on handlers."""
     def undeclare(self):
         """Close a Matching listener.
         Matching listeners are automatically closed when dropped, but you may want to use this function to handle errors or close the Matching listener asynchronously.
@@ -1586,34 +1591,52 @@ SourceSn = int
 
 @final
 class Subscriber(Generic[_H]):
-    """A subscriber that provides data through a Handler.
-    Subscribers can be created from a zenoh Session with the :meth:`Session.declare_subscriber` function and the with function of the resulting builder.
-    Subscribers are automatically undeclared when dropped."""
+    """A subscriber that receives data from :class:`Publisher` instances matching its key expression.
+
+    Subscribers are automatically undeclared when dropped.
+
+    A subscriber is created using :meth:`zenoh.Session.declare_subscriber` and is used to receive
+    data from :class:`Publisher` instances matching the subscriber's key expression.
+
+    For more information about publish/subscribe operations, see :ref:`publish-subscribe`.
+    """
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @_unstable
     @property
-    def id(self) -> EntityGlobalId: ...
+    def id(self) -> EntityGlobalId:
+        """The global ID of this subscriber.
+        """
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr:
+        """The key expression this subscriber subscribes to."""
     @property
     def handler(self) -> _H: ...
+        """The handler associated with this Subscriber instance.
+
+        See :ref:`channels-and-callbacks` for more information on handlers."""
     def undeclare(self):
         """Close a Subscriber.
         Subscribers are automatically closed when dropped, but you may want to use this function to handle errors or close the Subscriber asynchronously.
         """
 
     @overload
-    def try_recv(self: Subscriber[Handler[Sample]]) -> Sample | None: ...
+    def try_recv(self: Subscriber[Handler[Sample]]) -> Sample | None:
+        """Try to receive a :class:`Sample` without blocking.
+
+        Returns the sample if available, or None if no sample is ready.
+        """
     @overload
     def try_recv(self) -> Never: ...
     @overload
-    def recv(self: Subscriber[Handler[Sample]]) -> Sample: ...
+    def recv(self: Subscriber[Handler[Sample]]) -> Sample:
+        """Receive a :class:`Sample`, blocking until one is available."""
     @overload
     def recv(self) -> Never: ...
     @overload
-    def __iter__(self: Subscriber[Handler[Sample]]) -> Handler[Sample]: ...
+    def __iter__(self: Subscriber[Handler[Sample]]) -> Handler[Sample]:
+        """Iterate over received :class:`Sample` instances."""
     @overload
     def __iter__(self) -> Never: ...
 
