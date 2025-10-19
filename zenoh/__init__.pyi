@@ -707,22 +707,48 @@ class Publisher:
 
 @final
 class Query:
-    """Structs received by a Queryable."""
+    """A request received by a :class:`Queryable`.
+
+    It contains the key expression, parameters, payload, and attachment sent by a querier
+    via :meth:`Session.get` or :meth:`Querier.get`. Use its methods to send replies.
+
+    .. note::
+       The :attr:`key_expr` is **not** the key expression which should be used as the parameter
+       of :meth:`reply`, because it may contain globs. The :class:`Queryable`'s key expression
+       is the one that should be used.
+
+       This parameter is not set automatically because :class:`Queryable` itself may serve
+       glob key expressions and send replies on different concrete key expressions matching
+       this glob. For example, a :class:`Queryable` serving ``foo/*`` may receive a :class:`Query`
+       with key expression ``foo/bar`` and another one with ``foo/baz``, and it should reply
+       respectively on ``foo/bar`` and ``foo/baz``.
+    """
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @property
-    def selector(self) -> Selector: ...
+    def selector(self) -> Selector: 
+        """The full :class:`Selector` of this query."""
+
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr: 
+        """The key expression part of this query."""
+
     @property
-    def parameters(self) -> Parameters: ...
+    def parameters(self) -> Parameters: 
+        """The selector parameters of this query."""
+
     @property
-    def payload(self) -> ZBytes | None: ...
+    def payload(self) -> ZBytes | None: 
+        """The payload of this query, if any."""
+
     @property
-    def encoding(self) -> Encoding | None: ...
+    def encoding(self) -> Encoding | None: 
+        """The encoding of this query's payload, if any."""
+
     @property
-    def attachment(self) -> ZBytes | None: ...
+    def attachment(self) -> ZBytes | None: 
+        """The attachment of this query, if any."""
     def reply(
         self,
         key_expr: _IntoKeyExpr,
@@ -735,12 +761,16 @@ class Query:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
     ):
-        """Sends a reply to this Query.
+        """Sends a :class:`Sample` of kind :attr:`SampleKind.PUT` as a reply to this query.
+
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through :meth:`accepts_replies`), replying on a disjoint key expression will result in an error when resolving the reply.
+
+        .. note::
+           See the class documentation for important details about which key expression to use for replies.
         """
 
     def reply_err(self, payload: _IntoZBytes, *, encoding: _IntoEncoding | None = None):
-        """Sends an error reply to this Query."""
+        """Sends a :class:`ReplyError` as a reply to this query."""
 
     def reply_del(
         self,
@@ -752,8 +782,12 @@ class Query:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
     ):
-        """Sends a delete reply to this Query.
+        """Sends a :class:`Sample` of kind :attr:`SampleKind.DELETE` as a reply to this query.
+
         By default, queries only accept replies whose key expression intersects with the query's. Unless the query has enabled disjoint replies (you can check this through :meth:`accepts_replies`), replying on a disjoint key expression will result in an error when resolving the reply.
+
+        .. note::
+           See the class documentation for important details about which key expression to use for replies.
         """
 
     def drop(self):
@@ -769,7 +803,8 @@ class Query:
         methods will raise an exception.
         """
 
-    def __str__(self) -> str: ...
+    def __str__(self) -> str: 
+        """Returns a string representation of this query."""
 
 @final
 class Queryable(Generic[_H]):
@@ -897,6 +932,15 @@ class Querier:
 
 @final
 class QueryConsolidation:
+    """The reply consolidation strategy to apply to replies to a get.
+
+    By default, the consolidation strategy is :attr:`QueryConsolidation.AUTO`, which lets the implementation
+    choose the best strategy depending on the query parameters and the number of responders. Other 
+    strategies can be selected by using a specific :class:`ConsolidationMode` as a parameter of the 
+    :meth:`Session.declare_querier` or :meth:`Session.get` methods.
+
+    See the documentation of :class:`ConsolidationMode` for more details about each strategy.
+    """
     AUTO: Self
     DEFAULT: Self
     def __new__(cls, mode: ConsolidationMode, /) -> Self: ...
@@ -907,13 +951,24 @@ _IntoQueryConsolidation = ConsolidationMode
 
 @final
 class QueryTarget(Enum):
-    """The kind of consolidation used."""
+    """The Queryables to which a query from :meth:`Session.get` or :meth:`Session.declare_querier` is delivered.
+
+    :attr:`QueryTarget.ALL` makes the query be delivered to all the matching queryables.
+    :attr:`QueryTarget.ALL_COMPLETE` makes the query be delivered to all the matching queryables which are marked as "complete".
+    :attr:`QueryTarget.BEST_MATCHING` (default) makes the data to be requested from the queryable(s) selected by zenoh to get the fastest and most complete reply.
+
+    It is set by the target parameter of :meth:`Session.get` or :meth:`Session.declare_querier` methods.
+    """
 
     BEST_MATCHING = auto()
     ALL = auto()
     ALL_COMPLETE = auto()
 
     DEFAULT = BEST_MATCHING
+
+QueryTarget.BEST_MATCHING.__doc__ = """Let Zenoh find the BestMatching queryable capable of serving the query."""
+QueryTarget.ALL.__doc__ = """Deliver the query to all queryables matching the query's key expression."""
+QueryTarget.ALL_COMPLETE.__doc__ = """Deliver the query to all queryables matching the query's key expression that are declared as complete."""
 
 @final
 @_unstable
