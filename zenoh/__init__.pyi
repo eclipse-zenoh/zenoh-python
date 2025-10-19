@@ -713,7 +713,7 @@ class Query:
     via :meth:`Session.get` or :meth:`Querier.get`. Use its methods to send replies.
 
     .. note::
-       The :attr:`key_expr` is **not** the key expression which should be used as the parameter
+       The Query's :attr:`key_expr` is **not** the key expression which should be used as the parameter
        of :meth:`reply`, because it may contain globs. The :class:`Queryable`'s key expression
        is the one that should be used.
 
@@ -722,6 +722,8 @@ class Query:
        this glob. For example, a :class:`Queryable` serving ``foo/*`` may receive a :class:`Query`
        with key expression ``foo/bar`` and another one with ``foo/baz``, and it should reply
        respectively on ``foo/bar`` and ``foo/baz``.
+
+    See :ref:`query-reply` for more information on the query/reply paradigm.
     """
 
     def __enter__(self) -> Self: ...
@@ -810,10 +812,10 @@ class Query:
 class Queryable(Generic[_H]):
     """A Queryable is an entity that implements :ref:`query-reply` pattern.
 
-    It is declared by the :meth:`Session.declare_queryable` method and serves
-    :class:`Query` using callback or channel. The Queryable receives :class:`Query`
+    It is declared by the :meth:`Session.declare_queryable` method and provides
+    :class:`Query`es using callback or channel. The Queryable receives :class:`Query`
     requests from :meth:`Querier.get` or :meth:`Session.get` and sends back replies
-    with the methods of :class:`Query`: :meth:`Query.reply`, :meth:`Query.reply_err`,
+    with the methods of :meth:`Query.reply`, :meth:`Query.reply_err`,
     or :meth:`Query.reply_del`."""
 
     def __enter__(self) -> Self: ...
@@ -980,7 +982,7 @@ class QueryTarget(Enum):
 
     DEFAULT = BEST_MATCHING
 
-QueryTarget.BEST_MATCHING.__doc__ = """Let Zenoh find the BestMatching queryable capable of serving the query."""
+QueryTarget.BEST_MATCHING.__doc__ = """Let Zenoh find the best matching queryable capable of serving the query."""
 QueryTarget.ALL.__doc__ = """Deliver the query to all queryables matching the query's key expression."""
 QueryTarget.ALL_COMPLETE.__doc__ = """Deliver the query to all queryables matching the query's key expression that are declared as complete."""
 
