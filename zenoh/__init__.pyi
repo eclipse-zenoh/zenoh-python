@@ -802,18 +802,27 @@ class Queryable(Generic[_H]):
 
 @final
 class Querier:
-    """A querier that allows to send queries to a queryable.
-    Queriers are automatically undeclared when dropped."""
+    """A querier that allows sending queries to a :class:`Queryable`.
+
+    The querier is a preconfigured object that can be used to send multiple queries
+    to a given key expression. It is declared using :meth:`Session.declare_querier`.
+    Queriers are automatically undeclared when dropped.
+
+    See :ref:`query-reply` for more information on the query/reply paradigm."""
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @_unstable
     @property
-    def id(self) -> EntityGlobalId: ...
+    def id(self) -> EntityGlobalId:
+        """Returns the :class:`EntityGlobalId` of this Querier.
+        """
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr:
+        """Returns the :class:`KeyExpr` this querier sends queries on."""
     @property
-    def matching_status(self) -> bool: ...
+    def matching_status(self) -> bool:
+        """Returns true if there are :class:`Queryable`\\s matching the Querier's key expression and target, false otherwise."""
     @overload
     def get(
         self,
@@ -825,7 +834,9 @@ class Querier:
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
     ) -> Handler[Reply]:
-        """Sends a query."""
+        """Sends a query and returns a channel for processing replies.
+
+        See :ref:`channels-and-callbacks` for more information on handlers."""
 
     @overload
     def get(
@@ -838,7 +849,9 @@ class Querier:
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
     ) -> _H:
-        """Sends a query."""
+        """Sends a query and returns a channel for processing replies.
+
+        See :ref:`channels-and-callbacks` for more information on handlers."""
 
     @overload
     def get(
@@ -851,7 +864,9 @@ class Querier:
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
     ) -> None:
-        """Send a query."""
+        """Sends a query and processes replies using the provided callback.
+
+        See :ref:`channels-and-callbacks` for more information on callbacks."""
 
     def undeclare(self):
         """Undeclares the Querier, informing the network that it needn't optimize queries for its key expression anymore."""
@@ -860,19 +875,25 @@ class Querier:
     def declare_matching_listener(
         self, handler: _RustHandler[MatchingStatus] | None = None
     ) -> MatchingListener[Handler[MatchingStatus]]:
-        """Create a Matching listener. It will send notifications each time the matching status of this querier changes."""
+        """Returns a :class:`MatchingListener` for this Querier.
+
+        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes."""
 
     @overload
     def declare_matching_listener(
         self, handler: _PythonHandler[MatchingStatus, _H]
     ) -> MatchingListener[_H]:
-        """Create a Matching listener. It will send notifications each time the matching status of this querier changes."""
+        """Returns a :class:`MatchingListener` for this Querier.
+
+        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes."""
 
     @overload
     def declare_matching_listener(
         self, handler: _PythonCallback[MatchingStatus]
     ) -> MatchingListener[None]:
-        """Create a Matching listener. It will send notifications each time the matching status of this querier changes."""
+        """Returns a :class:`MatchingListener` for this Querier.
+
+        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes."""
 
 @final
 class QueryConsolidation:
