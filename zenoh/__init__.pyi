@@ -1271,7 +1271,12 @@ class Session:
     def new_timestamp(self) -> Timestamp:
         """Get a new :class:`Timestamp` from a Zenoh session.
 
-        The returned timestamp has the current time, with the session's runtime :class:`ZenohId`.
+        The returned timestamp has the current time, with the session's runtime :class:`ZenohId`
+        as the unique identifier. This ensures that timestamps from different sessions are unique
+        even when created at the same time.
+
+        Returns:
+            A new :class:`Timestamp` with current time and session's unique ID.
         """
 
     def declare_keyexpr(self, key_expr: _IntoKeyExpr):
@@ -1543,7 +1548,7 @@ class MatchingListener(Generic[_H]):
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @property
-    def handler(self) -> _H: ...
+    def handler(self) -> _H:
         """The handler associated with this MatchingListener instance.
 
         See :ref:`channels-and-callbacks` for more information on handlers."""
@@ -1612,7 +1617,7 @@ class Subscriber(Generic[_H]):
     def key_expr(self) -> KeyExpr:
         """The key expression this subscriber subscribes to."""
     @property
-    def handler(self) -> _H: ...
+    def handler(self) -> _H:
         """The handler associated with this Subscriber instance.
 
         See :ref:`channels-and-callbacks` for more information on handlers."""
@@ -1642,21 +1647,80 @@ class Subscriber(Generic[_H]):
 
 @final
 class Timestamp:
+    """A timestamp consisting of an `NTP64 <https://docs.rs/zenoh/latest/zenoh/time/struct.NTP64.html>`_
+    time and a unique identifier.
+
+    Timestamps are used to provide temporal ordering and uniqueness in Zenoh operations.
+    They combine a high-precision NTP64 timestamp with a unique identifier to ensure
+    causality and ordering in distributed systems.
+
+    Timestamps can be created using :meth:`Session.new_timestamp`, which returns a
+    timestamp with the current time and the session's unique runtime identifier.
+
+    **String Representations:**
+
+    Timestamps support two string formats:
+
+    - **Default format**: ``"<ntp64_time>/<id_hex>"`` (e.g., ``"7386690599959157260/33"``)
+      This is a lossless, machine-readable format.
+
+    - **RFC3339 format**: ``"<rfc3339_time>/<id_hex>"`` (e.g., ``"2024-07-01T13:51:12.129693000Z/33"``)
+      This is a human-readable format with nanosecond precision, but may lose some precision
+      due to rounding when converting fractional seconds to nanoseconds.
+
+    For detailed information about Timestamp, see: https://docs.rs/zenoh/latest/zenoh/time/struct.Timestamp.html
+    """
+
     def __new__(cls, time: datetime, id: _IntoTimestampId) -> Self: ...
-    def get_time(self) -> datetime: ...
-    def get_id(self) -> TimestampId: ...
-    def get_diff_duration(self, other: Timestamp) -> timedelta: ...
+    def get_time(self) -> datetime:
+        """Returns the time component of the timestamp as a datetime object."""
+
+    def get_id(self) -> TimestampId:
+        """Returns the unique identifier component of the timestamp."""
+
+    def get_diff_duration(self, other: Timestamp) -> timedelta:
+        """Returns the duration difference between this timestamp and another.
+
+        Args:
+            other: The timestamp to compare against.
+
+        Returns:
+            A timedelta representing the time difference.
+        """
+
     def to_string_rfc3339_lossy(self) -> str:
-        """Convert to a RFC3339 time representation with nanoseconds precision. e.g.: "2024-07-01T13:51:12.129693000Z/33"."""
+        """Convert to a RFC3339 time representation with nanoseconds precision.
+
+        This format is human-readable but may lose precision due to rounding
+        when converting fractional seconds to nanoseconds.
+
+        Returns:
+            A string in RFC3339 format (e.g., "2024-07-01T13:51:12.129693000Z/33").
+
+        Note:
+            This conversion is not bijective - converting to string and back may
+            result in a slightly different timestamp due to precision loss.
+        """
 
     @classmethod
     def parse_rfc3339(cls, s: str) -> Self:
-        """Parse a RFC3339 time representation into a NTP64."""
+        """Parse a RFC3339 time representation into a Timestamp.
+
+        Args:
+            s: A string in RFC3339 format with timestamp ID (e.g., "2024-07-01T13:51:12.129693000Z/33").
+
+        Returns:
+            A new Timestamp object.
+
+        Raises:
+            ZError: If the string cannot be parsed.
+        """
 
     def __eq__(self, other: Any) -> bool: ...
     def __ge__(self, other) -> bool: ...
     def __hash__(self) -> int: ...
-    def __str__(self) -> str: ...
+    def __str__(self) -> str:
+        """Returns the timestamp in default format: "<ntp64_time>/<id_hex>"."""
 
 @final
 class TimestampId:
