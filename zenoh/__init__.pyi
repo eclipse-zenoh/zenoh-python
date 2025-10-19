@@ -1567,13 +1567,20 @@ class MatchingListener(Generic[_H]):
 @_unstable
 @final
 class SourceInfo:
+    """Information on the source of a zenoh Sample.
+
+    Contains metadata about the origin of a data sample, including the source entity's
+    global identifier and sequence number.
+    """
     def __new__(
         cls, source_id: EntityGlobalId | None = None, source_sn: SourceSn | None = None
     ) -> Self: ...
     @property
-    def source_id(self) -> EntityGlobalId | None: ...
+    def source_id(self) -> EntityGlobalId | None: 
+        """The EntityGlobalId of the zenoh entity that published the Sample in question."""
     @property
-    def source_sn(self) -> SourceSn | None: ...
+    def source_sn(self) -> SourceSn | None: 
+        """The sequence number of the Sample from the source."""
 
 SourceSn = int
 
