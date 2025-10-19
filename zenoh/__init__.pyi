@@ -853,13 +853,26 @@ class Reliability(Enum):
 
 @final
 class Locality(Enum):
-    """The locality of samples/queries to be received by subscribers/queryables or targeted by publishers/queriers."""
+    """The locality of samples/queries to be received by subscribers/queryables or targeted by publishers/queriers.
+
+    This enum controls whether data is exchanged only with local entities (in the same session),
+    only with remote entities, or with both. It is used in the following settings:
+
+    - :meth:`Session.declare_subscriber` (allowed_origin)
+    - :meth:`Session.declare_queryable` (allowed_origin)
+    - :meth:`Session.declare_publisher` (allowed_destination)
+    - :meth:`Session.declare_querier` (allowed_destination)
+    """
 
     SESSION_LOCAL = auto()
     REMOTE = auto()
     ANY = auto()
 
     DEFAULT = ANY
+
+Locality.SESSION_LOCAL.__doc__ = """Request/serve data only to entities in the same session."""
+Locality.REMOTE.__doc__ = """Request/serve data only to remote entities (not in the same session)."""
+Locality.ANY.__doc__ = """Request/serve data to both local and remote entities."""
 
 @final
 class Reply:
