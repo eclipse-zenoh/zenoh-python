@@ -1786,36 +1786,70 @@ constrained devices that cannot afford to maintain multiple connections."""
 
 @final
 class WhatAmIMatcher:
+    """A helper type that allows matching combinations of WhatAmI values in scouting.
+
+    WhatAmIMatcher can be created from a string specification like "peer|router" or "client",
+    or built programmatically using methods like :meth:`router`, :meth:`peer`, and :meth:`client`.
+
+    The :func:`scout` function accepts a WhatAmIMatcher to filter the nodes of the specified types.
+    """
+
+    def __new__(cls, matcher: str | None = None) -> Self:
+        """Creates a matcher from a string specification or an empty matcher if None."""
     @classmethod
-    def empty(cls) -> Self: ...
-    def router(self) -> Self: ...
-    def peer(self) -> Self: ...
-    def client(self) -> Self: ...
-    def is_empty(self) -> bool: ...
-    def matches(self, whatami: WhatAmI) -> bool: ...
-    def __str__(self) -> str: ...
+    def empty(cls) -> Self:
+        """Creates an empty matcher that matches no node types."""
+    def router(self) -> Self:
+        """Adds :attr:`WhatAmI.ROUTER` to the matcher."""
+    def peer(self) -> Self:
+        """Adds :attr:`WhatAmI.PEER` to the matcher."""
+    def client(self) -> Self:
+        """Adds :attr:`WhatAmI.CLIENT` to the matcher."""
+    def is_empty(self) -> bool:
+        """Returns True if the matcher matches no node types."""
+    def matches(self, whatami: WhatAmI) -> bool:
+        """Returns True if the given WhatAmI value matches this matcher."""
+    def __str__(self) -> str:
+        """Returns a string representation of the matcher."""
 
 _IntoWhatAmIMatcher = WhatAmIMatcher | str
 
 @final
 class ZBytes:
-    """ZBytes contains the serialized bytes of user data.
+    """ZBytes represents raw bytes data that can be interpreted as strings or byte arrays.
 
-    It provides convenient methods to the user for serialization/deserialization.
+    ZBytes is the fundamental data container in Zenoh for all payload and attachment data.
+    It provides flexible access to the underlying bytes, allowing conversion to strings,
+    byte arrays, or direct byte access.
 
-    **NOTE** Zenoh semantic and protocol take care of sending and receiving bytes
-    without restricting the actual data types. Default (de)serializers are provided for
-    convenience to the users to deal with primitives data types via a simple
-    out-of-the-box encoding. They are NOT by any means the only (de)serializers
-    users can use nor a limitation to the types supported by Zenoh. Users are free and
-    encouraged to use any data format of their choice like JSON, protobuf,
-    flatbuffers, etc."""
+    The Zenoh protocol treats ZBytes as opaque binary data and is completely unaware of
+    its content or structure. This allows users to employ any data representation format
+    of their choice, including JSON, protobuf, flatbuffers, MessagePack, or custom formats.
+
+    For convenience, Zenoh provides built-in serialization functions :func:`zenoh.ext.z_serialize`
+    and :func:`zenoh.ext.z_deserialize` in the :mod:`zenoh.ext` module, which support
+    serialization of standard Python types (primitives, lists, dicts, etc.) using Zenoh's
+    native binary format. However, these are not mandatory - users are encouraged to use
+    any serialization approach that fits their needs."""
 
     def __new__(
         cls, bytes: bytearray | bytes | str | shm.ZShm | shm.ZShmMut | None = None
     ) -> Self: ...
-    def to_bytes(self) -> bytes: ...
-    def to_string(self) -> str: ...
+    def to_bytes(self) -> bytes:
+        """Return the underlying data as bytes.
+
+        Returns:
+            bytes: The raw byte data contained in this ZBytes instance.
+        """
+    def to_string(self) -> str:
+        """Return the underlying data as a UTF-8 decoded string.
+
+        Returns:
+            str: The string representation of the byte data, decoded as UTF-8.
+
+        Raises:
+            ValueError: If the byte data cannot be decoded as valid UTF-8.
+        """
     @_unstable
     def as_shm(self) -> shm.ZShm | None: ...
     def __bool__(self) -> bool: ...
