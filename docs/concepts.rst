@@ -314,7 +314,7 @@ To declare the token, use :meth:`zenoh.Liveliness.declare_token`.
 Other nodes can query this key expression using :meth:`zenoh.Liveliness.get`.
 They can also subscribe using :meth:`zenoh.Liveliness.declare_subscriber` to be notified when the token appears or disappears.
 
-The ``history`` parameter of
+The `history` parameter of
 :meth:`zenoh.Liveliness.declare_subscriber` allows immediate receipt of tokens
 that are already present on the network.
 

@@ -1117,23 +1117,41 @@ class Sample:
 
 @final
 class Scout(Generic[_H]):
-    def __enter__(self) -> Self: ...
-    def __exit__(self, *_args, **_kwargs): ...
+    """A Scout object that yields :class:`zenoh.Hello` messages for discovered Zenoh nodes on the network.
+    
+    Scout is returned by the :func:`zenoh.scout` function and is used to discover
+    Zenoh nodes (routers and peers) on the network. It yields :class:`zenoh.Hello` 
+    messages containing information about each discovered node.
+    
+    See :ref:`scouting` for more details on the scouting process.
+    """
+    def __enter__(self) -> Self: 
+        """Enter the Scout context manager."""
+    def __exit__(self, *_args, **_kwargs): 
+        """Exit the Scout context manager and stop scouting."""
     @property
-    def handler(self) -> _H: ...
-    def stop(self): ...
+    def handler(self) -> _H: 
+        """The handler associated with this Scout instance."""
+    def stop(self): 
+        """Stop the scouting process."""
     @overload
-    def try_recv(self: Scout[Handler[Hello]]) -> Hello | None: ...
+    def try_recv(self: Scout[Handler[Hello]]) -> Hello | None: 
+        """Try to receive a :class:`zenoh.Hello` message without blocking. Returns None if no message is available."""
     @overload
-    def try_recv(self: Scout[Any]) -> Never: ...
+    def try_recv(self: Scout[Any]) -> Never: 
+        """Not available for this handler type."""
     @overload
-    def recv(self: Scout[Handler[Hello]]) -> Hello: ...
+    def recv(self: Scout[Handler[Hello]]) -> Hello: 
+        """Receive a :class:`zenoh.Hello` message, blocking until one is available."""
     @overload
-    def recv(self) -> Never: ...
+    def recv(self) -> Never: 
+        """Not available for this handler type."""
     @overload
-    def __iter__(self: Scout[Handler[Hello]]) -> Handler[Hello]: ...
+    def __iter__(self: Scout[Handler[Hello]]) -> Handler[Hello]: 
+        """Iterate over received :class:`zenoh.Hello` messages."""
     @overload
-    def __iter__(self) -> Never: ...
+    def __iter__(self) -> Never: 
+        """Not available for this handler type."""
 
 @final
 class Selector:
