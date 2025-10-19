@@ -186,6 +186,8 @@ or a :class:`zenoh.ReplyError` from `reply_err`.
    :start-after: [query_querier]
    :end-before: # [query_querier] 
 
+.. _query-parameters:
+
 Query Parameters
 ----------------
 

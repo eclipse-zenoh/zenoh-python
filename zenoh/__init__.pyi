@@ -546,6 +546,15 @@ class LivelinessToken:
 
 @final
 class Parameters:
+    """A collection of key-value parameters used in query operations.
+
+    Parameters allow attaching additional metadata to queries in the query/reply paradigm.
+    They can be constructed from dictionaries, strings, or built programmatically.
+    When combined with a key expression, they form a :class:`Selector` for query operations.
+
+    See also: :ref:`query-parameters`
+    """
+
     def __new__(cls, parameters: dict[str, str] | str | None = None): ...
     def is_empty(self) -> bool:
         """Returns true if properties does not contain anything."""
