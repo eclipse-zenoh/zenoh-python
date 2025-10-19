@@ -808,30 +808,44 @@ class Query:
 
 @final
 class Queryable(Generic[_H]):
-    """A queryable that provides data through a Handler.
-    Queryables can be created from a zenoh Session with the :meth:`Session.declare_queryable` function and the with function of the resulting builder.
-    Queryables are automatically undeclared when dropped."""
+    """A Queryable is an entity that implements :ref:`query-reply` pattern.
+
+    It is declared by the :meth:`Session.declare_queryable` method and serves
+    :class:`Query` using callback or channel. The Queryable receives :class:`Query`
+    requests from :meth:`Querier.get` or :meth:`Session.get` and sends back replies
+    with the methods of :class:`Query`: :meth:`Query.reply`, :meth:`Query.reply_err`,
+    or :meth:`Query.reply_del`."""
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @_unstable
     @property
-    def id(self) -> EntityGlobalId: ...
+    def id(self) -> EntityGlobalId:
+        """Returns the :class:`EntityGlobalId` of this Queryable.
+        """
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr:
+        """Returns the :class:`KeyExpr` this queryable responds to."""
     @property
-    def handler(self) -> _H: ...
-    def undeclare(self): ...
+    def handler(self) -> _H:
+        """Returns a reference to this queryable's handler.
+
+        See :ref:`channels-and-callbacks` for more information on handlers."""
+    def undeclare(self):
+        """Undeclare the Queryable."""
     @overload
-    def try_recv(self: Queryable[handlers.Handler[Query]]) -> Query | None: ...
+    def try_recv(self: Queryable[handlers.Handler[Query]]) -> Query | None:
+        """Try to receive a :class:`Query` from the handler without blocking."""
     @overload
     def try_recv(self) -> Never: ...
     @overload
-    def recv(self: Queryable[handlers.Handler[Query]]) -> Query: ...
+    def recv(self: Queryable[handlers.Handler[Query]]) -> Query:
+        """Receive a :class:`Query` from the handler, blocking if necessary."""
     @overload
     def recv(self) -> Never: ...
     @overload
-    def __iter__(self: Queryable[Handler[Query]]) -> Handler[Query]: ...
+    def __iter__(self: Queryable[Handler[Query]]) -> Handler[Query]:
+        """Iterate over :class:`Query` received by the handler."""
     @overload
     def __iter__(self) -> Never: ...
 
