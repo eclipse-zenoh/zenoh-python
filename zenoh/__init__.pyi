@@ -1757,11 +1757,32 @@ that can be converted to a :class:`TimestampId`.
 
 @final
 class WhatAmI(Enum):
+    """The type of the node in the Zenoh network.
+
+    The zenoh application can work in three different modes: router, peer, and client.
+
+    For detailed format information, see: https://docs.rs/zenoh/latest/zenoh/config/enum.WhatAmI.html
+    """
+
     ROUTER = auto()
     PEER = auto()
     CLIENT = auto()
 
     def __str__(self) -> str: ...
+
+
+WhatAmI.ROUTER.__doc__ = """Router mode: Used to run a zenoh router, which is a node that maintains a
+predefined zenoh network topology. Unlike peers, routers do not discover other
+nodes by themselves, but rely on static configuration."""
+
+WhatAmI.PEER.__doc__ = """Peer mode: The application searches for other nodes and establishes direct
+connections with them. This can work using multicast discovery and by getting
+gossip information from the initial entry points. The peer mode is the default
+mode."""
+
+WhatAmI.CLIENT.__doc__ = """Client mode: The application remains connected to a single connection
+point, which serves as a gateway to the rest of the network. This mode is useful for
+constrained devices that cannot afford to maintain multiple connections."""
 
 @final
 class WhatAmIMatcher:
