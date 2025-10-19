@@ -339,8 +339,11 @@ that are already present on the network.
    :end-before: # [liveliness_subscriber]
 
 
+
 Matching
 --------
+
+.. _matching:
 
 The matching API lets the active side of communication (publisher or querier)
 learn whether there are interested parties on the other side (subscriber or

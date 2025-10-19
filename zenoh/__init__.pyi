@@ -1245,7 +1245,10 @@ class SetIntersectionLevel(Enum):
 
 @final
 class MatchingStatus:
-    """A struct that indicates if there exist entities matching the key expression."""
+    """A struct that indicates if there exist entities matching the key expression.
+
+    See also: :ref:`matching`
+    """
 
     @property
     def matching(self) -> bool:
@@ -1253,8 +1256,14 @@ class MatchingStatus:
 
 @final
 class MatchingListener(Generic[_H]):
-    """A listener that sends notifications when the `MatchingStatus` of a
-    corresponding Zenoh entity changes."""
+    """A listener that sends notifications when the :class:`MatchingStatus` of a
+    corresponding Zenoh entity changes.
+
+    The matching listener allows publishers and queriers to detect when there are
+    matching subscribers or queryables on the network, enabling efficient resource usage.
+
+    See also: :ref:`matching`
+    """
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
