@@ -18,29 +18,108 @@ _T = TypeVar("_T")
 
 @final
 class Handler(Generic[_T]):
-    """Handler for `DefaultHandler`/`FifoHandler`/`RingHandler`."""
+    """Provides access to received Zenoh data.
+    
+    Handler instances are returned by Zenoh operations that receive data asynchronously.
+    Each instance provides methods to access the received data items of type ``_T``.
+    
+    Handler serves as a common interface for different channel implementations:
+    :class:`DefaultHandler`, :class:`FifoChannel`, and :class:`RingChannel`.
+    Regardless of which channel type is used, Handler provides the same methods
+    for data access.
+    
+    Handler instances are returned by several Zenoh operations:
+    
+    - :meth:`zenoh.Session.get` returns ``Handler[Reply]`` for accessing query replies
+    - :meth:`zenoh.Querier.get` returns ``Handler[Reply]`` for accessing querier replies
+    - :meth:`zenoh.Session.declare_subscriber` returns ``Subscriber[Handler[Sample]]``
+      for accessing received samples
+    
+    Handler provides both blocking and non-blocking methods to receive data,
+    as well as iteration support. The underlying implementation determines the
+    specific behavior (FIFO blocking, ring buffer dropping, etc.).
+    """
 
-    def try_recv(self) -> _T | None: ...
-    def recv(self) -> _T: ...
+    def try_recv(self) -> _T | None: 
+        """Attempt to receive an item without blocking.
+        
+        Returns the next available item if one is ready, otherwise returns None.
+        This method never blocks and is useful for polling or non-blocking loops.
+        
+        Returns:
+            The next item if available, None otherwise.
+        """
+    def recv(self) -> _T: 
+        """Receive an item, blocking if necessary.
+        
+        Waits until an item is available and returns it. This method will block
+        the calling thread until data arrives.
+        
+        Returns:
+            The next available item.
+        """
     def __iter__(self) -> Self: ...
     def __next__(self) -> _T: ...
 
 @final
 class DefaultHandler(Generic[_T]):
-    """The default handler in Zenoh is a FIFO queue."""
+    """The default handler type used by Zenoh when no explicit handler is provided.
+    
+    DefaultHandler serves as an opaque wrapper around :class:`FifoChannel` with default
+    settings. When no channel or callback is specified for subscribers or queries,
+    Zenoh automatically uses this handler.
+    
+    This type provides API stability by allowing the underlying default handler
+    implementation to change without breaking existing code. Currently, it wraps
+    a FIFO queue implementation.
+    
+    For more information about channels and callbacks, see
+    :ref:`channels-and-callbacks`.
+    """
 
     ...
 
 @final
 class FifoChannel(Generic[_T]):
-    """The default handler in Zenoh is a FIFO queue."""
-
+    """A handler implementing FIFO semantics.
+    
+    FifoChannel provides a bounded FIFO (First-In-First-Out) queue for handling
+    received data. When the channel reaches its capacity, pushing additional
+    items will block until space becomes available.
+    
+    Note: A slow consumer can block the underlying Zenoh thread if it doesn't
+    empty the FifoChannel fast enough. For applications where dropping old
+    samples is preferable to blocking, consider using :class:`RingChannel`
+    instead.
+    
+    For more information about channels and callbacks, see
+    :ref:`channels-and-callbacks`.
+    
+    Args:
+        capacity: The maximum number of items the channel can hold.
+    """
     def __new__(cls, capacity: int) -> Self: ...
 
 @final
 class RingChannel(Generic[_T]):
-    """A synchrounous ring channel with a limited size that allows users to keep the last N data."""
-
+    """A synchronous ring channel with a limited size that allows users to keep the last N data items.
+    
+    RingChannel implements FIFO semantics with a dropping strategy when full.
+    When the channel reaches its capacity, the oldest elements are dropped to
+    make room for newer ones, ensuring that only the most recent data is kept.
+    
+    This makes RingChannel ideal for applications that need to maintain a
+    sliding window of recent data without blocking the producer.
+    
+    For applications where data loss is unacceptable and blocking is preferable
+    to dropping old samples, consider using :class:`FifoChannel` instead.
+    
+    For more information about channels and callbacks, see
+    :ref:`channels-and-callbacks`.
+    
+    Args:
+        capacity: The maximum number of items the channel can hold.
+    """
     def __new__(cls, capacity: int) -> Self: ...
 
 @final
