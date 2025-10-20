@@ -381,35 +381,135 @@ appears or when the last one disappears.
 Channels and callbacks
 ----------------------
 
-There are two ways to receive sequential data from Zenoh primitives (for
+There are three ways to receive sequential data from Zenoh primitives (for
 example, a series of :class:`zenoh.Sample` objects from a
 :class:`zenoh.Subscriber` or :class:`zenoh.Reply` objects from a
-:class:`zenoh.Query`): by channel or by callback.
+:class:`zenoh.Query`): by channel, by callback, or with a custom handler.
 
 This behavior is controlled by the ``handler`` parameter of the declare
 methods (for example, :meth:`zenoh.Session.declare_subscriber` and
-:meth:`zenoh.Session.declare_querier`). The parameter can be either a callable
-(a function or a method) or a channel type (blocking
-:class:`zenoh.FifoChannel` or non-blocking :class:`zenoh.RingChannel`). By
-default, the ``handler`` parameter is set to :class:`zenoh.FifoChannel`.
+:meth:`zenoh.Session.declare_querier`). By default, the ``handler`` parameter
+is set to ``None``, which uses :class:`zenoh.handlers.DefaultHandler` (a FIFO channel).
 
-When constructed with a channel, the returned object is iterable and can be
+Handler modes
+^^^^^^^^^^^^^
+
+**1. Channel (default or explicit)**
+
+Pass a channel type: :class:`zenoh.handlers.FifoChannel` or :class:`zenoh.handlers.RingChannel`,
+or use the default by passing ``None``.
+
+The returned object (e.g., :class:`zenoh.Subscriber`) wraps a :class:`zenoh.handlers.Handler`
+that is accessible via the ``.handler`` property. The subscriber is iterable and can be
 used in a ``for`` loop to receive data sequentially. It also provides explicit
 methods such as :meth:`zenoh.Subscriber.recv` to wait for data and
-:meth:`zenoh.Subscriber.try_recv` to attempt a non-blocking receive. The
-subscriber (or queryable) is stopped when the object goes out of scope or when
-:meth:`zenoh.Subscriber.undeclare` is called.
+:meth:`zenoh.Subscriber.try_recv` to attempt a non-blocking receive.
 
-When constructed with a callback, the returned object is not iterable. The
-callable is invoked for each received :class:`zenoh.Sample` or
-:class:`zenoh.Reply`. With a callback the object is started in "background"
-mode, which means the subscriber or queryable remains active even if the
-returned object goes out of scope. This allows declaring a subscriber or
-queryable without managing the returned object's lifetime.
+The subscriber (or queryable) is automatically undeclared when the object goes out of
+scope or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
+
+.. code-block:: python
+
+    # Default channel (FifoChannel)
+    subscriber = session.declare_subscriber("key/expr")
+    for sample in subscriber:
+        print(sample.payload.to_string())
+
+    # Explicit channel with custom capacity
+    subscriber = session.declare_subscriber("key/expr", zenoh.handlers.FifoChannel(100))
+    sample = subscriber.try_recv()
+
+**2. Callback (background mode)**
+
+Pass a callable (a function or a method).
+
+The callable is invoked for each received :class:`zenoh.Sample` or
+:class:`zenoh.Reply`. The subscriber runs in **background mode**, which means
+it remains active even if the returned object goes out of scope. This allows
+declaring a subscriber without managing the returned object's lifetime.
+
+The returned subscriber is of type :class:`Subscriber[None]` and does not support
+``recv()``, ``try_recv()``, or iteration (the ``.handler`` property is ``None``).
+
+.. code-block:: python
+
+    def on_sample(sample):
+        print(sample.payload.to_string())
+
+    # Subscriber runs in background mode
+    subscriber = session.declare_subscriber("key/expr", on_sample)
+    # subscriber.recv() would fail - no handler available
 
 For more advanced callback handling, you can use :class:`zenoh.handlers.Callback`
 to create a callback handler with cleanup functionality and
 configurable execution mode (direct or indirect).
+
+.. code-block:: python
+
+    def on_sample(sample):
+        print(sample.payload.to_string())
+
+    def on_cleanup():
+        print("Subscriber undeclared")
+
+    callback = zenoh.handlers.Callback(on_sample, drop=on_cleanup, indirect=True)
+    subscriber = session.declare_subscriber("key/expr", callback)
+
+**3. Custom handler (tuple form)**
+
+Pass a tuple ``(callback, handler)`` where ``callback`` is a callable and ``handler``
+is any Python object.
+
+The callback is invoked for each received item, and the handler object is stored
+and accessible via the ``.handler`` property of the returned subscriber. The subscriber
+is of type :class:`Subscriber[YourHandlerType]`.
+
+Unlike the callback-only mode, the subscriber is **not in background mode** and will
+be undeclared when it goes out of scope.
+
+If your custom handler object implements ``recv()`` and/or ``try_recv()`` methods,
+you can call these methods on the subscriber itself (they will be delegated to your
+handler object). However, note that type checkers may not recognize these methods
+unless you use type annotations or ``# type: ignore`` comments.
+
+.. code-block:: python
+
+    class MyHandler:
+        def __init__(self):
+            self.samples = []
+
+        def try_recv(self):
+            return self.samples.pop(0) if self.samples else None
+
+    def on_sample(sample):
+        # Store sample in the custom handler
+        my_handler.samples.append(sample)
+
+    my_handler = MyHandler()
+    subscriber = session.declare_subscriber("key/expr", (on_sample, my_handler))
+
+    # Access handler directly
+    sample = subscriber.handler.try_recv()
+
+    # Or call on subscriber (works at runtime, but type checkers may complain)
+    sample = subscriber.try_recv()  # type: ignore
+
+Comparison table
+^^^^^^^^^^^^^^^^
+
++------------------+------------------------+------------------+---------------------+-----------------------+
+| Handler Type     | Background Mode        | Returned Type    | recv/try_recv       | Undeclared When       |
++==================+========================+==================+=====================+=======================+
+| Channel (default)| No                     | Subscriber       | Yes (via Handler)   | Object out of scope   |
+|                  |                        | [Handler[Sample]]|                     |                       |
++------------------+------------------------+------------------+---------------------+-----------------------+
+| Callback         | Yes                    | Subscriber[None] | No                  | Explicit undeclare or |
+|                  |                        |                  |                     | session close         |
++------------------+------------------------+------------------+---------------------+-----------------------+
+| Tuple            | No                     | Subscriber[H]    | Optional (if H has  | Object out of scope   |
+| (callback, H)    |                        | where H is your  | these methods)      |                       |
+|                  |                        | handler type     |                     |                       |
++------------------+------------------------+------------------+---------------------+-----------------------+
 
 The following examples demonstrate both approaches using queryables and get operations:
 
