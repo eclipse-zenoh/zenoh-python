@@ -528,58 +528,17 @@ or access the handler directly to avoid type checker warnings.
 
 **Example: Custom handler with in-memory storage**
 
-.. code-block:: python
+.. literalinclude:: examples/custom_handler.py
+   :language: python
+   :start-after: [custom_handler]
+   :end-before: # [custom_handler]
 
-    class CustomHandler:
-        def __init__(self, max_size=100):
-            self.samples = []
-            self.max_size = max_size
+Using the custom handler:
 
-        def try_recv(self):
-            """Non-blocking receive"""
-            return self.samples.pop(0) if self.samples else None
-
-        def recv(self):
-            """Blocking receive"""
-            import time
-            while not self.samples:
-                time.sleep(0.01)
-            return self.samples.pop(0)
-
-        def __iter__(self):
-            return self
-
-        def __next__(self):
-            sample = self.recv()
-            if sample is None:
-                raise StopIteration
-            return sample
-
-        def add_sample(self, sample):
-            """Called by the callback to store samples"""
-            self.samples.append(sample)
-            # Maintain max size
-            if len(self.samples) > self.max_size:
-                self.samples.pop(0)
-
-    def on_sample(sample):
-        # Store sample in the custom handler
-        my_handler.add_sample(sample)
-
-    my_handler = CustomHandler(max_size=50)
-    subscriber = session.declare_subscriber("key/expr", (on_sample, my_handler))
-
-    # Access handler directly (type-safe)
-    sample = subscriber.handler.try_recv()
-
-    # Or call on subscriber (works at runtime, but type checker may complain)
-    sample = subscriber.recv()  # type: ignore
-
-    # Iteration works too
-    for sample in subscriber:  # type: ignore
-        print(sample.payload.to_string())
-        if some_condition:
-            break
+.. literalinclude:: examples/custom_handler.py
+   :language: python
+   :start-after: [custom_handler_usage]
+   :end-before: # [custom_handler_usage]
 
 **Use cases for custom handlers**
 
