@@ -381,55 +381,49 @@ appears or when the last one disappears.
 Channels and callbacks
 ----------------------
 
-There are three ways to receive sequential data from Zenoh primitives (for
+There are two ways to receive sequential data from Zenoh primitives (for
 example, a series of :class:`zenoh.Sample` objects from a
 :class:`zenoh.Subscriber` or :class:`zenoh.Reply` objects from a
-:class:`zenoh.Query`): by channel, by callback, or with a custom handler.
+:class:`zenoh.Query`): by channel or by callback.
 
 This behavior is controlled by the ``handler`` parameter of the declare
 methods (for example, :meth:`zenoh.Session.declare_subscriber` and
-:meth:`zenoh.Session.declare_querier`). By default, the ``handler`` parameter
-is set to ``None``, which uses :class:`zenoh.handlers.DefaultHandler` (a FIFO channel).
+:meth:`zenoh.Session.declare_querier`). The parameter can be either a callable
+(a function or a method) or a channel type (blocking
+:class:`zenoh.handlers.FifoChannel` or non-blocking :class:`zenoh.handlers.RingChannel`).
+By default, the ``handler`` parameter is ``None``, which uses
+:class:`zenoh.handlers.DefaultHandler` (a FIFO channel with default capacity).
 
-Handler modes
-^^^^^^^^^^^^^
+**Using channels**
 
-**1. Channel (default or explicit)**
-
-Pass a channel type: :class:`zenoh.handlers.FifoChannel` or :class:`zenoh.handlers.RingChannel`,
-or use the default by passing ``None``.
-
-The returned object (e.g., :class:`zenoh.Subscriber`) wraps a :class:`zenoh.handlers.Handler`
-that is accessible via the ``.handler`` property. The subscriber is iterable and can be
-used in a ``for`` loop to receive data sequentially. It also provides explicit
+When constructed with a channel (or using the default), the returned object is iterable
+and can be used in a ``for`` loop to receive data sequentially. It also provides explicit
 methods such as :meth:`zenoh.Subscriber.recv` to wait for data and
-:meth:`zenoh.Subscriber.try_recv` to attempt a non-blocking receive.
-
-The subscriber (or queryable) is automatically undeclared when the object goes out of
-scope or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
+:meth:`zenoh.Subscriber.try_recv` to attempt a non-blocking receive. The
+subscriber (or queryable) is automatically undeclared when the object goes out of scope
+or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
 
 .. code-block:: python
 
-    # Default channel (FifoChannel)
+    # Default channel
     subscriber = session.declare_subscriber("key/expr")
     for sample in subscriber:
         print(sample.payload.to_string())
 
-    # Explicit channel with custom capacity
+    # Explicit FIFO channel with custom capacity
     subscriber = session.declare_subscriber("key/expr", zenoh.handlers.FifoChannel(100))
     sample = subscriber.try_recv()
 
-**2. Callback (background mode)**
+    # Ring channel (drops oldest when full)
+    subscriber = session.declare_subscriber("key/expr", zenoh.handlers.RingChannel(50))
 
-Pass a callable (a function or a method).
+**Using callbacks**
 
-The callable is invoked for each received :class:`zenoh.Sample` or
-:class:`zenoh.Reply`. The subscriber runs in **background mode**, which means
-it remains active even if the returned object goes out of scope. This allows
-declaring a subscriber without managing the returned object's lifetime.
-
-The returned subscriber is of type :class:`Subscriber[None]` and does not support
-``recv()``, ``try_recv()``, or iteration (the ``.handler`` property is ``None``).
+When constructed with a callback, the callable is invoked for each received
+:class:`zenoh.Sample` or :class:`zenoh.Reply`. The subscriber runs in
+**background mode**, which means it remains active even if the returned object
+goes out of scope. This allows declaring a subscriber without managing the
+returned object's lifetime.
 
 .. code-block:: python
 
@@ -438,7 +432,7 @@ The returned subscriber is of type :class:`Subscriber[None]` and does not suppor
 
     # Subscriber runs in background mode
     subscriber = session.declare_subscriber("key/expr", on_sample)
-    # subscriber.recv() would fail - no handler available
+    # The subscriber remains active even if 'subscriber' variable is not used
 
 For more advanced callback handling, you can use :class:`zenoh.handlers.Callback`
 to create a callback handler with cleanup functionality and
@@ -454,62 +448,6 @@ configurable execution mode (direct or indirect).
 
     callback = zenoh.handlers.Callback(on_sample, drop=on_cleanup, indirect=True)
     subscriber = session.declare_subscriber("key/expr", callback)
-
-**3. Custom handler (tuple form)**
-
-Pass a tuple ``(callback, handler)`` where ``callback`` is a callable and ``handler``
-is any Python object.
-
-The callback is invoked for each received item, and the handler object is stored
-and accessible via the ``.handler`` property of the returned subscriber. The subscriber
-is of type :class:`Subscriber[YourHandlerType]`.
-
-Unlike the callback-only mode, the subscriber is **not in background mode** and will
-be undeclared when it goes out of scope.
-
-If your custom handler object implements ``recv()`` and/or ``try_recv()`` methods,
-you can call these methods on the subscriber itself (they will be delegated to your
-handler object). However, note that type checkers may not recognize these methods
-unless you use type annotations or ``# type: ignore`` comments.
-
-.. code-block:: python
-
-    class MyHandler:
-        def __init__(self):
-            self.samples = []
-
-        def try_recv(self):
-            return self.samples.pop(0) if self.samples else None
-
-    def on_sample(sample):
-        # Store sample in the custom handler
-        my_handler.samples.append(sample)
-
-    my_handler = MyHandler()
-    subscriber = session.declare_subscriber("key/expr", (on_sample, my_handler))
-
-    # Access handler directly
-    sample = subscriber.handler.try_recv()
-
-    # Or call on subscriber (works at runtime, but type checkers may complain)
-    sample = subscriber.try_recv()  # type: ignore
-
-Comparison table
-^^^^^^^^^^^^^^^^
-
-+------------------+------------------------+------------------+---------------------+-----------------------+
-| Handler Type     | Background Mode        | Returned Type    | recv/try_recv       | Undeclared When       |
-+==================+========================+==================+=====================+=======================+
-| Channel (default)| No                     | Subscriber       | Yes (via Handler)   | Object out of scope   |
-|                  |                        | [Handler[Sample]]|                     |                       |
-+------------------+------------------------+------------------+---------------------+-----------------------+
-| Callback         | Yes                    | Subscriber[None] | No                  | Explicit undeclare or |
-|                  |                        |                  |                     | session close         |
-+------------------+------------------------+------------------+---------------------+-----------------------+
-| Tuple            | No                     | Subscriber[H]    | Optional (if H has  | Object out of scope   |
-| (callback, H)    |                        | where H is your  | these methods)      |                       |
-|                  |                        | handler type     |                     |                       |
-+------------------+------------------------+------------------+---------------------+-----------------------+
 
 The following examples demonstrate both approaches using queryables and get operations:
 
@@ -554,3 +492,117 @@ Get with callback:
    :language: python
    :start-after: [get_callback]
    :end-before: # [get_callback]
+
+Custom handlers
+^^^^^^^^^^^^^^^
+
+For advanced use cases, you can implement your own custom handler in Python using
+the tuple form ``(callback, handler)`` where ``callback`` is a callable and ``handler``
+is your custom Python object.
+
+The callback is invoked for each received item, and the handler object is stored
+and accessible via the ``.handler`` property of the returned subscriber. Unlike
+the callback-only mode, the subscriber is **not in background mode** and will be
+automatically undeclared when it goes out of scope.
+
+**Implementing a custom handler**
+
+Your custom handler can implement any of the following methods to provide
+channel-like behavior:
+
+- ``recv()`` - blocking receive
+- ``try_recv()`` - non-blocking receive, returns ``None`` if no data available
+- ``__iter__()`` and ``__next__()`` - iteration support
+
+If your handler implements these methods, you can call them either directly
+on the handler (via ``subscriber.handler.recv()``) or on the subscriber itself
+(via ``subscriber.recv()``), as the subscriber will delegate these calls to your handler.
+
+**Important note about type checking:**
+
+When using custom handlers, type checkers may not recognize methods like ``recv()``
+and ``try_recv()`` on the subscriber object, because the type stubs only declare
+these methods for ``Subscriber[Handler[Sample]]``. At runtime, the methods work
+correctly through duck typing, but you may need to use ``# type: ignore`` comments
+or access the handler directly to avoid type checker warnings.
+
+**Example: Custom handler with in-memory storage**
+
+.. code-block:: python
+
+    class CustomHandler:
+        def __init__(self, max_size=100):
+            self.samples = []
+            self.max_size = max_size
+
+        def try_recv(self):
+            """Non-blocking receive"""
+            return self.samples.pop(0) if self.samples else None
+
+        def recv(self):
+            """Blocking receive"""
+            import time
+            while not self.samples:
+                time.sleep(0.01)
+            return self.samples.pop(0)
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            sample = self.recv()
+            if sample is None:
+                raise StopIteration
+            return sample
+
+        def add_sample(self, sample):
+            """Called by the callback to store samples"""
+            self.samples.append(sample)
+            # Maintain max size
+            if len(self.samples) > self.max_size:
+                self.samples.pop(0)
+
+    def on_sample(sample):
+        # Store sample in the custom handler
+        my_handler.add_sample(sample)
+
+    my_handler = CustomHandler(max_size=50)
+    subscriber = session.declare_subscriber("key/expr", (on_sample, my_handler))
+
+    # Access handler directly (type-safe)
+    sample = subscriber.handler.try_recv()
+
+    # Or call on subscriber (works at runtime, but type checker may complain)
+    sample = subscriber.recv()  # type: ignore
+
+    # Iteration works too
+    for sample in subscriber:  # type: ignore
+        print(sample.payload.to_string())
+        if some_condition:
+            break
+
+**Use cases for custom handlers**
+
+Custom handlers are useful when you need:
+
+- Custom buffering strategies (e.g., priority queues, circular buffers)
+- Integration with existing data structures or frameworks
+- Special handling based on sample metadata or content
+- Combined storage and processing logic
+- Statistics collection or monitoring alongside data reception
+
+**Comparison of handler types**
+
++------------------+------------------------+------------------+---------------------+-----------------------+
+| Handler Type     | Background Mode        | Returned Type    | recv/try_recv       | Undeclared When       |
++==================+========================+==================+=====================+=======================+
+| Channel (default)| No                     | Subscriber       | Yes (via Handler)   | Object out of scope   |
+|                  |                        | [Handler[Sample]]|                     |                       |
++------------------+------------------------+------------------+---------------------+-----------------------+
+| Callback         | Yes                    | Subscriber[None] | No                  | Explicit undeclare or |
+|                  |                        |                  |                     | session close         |
++------------------+------------------------+------------------+---------------------+-----------------------+
+| Custom handler   | No                     | Subscriber[H]    | Optional (if H has  | Object out of scope   |
+| (callback, H)    |                        | where H is your  | these methods)      |                       |
+|                  |                        | handler type     |                     |                       |
++------------------+------------------------+------------------+---------------------+-----------------------+
