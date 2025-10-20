@@ -407,6 +407,10 @@ mode, which means the subscriber or queryable remains active even if the
 returned object goes out of scope. This allows declaring a subscriber or
 queryable without managing the returned object's lifetime.
 
+For more advanced callback handling, you can use :class:`zenoh.handlers.Callback`
+to create a callback handler with cleanup functionality and
+configurable execution mode (direct or indirect).
+
 The following examples demonstrate both approaches using queryables and get operations:
 
 **Example 1: Queryable with callback, Get with channel**

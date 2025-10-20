@@ -45,6 +45,29 @@ class RingChannel(Generic[_T]):
 
 @final
 class Callback(Generic[_T]):
+    """A callback handler that invokes a user-defined function for each received item.
+    
+    The Callback class provides a way to handle asynchronous data reception by
+    calling a user-provided callback function for each item received. It can also
+    optionally call a drop function when the callback handler is stopped or goes
+    out of scope.
+    
+    This handler runs in background mode, meaning the associated Zenoh primitive
+    (subscriber, querier, etc.) remains active even if the Callback object goes
+    out of scope. For more information about channels and callbacks, see
+    :ref:`channels-and-callbacks`.
+    
+    Args:
+        callback: A callable that will be invoked for each received item.
+        drop: An optional callable that will be invoked when the callback handler
+            is stopped or destroyed.
+        indirect: Controls the threading behavior of callback execution. If True
+            (default), the callback is executed in a separate Python thread,
+            allowing for long-running callbacks without blocking Zenoh's internal
+            processing. If False, the callback is executed directly in the same
+            thread that receives the data, which is more efficient but requires
+            callbacks to complete quickly to avoid blocking.
+    """
     def __new__(
         cls,
         callback: Callable[[_T], Any],
