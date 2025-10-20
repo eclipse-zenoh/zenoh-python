@@ -46,25 +46,30 @@ class RingChannel(Generic[_T]):
 @final
 class Callback(Generic[_T]):
     """A callback handler that invokes a user-defined function for each received item.
-    
-    The Callback class provides a way to handle asynchronous data reception by
+
+    The `Callback` class provides a way to handle asynchronous data reception by
     calling a user-provided callback function for each item received. It can also
-    optionally call a drop function when the callback handler is stopped or goes
-    out of scope.
+    optionally call a drop function when the associated Zenoh primitive
+    (:class:`zenoh.Subscriber`, :class:`zenoh.Querier`, etc.) is undeclared.
     
-    This handler runs in background mode, meaning the associated Zenoh primitive
-    (subscriber, querier, etc.) remains active even if the Callback object goes
-    out of scope. For more information about channels and callbacks, see
+    When a `Callback` handler is used, the associated Zenoh primitive runs in
+    background mode, meaning the callback continues to execute even if the object
+    goes out of scope. For more information about channels and callbacks, see
     :ref:`channels-and-callbacks`.
     
     Args:
-        callback: A callable that will be invoked for each received item.
-        drop: An optional callable that will be invoked when the callback handler
-            is stopped or destroyed.
-        indirect: Controls the threading behavior of callback execution. If True
+        callback: 
+            A callable that will be invoked for each received item.
+        
+        drop: 
+            An optional callable that will be invoked when the associated Zenoh
+            primitive is undeclared and the callback handler is being cleaned up.
+            
+        indirect: 
+            Controls the threading behavior of callback execution. If `True`
             (default), the callback is executed in a separate Python thread,
             allowing for long-running callbacks without blocking Zenoh's internal
-            processing. If False, the callback is executed directly in the same
+            processing. If `False`, the callback is executed directly in the same
             thread that receives the data, which is more efficient but requires
             callbacks to complete quickly to avoid blocking.
     """
