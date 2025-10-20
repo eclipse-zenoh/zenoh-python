@@ -20,22 +20,22 @@ _T = TypeVar("_T")
 class Handler(Generic[_T]):
     """Provides access to received Zenoh data.
     
-    Handler instances are returned by Zenoh operations that receive data asynchronously.
+    `Handler` instances are returned by Zenoh operations that receive data asynchronously.
     Each instance provides methods to access the received data items of type ``_T``.
     
-    Handler serves as a common interface for different channel implementations:
+    `Handler` serves as a common interface for different channel implementations:
     :class:`DefaultHandler`, :class:`FifoChannel`, and :class:`RingChannel`.
-    Regardless of which channel type is used, Handler provides the same methods
+    Regardless of which channel type is used, `Handler` provides the same methods
     for data access.
     
-    Handler instances are returned by several Zenoh operations:
+    `Handler` instances are returned by several Zenoh operations:
     
-    - :meth:`zenoh.Session.get` returns ``Handler[Reply]`` for accessing query replies
-    - :meth:`zenoh.Querier.get` returns ``Handler[Reply]`` for accessing querier replies
-    - :meth:`zenoh.Session.declare_subscriber` returns ``Subscriber[Handler[Sample]]``
+    - :meth:`zenoh.Session.get` returns `Handler[Reply]` for accessing query replies
+    - :meth:`zenoh.Querier.get` returns `Handler[Reply]` for accessing querier replies
+    - :meth:`zenoh.Session.declare_subscriber` returns `Subscriber[Handler[Sample]]`
       for accessing received samples
     
-    Handler provides both blocking and non-blocking methods to receive data,
+    `Handler` provides both blocking and non-blocking methods to receive data,
     as well as iteration support. The underlying implementation determines the
     specific behavior (FIFO blocking, ring buffer dropping, etc.).
     """
@@ -65,7 +65,7 @@ class Handler(Generic[_T]):
 class DefaultHandler(Generic[_T]):
     """The default handler type used by Zenoh when no explicit handler is provided.
     
-    DefaultHandler serves as an opaque wrapper around :class:`FifoChannel` with default
+    `DefaultHandler` serves as an opaque wrapper around :class:`FifoChannel` with default
     settings. When no channel or callback is specified for subscribers or queries,
     Zenoh automatically uses this handler.
     
@@ -83,7 +83,7 @@ class DefaultHandler(Generic[_T]):
 class FifoChannel(Generic[_T]):
     """A handler implementing FIFO semantics.
     
-    FifoChannel provides a bounded FIFO (First-In-First-Out) queue for handling
+    `FifoChannel` provides a bounded FIFO (First-In-First-Out) queue for handling
     received data. When the channel reaches its capacity, pushing additional
     items will block until space becomes available.
     
@@ -104,11 +104,11 @@ class FifoChannel(Generic[_T]):
 class RingChannel(Generic[_T]):
     """A synchronous ring channel with a limited size that allows users to keep the last N data items.
     
-    RingChannel implements FIFO semantics with a dropping strategy when full.
+    `RingChannel` implements FIFO semantics with a dropping strategy when full.
     When the channel reaches its capacity, the oldest elements are dropped to
     make room for newer ones, ensuring that only the most recent data is kept.
     
-    This makes RingChannel ideal for applications that need to maintain a
+    This makes `RingChannel` ideal for applications that need to maintain a
     sliding window of recent data without blocking the producer.
     
     For applications where data loss is unacceptable and blocking is preferable
