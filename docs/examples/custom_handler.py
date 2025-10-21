@@ -93,17 +93,17 @@ def create_custom_channel(
 # [custom_channel_usage]
 subscriber = session.declare_subscriber("key/expression", create_custom_channel(max_size=50))
 # Subscriber delegates to handler's recv() method via duck typing
-sample = subscriber.recv()  # type: ignore[var-annotated]
+sample = subscriber.recv() # type: ignore[misc]
 print(f">> Received via subscriber.recv(): {sample.payload.to_string()}")
 
-sample = subscriber.try_recv()
+sample = subscriber.try_recv() # type: ignore[misc, assignment]
 if sample:
     print(f">> Received via handler.try_recv(): {sample.payload.to_string()}")
 
 # Iteration also works (demonstrates __iter__ and __next__)
 print(">> Reading remaining samples via iteration:")
 count = 0
-for sample in subscriber:
+for sample in subscriber: # type: ignore[misc]
     print(f"   - {sample.payload.to_string()}")
     count += 1
     # Break after reading a few samples to avoid blocking
