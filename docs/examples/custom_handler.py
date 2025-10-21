@@ -40,16 +40,20 @@ class CustomChannel:
         self.samples = []
         self.max_size = max_size
         self.received_count = 0
+        self.lock = threading.Lock()
+        self.condition = threading.Condition(self.lock)
 
     def try_recv(self):
         """Non-blocking receive"""
-        return self.samples.pop(0) if self.samples else None
+        with self.lock:
+            return self.samples.pop(0) if self.samples else None
 
     def recv(self):
         """Blocking receive"""
-        while not self.samples:
-            time.sleep(0.01)
-        return self.samples.pop(0)
+        with self.condition:
+            while not self.samples:
+                self.condition.wait()
+            return self.samples.pop(0)
 
     def __iter__(self):
         return self
@@ -62,11 +66,14 @@ class CustomChannel:
 
     def add_sample(self, sample):
         """Called by the callback to store samples"""
-        self.samples.append(sample)
-        self.received_count += 1
-        # Maintain max size
-        if len(self.samples) > self.max_size:
-            self.samples.pop(0)
+        with self.condition:
+            self.samples.append(sample)
+            self.received_count += 1
+            # Maintain max size
+            if len(self.samples) > self.max_size:
+                self.samples.pop(0)
+            # Notify one waiting thread that a sample is available
+            self.condition.notify()
 
 
 def create_custom_channel(
