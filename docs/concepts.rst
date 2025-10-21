@@ -520,11 +520,27 @@ on the handler (via ``subscriber.handler.recv()``) or on the subscriber itself
 
 **Important note about type checking:**
 
-When using custom handlers, type checkers may not recognize methods like ``recv()``
-and ``try_recv()`` on the subscriber object, because the type stubs only declare
-these methods for ``Subscriber[Handler[Sample]]``. At runtime, the methods work
-correctly through duck typing, but you may need to use ``# type: ignore`` comments
-or access the handler directly to avoid type checker warnings.
+When using custom handlers, type checkers like mypy may not recognize methods like ``recv()``,
+``try_recv()``, and ``__iter__()`` on the subscriber object, because the type stubs only declare
+these methods for ``Subscriber[Handler[Sample]]``. At runtime, the methods work correctly through
+duck typing (the subscriber delegates to the handler), but you may need to use
+``# type: ignore[misc]`` comments to suppress type checker warnings.
+
+python -m mypy docs/examples/custom_handler.py
+
+The ``# type: ignore`` directive is a standard Python type hint (PEP 484) that tells static
+type checkers to skip type checking for that specific line. It only affects type checkers
+and is completely ignored by the Python interpreter at runtime.
+
+You have two options to handle this:
+
+1. **Use type ignore comments**: Add ``# type: ignore[misc]`` when calling methods on the subscriber::
+
+    sample = subscriber.recv()  # type: ignore[misc]
+
+2. **Access the handler directly**: Call methods directly on the handler (fully type-safe)::
+
+    sample = subscriber.handler.recv()  # No type ignore needed
 
 **Example: Custom channel with in-memory storage**
 

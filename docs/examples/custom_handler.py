@@ -13,6 +13,7 @@
 #
 import threading
 import time
+from typing import Callable
 
 import zenoh
 
@@ -68,11 +69,13 @@ class CustomChannel:
             self.samples.pop(0)
 
 
-def create_custom_channel(max_size=100):
+def create_custom_channel(
+    max_size: int = 100,
+) -> tuple[Callable[[zenoh.Sample], None], CustomChannel]:
     """Factory function that returns (callback, handler) pair"""
     channel = CustomChannel(max_size)
 
-    def on_sample(sample):
+    def on_sample(sample: zenoh.Sample) -> None:
         # Store sample in the custom channel
         channel.add_sample(sample)
 
@@ -83,9 +86,9 @@ def create_custom_channel(max_size=100):
 
 # [custom_channel_usage]
 subscriber = session.declare_subscriber("key/expression", create_custom_channel(max_size=50))
-sample = subscriber.recv()  # type: ignore
+# Subscriber delegates to handler's recv() method via duck typing
+sample = subscriber.recv()  # type: ignore[var-annotated]
 print(f">> Received via subscriber.recv(): {sample.payload.to_string()}")
-
 
 sample = subscriber.handler.try_recv()
 if sample:
@@ -94,7 +97,7 @@ if sample:
 # Iteration also works (demonstrates __iter__ and __next__)
 print(">> Reading remaining samples via iteration:")
 count = 0
-for sample in subscriber:  # type: ignore
+for sample in subscriber:
     print(f"   - {sample.payload.to_string()}")
     count += 1
     # Break after reading a few samples to avoid blocking
