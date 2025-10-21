@@ -27,7 +27,6 @@ def send_data():
     time.sleep(0.1)
     for i in range(5):
         session.put("key/expression", f"sample_{i}")
-        time.sleep(0.05)
 
 
 threading.Thread(target=send_data, daemon=True).start()
