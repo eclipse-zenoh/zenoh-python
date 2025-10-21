@@ -526,16 +526,16 @@ these methods for ``Subscriber[Handler[Sample]]``. At runtime, the methods work
 correctly through duck typing, but you may need to use ``# type: ignore`` comments
 or access the handler directly to avoid type checker warnings.
 
-**Example: Custom handler with in-memory storage**
+**Example: Custom channel with in-memory storage**
 
 .. literalinclude:: examples/custom_handler.py
    :language: python
-   :start-after: [custom_handler]
-   :end-before: # [custom_handler]
+   :start-after: [custom_channel]
+   :end-before: # [custom_channel]
 
-Using the custom handler:
+Using the custom channel:
 
 .. literalinclude:: examples/custom_handler.py
    :language: python
-   :start-after: [custom_handler_usage]
-   :end-before: # [custom_handler_usage]
+   :start-after: [custom_channel_usage]
+   :end-before: # [custom_channel_usage]

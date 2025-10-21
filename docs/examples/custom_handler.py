@@ -31,10 +31,10 @@ def send_data():
 
 threading.Thread(target=send_data, daemon=True).start()
 
-# [custom_handler]
+# [custom_channel]
 
 
-class CustomHandler:
+class CustomChannel:
     def __init__(self, max_size=100):
         self.samples = []
         self.max_size = max_size
@@ -68,27 +68,28 @@ class CustomHandler:
             self.samples.pop(0)
 
 
-def on_sample(sample):
-    # Store sample in the custom handler
-    my_handler.add_sample(sample)
+def create_custom_channel(max_size=100):
+    """Factory function that returns (callback, handler) pair"""
+    channel = CustomChannel(max_size)
+
+    def on_sample(sample):
+        # Store sample in the custom channel
+        channel.add_sample(sample)
+
+    return (on_sample, channel)
 
 
-my_handler = CustomHandler(max_size=50)
-subscriber = session.declare_subscriber("key/expression", (on_sample, my_handler))
-# [custom_handler]
+# [custom_channel]
 
-# Wait for samples to arrive
-time.sleep(0.5)
+# [custom_channel_usage]
+subscriber = session.declare_subscriber("key/expression", create_custom_channel(max_size=50))
+sample = subscriber.recv()  # type: ignore
+print(f">> Received via subscriber.recv(): {sample.payload.to_string()}")
 
-# [custom_handler_usage]
-# Access handler directly (type-safe)
+
 sample = subscriber.handler.try_recv()
 if sample:
     print(f">> Received via handler.try_recv(): {sample.payload.to_string()}")
-
-# Or call on subscriber (works at runtime, but type checker may complain)
-sample = subscriber.recv()  # type: ignore
-print(f">> Received via subscriber.recv(): {sample.payload.to_string()}")
 
 # Iteration also works (demonstrates __iter__ and __next__)
 print(">> Reading remaining samples via iteration:")
@@ -102,13 +103,13 @@ for sample in subscriber:  # type: ignore
 
 # Check statistics
 print(f">> Total received: {subscriber.handler.received_count}")
-# [custom_handler_usage]
+# [custom_channel_usage]
 
 # Verify
-assert my_handler.received_count >= 4
+assert subscriber.handler.received_count >= 4
 # We consumed 4 samples (1 via try_recv, 1 via recv, 2 via iteration)
 # so should have 1 remaining
-remaining = my_handler.try_recv()
+remaining = subscriber.handler.try_recv()
 assert remaining is not None
 print(f">> Remaining sample: {remaining.payload.to_string()}")
 
