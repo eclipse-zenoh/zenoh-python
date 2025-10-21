@@ -539,29 +539,3 @@ Using the custom handler:
    :language: python
    :start-after: [custom_handler_usage]
    :end-before: # [custom_handler_usage]
-
-**Use cases for custom handlers**
-
-Custom handlers are useful when you need:
-
-- Custom buffering strategies (e.g., priority queues, circular buffers)
-- Integration with existing data structures or frameworks
-- Special handling based on sample metadata or content
-- Combined storage and processing logic
-- Statistics collection or monitoring alongside data reception
-
-**Comparison of handler types**
-
-+------------------+------------------------+------------------+---------------------+-----------------------+
-| Handler Type     | Background Mode        | Returned Type    | recv/try_recv       | Undeclared When       |
-+==================+========================+==================+=====================+=======================+
-| Channel (default)| No                     | Subscriber       | Yes (via Handler)   | Object out of scope   |
-|                  |                        | [Handler[Sample]]|                     |                       |
-+------------------+------------------------+------------------+---------------------+-----------------------+
-| Callback         | Yes                    | Subscriber[None] | No                  | Explicit undeclare or |
-|                  |                        |                  |                     | session close         |
-+------------------+------------------------+------------------+---------------------+-----------------------+
-| Custom handler   | No                     | Subscriber[H]    | Optional (if H has  | Object out of scope   |
-| (callback, H)    |                        | where H is your  | these methods)      |                       |
-|                  |                        | handler type     |                     |                       |
-+------------------+------------------------+------------------+---------------------+-----------------------+

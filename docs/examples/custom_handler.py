@@ -90,13 +90,27 @@ if sample:
 sample = subscriber.recv()  # type: ignore
 print(f">> Received via subscriber.recv(): {sample.payload.to_string()}")
 
+# Iteration also works (demonstrates __iter__ and __next__)
+print(">> Reading remaining samples via iteration:")
+count = 0
+for sample in subscriber:  # type: ignore
+    print(f"   - {sample.payload.to_string()}")
+    count += 1
+    # Break after reading a few samples to avoid blocking
+    if count >= 2:
+        break
+
 # Check statistics
 print(f">> Total received: {subscriber.handler.received_count}")
 # [custom_handler_usage]
 
 # Verify
-assert my_handler.received_count >= 2
-assert my_handler.try_recv() is not None
+assert my_handler.received_count >= 4
+# We consumed 4 samples (1 via try_recv, 1 via recv, 2 via iteration)
+# so should have 1 remaining
+remaining = my_handler.try_recv()
+assert remaining is not None
+print(f">> Remaining sample: {remaining.payload.to_string()}")
 
 # Clean up
 subscriber.undeclare()

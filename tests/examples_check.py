@@ -26,12 +26,13 @@ ret = "\r\n"
 
 
 class Pyrun(fixtures.Fixture):
-    def __init__(self, p, args=None, basedir=None) -> None:
+    def __init__(self, p, args=None, basedir=None, timeout=30) -> None:
         if args is None:
             args = []
         if basedir is None:
             basedir = examples
         self.name = p
+        self.timeout = timeout
         print(f"starting {self.name}")
         self.process: Popen = Popen(
             ["python3", path.join(basedir, p), *args],
@@ -65,7 +66,7 @@ class Pyrun(fixtures.Fixture):
 
     def wait(self):
         try:
-            code = self.process.wait(timeout=10)
+            code = self.process.wait(timeout=self.timeout)
         except TimeoutExpired:
             self.process.send_signal(SIGINT)
             code = self.process.wait(timeout=10)

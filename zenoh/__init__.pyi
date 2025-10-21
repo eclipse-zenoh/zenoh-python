@@ -1895,7 +1895,7 @@ or by letting the :class:`zenoh.Scout` object go out of scope (dropping it).
 Args:
     handler: Optional handler for processing received :class:`zenoh.Hello` messages.
     what: Optional :class:`zenoh.WhatAmIMatcher` or string specifying which node types to scout for
-        (e.g., "peer|router"). If None, scouts for all node types.
+    (e.g., "peer|router"). If None, scouts for all node types.
     config: Optional :class:`zenoh.Config` for the scouting session.
 
 For more information about scouting, see :ref:`scouting`.
