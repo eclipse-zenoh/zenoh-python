@@ -90,7 +90,7 @@ subscriber = session.declare_subscriber("key/expression", create_custom_channel(
 sample = subscriber.recv()  # type: ignore[var-annotated]
 print(f">> Received via subscriber.recv(): {sample.payload.to_string()}")
 
-sample = subscriber.handler.try_recv()
+sample = subscriber.try_recv()
 if sample:
     print(f">> Received via handler.try_recv(): {sample.payload.to_string()}")
 
