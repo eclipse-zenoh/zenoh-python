@@ -15,7 +15,7 @@
 #
 [package]
 name = "zenoh-python"
-version = "1.6.1"
+version = "1.6.2"
 authors = [
   "kydos <angelo@icorsaro.net>",
   "Julien Enoch <julien@enoch.fr>",
@@ -44,5 +44,5 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 paste = "1.0.14"
 pyo3 = { version = "0.25.1", features = ["abi3-py39", "extension-module"] }
-zenoh = { version = "1.6.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["internal", "unstable"], default-features = false }
-zenoh-ext = { version = "1.6.1", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["internal"], optional = true }
+zenoh = { version = "1.6.2", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["internal", "unstable"], default-features = false }
+zenoh-ext = { version = "1.6.2", git = "https://github.com/eclipse-zenoh/zenoh.git", branch = "main", features = ["internal"], optional = true }
