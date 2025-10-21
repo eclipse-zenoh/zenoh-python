@@ -15,7 +15,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Generic, Never, Self, TypeVar, final, overload
+from typing import Any, Generic, Self, TypeVar, final, overload
 
 from . import ext as ext
 from . import handlers as handlers
@@ -840,21 +840,12 @@ class Queryable(Generic[_H]):
         See :ref:`channels-and-callbacks` for more information on handlers."""
     def undeclare(self):
         """Undeclare the Queryable."""
-    @overload
     def try_recv(self: Queryable[handlers.Handler[Query]]) -> Query | None:
         """Try to receive a :class:`Query` from the handler without blocking."""
-    @overload
-    def try_recv(self) -> Never: ...
-    @overload
     def recv(self: Queryable[handlers.Handler[Query]]) -> Query:
         """Receive a :class:`Query` from the handler, blocking if necessary."""
-    @overload
-    def recv(self) -> Never: ...
-    @overload
     def __iter__(self: Queryable[Handler[Query]]) -> Handler[Query]:
         """Iterate over :class:`Query` received by the handler."""
-    @overload
-    def __iter__(self) -> Never: ...
 
 @final
 class Querier:
@@ -1141,24 +1132,12 @@ class Scout(Generic[_H]):
         See :ref:`channels-and-callbacks` for more information on handlers."""
     def stop(self): 
         """Stop the scouting process."""
-    @overload
     def try_recv(self: Scout[Handler[Hello]]) -> Hello | None: 
         """Try to receive a :class:`zenoh.Hello` message without blocking. Returns None if no message is available."""
-    @overload
-    def try_recv(self: Scout[Any]) -> Never: 
-        """Not available for this handler type."""
-    @overload
     def recv(self: Scout[Handler[Hello]]) -> Hello: 
         """Receive a :class:`zenoh.Hello` message, blocking until one is available."""
-    @overload
-    def recv(self) -> Never: 
-        """Not available for this handler type."""
-    @overload
     def __iter__(self: Scout[Handler[Hello]]) -> Handler[Hello]: 
         """Iterate over received :class:`zenoh.Hello` messages."""
-    @overload
-    def __iter__(self) -> Never: 
-        """Not available for this handler type."""
 
 @final
 class Selector:
@@ -1557,22 +1536,13 @@ class MatchingListener(Generic[_H]):
         Matching listeners are automatically closed when dropped, but you may want to use this function to handle errors or close the Matching listener asynchronously.
         """
 
-    @overload
     def try_recv(
         self: MatchingListener[Handler[MatchingStatus]],
     ) -> MatchingStatus | None: ...
-    @overload
-    def try_recv(self) -> Never: ...
-    @overload
     def recv(self: MatchingListener[Handler[MatchingStatus]]) -> MatchingStatus: ...
-    @overload
-    def recv(self) -> Never: ...
-    @overload
     def __iter__(
         self: MatchingListener[Handler[MatchingStatus]],
     ) -> Handler[MatchingStatus]: ...
-    @overload
-    def __iter__(self) -> Never: ...
 
 @_unstable
 @final
@@ -1626,24 +1596,15 @@ class Subscriber(Generic[_H]):
         Subscribers are automatically closed when dropped, but you may want to use this function to handle errors or close the Subscriber asynchronously.
         """
 
-    @overload
     def try_recv(self: Subscriber[Handler[Sample]]) -> Sample | None:
         """Try to receive a :class:`Sample` without blocking.
 
         Returns the sample if available, or None if no sample is ready.
         """
-    @overload
-    def try_recv(self) -> Never: ...
-    @overload
     def recv(self: Subscriber[Handler[Sample]]) -> Sample:
         """Receive a :class:`Sample`, blocking until one is available."""
-    @overload
-    def recv(self) -> Never: ...
-    @overload
     def __iter__(self: Subscriber[Handler[Sample]]) -> Handler[Sample]:
         """Iterate over received :class:`Sample` instances."""
-    @overload
-    def __iter__(self) -> Never: ...
 
 @final
 class Timestamp:
