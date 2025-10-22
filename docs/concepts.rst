@@ -405,19 +405,26 @@ methods such as :meth:`zenoh.Subscriber.recv` to wait for data and
 subscriber (or queryable) is automatically undeclared when the object goes out of scope
 or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
 
-.. code-block:: python
+**Default channel:**
 
-    # Default channel
-    subscriber = session.declare_subscriber("key/expr")
-    for sample in subscriber:
-        print(sample.payload.to_string())
+.. literalinclude:: examples/channels_default.py
+   :language: python
+   :start-after: [channels_default]
+   :end-before: # [channels_default]
 
-    # Explicit FIFO channel with custom capacity
-    subscriber = session.declare_subscriber("key/expr", zenoh.handlers.FifoChannel(100))
-    sample = subscriber.try_recv()
+**Explicit FIFO channel with custom capacity:**
 
-    # Ring channel (drops oldest when full)
-    subscriber = session.declare_subscriber("key/expr", zenoh.handlers.RingChannel(50))
+.. literalinclude:: examples/channels_fifo.py
+   :language: python
+   :start-after: [channels_fifo]
+   :end-before: # [channels_fifo]
+
+**Ring channel (drops oldest when full):**
+
+.. literalinclude:: examples/channels_ring.py
+   :language: python
+   :start-after: [channels_ring]
+   :end-before: # [channels_ring]
 
 Callbacks
 ^^^^^^^^^
@@ -428,14 +435,12 @@ It's possible to pass a callable object as ``handler``. This callable is invoked
 goes out of scope. This allows declaring a subscriber without managing the
 returned object's lifetime.
 
-.. code-block:: python
+**Simple callback:**
 
-    def on_sample(sample):
-        print(sample.payload.to_string())
-
-    # Subscriber runs in background mode
-    subscriber = session.declare_subscriber("key/expr", on_sample)
-    # The subscriber remains active even if 'subscriber' variable is not used
+.. literalinclude:: examples/callback_simple.py
+   :language: python
+   :start-after: [callback_simple]
+   :end-before: # [callback_simple]
 
 For more advanced callback handling, you can use :class:`zenoh.handlers.Callback`
 to create a callback handler with cleanup functionality and
@@ -445,16 +450,12 @@ Direct mode executes callbacks immediately in the context of the Rust library,
 while indirect mode passes data to a separate thread through a channel,
 ensuring the network thread is not blocked.
 
-.. code-block:: python
+**Advanced callback with cleanup and indirect mode:**
 
-    def on_sample(sample):
-        print(sample.payload.to_string())
-
-    def on_cleanup():
-        print("Subscriber undeclared")
-
-    callback = zenoh.handlers.Callback(on_sample, drop=on_cleanup, indirect=True)
-    subscriber = session.declare_subscriber("key/expr", callback)
+.. literalinclude:: examples/callback_advanced.py
+   :language: python
+   :start-after: [callback_advanced]
+   :end-before: # [callback_advanced]
 
 The following examples demonstrate both approaches using queryables and get operations:
 
