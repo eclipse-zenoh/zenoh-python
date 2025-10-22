@@ -438,6 +438,10 @@ For more advanced callback handling, you can use :class:`zenoh.handlers.Callback
 to create a callback handler with cleanup functionality and
 configurable execution mode (direct or indirect).
 
+Direct mode executes callbacks immediately in the context of the Rust library,
+while in the indirect mode data is passed to a separate thread through a channel,
+ensuring the network thread is not blocked.
+
 .. code-block:: python
 
     def on_sample(sample):
