@@ -19,25 +19,14 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
-# Test support: send data in background
-
-
-def send_data():
-    time.sleep(0.1)
-    for i in range(3):
-        session.put("key/expr", f"sample_{i}")
-
-
-threading.Thread(target=send_data, daemon=True).start()
-
-# [channels_default]
+# [channels]
 # Default channel
-subscriber = session.declare_subscriber("key/expr")
-for sample in subscriber:
-    print(sample.payload.to_string())
-    # [channels_default]
-    break  # Exit after first sample for testing
+subscriber_default = session.declare_subscriber("key/expr")
 
-# Clean up
-subscriber.undeclare()
-session.close()
+# Explicit FIFO channel with custom capacity
+subscriber_fifo = session.declare_subscriber("key/expr", zenoh.handlers.FifoChannel(100))
+
+# Ring channel (drops oldest when full)
+subscriber_ring = session.declare_subscriber("key/expr", zenoh.handlers.RingChannel(50))
+# [channels]
+

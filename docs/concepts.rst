@@ -405,26 +405,10 @@ methods such as :meth:`zenoh.Subscriber.recv` to wait for data and
 subscriber (or queryable) is automatically undeclared when the object goes out of scope
 or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
 
-**Default channel:**
-
-.. literalinclude:: examples/channels_default.py
+.. literalinclude:: examples/channels.py
    :language: python
-   :start-after: [channels_default]
-   :end-before: # [channels_default]
-
-**Explicit FIFO channel with custom capacity:**
-
-.. literalinclude:: examples/channels_fifo.py
-   :language: python
-   :start-after: [channels_fifo]
-   :end-before: # [channels_fifo]
-
-**Ring channel (drops oldest when full):**
-
-.. literalinclude:: examples/channels_ring.py
-   :language: python
-   :start-after: [channels_ring]
-   :end-before: # [channels_ring]
+   :start-after: [channels]
+   :end-before: # [channels]
 
 Callbacks
 ^^^^^^^^^
@@ -434,8 +418,6 @@ It's possible to pass a callable object as ``handler``. This callable is invoked
 **background mode**, i.e., it remains active even if the returned object
 goes out of scope. This allows declaring a subscriber without managing the
 returned object's lifetime.
-
-**Simple callback:**
 
 .. literalinclude:: examples/callback_simple.py
    :language: python
@@ -450,116 +432,58 @@ Direct mode executes callbacks immediately in the context of the Rust library,
 while indirect mode passes data to a separate thread through a channel,
 ensuring the network thread is not blocked.
 
-**Advanced callback with cleanup and indirect mode:**
-
 .. literalinclude:: examples/callback_advanced.py
    :language: python
    :start-after: [callback_advanced]
    :end-before: # [callback_advanced]
 
-The following examples demonstrate both approaches using queryables and get operations:
-
-**Example 1: Queryable with callback, Get with channel**
-
-Queryable with callback:
-
-.. literalinclude:: examples/callback_queryable_channel_get.py
-   :language: python
-   :start-after: [queryable_callback]
-   :end-before: # [queryable_callback]
-
-.. literalinclude:: examples/callback_queryable_channel_get.py
-   :language: python
-   :start-after: [declare_queryable]
-   :end-before: # [declare_queryable]
-
-Get with channel:
-
-.. literalinclude:: examples/callback_queryable_channel_get.py
-   :language: python
-   :start-after: [get_channel]
-   :end-before: # [get_channel]
-
-**Example 2: Queryable with channel, Get with callback**
-
-Queryable with channel:
-
-.. literalinclude:: examples/channel_queryable_callback_get.py
-   :language: python
-   :start-after: [queryable_channel]
-   :end-before: # [queryable_channel]
-
-Get with callback:
-
-.. literalinclude:: examples/channel_queryable_callback_get.py
-   :language: python
-   :start-after: [get_callback_handler]
-   :end-before: # [get_callback_handler]
-
-.. literalinclude:: examples/channel_queryable_callback_get.py
-   :language: python
-   :start-after: [get_callback]
-   :end-before: # [get_callback]
-
-Custom handlers
+Custom channels
 ^^^^^^^^^^^^^^^
 
-For advanced use cases, you can implement your own custom handler in Python using
+.. caution::
+   The custom channel is significantly slower than built-in channels implemented in Rust.
+   This is **NOT** the recommended way to use Zenoh for Python unless you have very specific
+   needs that cannot be met by the built-in channels.
+
+For advanced use cases, you can implement your own custom channel in Python using
 the tuple form ``(callback, handler)`` where ``callback`` is a callable and ``handler``
 is your custom Python object.
 
 The callback is invoked for each received item, and the handler object is stored
-and accessible via the ``.handler`` property of the returned subscriber. Unlike
-the callback-only mode, the subscriber is **not in background mode** and will be
-automatically undeclared when it goes out of scope.
+inside the created object and accessible via e.g. :meth:`zenoh.Subscriber.handler` 
+property. Any custom methods you implement on the handler object can be called on it.
 
-**Implementing a custom handler**
+**Implementing a custom channel**
 
-Your custom handler can implement any of the following methods to provide
-channel-like behavior:
+It's recommended to implement the following methods on your custom channel
+to provide the same behavior as built-in channels:
 
 - ``recv()`` - blocking receive
 - ``try_recv()`` - non-blocking receive, returns ``None`` if no data available
 - ``__iter__()`` and ``__next__()`` - iteration support
 
-If your handler implements these methods, you can call them either directly
-on the handler (via ``subscriber.handler.recv()``) or on the subscriber itself
-(via ``subscriber.recv()``), as the subscriber will delegate these calls to your handler.
+If your channel implements these methods, you can call them either directly
+on the handler (as ``subscriber.handler.recv()``) or on the subscriber itself
+(via ``subscriber.recv()``), as the subscriber will delegate these calls to your channel.
 
-**Important note about type checking:**
+.. warning::
 
-When using custom handlers, type checkers like mypy may not recognize methods like ``recv()``,
-``try_recv()``, and ``__iter__()`` on the subscriber object, because the type stubs only declare
-these methods for ``Subscriber[Handler[Sample]]``. At runtime, the methods work correctly through
-duck typing (the subscriber delegates to the handler), but you may need to use
-``# type: ignore[misc]`` comments to suppress type checker warnings.
+   When using custom channels, type checkers like `mypy` will not recognize methods like ``recv()``,
+   ``try_recv()``, and ``__iter__()`` on the subscriber object, because the type stubs only declare
+   these methods for ``Subscriber[Handler[Sample]]``. At runtime, the methods work correctly through
+   duck typing (the subscriber delegates to the handler), but you may need to use
+   ``# type: ignore[misc]`` comments to suppress type checker warnings.
 
-python -m mypy docs/examples/custom_handler.py
+**Example of custom channel implementation**
 
-The ``# type: ignore`` directive is a standard Python type hint (PEP 484) that tells static
-type checkers to skip type checking for that specific line. It only affects type checkers
-and is completely ignored by the Python interpreter at runtime.
-
-You have two options to handle this:
-
-1. **Use type ignore comments**: Add ``# type: ignore[misc]`` when calling methods on the subscriber::
-
-    sample = subscriber.recv()  # type: ignore[misc]
-
-2. **Access the handler directly**: Call methods directly on the handler (fully type-safe)::
-
-    sample = subscriber.handler.recv()  # No type ignore needed
-
-**Example: Custom channel with in-memory storage**
-
-.. literalinclude:: examples/custom_handler.py
+.. literalinclude:: examples/custom_channel.py
    :language: python
    :start-after: [custom_channel]
    :end-before: # [custom_channel]
 
-Using the custom channel:
+**Using the custom channel:**
 
-.. literalinclude:: examples/custom_handler.py
+.. literalinclude:: examples/custom_channel.py
    :language: python
    :start-after: [custom_channel_usage]
    :end-before: # [custom_channel_usage]

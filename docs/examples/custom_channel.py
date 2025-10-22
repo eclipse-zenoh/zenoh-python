@@ -21,19 +21,14 @@ import zenoh
 session = zenoh.open(zenoh.Config())
 
 # Test support: send data in background
-
-
 def send_data():
     time.sleep(0.1)
     for i in range(5):
         session.put("key/expression", f"sample_{i}")
 
-
 threading.Thread(target=send_data, daemon=True).start()
 
 # [custom_channel]
-
-
 class CustomChannel:
     def __init__(self, max_size=100):
         self.samples = []
@@ -73,6 +68,11 @@ class CustomChannel:
                 self.samples.pop(0)
             # Notify one waiting thread that a sample is available
             self.condition.notify()
+    
+    def count(self):
+        """Return number of stored samples"""
+        with self.lock:
+            return len(self.samples)
 
 
 def create_custom_channel(
@@ -86,25 +86,27 @@ def create_custom_channel(
         channel.add_sample(sample)
 
     return (on_sample, channel)
-
-
 # [custom_channel]
 
+count = 0
 # [custom_channel_usage]
 subscriber = session.declare_subscriber("key/expression", create_custom_channel(max_size=50))
-# Subscriber delegates to handler's recv() method via duck typing
+
+# Subscriber delegates to handler's recv() and try_recv() methods via duck typing
 sample = subscriber.recv() # type: ignore[misc]
 print(f">> Received via subscriber.recv(): {sample.payload.to_string()}")
-
 sample = subscriber.try_recv() # type: ignore[misc, assignment]
 if sample:
     print(f">> Received via handler.try_recv(): {sample.payload.to_string()}")
 
+# Access to custom channel methods via handler
+print(f">> Samples currently stored in channel: {subscriber.handler.count()}")
+
 # Iteration also works (demonstrates __iter__ and __next__)
 print(">> Reading remaining samples via iteration:")
-count = 0
 for sample in subscriber: # type: ignore[misc]
     print(f"   - {sample.payload.to_string()}")
+    # [custom_channel_usage]
     count += 1
     # Break after reading a few samples to avoid blocking
     if count >= 2:
@@ -112,7 +114,6 @@ for sample in subscriber: # type: ignore[misc]
 
 # Check statistics
 print(f">> Total received: {subscriber.handler.received_count}")
-# [custom_channel_usage]
 
 # Verify
 assert subscriber.handler.received_count >= 4
@@ -121,6 +122,8 @@ assert subscriber.handler.received_count >= 4
 remaining = subscriber.handler.try_recv()
 assert remaining is not None
 print(f">> Remaining sample: {remaining.payload.to_string()}")
+# verify count is zero now
+assert subscriber.handler.count() == 0
 
 # Clean up
 subscriber.undeclare()
