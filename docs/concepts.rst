@@ -25,7 +25,7 @@ that perform communication (for example, publishers, subscribers, queriers, and 
 declared through a :class:`zenoh.Session`. A session is created by the :func:`zenoh.open` function,
 which takes a :class:`zenoh.Config` as an argument.
 
-The configuration is stored in a json file and can be read with :func:`zenoh.Config.from_file`. 
+The configuration is stored in a JSON file and can be read with :func:`zenoh.Config.from_file`. 
 The file format is documented in the Zenoh Rust API
 `Config <https://docs.rs/zenoh/latest/zenoh/config/struct.Config.html>`_ reference.
 
@@ -55,14 +55,14 @@ For example:
 - ``robot/**`` matches ``robot/sensor/temp``, ``robot/actuator/motor``, ``robot/status``, etc.
 
 The :class:`zenoh.KeyExpr` class provides validation and operations on key
-expressions. The key expressions constructor validates the syntax of the provided string
-and raises a :class:`zenoh.ZError` exception if the syntax is invalid (e.g. contains spaces, other illegal characters, have empty chunks `foo//bar` or `/foo`).
+expressions. The `KeyExpr` constructor validates the syntax of the provided string
+and raises a :class:`zenoh.ZError` exception if the syntax is invalid (e.g., it contains spaces, other illegal characters, or has empty chunks like `foo//bar` or `/foo`).
 
-The `KeyExpr` constructor fires exception on key expressions which are valid, but not in
-`canon form <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md#canon-forms>`_.
-For example, ``robot/sensor/**/*`` is valid but it's canon form is ``robot/sensor/*/**``.
+The `KeyExpr` constructor raises an exception for key expressions that are valid but not in
+`canonical form <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md#canon-forms>`_.
+For example, ``robot/sensor/**/*`` is valid but its canonical form is ``robot/sensor/*/**``.
 The :meth:`zenoh.KeyExpr.autocanonize` method can accept such key expressions and
-convert them to their canon form.
+convert them to their canonical form.
 
 **Validating key expressions**
 
@@ -154,11 +154,11 @@ A :class:`zenoh.Queryable` is declared using :meth:`zenoh.Session.declare_querya
 It serves :class:`zenoh.Query` requests via a callback or channel
 (:ref:`channels-and-callbacks`).
 
-The :class:`zenoh.Query` provides :meth:`zenoh.Query.reply` method to reply with a
+The :class:`zenoh.Query` provides the :meth:`zenoh.Query.reply` method to reply with a
 data sample of the :attr:`zenoh.SampleKind.PUT` kind, and
 :meth:`zenoh.Query.reply_del` to send a :attr:`zenoh.SampleKind.DELETE` reply.
 See :ref:`publish-subscribe` for more details on the difference between the
-two sample kinds. There is also :meth:`zenoh.Query.reply_err` method 
+two sample kinds. There is also the :meth:`zenoh.Query.reply_err` method 
 which can be used to send a reply containing error information.
 
 Data is requested from queryables via :meth:`zenoh.Session.get` or via a
@@ -240,7 +240,7 @@ module via :func:`zenoh.ext.z_serialize` and :func:`zenoh.ext.z_deserialize`.
 Encoding
 --------
 
-Zenoh uses :class:`zenoh.Encoding` to indicate how data should be interpreted by the application. An encoding has a similar role to Content-type in HTTP and is represented as a string in MIME-like format: ``type/subtype[;schema]``.
+Zenoh uses :class:`zenoh.Encoding` to indicate how data should be interpreted by the application. An encoding has a similar role to Content-Type in HTTP and is represented as a string in MIME-like format: ``type/subtype[;schema]``.
 
 To optimize network usage, Zenoh internally maps some predefined encoding strings to integer identifiers. These encodings are provided as class attributes of the :class:`zenoh.Encoding` class, such as :attr:`zenoh.Encoding.ZENOH_BYTES`, :attr:`zenoh.Encoding.APPLICATION_JSON`, etc. This internal mapping is not exposed to the application layer, but using these predefined encodings is more efficient than custom strings.
 
@@ -424,7 +424,7 @@ Callbacks
 
 It's possible to pass a callable object as ``handler``. This callable is invoked for each received
 :class:`zenoh.Sample` or :class:`zenoh.Reply`. This also means the subscriber or queryable runs in
-**background mode**, i.e. it remains active even if the returned object
+**background mode**, i.e., it remains active even if the returned object
 goes out of scope. This allows declaring a subscriber without managing the
 returned object's lifetime.
 
@@ -442,7 +442,7 @@ to create a callback handler with cleanup functionality and
 configurable execution mode (direct or indirect).
 
 Direct mode executes callbacks immediately in the context of the Rust library,
-while in the indirect mode data is passed to a separate thread through a channel,
+while indirect mode passes data to a separate thread through a channel,
 ensuring the network thread is not blocked.
 
 .. code-block:: python
