@@ -394,9 +394,11 @@ methods (for example, :meth:`zenoh.Session.declare_subscriber` and
 By default, the ``handler`` parameter is ``None``, which uses
 :class:`zenoh.handlers.DefaultHandler` (a FIFO channel with default capacity).
 
-**Using channels**
+Channels
+^^^^^^^^
 
-When constructed with a channel (or using the default), the returned object is iterable
+When constructed with a :class:`zenoh.handlers.FifoChannel` or :class:`zenoh.handlers.RingChannel`
+as ``handler`` (or using the default one), the returned object is iterable
 and can be used in a ``for`` loop to receive data sequentially. It also provides explicit
 methods such as :meth:`zenoh.Subscriber.recv` to wait for data and
 :meth:`zenoh.Subscriber.try_recv` to attempt a non-blocking receive. The
@@ -417,11 +419,12 @@ or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
     # Ring channel (drops oldest when full)
     subscriber = session.declare_subscriber("key/expr", zenoh.handlers.RingChannel(50))
 
-**Using callbacks**
+Callbacks
+^^^^^^^^^
 
-When constructed with a callback, the callable is invoked for each received
-:class:`zenoh.Sample` or :class:`zenoh.Reply`. The subscriber runs in
-**background mode**, which means it remains active even if the returned object
+It's possible to pass a callable object as ``handler``. This callable is invoked for each received
+:class:`zenoh.Sample` or :class:`zenoh.Reply`. This also means the subscriber or queryable runs in
+**background mode**, i.e. it remains active even if the returned object
 goes out of scope. This allows declaring a subscriber without managing the
 returned object's lifetime.
 
