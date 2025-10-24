@@ -24,6 +24,5 @@ def on_sample(sample):
 subscriber = session.declare_subscriber("key/expr", on_sample)
 # The subscriber remains active even if 'subscriber' variable is not used
 # [callback_simple]
-session.put("key/expr", "test sample")
-# subscriber.undeclare()
-# session.close()
+
+session.close()

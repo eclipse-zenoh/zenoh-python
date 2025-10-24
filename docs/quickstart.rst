@@ -23,18 +23,21 @@ Publish a key/value pair onto Zenoh
 
 .. literalinclude:: examples/quickstart_put.py
    :language: python
-   :lines: 4-6
+   :start-after: # DOC_EXAMPLE_START
+   :end-before: # DOC_EXAMPLE_END
 
 Subscribe to a set of keys with Zenoh
 -------------------------------------
 
 .. literalinclude:: examples/quickstart_sub.py
    :language: python
-   :lines: 7-10,14-17
+   :start-after: # DOC_EXAMPLE_START
+   :end-before: # DOC_EXAMPLE_END
 
 Get keys/values from zenoh
 --------------------------
 
 .. literalinclude:: examples/quickstart_get.py
    :language: python
-   :lines: 4-8
+   :start-after: # DOC_EXAMPLE_START
+   :end-before: # DOC_EXAMPLE_END

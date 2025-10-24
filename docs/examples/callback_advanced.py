@@ -27,3 +27,5 @@ callback = zenoh.handlers.Callback(on_sample, drop=on_cleanup, indirect=True)
 subscriber = session.declare_subscriber("key/expr", callback)
 # The subscriber remains active even if 'subscriber' variable is not used
 # [callback_advanced]
+
+session.close()
