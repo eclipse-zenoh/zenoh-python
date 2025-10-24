@@ -150,6 +150,51 @@ class AdvancedPublisher:
     def priority(self) -> Priority:
         """The priority level of published data."""
 
+    def matching_status(self) -> bool:
+        """Check if there are currently matching subscribers.
+
+        :return: True if matching subscribers exist, False otherwise
+        """
+
+    @overload
+    def matching_listener(
+        self, handler: _RustHandler[bool] | None = None
+    ) -> Subscriber[Handler[bool]]:
+        """Declare a listener to monitor changes in matching subscriber status.
+
+        The listener will be called whenever the matching status changes
+        (i.e., when subscribers appear or disappear).
+
+        :param handler: Optional handler for receiving matching status updates
+        :return: A Subscriber that receives boolean values indicating matching status
+        """
+
+    @overload
+    def matching_listener(
+        self, handler: _PythonHandler[bool, _H]
+    ) -> Subscriber[_H]:
+        """Declare a listener to monitor changes in matching subscriber status.
+
+        The listener will be called whenever the matching status changes
+        (i.e., when subscribers appear or disappear).
+
+        :param handler: Optional handler for receiving matching status updates
+        :return: A Subscriber that receives boolean values indicating matching status
+        """
+
+    @overload
+    def matching_listener(
+        self, handler: _PythonCallback[bool]
+    ) -> Subscriber[None]:
+        """Declare a listener to monitor changes in matching subscriber status.
+
+        The listener will be called whenever the matching status changes
+        (i.e., when subscribers appear or disappear).
+
+        :param handler: Optional handler for receiving matching status updates
+        :return: A Subscriber that receives boolean values indicating matching status
+        """
+
     def put(
         self,
         payload: _IntoZBytes,
