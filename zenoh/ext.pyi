@@ -430,15 +430,35 @@ class RepliesConfig:
 @_unstable
 @final
 class SampleMissListener(Generic[_H]):
-    def undeclare(self): ...
+    """Listener for detecting missed samples from an :class:`AdvancedSubscriber`.
+
+    Instances are created via :meth:`AdvancedSubscriber.sample_miss_listener`.
+
+    This listener receives :class:`Miss` notifications when gaps are detected in the
+    sequence of samples from :class:`AdvancedPublisher` instances. This works for publishers that enable
+    `sample_miss_detection` in :meth:`declare_advanced_publisher`.
+    """
+
+    def undeclare(self):
+        """Undeclare the SampleMissListener.
+        """
+
     @overload
-    def try_recv(self: SampleMissListener[Handler[Miss]]) -> Miss | None: ...
+    def try_recv(self: SampleMissListener[Handler[Miss]]) -> Miss | None:
+        """Try to receive a miss notification without blocking.
+        """
+
     @overload
     def try_recv(self) -> Never: ...
+
     @overload
-    def recv(self: SampleMissListener[Handler[Miss]]) -> Miss: ...
+    def recv(self: SampleMissListener[Handler[Miss]]) -> Miss:
+        """Receive a miss notification, blocking until one is available.
+        """
+
     @overload
     def recv(self) -> Never: ...
+
     @overload
     def __iter__(self: SampleMissListener[Handler[Miss]]) -> Handler[Miss]: ...
     @overload
