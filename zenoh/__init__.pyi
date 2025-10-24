@@ -512,7 +512,12 @@ class Liveliness:
         *,
         history: bool | None = None,
     ) -> Subscriber[Handler[Sample]]:
-        """Create a :class:`Subscriber` for liveliness changes matching the given key expression."""
+        """Create a :class:`Subscriber` for liveliness changes matching the given key expression.
+
+        :param key_expr: The :class:`LivelinessToken` key expression.
+        :param handler: The handler for receiving liveliness samples (see :ref:`channels-and-callbacks`).
+        :param history: If True, the already present liveliness tokens will be reported upon declaration.
+        """
 
     @overload
     def declare_subscriber(
@@ -521,8 +526,7 @@ class Liveliness:
         handler: _PythonHandler[Sample, _H],
         *,
         history: bool | None = None,
-    ) -> Subscriber[_H]:
-        """Create a :class:`Subscriber` for liveliness changes matching the given key expression."""
+    ) -> Subscriber[_H]: ...
 
     @overload
     def declare_subscriber(
@@ -531,13 +535,13 @@ class Liveliness:
         handler: _PythonCallback[Sample],
         *,
         history: bool | None = None,
-    ) -> Subscriber[None]:
-        """Create a :class:`Subscriber` for liveliness changes matching the given key expression."""
+    ) -> Subscriber[None]: ...
 
 @final
 class LivelinessToken:
     """A token whose liveliness is tied to the Zenoh :class:`Session` and can be monitored by 
-    remote applications using the :class:`Liveliness` structure.
+    remote applications using the :class:`Liveliness` structure. The token is declared using
+    :meth:`Liveliness.declare_token` with a specific key expression.
     """
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...

@@ -252,14 +252,12 @@ class AdvancedSubscriber(Generic[_H]):
     ) -> Subscriber[Handler[Sample]]:
         """Declare a listener to detect matching publishers.
 
-        Only :class:`AdvancedPublisher` instances that enable ``publisher_detection``
-        can be detected. This uses liveliness mechanisms to track publisher presence.
+        Only :class:`AdvancedPublisher` instances that enable `publisher_detection`
+        in the :meth:`declare_advanced_publisher` can be detected. This uses
+        :ref:`liveliness` to track publisher presence.
 
-        :param handler: Optional handler for receiving publisher detection events.
-            Can be a DefaultHandler, FifoChannel, RingChannel, a callback function,
-            or a tuple of (callback, handler).
-        :param history: If True, query for historical publisher information
-        :return: A Subscriber for monitoring publisher presence
+        :param handler: Optional :ref:`handler` for receiving publisher detection events.
+        :param history: If True, the already present publishers will be reported upon declaration. Uses `history` feature of :meth:`zenoh.Liveliness.declare_subscriber`.
         """
 
     @overload
