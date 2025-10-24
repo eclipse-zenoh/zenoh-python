@@ -39,12 +39,19 @@ The file format is documented in the Zenoh Rust API
    Either use a context manager (recommended) or explicitly call :meth:`zenoh.Session.close`
    before your script exits. See examples in the :doc:`quickstart` section.
 
-**Creating a zenoh session**
+**Creating a session with context manager (recommended)**
 
-.. literalinclude:: examples/keyexpr_declare.py
+.. literalinclude:: examples/session_config.py
    :language: python
-   :start-after: [session_creation]
-   :end-before: # [session_creation]
+   :start-after: [session_context_manager]
+   :end-before: # [session_context_manager]
+
+**Creating a session with explicit close**
+
+.. literalinclude:: examples/session_config.py
+   :language: python
+   :start-after: [session_explicit_close]
+   :end-before: # [session_explicit_close]
 
 .. _key-expressions:
 

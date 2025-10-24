@@ -94,10 +94,10 @@ subscriber = session.declare_subscriber("key/expression", create_custom_channel(
 
 # Subscriber delegates to handler's recv() and try_recv() methods via duck typing
 sample = subscriber.recv() # type: ignore[misc]
-print(f">> Received via subscriber.recv(): {sample.payload.to_string()}")
+print(f">> Received via recv(): {sample.payload.to_string()}")
 sample = subscriber.try_recv() # type: ignore[misc, assignment]
 if sample:
-    print(f">> Received via handler.try_recv(): {sample.payload.to_string()}")
+    print(f">> Received via try_recv(): {sample.payload.to_string()}")
 
 # Access to custom channel methods via handler
 print(f">> Samples currently stored in channel: {subscriber.handler.count()}")
