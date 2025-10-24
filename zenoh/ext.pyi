@@ -84,6 +84,7 @@ class Float64(float):
     """float subclass enabling to (de)serialize 64bit floating point numbers."""
 
 class ZDeserializeError(Exception):
+    """Exception raised when deserialization with :meth:`zenoh.ext.z_deserialize` fails."""
     pass
 
 def z_serialize(obj: Any) -> ZBytes:
@@ -115,19 +116,40 @@ def z_deserialize(tp: type[_T], zbytes: ZBytes) -> _T:
 @_unstable
 @final
 class AdvancedPublisher:
+    """An extension to Publisher providing advanced functionalities.
+
+    AdvancedPublisher works alongside :class:`AdvancedSubscriber` to enable:
+
+    * **Caching** - Store last published samples for retrieval via subscriber history mechanisms
+    * **Sample miss detection** - Identify gaps in publications to detect missed samples
+    * **Publisher detection** - Assert presence through liveliness tokens
+
+    Publishers are created via :func:`declare_advanced_publisher`.
+    """
+
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @_unstable
     @property
-    def id(self) -> EntityGlobalId: ...
+    def id(self) -> EntityGlobalId:
+        """The globally unique id of this AdvancedPublisher."""
+
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr:
+        """The key expression this AdvancedPublisher publishes to."""
+
     @property
-    def encoding(self) -> Encoding: ...
+    def encoding(self) -> Encoding:
+        """The encoding used for published data."""
+
     @property
-    def congestion_control(self) -> CongestionControl: ...
+    def congestion_control(self) -> CongestionControl:
+        """The congestion control policy applied to published data."""
+
     @property
-    def priority(self) -> Priority: ...
+    def priority(self) -> Priority:
+        """The priority level of published data."""
+
     def put(
         self,
         payload: _IntoZBytes,
@@ -135,14 +157,32 @@ class AdvancedPublisher:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-    ): ...
+    ):
+        """Publish data to the key expression.
+
+        :param payload: The data to publish
+        :param encoding: Optional encoding override; if not specified, uses the publisher's default encoding
+        :param attachment: Optional user attachment
+        :param timestamp: Optional timestamp; if not specified, the session will generate one
+        """
+
     def delete(
         self,
         *,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-    ): ...
-    def undeclare(self): ...
+    ):
+        """Delete the value associated with the key expression.
+
+        :param attachment: Optional user attachment
+        :param timestamp: Optional timestamp; if not specified, the session will generate one
+        """
+
+    def undeclare(self):
+        """Undeclare the AdvancedPublisher.
+
+        This informs the network that optimizations for this publisher are no longer needed.
+        """
 
 @_unstable
 @final
