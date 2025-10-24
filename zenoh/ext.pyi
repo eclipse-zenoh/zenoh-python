@@ -118,13 +118,17 @@ def z_deserialize(tp: type[_T], zbytes: ZBytes) -> _T:
 class AdvancedPublisher:
     """An extension to Publisher providing advanced functionalities.
 
-    AdvancedPublisher works alongside :class:`AdvancedSubscriber` to enable:
+    Advanced publishers are created via :func:`declare_advanced_publisher` and
+    works alongside :class:`AdvancedSubscriber` to enable. The features include:
 
-    * **Caching** - Store last published samples for retrieval via subscriber history mechanisms
-    * **Sample miss detection** - Identify gaps in publications to detect missed samples
-    * **Publisher detection** - Assert presence through liveliness tokens
+    * **Caching** - Store last published samples for retrieval via subscriber history mechanisms.
+      Configure via :class:`CacheConfig`.
 
-    Publishers are created via :func:`declare_advanced_publisher`.
+    * **Sample miss detection** - Identify gaps in publications to detect missed samples.
+      Configure via :class:`MissDetectionConfig`. Subscribers can monitor misses via :meth:`AdvancedSubscriber.sample_miss_listener`.
+
+    * **Publisher detection** - Assert presence through liveliness tokens.
+      Subscribers can detect publishers via :meth:`AdvancedSubscriber.detect_publishers`.
     """
 
     def __enter__(self) -> Self: ...
@@ -149,51 +153,6 @@ class AdvancedPublisher:
     @property
     def priority(self) -> Priority:
         """The priority level of published data."""
-
-    def matching_status(self) -> bool:
-        """Check if there are currently matching subscribers.
-
-        :return: True if matching subscribers exist, False otherwise
-        """
-
-    @overload
-    def matching_listener(
-        self, handler: _RustHandler[bool] | None = None
-    ) -> Subscriber[Handler[bool]]:
-        """Declare a listener to monitor changes in matching subscriber status.
-
-        The listener will be called whenever the matching status changes
-        (i.e., when subscribers appear or disappear).
-
-        :param handler: Optional handler for receiving matching status updates
-        :return: A Subscriber that receives boolean values indicating matching status
-        """
-
-    @overload
-    def matching_listener(
-        self, handler: _PythonHandler[bool, _H]
-    ) -> Subscriber[_H]:
-        """Declare a listener to monitor changes in matching subscriber status.
-
-        The listener will be called whenever the matching status changes
-        (i.e., when subscribers appear or disappear).
-
-        :param handler: Optional handler for receiving matching status updates
-        :return: A Subscriber that receives boolean values indicating matching status
-        """
-
-    @overload
-    def matching_listener(
-        self, handler: _PythonCallback[bool]
-    ) -> Subscriber[None]:
-        """Declare a listener to monitor changes in matching subscriber status.
-
-        The listener will be called whenever the matching status changes
-        (i.e., when subscribers appear or disappear).
-
-        :param handler: Optional handler for receiving matching status updates
-        :return: A Subscriber that receives boolean values indicating matching status
-        """
 
     def put(
         self,
@@ -534,7 +493,8 @@ def declare_advanced_publisher(
     sample_miss_detection: MissDetectionConfig | None = None,
     publisher_detection: bool | None = None,
 ) -> AdvancedPublisher:
-    """Create an AdvancedPublisher for the given key expression."""
+    """Declare an :class:`AdvancedPublisher` for the given key expression.
+    """
 
 @_unstable
 @overload
@@ -548,7 +508,7 @@ def declare_advanced_subscriber(
     recovery: RecoveryConfig | None = None,
     subscriber_detection: bool | None = None,
 ) -> AdvancedSubscriber[Handler[Sample]]:
-    """Create an AdvancedSubscriber for the given key expression."""
+    """Declare an :class:`AdvancedSubscriber` for the given key expression."""
 
 @_unstable
 @overload
