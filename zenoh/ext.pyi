@@ -362,13 +362,24 @@ class HistoryConfig:
 @_unstable
 @final
 class Miss:
+    """Notification about missed samples detected by an :class:`AdvancedSubscriber`.
+
+    A Miss indicates that one or more samples from an :class:`AdvancedPublisher` were not
+    received by the subscriber. This can occur due to network congestion, packet loss, or
+    when the subscriber cannot keep up with the publication rate.
+
+    Miss detection requires the publisher to enable `sample_miss_detection` in
+    :meth:`declare_advanced_publisher` and the subscriber to have a :class:`SampleMissListener`
+    via :meth:`AdvancedSubscriber.sample_miss_listener`.
+    """
+
     @property
     def source(self) -> EntityGlobalId:
-        """The source of missed samples."""
+        """The globally unique identifier of the :class:`AdvancedPublisher` that published the missed samples."""
 
     @property
     def nb(self) -> int:
-        """The number of missed samples."""
+        """The number of consecutive samples that were missed from this source."""
 
 @_unstable
 @final
