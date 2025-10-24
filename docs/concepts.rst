@@ -25,9 +25,19 @@ that perform communication (for example, publishers, subscribers, queriers, and 
 declared through a :class:`zenoh.Session`. A session is created by the :func:`zenoh.open` function,
 which takes a :class:`zenoh.Config` as an argument.
 
-The configuration is stored in a JSON file and can be read with :func:`zenoh.Config.from_file`. 
+The configuration is stored in a JSON file and can be read with :func:`zenoh.Config.from_file`.
 The file format is documented in the Zenoh Rust API
 `Config <https://docs.rs/zenoh/latest/zenoh/config/struct.Config.html>`_ reference.
+
+.. important::
+
+   The recommended way to create a session is using a context manager (``with`` statement).
+   If a session is not explicitly closed or managed with a context manager, object finalizers may
+   be called during script exit when the main library thread has already been killed, which can
+   cause the script to hang on exit.
+
+   Either use a context manager (recommended) or explicitly call :meth:`zenoh.Session.close`
+   before your script exits. See examples in the :doc:`quickstart` section.
 
 **Creating a zenoh session**
 
