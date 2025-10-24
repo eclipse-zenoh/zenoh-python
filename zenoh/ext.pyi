@@ -232,40 +232,72 @@ class AdvancedPublisher:
 @_unstable
 @final
 class AdvancedSubscriber(Generic[_H]):
+    """An extension to Subscriber providing advanced functionalities.
+
+    AdvancedSubscriber works alongside :class:`AdvancedPublisher` to enable:
+
+    * **Sample miss detection** - Identify gaps in received publications to detect missed samples
+    * **Sample recovery** - Retrieve historical samples with configurable constraints (max age, sample count)
+    * **Publisher detection** - Discover matching publishers via liveliness mechanisms
+    * **Late joiner support** - Detect late-joining publishers and query for their historical data
+
+    Subscribers are created via :func:`declare_advanced_subscriber`.
+    """
+
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @_unstable
     @property
-    def id(self) -> EntityGlobalId: ...
+    def id(self) -> EntityGlobalId:
+        """The globally unique id of this AdvancedSubscriber."""
+
     @property
-    def key_expr(self) -> KeyExpr: ...
+    def key_expr(self) -> KeyExpr:
+        """The key expression this AdvancedSubscriber subscribes to."""
+
     @property
-    def handler(self) -> _H: ...
+    def handler(self) -> _H:
+        """The handler used to process received samples."""
     @overload
     def sample_miss_listener(
         self, handler: _RustHandler[Miss] | None = None
     ) -> SampleMissListener[Handler[Miss]]:
-        """Declares a listener to detect missed samples.
+        """Declare a listener to detect missed samples.
 
-        Missed samples can only be detected from `AdvancedPublisher` that enable `sample_miss_detection`.
+        Missed samples can only be detected from :class:`AdvancedPublisher` instances
+        that enable ``sample_miss_detection``. The listener will receive :class:`Miss`
+        notifications indicating the source and number of missed samples.
+
+        :param handler: Optional handler for receiving miss notifications
+        :return: A SampleMissListener for monitoring missed samples
         """
 
     @overload
     def sample_miss_listener(
         self, handler: _PythonHandler[Miss, _H]
     ) -> SampleMissListener[_H]:
-        """Declares a listener to detect missed samples.
+        """Declare a listener to detect missed samples.
 
-        Missed samples can only be detected from `AdvancedPublisher` that enable `sample_miss_detection`.
+        Missed samples can only be detected from :class:`AdvancedPublisher` instances
+        that enable ``sample_miss_detection``. The listener will receive :class:`Miss`
+        notifications indicating the source and number of missed samples.
+
+        :param handler: Handler tuple (callback, handler) for receiving miss notifications
+        :return: A SampleMissListener for monitoring missed samples
         """
 
     @overload
     def sample_miss_listener(
         self, handler: _PythonCallback[Miss]
     ) -> SampleMissListener[None]:
-        """Declares a listener to detect missed samples.
+        """Declare a listener to detect missed samples.
 
-        Missed samples can only be detected from `AdvancedPublisher` that enable `sample_miss_detection`.
+        Missed samples can only be detected from :class:`AdvancedPublisher` instances
+        that enable ``sample_miss_detection``. The listener will receive :class:`Miss`
+        notifications indicating the source and number of missed samples.
+
+        :param handler: Callback function for receiving miss notifications
+        :return: A SampleMissListener for monitoring missed samples
         """
 
     @overload
@@ -275,42 +307,98 @@ class AdvancedSubscriber(Generic[_H]):
         *,
         history: bool | None = None,
     ) -> Subscriber[Handler[Sample]]:
-        """Declares a listener to detect matching publishers.
+        """Declare a listener to detect matching publishers.
 
-        Only `AdvancedPublisher` that enable `publisher_detection` can be detected.
+        Only :class:`AdvancedPublisher` instances that enable ``publisher_detection``
+        can be detected. This uses liveliness mechanisms to track publisher presence.
+
+        :param handler: Optional handler for receiving publisher detection events
+        :param history: If True, query for historical publisher information
+        :return: A Subscriber for monitoring publisher presence
         """
 
     @overload
     def detect_publishers(
         self, handler: _PythonHandler[Sample, _H], *, history: bool | None = None
     ) -> Subscriber[_H]:
-        """Declares a listener to detect matching publishers.
+        """Declare a listener to detect matching publishers.
 
-        Only `AdvancedPublisher` that enable `publisher_detection` can be detected.
+        Only :class:`AdvancedPublisher` instances that enable ``publisher_detection``
+        can be detected. This uses liveliness mechanisms to track publisher presence.
+
+        :param handler: Handler tuple (callback, handler) for receiving publisher detection events
+        :param history: If True, query for historical publisher information
+        :return: A Subscriber for monitoring publisher presence
         """
 
     @overload
     def detect_publishers(
         self, handler: _PythonCallback[Sample], *, history: bool | None = None
     ) -> Subscriber[None]:
-        """Declares a listener to detect matching publishers.
+        """Declare a listener to detect matching publishers.
 
-        Only `AdvancedPublisher` that enable `publisher_detection` can be detected.
+        Only :class:`AdvancedPublisher` instances that enable ``publisher_detection``
+        can be detected. This uses liveliness mechanisms to track publisher presence.
+
+        :param handler: Callback function for receiving publisher detection events
+        :param history: If True, query for historical publisher information
+        :return: A Subscriber for monitoring publisher presence
         """
 
-    def undeclare(self): ...
+    def undeclare(self):
+        """Undeclare the AdvancedSubscriber.
+
+        This removes the subscription and informs the network that resources
+        for this subscriber can be released.
+        """
+
     @overload
-    def try_recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample | None: ...
+    def try_recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample | None:
+        """Try to receive a sample without blocking.
+
+        Only available when using a DefaultHandler, FifoChannel, or RingChannel.
+
+        :return: A Sample if one is available, None otherwise
+        """
+
     @overload
-    def try_recv(self) -> Never: ...
+    def try_recv(self) -> Never:
+        """Try to receive a sample without blocking.
+
+        This method is only available when using channel-based handlers.
+        """
+
     @overload
-    def recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample: ...
+    def recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample:
+        """Receive a sample, blocking until one is available.
+
+        Only available when using a DefaultHandler, FifoChannel, or RingChannel.
+
+        :return: The received Sample
+        """
+
     @overload
-    def recv(self) -> Never: ...
+    def recv(self) -> Never:
+        """Receive a sample, blocking until one is available.
+
+        This method is only available when using channel-based handlers.
+        """
+
     @overload
-    def __iter__(self: AdvancedSubscriber[Handler[Sample]]) -> Handler[Sample]: ...
+    def __iter__(self: AdvancedSubscriber[Handler[Sample]]) -> Handler[Sample]:
+        """Iterate over received samples.
+
+        Only available when using a DefaultHandler, FifoChannel, or RingChannel.
+
+        :return: An iterator over received samples
+        """
+
     @overload
-    def __iter__(self) -> Never: ...
+    def __iter__(self) -> Never:
+        """Iterate over received samples.
+
+        This method is only available when using channel-based handlers.
+        """
 
 @_unstable
 @final
