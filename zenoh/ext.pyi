@@ -119,7 +119,7 @@ class AdvancedPublisher:
     """An extension to Publisher providing advanced functionalities.
 
     Advanced publishers are created via :func:`declare_advanced_publisher` and
-    works alongside :class:`AdvancedSubscriber` to enable. The features include:
+    works alongside :class:`AdvancedSubscriber`. Its features include:
 
     * **Caching** - Store last published samples for retrieval via subscriber history mechanisms.
       Configure via :class:`CacheConfig`.
@@ -136,23 +136,29 @@ class AdvancedPublisher:
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """The globally unique id of this AdvancedPublisher."""
+        """The globally unique id of this AdvancedPublisher. See :meth:`zenoh.Publisher.id`.
+        """
 
     @property
     def key_expr(self) -> KeyExpr:
-        """The key expression this AdvancedPublisher publishes to."""
+        """The key expression this AdvancedPublisher publishes to. See :meth:`zenoh.Publisher.key_expr`.
+        """
 
     @property
     def encoding(self) -> Encoding:
-        """The encoding used for published data."""
+        """The encoding used for published data. See :meth:`zenoh.Publisher.encoding`.
+        """
 
     @property
     def congestion_control(self) -> CongestionControl:
-        """The congestion control policy applied to published data."""
+        """The congestion control policy applied to published data. 
+        See :meth:`zenoh.Publisher.congestion_control`.
+        """
 
     @property
     def priority(self) -> Priority:
-        """The priority level of published data."""
+        """The priority level of published data. See :meth:`zenoh.Publisher.priority`.
+        """
 
     def put(
         self,
@@ -162,12 +168,7 @@ class AdvancedPublisher:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
     ):
-        """Publish data to the key expression.
-
-        :param payload: The data to publish
-        :param encoding: Optional encoding override; if not specified, uses the publisher's default encoding
-        :param attachment: Optional user attachment
-        :param timestamp: Optional timestamp; if not specified, the session will generate one
+        """Publish data to the key expression. See :meth:`zenoh.Publisher.put`.
         """
 
     def delete(
@@ -176,16 +177,11 @@ class AdvancedPublisher:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
     ):
-        """Delete the value associated with the key expression.
-
-        :param attachment: Optional user attachment
-        :param timestamp: Optional timestamp; if not specified, the session will generate one
+        """Delete the value associated with the key expression. See :meth:`zenoh.Publisher.delete`.
         """
 
     def undeclare(self):
-        """Undeclare the AdvancedPublisher.
-
-        This informs the network that optimizations for this publisher are no longer needed.
+        """Undeclare the AdvancedPublisher. See :meth:`zenoh.Publisher.undeclare`.
         """
 
 @_unstable
@@ -193,14 +189,18 @@ class AdvancedPublisher:
 class AdvancedSubscriber(Generic[_H]):
     """An extension to Subscriber providing advanced functionalities.
 
-    AdvancedSubscriber works alongside :class:`AdvancedPublisher` to enable:
+    AdvancedSubscriber is created with :func:`declare_advanced_subscriber` and works alongside
+    :class:`AdvancedPublisher`. Its features include:
 
-    * **Sample miss detection** - Identify gaps in received publications to detect missed samples
-    * **Sample recovery** - Retrieve historical samples with configurable constraints (max age, sample count)
-    * **Publisher detection** - Discover matching publishers via liveliness mechanisms
-    * **Late joiner support** - Detect late-joining publishers and query for their historical data
+    * missing samples detection using periodic queries or heartbeat subscription 
+      configurable via :class:`RecoveryConfig`. Notification about missed samples is done
+      via :meth:`AdvancedSubscriber.sample_miss_listener`.
+    
+    * recovering missing samples with max age, sample count and late joiner detection
+      configurable via :class:`HistoryConfig`.
 
-    Subscribers are created via :func:`declare_advanced_subscriber`.
+    * matching publishers detection using liveliness mechanisms.
+      Use :meth:`AdvancedSubscriber.detect_publishers` to find active publishers.
     """
 
     def __enter__(self) -> Self: ...
@@ -208,15 +208,19 @@ class AdvancedSubscriber(Generic[_H]):
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """The globally unique id of this AdvancedSubscriber."""
+        """The globally unique id of this AdvancedSubscriber. See :meth:`zenoh.Subscriber.id`.
+        """
 
     @property
     def key_expr(self) -> KeyExpr:
-        """The key expression this AdvancedSubscriber subscribes to."""
+        """The key expression this AdvancedSubscriber subscribes to. See :meth:`zenoh.Subscriber.key_expr`.
+        """
 
     @property
     def handler(self) -> _H:
-        """The handler used to process received samples."""
+        """The handler used to process received samples. See :meth:`zenoh.Subscriber.handler`.
+        """
+        
     @overload
     def sample_miss_listener(
         self, handler: _RustHandler[Miss] | None = None
@@ -224,13 +228,8 @@ class AdvancedSubscriber(Generic[_H]):
         """Declare a listener to detect missed samples.
 
         Missed samples can only be detected from :class:`AdvancedPublisher` instances
-        that enable ``sample_miss_detection``. The listener will receive :class:`Miss`
+        that enable `sample_miss_detection`. The listener will receive :class:`Miss`
         notifications indicating the source and number of missed samples.
-
-        :param handler: Optional handler for receiving miss notifications.
-            Can be a DefaultHandler, FifoChannel, RingChannel, a callback function,
-            or a tuple of (callback, handler).
-        :return: A SampleMissListener for monitoring missed samples
         """
 
     @overload
@@ -257,7 +256,7 @@ class AdvancedSubscriber(Generic[_H]):
         :ref:`liveliness` to track publisher presence.
 
         :param handler: Optional :ref:`handler` for receiving publisher detection events.
-        :param history: If True, the already present publishers will be reported upon declaration. Uses `history` feature of :meth:`zenoh.Liveliness.declare_subscriber`.
+        :param history: If `True`, the already present publishers will be reported upon declaration. Uses `history` feature of :meth:`zenoh.Liveliness.declare_subscriber`.
         """
 
     @overload
@@ -271,64 +270,25 @@ class AdvancedSubscriber(Generic[_H]):
     ) -> Subscriber[None]: ...
 
     def undeclare(self):
-        """Undeclare the AdvancedSubscriber.
-
-        This removes the subscription and informs the network that resources
-        for this subscriber can be released.
+        """Undeclare the AdvancedSubscriber. See :meth:`zenoh.Subscriber.undeclare`.
         """
 
-    @overload
     def try_recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample | None:
-        """Try to receive a sample without blocking.
-
-        Only available when using a DefaultHandler, FifoChannel, or RingChannel.
-
-        :return: A Sample if one is available, None otherwise
+        """Try to receive a sample without blocking. See :meth:`zenoh.Subscriber.try_recv`.
         """
 
-    @overload
-    def try_recv(self) -> Never:
-        """Try to receive a sample without blocking.
-
-        This method is only available when using channel-based handlers.
-        """
-
-    @overload
     def recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample:
-        """Receive a sample, blocking until one is available.
-
-        Only available when using a DefaultHandler, FifoChannel, or RingChannel.
-
-        :return: The received Sample
+        """Receive a sample, blocking until one is available. See :meth:`zenoh.Subscriber.recv`.
         """
 
-    @overload
-    def recv(self) -> Never:
-        """Receive a sample, blocking until one is available.
-
-        This method is only available when using channel-based handlers.
-        """
-
-    @overload
-    def __iter__(self: AdvancedSubscriber[Handler[Sample]]) -> Handler[Sample]:
-        """Iterate over received samples.
-
-        Only available when using a DefaultHandler, FifoChannel, or RingChannel.
-
-        :return: An iterator over received samples
-        """
-
-    @overload
-    def __iter__(self) -> Never:
-        """Iterate over received samples.
-
-        This method is only available when using channel-based handlers.
-        """
+    def __iter__(self: AdvancedSubscriber[Handler[Sample]]) -> Handler[Sample]: ...
 
 @_unstable
 @final
 class CacheConfig:
     """
+    Configure caching behavior for an :class:`AdvancedPublisher`.
+    
     :param max_samples: specify how many samples to keep for each resource, default to 1
     :param replies_config: the QoS to apply to replies
     """
@@ -344,6 +304,8 @@ class CacheConfig:
 @final
 class HistoryConfig:
     """
+    Configure history retrieval behavior for an :class:`AdvancedSubscriber`.
+    
     :param detect_late_publishers: enable detection of late joiner publishers and query for their historical data;
         late joiner detection can only be achieved for `AdvancedPublisher` that enable `publisher_detection`
         history can only be retransmitted by `AdvancedPublisher` that enable `cache`
@@ -385,16 +347,18 @@ class Miss:
 @final
 class MissDetectionConfig:
     """
+    Configure miss detection behavior for an :class:`AdvancedPublisher`.
+
     :param heartbeat: period in seconds, allow last sample miss detection through periodic heartbeat;
-        periodically send the last published Sample's sequence number to allow last sample recovery.
-        `AdvancedSubscriber can only recover the last sample with the `heartbeat` option enabled.
+        periodically send the last published :class:`zenoh.Sample`'s sequence number to allow last sample recovery.
+        :class:`zenoh.ext.AdvancedSubscriber` can only recover the last sample with the `heartbeat` option enabled.
 
         **This option can not be enabled simultaneously with `sporadic_heartbeat`.**
 
     :param sporadic_heartbeat: period in seconds, allow last sample miss detection through sporadic heartbeat;
-        each period, the last published Sample's sequence number is sent with `CongestionControl.Block` but only if
-        it has changed since the last period.
-        `AdvancedSubscriber can only recover the last sample with the `heartbeat` option enabled.
+        each period, the last published :class:`zenoh.Sample`'s sequence number is sent
+        with `zenoh.CongestionControl.Block` but only if it has changed since the last period.
+        :class:`zenoh.ext.AdvancedSubscriber` can only recover the last sample with the `heartbeat` option enabled.
 
         **This option can not be enabled simultaneously with `heartbeat`.**
     """
@@ -407,6 +371,8 @@ class MissDetectionConfig:
 @final
 class RecoveryConfig:
     """
+    Configure recovery behavior for an :class:`AdvancedSubscriber`.
+    
     :param periodic_queries: enable periodic queries for not yet received Samples and specify their period;
         it allows retrieving the last Sample(s) if the last Sample(s) is/are lost,
         so it is useful for sporadic publications but useless for periodic publications
@@ -430,6 +396,11 @@ class RecoveryConfig:
 @_unstable
 @final
 class RepliesConfig:
+    """
+    Configure QoS settings for replies from a :class:`AdvancedSubscriber`. Parameter
+    in :class:`zenoh.CacheConfig`.
+    """
+
     def __new__(
         cls,
         *,
@@ -454,26 +425,15 @@ class SampleMissListener(Generic[_H]):
         """Undeclare the SampleMissListener.
         """
 
-    @overload
     def try_recv(self: SampleMissListener[Handler[Miss]]) -> Miss | None:
         """Try to receive a miss notification without blocking.
         """
 
-    @overload
-    def try_recv(self) -> Never: ...
-
-    @overload
     def recv(self: SampleMissListener[Handler[Miss]]) -> Miss:
         """Receive a miss notification, blocking until one is available.
         """
 
-    @overload
-    def recv(self) -> Never: ...
-
-    @overload
     def __iter__(self: SampleMissListener[Handler[Miss]]) -> Handler[Miss]: ...
-    @overload
-    def __iter__(self) -> Never: ...
 
 @_unstable
 def declare_advanced_publisher(
@@ -518,8 +478,7 @@ def declare_advanced_subscriber(
     history: HistoryConfig | None = None,
     recovery: RecoveryConfig | None = None,
     subscriber_detection: bool | None = None,
-) -> AdvancedSubscriber[_H]:
-    """Create an AdvancedSubscriber for the given key expression."""
+) -> AdvancedSubscriber[_H]: ...
 
 @_unstable
 @overload
@@ -532,5 +491,4 @@ def declare_advanced_subscriber(
     history: HistoryConfig | None = None,
     recovery: RecoveryConfig | None = None,
     subscriber_detection: bool | None = None,
-) -> AdvancedSubscriber[None]:
-    """Create an AdvancedSubscriber for the given key expression."""
+) -> AdvancedSubscriber[None]: ...
