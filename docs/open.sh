@@ -15,7 +15,11 @@ make html
 
 # Open documentation in browser
 echo "Opening documentation..."
-open _build/html/index.html
+if command -v xdg-open > /dev/null; then
+	xdg-open _build/html/index.html
+else
+	open _build/html/index.html
+fi
 
 # Restore original files
 echo "Restoring original files..."

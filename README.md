@@ -129,7 +129,7 @@ If you cannot use a virtual environment, follow these steps carefully:
 4. Install the built wheel:
 
    ```bash
-   pip install ./target/wheels/*.whl
+   pip install ./target/wheels/*.whl --break-system-packages
    ```
 
    :warning: **Important:** Systems may have multiple Python installations. Ensure you use the same `pip` that corresponds to the `python3` you intend to use for running examples. You can verify this with:
