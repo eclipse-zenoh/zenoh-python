@@ -13,7 +13,7 @@
 #
 import zenoh
 
-# [data_representation]
+# [raw_data]
 # Raw bytes
 payload = zenoh.ZBytes(b"Hello, World!")
 data = payload.to_bytes()
@@ -25,7 +25,9 @@ payload = zenoh.ZBytes("Hello, World!")
 text = payload.to_string()
 assert isinstance(text, str)
 assert text == "Hello, World!"
+# [raw_data]
 
+# [serialized_data]
 # Using zenoh.ext for serialization
 from zenoh.ext import z_deserialize, z_serialize
 
@@ -38,4 +40,4 @@ assert isinstance(payload, zenoh.ZBytes)
 received = z_deserialize(dict[str, float], payload)
 assert isinstance(received, dict)
 assert received == {"temperature": 25.5, "humidity": 60.0}
-# [data_representation]
+# [serialized_data]

@@ -361,13 +361,13 @@ class RecoveryConfig:
         it allows retrieving the last Sample(s) if the last Sample(s) is/are lost,
         so it is useful for sporadic publications but useless for periodic publications
         with a period smaller or equal to this period.
-        Retransmission can only be achieved by `AdvancedPublisher` that enable `cache` and `sample_miss_detection`.
+        Retransmission can only be achieved by :class:`AdvancedPublisher` that enable `cache` and `sample_miss_detection`.
 
         **This option can not be enabled simultaneously with `heartbeat`.**
 
-    :param heartbeat: subscribe to heartbeats of `AdvancedPublisher`;
+    :param heartbeat: subscribe to heartbeats of :class:`AdvancedPublisher`;
         it allows receiving the last published Sample's sequence number and check for misses.
-        Heartbeat subscriber must be paired with `AdvancedPublishers` that enable `cache` and
+        Heartbeat subscriber must be paired with :class:`AdvancedPublisher` that enable `cache` and
         `sample_miss_detection` with `heartbeat` or `sporadic_heartbeat`.
 
         **This option can not be enabled simultaneously with `periodic_queries`.**
