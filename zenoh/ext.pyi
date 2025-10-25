@@ -244,7 +244,7 @@ class AdvancedSubscriber(Generic[_H]):
         in the :meth:`declare_advanced_publisher` can be detected. This uses
         :ref:`liveliness` to track publisher presence.
 
-        :param handler: Optional :ref:`handler` for receiving publisher detection events.
+        :param handler: Optional handler for receiving publisher detection events.
         :param history: If `True`, the already present publishers will be reported upon declaration. Uses `history` feature of :meth:`zenoh.Liveliness.declare_subscriber`.
         """
 
