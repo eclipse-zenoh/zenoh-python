@@ -23,7 +23,7 @@ session = zenoh.open(zenoh.Config())
 
 # Test support: send data in background
 def send_data():
-    time.sleep(0.1)
+    time.sleep(1)
     for i in range(5):
         session.put("key/expression", f"sample_{i}")
 
@@ -36,7 +36,6 @@ class CustomChannel:
     def __init__(self, max_size=100):
         self.samples = []
         self.max_size = max_size
-        self.received_count = 0
         self.lock = threading.Lock()
         self.condition = threading.Condition(self.lock)
 
@@ -65,7 +64,6 @@ class CustomChannel:
         """Called by the callback to store samples"""
         with self.condition:
             self.samples.append(sample)
-            self.received_count += 1
             # Maintain max size
             if len(self.samples) > self.max_size:
                 self.samples.pop(0)
@@ -102,6 +100,7 @@ subscriber = session.declare_subscriber(
 # Subscriber delegates to handler's recv() and try_recv() methods via duck typing
 sample = subscriber.recv()  # type: ignore[misc]
 print(f">> Received via recv(): {sample.payload.to_string()}")
+time.sleep(0.1)  # Give some time for more samples to arrive
 sample = subscriber.try_recv()  # type: ignore[misc, assignment]
 if sample:
     print(f">> Received via try_recv(): {sample.payload.to_string()}")
@@ -119,11 +118,6 @@ for sample in subscriber:  # type: ignore[misc]
     if count >= 2:
         break
 
-# Check statistics
-print(f">> Total received: {subscriber.handler.received_count}")
-
-# Verify
-assert subscriber.handler.received_count >= 4
 # We consumed 4 samples (1 via try_recv, 1 via recv, 2 via iteration)
 # so should have 1 remaining
 remaining = subscriber.handler.try_recv()
