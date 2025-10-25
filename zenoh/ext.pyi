@@ -85,6 +85,7 @@ class Float64(float):
 
 class ZDeserializeError(Exception):
     """Exception raised when deserialization with :meth:`zenoh.ext.z_deserialize` fails."""
+
     pass
 
 def z_serialize(obj: Any) -> ZBytes:
@@ -136,29 +137,25 @@ class AdvancedPublisher:
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """The globally unique id of this AdvancedPublisher. See :meth:`zenoh.Publisher.id`.
-        """
+        """The globally unique id of this AdvancedPublisher. See :meth:`zenoh.Publisher.id`."""
 
     @property
     def key_expr(self) -> KeyExpr:
-        """The key expression this AdvancedPublisher publishes to. See :meth:`zenoh.Publisher.key_expr`.
-        """
+        """The key expression this AdvancedPublisher publishes to. See :meth:`zenoh.Publisher.key_expr`."""
 
     @property
     def encoding(self) -> Encoding:
-        """The encoding used for published data. See :meth:`zenoh.Publisher.encoding`.
-        """
+        """The encoding used for published data. See :meth:`zenoh.Publisher.encoding`."""
 
     @property
     def congestion_control(self) -> CongestionControl:
-        """The congestion control policy applied to published data. 
+        """The congestion control policy applied to published data.
         See :meth:`zenoh.Publisher.congestion_control`.
         """
 
     @property
     def priority(self) -> Priority:
-        """The priority level of published data. See :meth:`zenoh.Publisher.priority`.
-        """
+        """The priority level of published data. See :meth:`zenoh.Publisher.priority`."""
 
     def put(
         self,
@@ -168,8 +165,7 @@ class AdvancedPublisher:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
     ):
-        """Publish data to the key expression. See :meth:`zenoh.Publisher.put`.
-        """
+        """Publish data to the key expression. See :meth:`zenoh.Publisher.put`."""
 
     def delete(
         self,
@@ -177,12 +173,10 @@ class AdvancedPublisher:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
     ):
-        """Delete the value associated with the key expression. See :meth:`zenoh.Publisher.delete`.
-        """
+        """Delete the value associated with the key expression. See :meth:`zenoh.Publisher.delete`."""
 
     def undeclare(self):
-        """Undeclare the AdvancedPublisher. See :meth:`zenoh.Publisher.undeclare`.
-        """
+        """Undeclare the AdvancedPublisher. See :meth:`zenoh.Publisher.undeclare`."""
 
 @_unstable
 @final
@@ -192,10 +186,10 @@ class AdvancedSubscriber(Generic[_H]):
     AdvancedSubscriber is created with :func:`declare_advanced_subscriber` and works alongside
     :class:`AdvancedPublisher`. Its features include:
 
-    * missing samples detection using periodic queries or heartbeat subscription 
+    * missing samples detection using periodic queries or heartbeat subscription
       configurable via :class:`RecoveryConfig`. Notification about missed samples is done
       via :meth:`AdvancedSubscriber.sample_miss_listener`.
-    
+
     * recovering missing samples with max age, sample count and late joiner detection
       configurable via :class:`HistoryConfig`.
 
@@ -208,19 +202,16 @@ class AdvancedSubscriber(Generic[_H]):
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """The globally unique id of this AdvancedSubscriber. See :meth:`zenoh.Subscriber.id`.
-        """
+        """The globally unique id of this AdvancedSubscriber. See :meth:`zenoh.Subscriber.id`."""
 
     @property
     def key_expr(self) -> KeyExpr:
-        """The key expression this AdvancedSubscriber subscribes to. See :meth:`zenoh.Subscriber.key_expr`.
-        """
+        """The key expression this AdvancedSubscriber subscribes to. See :meth:`zenoh.Subscriber.key_expr`."""
 
     @property
     def handler(self) -> _H:
-        """The handler used to process received samples. See :meth:`zenoh.Subscriber.handler`.
-        """
-        
+        """The handler used to process received samples. See :meth:`zenoh.Subscriber.handler`."""
+
     @overload
     def sample_miss_listener(
         self, handler: _RustHandler[Miss] | None = None
@@ -236,12 +227,10 @@ class AdvancedSubscriber(Generic[_H]):
     def sample_miss_listener(
         self, handler: _PythonHandler[Miss, _H]
     ) -> SampleMissListener[_H]: ...
-
     @overload
     def sample_miss_listener(
         self, handler: _PythonCallback[Miss]
     ) -> SampleMissListener[None]: ...
-
     @overload
     def detect_publishers(
         self,
@@ -263,23 +252,18 @@ class AdvancedSubscriber(Generic[_H]):
     def detect_publishers(
         self, handler: _PythonHandler[Sample, _H], *, history: bool | None = None
     ) -> Subscriber[_H]: ...
-
     @overload
     def detect_publishers(
         self, handler: _PythonCallback[Sample], *, history: bool | None = None
     ) -> Subscriber[None]: ...
-
     def undeclare(self):
-        """Undeclare the AdvancedSubscriber. See :meth:`zenoh.Subscriber.undeclare`.
-        """
+        """Undeclare the AdvancedSubscriber. See :meth:`zenoh.Subscriber.undeclare`."""
 
     def try_recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample | None:
-        """Try to receive a sample without blocking. See :meth:`zenoh.Subscriber.try_recv`.
-        """
+        """Try to receive a sample without blocking. See :meth:`zenoh.Subscriber.try_recv`."""
 
     def recv(self: AdvancedSubscriber[Handler[Sample]]) -> Sample:
-        """Receive a sample, blocking until one is available. See :meth:`zenoh.Subscriber.recv`.
-        """
+        """Receive a sample, blocking until one is available. See :meth:`zenoh.Subscriber.recv`."""
 
     def __iter__(self: AdvancedSubscriber[Handler[Sample]]) -> Handler[Sample]: ...
 
@@ -288,7 +272,7 @@ class AdvancedSubscriber(Generic[_H]):
 class CacheConfig:
     """
     Configure caching behavior for an :class:`AdvancedPublisher`.
-    
+
     :param max_samples: specify how many samples to keep for each resource, default to 1
     :param replies_config: the QoS to apply to replies
     """
@@ -305,7 +289,7 @@ class CacheConfig:
 class HistoryConfig:
     """
     Configure history retrieval behavior for an :class:`AdvancedSubscriber`.
-    
+
     :param detect_late_publishers: enable detection of late joiner publishers and query for their historical data;
         late joiner detection can only be achieved for `AdvancedPublisher` that enable `publisher_detection`
         history can only be retransmitted by `AdvancedPublisher` that enable `cache`
@@ -372,7 +356,7 @@ class MissDetectionConfig:
 class RecoveryConfig:
     """
     Configure recovery behavior for an :class:`AdvancedSubscriber`.
-    
+
     :param periodic_queries: enable periodic queries for not yet received Samples and specify their period;
         it allows retrieving the last Sample(s) if the last Sample(s) is/are lost,
         so it is useful for sporadic publications but useless for periodic publications
@@ -422,16 +406,13 @@ class SampleMissListener(Generic[_H]):
     """
 
     def undeclare(self):
-        """Undeclare the SampleMissListener.
-        """
+        """Undeclare the SampleMissListener."""
 
     def try_recv(self: SampleMissListener[Handler[Miss]]) -> Miss | None:
-        """Try to receive a miss notification without blocking.
-        """
+        """Try to receive a miss notification without blocking."""
 
     def recv(self: SampleMissListener[Handler[Miss]]) -> Miss:
-        """Receive a miss notification, blocking until one is available.
-        """
+        """Receive a miss notification, blocking until one is available."""
 
     def __iter__(self: SampleMissListener[Handler[Miss]]) -> Handler[Miss]: ...
 
@@ -450,8 +431,7 @@ def declare_advanced_publisher(
     sample_miss_detection: MissDetectionConfig | None = None,
     publisher_detection: bool | None = None,
 ) -> AdvancedPublisher:
-    """Declare an :class:`AdvancedPublisher` for the given key expression.
-    """
+    """Declare an :class:`AdvancedPublisher` for the given key expression."""
 
 @_unstable
 @overload
@@ -479,7 +459,6 @@ def declare_advanced_subscriber(
     recovery: RecoveryConfig | None = None,
     subscriber_detection: bool | None = None,
 ) -> AdvancedSubscriber[_H]: ...
-
 @_unstable
 @overload
 def declare_advanced_subscriber(

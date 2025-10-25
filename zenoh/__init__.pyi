@@ -403,15 +403,19 @@ class Hello:
     A Hello message is returned in the ::ref::`scouting` process for each found Zenoh node on the network. It contains information about the node's
     identity and its addresses in `locators <https://docs.rs/zenoh/latest/zenoh/config/struct.Locator.html>`_ format.
     """
+
     @property
     def whatami(self) -> WhatAmI:
         """Get the `WhatAmI` type of the Zenoh node."""
+
     @property
     def zid(self) -> ZenohId:
         """Get the `ZenohId` of the Zenoh node."""
+
     @property
     def locators(self) -> list[str]:
         """Get the locators (network addresses) of the Zenoh node."""
+
     def __str__(self) -> str:
         """Returns a string representation of the Hello message."""
 
@@ -429,6 +433,7 @@ class KeyExpr:
         """Creates a new KeyExpr from a string.
         Raises :exc:`ZError` if the key_expr is not a valid key expression.
         """
+
     @classmethod
     def autocanonize(cls, key_expr: str) -> Self:
         """`Canonizes <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md#canon-forms>`_ the passed value before returning it as a KeyExpr.
@@ -471,6 +476,7 @@ class Liveliness:
 
     For more information, see :ref:`liveliness`.
     """
+
     def declare_token(self, key_expr: _IntoKeyExpr) -> LivelinessToken:
         """Create a :class:`LivelinessToken` for the given key expression."""
 
@@ -527,7 +533,6 @@ class Liveliness:
         *,
         history: bool | None = None,
     ) -> Subscriber[_H]: ...
-
     @overload
     def declare_subscriber(
         self,
@@ -539,10 +544,11 @@ class Liveliness:
 
 @final
 class LivelinessToken:
-    """A token whose liveliness is tied to the Zenoh :class:`Session` and can be monitored by 
+    """A token whose liveliness is tied to the Zenoh :class:`Session` and can be monitored by
     remote applications using the :class:`Liveliness` structure. The token is declared using
     :meth:`Liveliness.declare_token` with a specific key expression.
     """
+
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     def undeclare(self):
@@ -638,28 +644,33 @@ class Publisher:
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """The global ID of this publisher.
-        """
+        """The global ID of this publisher."""
+
     @property
     def key_expr(self) -> KeyExpr:
         """The key expression this publisher publishes to."""
+
     @property
     def encoding(self) -> Encoding:
         """The encoding used when publishing data."""
+
     @property
     def congestion_control(self) -> CongestionControl:
         """The congestion control strategy applied when routing data."""
+
     @property
     def priority(self) -> Priority:
         """The priority of the published data."""
+
     @property
     @_unstable
     def reliability(self) -> Reliability:
         """The reliability applied when routing data."""
+
     @property
     def matching_status(self) -> bool:
-        """Whether there are subscribers matching this publisher's key expression.
-        """
+        """Whether there are subscribers matching this publisher's key expression."""
+
     def put(
         self,
         payload: _IntoZBytes,
@@ -728,8 +739,8 @@ class Query:
        respectively on ``foo/bar`` and ``foo/baz``.
 
     .. note::
-        By default, queries only accept replies whose key expression intersects with the query's. 
-        I.e. it's not possible to send reply with key expression ``foo/bar`` to a query with 
+        By default, queries only accept replies whose key expression intersects with the query's.
+        I.e. it's not possible to send reply with key expression ``foo/bar`` to a query with
         key expression ``baz/*``.
         The query may contain special unstable parameter ``_anyke`` which enables disjoint replies.
         See the :class:`Selector` documentation for more information about this parameter.
@@ -740,28 +751,29 @@ class Query:
     def __enter__(self) -> Self: ...
     def __exit__(self, *_args, **_kwargs): ...
     @property
-    def selector(self) -> Selector: 
+    def selector(self) -> Selector:
         """The full :class:`Selector` of this query."""
 
     @property
-    def key_expr(self) -> KeyExpr: 
+    def key_expr(self) -> KeyExpr:
         """The key expression part of this query."""
 
     @property
-    def parameters(self) -> Parameters: 
+    def parameters(self) -> Parameters:
         """The selector parameters of this query."""
 
     @property
-    def payload(self) -> ZBytes | None: 
+    def payload(self) -> ZBytes | None:
         """The payload of this query, if any."""
 
     @property
-    def encoding(self) -> Encoding | None: 
+    def encoding(self) -> Encoding | None:
         """The encoding of this query's payload, if any."""
 
     @property
-    def attachment(self) -> ZBytes | None: 
+    def attachment(self) -> ZBytes | None:
         """The attachment of this query, if any."""
+
     def reply(
         self,
         key_expr: _IntoKeyExpr,
@@ -814,7 +826,7 @@ class Query:
         methods will raise an exception.
         """
 
-    def __str__(self) -> str: 
+    def __str__(self) -> str:
         """Returns a string representation of this query."""
 
 @final
@@ -832,22 +844,27 @@ class Queryable(Generic[_H]):
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """Returns the :class:`EntityGlobalId` of this Queryable.
-        """
+        """Returns the :class:`EntityGlobalId` of this Queryable."""
+
     @property
     def key_expr(self) -> KeyExpr:
         """Returns the :class:`KeyExpr` this queryable responds to."""
+
     @property
     def handler(self) -> _H:
         """The handler associated with this Queryable instance.
 
         See :ref:`channels-and-callbacks` for more information on handlers."""
+
     def undeclare(self):
         """Undeclare the Queryable."""
+
     def try_recv(self: Queryable[handlers.Handler[Query]]) -> Query | None:
         """Try to receive a :class:`Query` from the handler without blocking."""
+
     def recv(self: Queryable[handlers.Handler[Query]]) -> Query:
         """Receive a :class:`Query` from the handler, blocking if necessary."""
+
     def __iter__(self: Queryable[Handler[Query]]) -> Handler[Query]:
         """Iterate over :class:`Query` received by the handler."""
 
@@ -866,14 +883,16 @@ class Querier:
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """Returns the :class:`EntityGlobalId` of this Querier.
-        """
+        """Returns the :class:`EntityGlobalId` of this Querier."""
+
     @property
     def key_expr(self) -> KeyExpr:
         """Returns the :class:`KeyExpr` this querier sends queries on."""
+
     @property
     def matching_status(self) -> bool:
         """Returns true if there are :class:`Queryable`\\s matching the Querier's key expression and target, false otherwise."""
+
     @overload
     def get(
         self,
@@ -928,7 +947,8 @@ class Querier:
     ) -> MatchingListener[Handler[MatchingStatus]]:
         """Returns a :class:`MatchingListener` for this Querier.
 
-        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes."""
+        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes.
+        """
 
     @overload
     def declare_matching_listener(
@@ -936,7 +956,8 @@ class Querier:
     ) -> MatchingListener[_H]:
         """Returns a :class:`MatchingListener` for this Querier.
 
-        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes."""
+        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes.
+        """
 
     @overload
     def declare_matching_listener(
@@ -944,19 +965,21 @@ class Querier:
     ) -> MatchingListener[None]:
         """Returns a :class:`MatchingListener` for this Querier.
 
-        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes."""
+        The :class:`MatchingListener` will send a notification each time the :class:`MatchingStatus` of the Querier changes.
+        """
 
 @final
 class QueryConsolidation:
     """The reply consolidation strategy to apply to replies to a get.
 
     By default, the consolidation strategy is :attr:`QueryConsolidation.AUTO`, which lets the implementation
-    choose the best strategy depending on the query parameters and the number of responders. Other 
-    strategies can be selected by using a specific :class:`ConsolidationMode` as a parameter of the 
+    choose the best strategy depending on the query parameters and the number of responders. Other
+    strategies can be selected by using a specific :class:`ConsolidationMode` as a parameter of the
     :meth:`Session.declare_querier` or :meth:`Session.get` methods.
 
     See the documentation of :class:`ConsolidationMode` for more details about each strategy.
     """
+
     AUTO: Self
     DEFAULT: Self
     def __new__(cls, mode: ConsolidationMode, /) -> Self: ...
@@ -982,8 +1005,12 @@ class QueryTarget(Enum):
 
     DEFAULT = BEST_MATCHING
 
-QueryTarget.BEST_MATCHING.__doc__ = """Let Zenoh find the best matching queryable capable of serving the query."""
-QueryTarget.ALL.__doc__ = """Deliver the query to all queryables matching the query's key expression."""
+QueryTarget.BEST_MATCHING.__doc__ = (
+    """Let Zenoh find the best matching queryable capable of serving the query."""
+)
+QueryTarget.ALL.__doc__ = (
+    """Deliver the query to all queryables matching the query's key expression."""
+)
 QueryTarget.ALL_COMPLETE.__doc__ = """Deliver the query to all queryables matching the query's key expression that are declared as complete."""
 
 @final
@@ -994,6 +1021,7 @@ class Reliability(Enum):
     Used when declaring publishers with :meth:`Session.declare_publisher` and
     accessible via the :attr:`Publisher.reliability` property.
     """
+
     BEST_EFFORT = auto()
     RELIABLE = auto()
 
@@ -1019,8 +1047,12 @@ class Locality(Enum):
 
     DEFAULT = ANY
 
-Locality.SESSION_LOCAL.__doc__ = """Request/serve data only to entities in the same session."""
-Locality.REMOTE.__doc__ = """Request/serve data only to remote entities (not in the same session)."""
+Locality.SESSION_LOCAL.__doc__ = (
+    """Request/serve data only to entities in the same session."""
+)
+Locality.REMOTE.__doc__ = (
+    """Request/serve data only to remote entities (not in the same session)."""
+)
 Locality.ANY.__doc__ = """Request/serve data to both local and remote entities."""
 
 @final
@@ -1035,24 +1067,28 @@ class Reply:
     @property
     def result(self) -> Sample | ReplyError:
         """Gets the result of this reply which may be either a successful :class:`Sample` or an error :class:`ReplyError`."""
+
     @property
     def ok(self) -> Sample | None:
         """Returns the successful result if this reply is successful, `None` otherwise."""
+
     @property
     def err(self) -> ReplyError | None:
         """Returns the error if this reply failed, `None` otherwise."""
+
     @property
     @_unstable
     def replier_id(self) -> EntityGlobalId | None:
-        """Returns the ID of the zenoh instance that answered this reply.
-        """
+        """Returns the ID of the zenoh instance that answered this reply."""
 
 @final
 class ReplyError:
     """An error reply received from a :class:`Queryable` and available in the :class:`Reply` structure."""
+
     @property
     def payload(self) -> ZBytes:
         """Gets the payload of this `ReplyError`, usually an error message."""
+
     @property
     def encoding(self) -> Encoding:
         """Gets the encoding of this `ReplyError`."""
@@ -1060,6 +1096,7 @@ class ReplyError:
 @final
 class SampleKind(Enum):
     """The kind of a :class:`Sample`, indicating whether it contains data or indicates deletion."""
+
     PUT = auto()
     DELETE = auto()
 
@@ -1072,6 +1109,7 @@ class Sample:
 
     It contains the payload and all metadata associated with the data.
     """
+
     @property
     def key_expr(self) -> KeyExpr:
         """Gets the key expression on which this Sample was published."""
@@ -1110,6 +1148,7 @@ class Sample:
     @property
     def attachment(self) -> ZBytes | None:
         """Gets the sample attachment: a map of key-value pairs."""
+
     @_unstable
     @property
     def source_info(self) -> SourceInfo:
@@ -1118,29 +1157,36 @@ class Sample:
 @final
 class Scout(Generic[_H]):
     """A Scout object that yields :class:`zenoh.Hello` messages for discovered Zenoh nodes on the network.
-    
+
     Scout is returned by the :func:`zenoh.scout` function and is used to discover
-    Zenoh nodes (routers and peers) on the network. It yields :class:`zenoh.Hello` 
+    Zenoh nodes (routers and peers) on the network. It yields :class:`zenoh.Hello`
     messages containing information about each discovered node.
-    
+
     See :ref:`scouting` for more details on the scouting process.
     """
-    def __enter__(self) -> Self: 
+
+    def __enter__(self) -> Self:
         """Enter the Scout context manager."""
-    def __exit__(self, *_args, **_kwargs): 
+
+    def __exit__(self, *_args, **_kwargs):
         """Exit the Scout context manager and stop scouting."""
+
     @property
-    def handler(self) -> _H: 
+    def handler(self) -> _H:
         """The handler associated with this Scout instance.
 
         See :ref:`channels-and-callbacks` for more information on handlers."""
-    def stop(self): 
+
+    def stop(self):
         """Stop the scouting process."""
-    def try_recv(self: Scout[Handler[Hello]]) -> Hello | None: 
+
+    def try_recv(self: Scout[Handler[Hello]]) -> Hello | None:
         """Try to receive a :class:`zenoh.Hello` message without blocking. Returns None if no message is available."""
-    def recv(self: Scout[Handler[Hello]]) -> Hello: 
+
+    def recv(self: Scout[Handler[Hello]]) -> Hello:
         """Receive a :class:`zenoh.Hello` message, blocking until one is available."""
-    def __iter__(self: Scout[Handler[Hello]]) -> Handler[Hello]: 
+
+    def __iter__(self: Scout[Handler[Hello]]) -> Handler[Hello]:
         """Iterate over received :class:`zenoh.Hello` messages."""
 
 @final
@@ -1201,11 +1247,13 @@ class Selector:
     @property
     def key_expr(self) -> KeyExpr:
         """The key expression part of this selector."""
+
     @key_expr.setter
     def key_expr(self, key_expr: _IntoKeyExpr): ...
     @property
     def parameters(self) -> Parameters:
         """The parameters part of this selector."""
+
     @parameters.setter
     def parameters(self, parameters: _IntoParameters): ...
     def __str__(self) -> str: ...
@@ -1226,11 +1274,12 @@ class Session:
     @property
     def info(self) -> SessionInfo:
         """Get information about the session: the session id, the connected nodes."""
+
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """Returns the global identifier of the session object.
-        """
+        """Returns the global identifier of the session object."""
+
     def zid(self) -> ZenohId:
         """Returns the identifier of the current session."""
 
@@ -1251,6 +1300,7 @@ class Session:
 
     def undeclare(self, obj: KeyExpr):
         """Undeclare a zenoh entity declared by the session."""
+
     def new_timestamp(self) -> Timestamp:
         """Get a new :class:`Timestamp` from a Zenoh session.
 
@@ -1263,8 +1313,7 @@ class Session:
         """
 
     def declare_keyexpr(self, key_expr: _IntoKeyExpr):
-        """Informs Zenoh that you intend to use the provided key_expr multiple times and that it should optimize its transmission.
-        """
+        """Informs Zenoh that you intend to use the provided key_expr multiple times and that it should optimize its transmission."""
 
     def put(
         self,
@@ -1504,7 +1553,9 @@ class SetIntersectionLevel(Enum):
 SetIntersectionLevel.DISJOINT.__doc__ = "The sets have no key expressions in common. Example: ``foo/*`` and ``bar/*`` - no overlap."
 SetIntersectionLevel.INTERSECTS.__doc__ = "The sets have some key expressions in common, but neither fully contains the other. Example: ``foo/*`` and ``*/bar`` - ``foo/bar`` matches both."
 SetIntersectionLevel.INCLUDES.__doc__ = "The first set fully contains the second set. Example: ``foo/**`` includes ``foo/*`` (where ``**`` matches any number of sections)."
-SetIntersectionLevel.EQUALS.__doc__ = "The sets are identical. Example: ``foo/*`` and ``foo/*``."
+SetIntersectionLevel.EQUALS.__doc__ = (
+    "The sets are identical. Example: ``foo/*`` and ``foo/*``."
+)
 
 @final
 class MatchingStatus:
@@ -1535,6 +1586,7 @@ class MatchingListener(Generic[_H]):
         """The handler associated with this MatchingListener instance.
 
         See :ref:`channels-and-callbacks` for more information on handlers."""
+
     def undeclare(self):
         """Close a Matching listener.
         Matching listeners are automatically closed when dropped, but you may want to use this function to handle errors or close the Matching listener asynchronously.
@@ -1556,14 +1608,16 @@ class SourceInfo:
     Contains metadata about the origin of a data sample, including the source entity's
     global identifier and sequence number.
     """
+
     def __new__(
         cls, source_id: EntityGlobalId | None = None, source_sn: SourceSn | None = None
     ) -> Self: ...
     @property
-    def source_id(self) -> EntityGlobalId | None: 
+    def source_id(self) -> EntityGlobalId | None:
         """The EntityGlobalId of the zenoh entity that published the Sample in question."""
+
     @property
-    def source_sn(self) -> SourceSn | None: 
+    def source_sn(self) -> SourceSn | None:
         """The sequence number of the Sample from the source."""
 
 SourceSn = int
@@ -1585,16 +1639,18 @@ class Subscriber(Generic[_H]):
     @_unstable
     @property
     def id(self) -> EntityGlobalId:
-        """The global ID of this subscriber.
-        """
+        """The global ID of this subscriber."""
+
     @property
     def key_expr(self) -> KeyExpr:
         """The key expression this subscriber subscribes to."""
+
     @property
     def handler(self) -> _H:
         """The handler associated with this Subscriber instance.
 
         See :ref:`channels-and-callbacks` for more information on handlers."""
+
     def undeclare(self):
         """Close a Subscriber.
         Subscribers are automatically closed when dropped, but you may want to use this function to handle errors or close the Subscriber asynchronously.
@@ -1605,8 +1661,10 @@ class Subscriber(Generic[_H]):
 
         Returns the sample if available, or None if no sample is ready.
         """
+
     def recv(self: Subscriber[Handler[Sample]]) -> Sample:
         """Receive a :class:`Sample`, blocking until one is available."""
+
     def __iter__(self: Subscriber[Handler[Sample]]) -> Handler[Sample]:
         """Iterate over received :class:`Sample` instances."""
 
@@ -1735,7 +1793,6 @@ class WhatAmI(Enum):
 
     def __str__(self) -> str: ...
 
-
 WhatAmI.ROUTER.__doc__ = """Router mode: Used to run a zenoh router, which is a node that maintains a
 predefined zenoh network topology. Unlike peers, routers do not discover other
 nodes by themselves, but rely on static configuration."""
@@ -1761,19 +1818,26 @@ class WhatAmIMatcher:
 
     def __new__(cls, matcher: str | None = None) -> Self:
         """Creates a matcher from a string specification or an empty matcher if None."""
+
     @classmethod
     def empty(cls) -> Self:
         """Creates an empty matcher that matches no node types."""
+
     def router(self) -> Self:
         """Adds :attr:`WhatAmI.ROUTER` to the matcher."""
+
     def peer(self) -> Self:
         """Adds :attr:`WhatAmI.PEER` to the matcher."""
+
     def client(self) -> Self:
         """Adds :attr:`WhatAmI.CLIENT` to the matcher."""
+
     def is_empty(self) -> bool:
         """Returns True if the matcher matches no node types."""
+
     def matches(self, whatami: WhatAmI) -> bool:
         """Returns True if the given WhatAmI value matches this matcher."""
+
     def __str__(self) -> str:
         """Returns a string representation of the matcher."""
 
@@ -1806,6 +1870,7 @@ class ZBytes:
         Returns:
             bytes: The raw byte data contained in this ZBytes instance.
         """
+
     def to_string(self) -> str:
         """Return the underlying data as a UTF-8 decoded string.
 
@@ -1815,6 +1880,7 @@ class ZBytes:
         Raises:
             ValueError: If the byte data cannot be decoded as valid UTF-8.
         """
+
     @_unstable
     def as_shm(self) -> shm.ZShm | None: ...
     def __bool__(self) -> bool: ...
@@ -1871,8 +1937,7 @@ def scout(
     handler: _RustHandler[Hello] | None = None,
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
-) -> Scout[Handler[Hello]]:
-    ...
+) -> Scout[Handler[Hello]]: ...
 
 scout.__doc__ = _SCOUT_DOC
 
@@ -1881,13 +1946,10 @@ def scout(
     handler: _PythonHandler[Hello, _H],
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
-) -> Scout[_H]:
-    ...
-
+) -> Scout[_H]: ...
 @overload
 def scout(
     handler: _PythonCallback[Hello],
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
-) -> Scout[None]:
-    ...
+) -> Scout[None]: ...

@@ -24,9 +24,10 @@ session = zenoh.open(zenoh.Config())
 subscriber_default = session.declare_subscriber("key/expr")
 
 # Explicit FIFO channel with custom capacity
-subscriber_fifo = session.declare_subscriber("key/expr", zenoh.handlers.FifoChannel(100))
+subscriber_fifo = session.declare_subscriber(
+    "key/expr", zenoh.handlers.FifoChannel(100)
+)
 
 # Ring channel (drops oldest when full)
 subscriber_ring = session.declare_subscriber("key/expr", zenoh.handlers.RingChannel(50))
 # [channels]
-

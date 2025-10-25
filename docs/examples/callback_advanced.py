@@ -16,12 +16,15 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+
 # [callback_advanced]
 def on_sample(sample):
     print(sample.payload.to_string())
 
+
 def on_cleanup():
     print("Subscriber undeclared")
+
 
 callback = zenoh.handlers.Callback(on_sample, drop=on_cleanup, indirect=True)
 subscriber = session.declare_subscriber("key/expr", callback)

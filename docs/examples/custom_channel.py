@@ -20,13 +20,16 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+
 # Test support: send data in background
 def send_data():
     time.sleep(0.1)
     for i in range(5):
         session.put("key/expression", f"sample_{i}")
 
+
 threading.Thread(target=send_data, daemon=True).start()
+
 
 # [custom_channel]
 class CustomChannel:
@@ -68,7 +71,7 @@ class CustomChannel:
                 self.samples.pop(0)
             # Notify one waiting thread that a sample is available
             self.condition.notify()
-    
+
     def count(self):
         """Return number of stored samples"""
         with self.lock:
@@ -86,16 +89,20 @@ def create_custom_channel(
         channel.add_sample(sample)
 
     return (on_sample, channel)
+
+
 # [custom_channel]
 
 count = 0
 # [custom_channel_usage]
-subscriber = session.declare_subscriber("key/expression", create_custom_channel(max_size=50))
+subscriber = session.declare_subscriber(
+    "key/expression", create_custom_channel(max_size=50)
+)
 
 # Subscriber delegates to handler's recv() and try_recv() methods via duck typing
-sample = subscriber.recv() # type: ignore[misc]
+sample = subscriber.recv()  # type: ignore[misc]
 print(f">> Received via recv(): {sample.payload.to_string()}")
-sample = subscriber.try_recv() # type: ignore[misc, assignment]
+sample = subscriber.try_recv()  # type: ignore[misc, assignment]
 if sample:
     print(f">> Received via try_recv(): {sample.payload.to_string()}")
 
@@ -104,7 +111,7 @@ print(f">> Samples currently stored in channel: {subscriber.handler.count()}")
 
 # Iteration also works (demonstrates __iter__ and __next__)
 print(">> Reading remaining samples via iteration:")
-for sample in subscriber: # type: ignore[misc]
+for sample in subscriber:  # type: ignore[misc]
     print(f"   - {sample.payload.to_string()}")
     # [custom_channel_usage]
     count += 1

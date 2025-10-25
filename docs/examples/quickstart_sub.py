@@ -4,9 +4,11 @@ import zenoh
 
 TIMEOUT = 1
 
+
 # DOC_EXAMPLE_START
 def listener(sample):
     print(f"{sample.key_expr} => {sample.payload.to_string()}")
+
 
 # Subscribe to a set of keys with Zenoh
 with zenoh.open(zenoh.Config()) as session:

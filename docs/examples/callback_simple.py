@@ -16,9 +16,11 @@ import zenoh
 # Open session
 session = zenoh.open(zenoh.Config())
 
+
 # [callback_simple]
 def on_sample(sample):
     print(sample.payload.to_string())
+
 
 # Subscriber runs in background mode
 subscriber = session.declare_subscriber("key/expr", on_sample)
