@@ -27,7 +27,8 @@ def send_queries():
     session.get("room/temperature/history", callback)
 
 
-threading.Thread(target=send_queries, daemon=True).start()
+send_thread = threading.Thread(target=send_queries)
+send_thread.start()
 
 # [query_queryable]
 # Queryable that replies with temperature data for a given day
@@ -47,4 +48,5 @@ for query in queryable:
     if query_count >= 3:  # Exit after handling all 3 queries
         break
 
+send_thread.join()
 session.close()
