@@ -20,44 +20,35 @@ Components and Concepts
 Session and Config
 ------------------
 
-Overview
-^^^^^^^^
-
 Zenoh supports two paradigms of communication: :ref:`publish-subscribe` and :ref:`query-reply`. The entities
 that perform communication (for example, publishers, subscribers, queriers, and queryables) are
 declared through a :class:`zenoh.Session`. A session is created by the :func:`zenoh.open` function,
 which takes a :class:`zenoh.Config` as an argument.
 
-Configuration
-^^^^^^^^^^^^^
-
 The configuration is stored in a JSON file and can be read with :func:`zenoh.Config.from_file`.
 The file format is documented in the Zenoh Rust API
 `Config <https://docs.rs/zenoh/latest/zenoh/config/struct.Config.html>`_ reference.
 
-Examples
-^^^^^^^^
-
 .. important::
 
    The recommended way to create a session is using a context manager (``with`` statement).
-   If a session is not explicitly closed or managed with a context manager, object finalizers may
-   be called during script exit when the main library thread has already been killed, which can
-   cause the script to hang on exit.
+   If a session is not explicitly closed or managed with a context manager, on the exit object 
+   finalizers may be called when the library thread has already been killed, which can
+   cause the script to hang.
 
    Either use a context manager (recommended) or explicitly call :meth:`zenoh.Session.close`
    before your script exits. See examples in the :doc:`quickstart` section.
 
-Creating a session with context manager (recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Creating a session with context manager
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/session_config.py
    :language: python
    :start-after: [session_context_manager]
    :end-before: # [session_context_manager]
 
-Creating a session with explicit close
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Creating a session with explicit close
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/session_config.py
    :language: python
@@ -68,9 +59,6 @@ Creating a session with explicit close
 
 Key Expressions
 ---------------
-
-Overview
-^^^^^^^^
 
 `Key expressions <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md>`_ are Zenoh's address space.
 
@@ -95,11 +83,8 @@ For example, ``robot/sensor/**/*`` is valid but its canonical form is ``robot/se
 The :meth:`zenoh.KeyExpr.autocanonize` method can accept such key expressions and
 convert them to their canonical form.
 
-Examples
-^^^^^^^^
-
-Validating key expressions
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Validating key expressions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/keyexpr_validation.py
    :language: python
@@ -110,8 +95,8 @@ Key expressions support operations such as intersection and inclusion (see
 :meth:`zenoh.KeyExpr.intersects` and :meth:`zenoh.KeyExpr.includes`), which
 help determine how different expressions relate to each other.
 
-Performing operations on key expressions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Performing operations on key expressions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/keyexpr_operations.py
    :language: python
@@ -121,8 +106,8 @@ Performing operations on key expressions
 Key expressions can also be declared with the session to optimize routing and
 network usage:
 
-Declaring key expressions
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Declaring key expressions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/keyexpr_declare.py
    :language: python
@@ -134,9 +119,6 @@ Declaring key expressions
 Publish/Subscribe
 -----------------
 
-Overview
-^^^^^^^^
-
 Data is published via a :class:`zenoh.Publisher`, which is declared using
 :meth:`zenoh.Session.declare_publisher`. The publisher exposes two primary operations:
 :meth:`zenoh.Publisher.put` and :meth:`zenoh.Publisher.delete`. Publishing can also be performed
@@ -145,9 +127,6 @@ directly from the session via :meth:`zenoh.Session.put` and :meth:`zenoh.Session
 Published data is received as :class:`zenoh.Sample` instances by a :class:`zenoh.Subscriber`,
 which is declared using :meth:`zenoh.Session.declare_subscriber`. The samples are delivered to the
 callback or channel (:ref:`channels-and-callbacks`).
-
-Put and delete operations
-^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Publishing can express two different semantics:
 
@@ -164,27 +143,24 @@ On the receiving side, the subscriber distinguishes between
 The delete operation allows a subscriber to work with a :class:`zenoh.Queryable`
 that caches the values associated with key expressions.
 
-Examples
-^^^^^^^^
-
-Declaring a publisher and publishing data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Declaring a publisher and publishing data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/pubsub_publisher.py
    :language: python
    :start-after: [pubsub_publisher]
    :end-before: # [pubsub_publisher]
 
-Declaring a subscriber and receiving data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Declaring a subscriber and receiving data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/pubsub_subscriber.py
    :language: python
    :start-after: [pubsub_subscriber]
    :end-before: # [pubsub_subscriber]
 
-Using session methods directly
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Using session methods directly
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/pubsub_session_direct.py
    :language: python
@@ -195,9 +171,6 @@ Using session methods directly
 
 Query/Reply
 -----------
-
-Overview
-^^^^^^^^
 
 In the query/reply paradigm, data is made available by a :class:`zenoh.Queryable` and
 requested by a :class:`zenoh.Querier` or directly via :meth:`zenoh.Session.get`.
@@ -219,10 +192,34 @@ Data is requested from queryables via :meth:`zenoh.Session.get` or via a
 Each reply contains either a :class:`zenoh.Sample` from `reply` and `reply_del`
 or a :class:`zenoh.ReplyError` from `reply_err`.
 
+Example: Declaring a queryable
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: examples/query_queryable.py
+   :language: python
+   :start-after: [query_queryable]
+   :end-before: # [query_queryable]
+
+Example: Requesting data using Session.get
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: examples/query_session_get.py
+   :language: python
+   :start-after: [query_session_get]
+   :end-before: # [query_session_get]
+
+Example: Using a Querier
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: examples/query_querier.py
+   :language: python
+   :start-after: [query_querier]
+   :end-before: # [query_querier] 
+
 .. _query-parameters:
 
 Query Parameters
-^^^^^^^^^^^^^^^^
+----------------
 
 The query/reply API allows specifying additional parameters for the request.
 A :class:`zenoh.Selector` object is passed to the :meth:`zenoh.Session.get` operation.
@@ -239,35 +236,8 @@ with a key expression to create a :class:`zenoh.Selector`.
 On the receiving side, queryables can access these parameters via
 :attr:`zenoh.Query.parameters`.
 
-Examples
-^^^^^^^^
-
-Declaring a queryable
-~~~~~~~~~~~~~~~~~~~~~
-
-.. literalinclude:: examples/query_queryable.py
-   :language: python
-   :start-after: [query_queryable]
-   :end-before: # [query_queryable]
-
-Requesting data using Session.get
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. literalinclude:: examples/query_session_get.py
-   :language: python
-   :start-after: [query_session_get]
-   :end-before: # [query_session_get]
-
-Using a Querier
-~~~~~~~~~~~~~~~
-
-.. literalinclude:: examples/query_querier.py
-   :language: python
-   :start-after: [query_querier]
-   :end-before: # [query_querier] 
-
-Construct a Selector from dictionary
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Constructing a Selector from dictionary
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/query_parameters.py
    :language: python
@@ -279,37 +249,28 @@ Construct a Selector from dictionary
 Data representation
 -------------------
 
-Sample
-^^^^^^
-
 Data is received as :class:`zenoh.Sample` objects, which contain the
 :attr:`zenoh.Sample.payload` and associated metadata like :attr:`zenoh.Sample.timestamp`,
 :attr:`zenoh.Sample.encoding`, and :attr:`zenoh.Sample.kind`. Additionally, optional
 user-defined metadata can be attached via :attr:`zenoh.Sample.attachment`.
 
 
-Raw data representation
-^^^^^^^^^^^^^^^^^^^^^^^
-
 Both :attr:`zenoh.Sample.payload` and :attr:`zenoh.Sample.attachment` are of type
 :class:`zenoh.ZBytes`, which represents raw byte data. 
 
-Using :class:`zenoh.ZBytes`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Using :class:`zenoh.ZBytes`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/data_representation.py
    :language: python
    :start-after: [raw_data]
    :end-before: # [raw_data]
 
-Serializing and deserializing data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 Serialization and deserialization of basic types and structures is provided in the :mod:`zenoh.ext`
 module via :func:`zenoh.ext.z_serialize` and :func:`zenoh.ext.z_deserialize`.
 
-Data serialization example
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Data serialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/data_representation.py
    :language: python
@@ -319,7 +280,7 @@ Data serialization example
 .. _encoding:
 
 Encoding
-^^^^^^^^
+--------
 
 Zenoh uses :class:`zenoh.Encoding` to indicate how data should be interpreted by the application. An encoding has a similar role to Content-Type in HTTP and is represented as a string in MIME-like format: ``type/subtype[;schema]``.
 
@@ -329,16 +290,16 @@ The Zenoh protocol does not impose any encoding value nor operates on it. It can
 
 Additionally, a schema can be associated with the encoding. The convention is to use the ``;`` separator if an encoding is created from a string. Alternatively, :meth:`zenoh.Encoding.with_schema` can be used to add a schema to one of the predefined class attributes.
 
-Create an :class:`zenoh.Encoding` from a string and vice versa.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Creating an :class:`zenoh.Encoding` from a string and vice versa
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/encoding.py
    :language: python
    :start-after: [string_operations]
    :end-before: # [string_operations]
 
-Using the schema
-~~~~~~~~~~~~~~~~
+Example: Using the schema
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/encoding.py
    :language: python
@@ -349,9 +310,6 @@ Using the schema
 
 Scouting
 --------
-
-Overview
-^^^^^^^^
 
 Scouting is the process of discovering Zenoh nodes on the network. The scouting
 process depends on the transport layer and the Zenoh configuration. Note that
@@ -374,11 +332,8 @@ each containing information about a discovered Zenoh node:
 
 See more details at `scouting documentation <https://zenoh.io/docs/getting-started/deployment/#scouting>`_.
 
-Example
-^^^^^^^
-
-Scouting for Zenoh nodes
-~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Scouting for Zenoh nodes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/scouting.py
    :language: python
@@ -389,9 +344,6 @@ Scouting for Zenoh nodes
 
 Liveliness
 ----------
-
-Overview
-^^^^^^^^
 
 Zenoh supports liveliness monitoring to notify when a specified resource appears
 or disappears on the network.
@@ -411,27 +363,25 @@ The `history` parameter of
 :meth:`zenoh.Liveliness.declare_subscriber` allows immediate receipt of tokens
 that are already present on the network.
 
-Examples
-^^^^^^^^
 
-Declare a liveliness token
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Declaring a liveliness token
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/liveliness_token.py
    :language: python
    :start-after: [liveliness_token]
    :end-before: # [liveliness_token]
 
-Get currently present liveliness tokens
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Getting currently present liveliness tokens
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/liveliness_get.py
    :language: python
    :start-after: [liveliness_get]
    :end-before: # [liveliness_get]
 
-Check if a liveliness token is present and subscribe to changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Checking if a liveliness token is present and subscribing to changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/liveliness_subscriber.py
    :language: python
@@ -442,9 +392,6 @@ Check if a liveliness token is present and subscribe to changes
 
 Matching
 --------
-
-Overview
-^^^^^^^^
 
 The matching API lets the active side of communication (publisher or querier)
 learn whether there are interested parties on the other side (subscriber or
@@ -459,19 +406,17 @@ samples it yields :class:`zenoh.MatchingStatus` instances whenever the matching
 status changes — for example, when the first matching subscriber or queryable
 appears or when the last one disappears.
 
-Examples
-^^^^^^^^
 
-Declare a matching listener for a publisher
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Declaring a matching listener for a publisher
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/matching_publisher.py
    :language: python
    :start-after: [matching_publisher]
    :end-before: # [matching_publisher]
 
-Declare a matching listener for a querier
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Declaring a matching listener for a querier
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/matching_querier.py
    :language: python
@@ -499,9 +444,6 @@ methods (for example, :meth:`zenoh.Session.declare_subscriber` and
 By default, the ``handler`` parameter is ``None``, which uses
 :class:`zenoh.handlers.DefaultHandler` (a FIFO channel with default capacity).
 
-Channels
-^^^^^^^^
-
 When constructed with a :class:`zenoh.handlers.FifoChannel` or :class:`zenoh.handlers.RingChannel`
 as ``handler`` (or using the default one), the returned object is iterable
 and can be used in a ``for`` loop to receive data sequentially. It also provides explicit
@@ -510,16 +452,13 @@ methods such as :meth:`zenoh.Subscriber.recv` to wait for data and
 subscriber (or queryable) is automatically undeclared when the object goes out of scope
 or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
 
-Channels example
-~~~~~~~~~~~~~~~~
+Example: Using channels
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/channels.py
    :language: python
    :start-after: [channels]
    :end-before: # [channels]
-
-Callbacks
-^^^^^^^^^
 
 It's possible to pass a callable object as ``handler``. This callable is invoked for each received
 :class:`zenoh.Sample` or :class:`zenoh.Reply`. This also means the subscriber or queryable runs in
@@ -527,8 +466,8 @@ It's possible to pass a callable object as ``handler``. This callable is invoked
 goes out of scope. This allows declaring a subscriber without managing the
 returned object's lifetime.
 
-Simple callback example
-~~~~~~~~~~~~~~~~~~~~~~~
+Example: Simple callback
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/callback_simple.py
    :language: python
@@ -543,35 +482,26 @@ Direct mode executes callbacks immediately in the context of the Rust library,
 while indirect mode passes data to a separate thread through a channel,
 ensuring the network thread is not blocked.
 
-Advanced callback example
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Advanced callback
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/callback_advanced.py
    :language: python
    :start-after: [callback_advanced]
    :end-before: # [callback_advanced]
 
-Custom channels
-^^^^^^^^^^^^^^^
-
-Overview
-~~~~~~~~
+For advanced use cases, you can implement your own custom channel in Python and pass
+it in the tuple form ``(callback, handler)`` where ``callback`` is a callable and ``handler``
+where ``callback`` is a callable and ``handler`` is your custom Python object.
 
 .. caution::
    The custom channel is significantly slower than built-in channels implemented in Rust.
    This is **NOT** the recommended way to use Zenoh for Python unless you have very specific
    needs that cannot be met by the built-in channels.
 
-For advanced use cases, you can implement your own custom channel in Python using
-the tuple form ``(callback, handler)`` where ``callback`` is a callable and ``handler``
-is your custom Python object.
-
 The callback is invoked for each received item, and the handler object is stored
 inside the created object and accessible via e.g. :meth:`zenoh.Subscriber.handler` 
 property. Any custom methods you implement on the handler object can be called on it.
-
-Implementing a custom channel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It's recommended to implement the following methods on your custom channel
 to provide the same behavior as built-in channels:
@@ -592,16 +522,16 @@ on the handler (as ``subscriber.handler.recv()``) or on the subscriber itself
    duck typing (the subscriber delegates to the handler), but you may need to use
    ``# type: ignore[misc]`` comments to suppress type checker warnings.
 
-Example of custom channel implementation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Custom channel implementation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/custom_channel.py
    :language: python
    :start-after: [custom_channel]
    :end-before: # [custom_channel]
 
-Using the custom channel
-~~~~~~~~~~~~~~~~~~~~~~~~
+Example: Using the custom channel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/custom_channel.py
    :language: python
