@@ -10,3 +10,5 @@ session.put("key/expression", "value")
 # Direct delete operation
 session.delete("key/expression")
 # [pubsub_session_direct]
+
+session.close()

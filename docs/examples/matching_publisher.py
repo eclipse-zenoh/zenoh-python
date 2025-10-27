@@ -44,3 +44,5 @@ for status in listener:
 
 assert matching_true_count > 0, "Expected at least one matching=True status"
 assert matching_false_count > 0, "Expected at least one matching=False status"
+
+session.close()

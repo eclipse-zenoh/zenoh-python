@@ -12,3 +12,5 @@ declared_ke = session.declare_keyexpr("robot/sensor/temperature")
 # Use the declared key expression
 publisher = session.declare_publisher(declared_ke)
 # [keyexpr_declare]
+
+session.close()

@@ -23,3 +23,5 @@ for sample in subscriber:
     print(f">> Received {sample.payload.to_string()}")
     # [pubsub_subscriber]
     break  # Exit after first sample for testing
+
+session.close()

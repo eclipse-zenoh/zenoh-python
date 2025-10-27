@@ -44,3 +44,5 @@ for reply in replies:
         assert "celsius" in reply.ok.payload.to_string()
 
 assert reply_count > 0, "Expected at least one reply"
+
+session.close()

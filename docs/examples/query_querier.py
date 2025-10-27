@@ -53,3 +53,5 @@ for reply in replies:
 
 assert ok_count > 0, "Expected at least one OK reply"
 assert err_count > 0, "Expected at least one error reply"
+
+session.close()

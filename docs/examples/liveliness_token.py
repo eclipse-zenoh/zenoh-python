@@ -7,3 +7,5 @@ session = zenoh.open(zenoh.Config())
 # Declare a liveliness token
 token = session.liveliness().declare_token("node/A")
 # [liveliness_token]
+
+session.close()

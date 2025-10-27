@@ -8,3 +8,5 @@ session = zenoh.open(zenoh.Config())
 publisher = session.declare_publisher("key/expression")
 publisher.put("value")
 # [pubsub_publisher]
+
+session.close()

@@ -31,3 +31,5 @@ subscriber_fifo = session.declare_subscriber(
 # Ring channel (drops oldest when full)
 subscriber_ring = session.declare_subscriber("key/expr", zenoh.handlers.RingChannel(50))
 # [channels]
+
+session.close()

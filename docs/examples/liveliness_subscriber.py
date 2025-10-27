@@ -43,3 +43,5 @@ for sample in subscriber:
 
 assert put_count > 0, "Expected at least one PUT sample"
 assert delete_count > 0, "Expected at least one DELETE sample"
+
+session.close()

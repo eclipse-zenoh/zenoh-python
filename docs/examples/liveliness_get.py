@@ -28,3 +28,5 @@ for reply in replies:
         print(f"Received (ERROR: '{reply.err.payload.to_string()}')")
     # [liveliness_get]
     break  # Exit after first reply for testing
+
+session.close()

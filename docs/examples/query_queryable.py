@@ -46,3 +46,5 @@ for query in queryable:
     query_count += 1
     if query_count >= 3:  # Exit after handling all 3 queries
         break
+
+session.close()
