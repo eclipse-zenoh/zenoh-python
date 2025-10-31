@@ -20,7 +20,7 @@ build-backend = "maturin"
 
 [project]
 name = "eclipse-zenoh"
-version = "1.6.2"
+version = "1.6.2+10-gd4e87ab"
 description = "The python API for Eclipse zenoh"
 requires-python = ">=3.8"
 authors = [
