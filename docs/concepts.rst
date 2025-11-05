@@ -482,7 +482,7 @@ Direct mode executes callbacks immediately in the context of the Rust library,
 while indirect mode passes data to a separate thread through a channel,
 ensuring the network thread is not blocked.
 
-..caution::
+.. caution::
    Using ``indirect=False`` may significantly reduce throughput as it makes Zenoh
    execute the Python code in the network thread, which significantly slows down
    the system. But it might be useful for low-latency applications with low traffic.
