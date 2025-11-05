@@ -501,7 +501,7 @@ where ``callback`` is a callable and ``handler`` is your custom Python object.
 
 The callback is invoked for each received item, and the handler object is stored
 inside the created object and accessible via e.g. :meth:`zenoh.Subscriber.handler` 
-property. Any custom methods you implement on the handler object can be called on it.
+property.
 
 It's recommended to implement the following methods on your custom channel
 to provide the same behavior as built-in channels:
