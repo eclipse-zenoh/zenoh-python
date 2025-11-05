@@ -11,10 +11,10 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from collections.abc import Callable
-from typing import Generic, TypeVar
 import threading
 import time
+from collections.abc import Callable
+from typing import Generic, TypeVar
 
 import zenoh
 
