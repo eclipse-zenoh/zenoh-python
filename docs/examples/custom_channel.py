@@ -14,7 +14,7 @@
 import threading
 import time
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Union
 
 import zenoh
 
@@ -41,7 +41,7 @@ class CustomChannel(Generic[_T]):
         self.max_size = max_size
         self.condition = threading.Condition()
 
-    def try_recv(self) -> _T | None:
+    def try_recv(self) -> Union[_T, None]:
         """Non-blocking receive"""
         with self.condition:
             return self.samples.pop(0) if self.samples else None
