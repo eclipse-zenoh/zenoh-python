@@ -11,9 +11,9 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+from collection.abc import Callable
 import threading
 import time
-from typing import Callable
 
 import zenoh
 
