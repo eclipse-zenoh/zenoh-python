@@ -11,7 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from collection.abc import Callable
+from collections.abc import Callable
 import threading
 import time
 
@@ -36,12 +36,11 @@ class CustomChannel:
     def __init__(self, max_size=100):
         self.samples = []
         self.max_size = max_size
-        self.lock = threading.Lock()
-        self.condition = threading.Condition(self.lock)
+        self.condition = threading.Condition()
 
     def try_recv(self):
         """Non-blocking receive"""
-        with self.lock:
+        with self.condition:
             return self.samples.pop(0) if self.samples else None
 
     def recv(self):
@@ -72,7 +71,7 @@ class CustomChannel:
 
     def count(self):
         """Return number of stored samples"""
-        with self.lock:
+        with self.condition:
             return len(self.samples)
 
 
