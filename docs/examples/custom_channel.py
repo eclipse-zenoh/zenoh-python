@@ -100,10 +100,11 @@ subscriber = session.declare_subscriber(
 )
 
 # Subscriber delegates to handler's recv() and try_recv() methods via duck typing
+# but it's recommended to access them via handler attribute for type safety
 sample = subscriber.recv()  # type: ignore[misc]
 print(f">> Received via recv(): {sample.payload.to_string()}")
 time.sleep(0.1)  # Give some time for more samples to arrive
-sample = subscriber.try_recv()  # type: ignore[misc, assignment]
+sample = subscriber.handler.try_recv()
 if sample:
     print(f">> Received via try_recv(): {sample.payload.to_string()}")
 
@@ -112,7 +113,7 @@ print(f">> Samples currently stored in channel: {subscriber.handler.count()}")
 
 # Iteration also works (demonstrates __iter__ and __next__)
 print(">> Reading remaining samples via iteration:")
-for sample in subscriber:  # type: ignore[misc]
+for sample in subscriber.handler:
     print(f"   - {sample.payload.to_string()}")
     # [custom_channel_usage]
     count += 1
