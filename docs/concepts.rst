@@ -32,7 +32,7 @@ The file format is documented in the Zenoh Rust API
 .. important::
 
    The recommended way to create a session is using a context manager (``with`` statement).
-   If a session is not explicitly closed or managed with a context manager, on the exit object 
+   If a session is not explicitly closed or managed with a context manager, on exit, object 
    finalizers may be called when the library thread has already been killed, which can
    cause the script to hang.
 
@@ -286,7 +286,7 @@ Zenoh uses :class:`zenoh.Encoding` to indicate how data should be interpreted by
 
 To optimize network usage, Zenoh internally maps some predefined encoding strings to integer identifiers. These encodings are provided as class attributes of the :class:`zenoh.Encoding` class, such as :attr:`zenoh.Encoding.ZENOH_BYTES`, :attr:`zenoh.Encoding.APPLICATION_JSON`, etc. This internal mapping is not exposed to the application layer, but using these predefined encodings is more efficient than custom strings.
 
-The Zenoh protocol does not impose any encoding value nor operates on it. It can be seen as optional metadata that is carried over by Zenoh, allowing applications to perform different operations depending on the encoding value.
+The Zenoh protocol does not impose any encoding value and does not operate on it. It can be seen as optional metadata that is carried over by Zenoh, allowing applications to perform different operations depending on the encoding value.
 
 Additionally, a schema can be associated with the encoding. The convention is to use the ``;`` separator if an encoding is created from a string. Alternatively, :meth:`zenoh.Encoding.with_schema` can be used to add a schema to one of the predefined class attributes.
 
@@ -483,8 +483,8 @@ while indirect mode passes data to a separate thread through a channel,
 ensuring the network thread is not blocked.
 
 ..caution::
-   Using ``indirect=False`` may significantly reduce throughput as it makes zenoh
-   to execute the Python code in the network thread, which significantly slows down
+   Using ``indirect=False`` may significantly reduce throughput as it makes Zenoh
+   execute the Python code in the network thread, which significantly slows down
    the system. But it might be useful for low-latency applications with low traffic.
 
 Example: Advanced callback
@@ -497,7 +497,7 @@ Example: Advanced callback
 
 For advanced use cases, you can implement your own custom channel in Python and pass
 it in the tuple form ``(callback, handler)`` where ``callback`` is a callable and ``handler``
-where ``callback`` is a callable and ``handler`` is your custom Python object.
+is your custom Python object.
 
 .. caution::
    The custom channel is significantly slower than built-in channels implemented in Rust.
@@ -522,7 +522,7 @@ to provide the same behavior as built-in channels through the :meth:`zenoh.Subsc
    This is not recommended though because type checkers like `mypy` will not recognize methods like ``recv()``,
    ``try_recv()``, and ``__iter__()`` on the subscriber object. The reason is that the type stubs only declare
    these methods for ``Subscriber[Handler[Sample]]``. This feature may be useful for plugging custom channels
-   into existing code for e.g. debugging or testing purposes.
+   into existing code for debugging or testing purposes.
 
    The comments like ``# type: ignore[misc]`` may be used to suppress type checker warnings.
 
