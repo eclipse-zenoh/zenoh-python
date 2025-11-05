@@ -506,26 +506,25 @@ where ``callback`` is a callable and ``handler`` is your custom Python object.
 
 The callback is invoked for each received item, and the handler object is stored
 inside the created object and accessible via e.g. :meth:`zenoh.Subscriber.handler` 
-property.
+property. E.g. to receive a sample, you can call ``subscriber.handler.recv()``.
 
 It's recommended to implement the following methods on your custom channel
-to provide the same behavior as built-in channels:
+to provide the same behavior as built-in channels through the :meth:`zenoh.Subscriber.handler`:
 
 - ``recv()`` - blocking receive
 - ``try_recv()`` - non-blocking receive, returns ``None`` if no data available
 - ``__iter__()`` and ``__next__()`` - iteration support
 
-If your channel implements these methods, you can call them either directly
-on the handler (as ``subscriber.handler.recv()``) or on the subscriber itself
-(via ``subscriber.recv()``), as the subscriber will delegate these calls to your channel.
-
 .. warning::
+   If your channel implements these methods, you can call them also on the subscriber itself,
+   (e.g. ``subscriber.recv()``), as the subscriber internally delegates these calls to the channel.
 
-   When using custom channels, type checkers like `mypy` will not recognize methods like ``recv()``,
-   ``try_recv()``, and ``__iter__()`` on the subscriber object, because the type stubs only declare
-   these methods for ``Subscriber[Handler[Sample]]``. At runtime, the methods work correctly through
-   duck typing (the subscriber delegates to the handler), but you may need to use
-   ``# type: ignore[misc]`` comments to suppress type checker warnings.
+   This is not recommended though because type checkers like `mypy` will not recognize methods like ``recv()``,
+   ``try_recv()``, and ``__iter__()`` on the subscriber object. The reason is that the type stubs only declare
+   these methods for ``Subscriber[Handler[Sample]]``. This feature may be useful for plugging custom channels
+   into existing code for e.g. debugging or testing purposes.
+
+   The comments like ``# type: ignore[misc]`` may be used to suppress type checker warnings.
 
 Example: Custom channel implementation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

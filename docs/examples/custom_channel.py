@@ -12,10 +12,13 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 from collections.abc import Callable
+from typing import Generic, TypeVar
 import threading
 import time
 
 import zenoh
+
+_T = TypeVar("_T")
 
 # Open session
 session = zenoh.open(zenoh.Config())
@@ -32,18 +35,18 @@ threading.Thread(target=send_data, daemon=True).start()
 
 
 # [custom_channel]
-class CustomChannel:
+class CustomChannel(Generic[_T]):
     def __init__(self, max_size=100):
-        self.samples = []
+        self.samples: list[_T] = []
         self.max_size = max_size
         self.condition = threading.Condition()
 
-    def try_recv(self):
+    def try_recv(self) -> _T | None:
         """Non-blocking receive"""
         with self.condition:
             return self.samples.pop(0) if self.samples else None
 
-    def recv(self):
+    def recv(self) -> _T:
         """Blocking receive"""
         with self.condition:
             while not self.samples:
@@ -53,13 +56,13 @@ class CustomChannel:
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> _T:
         sample = self.recv()
         if sample is None:
             raise StopIteration
         return sample
 
-    def send_sample(self, sample):
+    def send(self, sample: _T):
         """Called by the callback to store samples"""
         with self.condition:
             self.samples.append(sample)
@@ -69,7 +72,7 @@ class CustomChannel:
             # Notify one waiting thread that a sample is available
             self.condition.notify()
 
-    def count(self):
+    def count(self) -> int:
         """Return number of stored samples"""
         with self.condition:
             return len(self.samples)
@@ -77,13 +80,13 @@ class CustomChannel:
 
 def create_custom_channel(
     max_size: int = 100,
-) -> tuple[Callable[[zenoh.Sample], None], CustomChannel]:
+) -> tuple[Callable[[zenoh.Sample], None], CustomChannel[zenoh.Sample]]:
     """Factory function that returns (callback, handler) pair"""
-    channel = CustomChannel(max_size)
+    channel: CustomChannel[zenoh.Sample] = CustomChannel(max_size)
 
     def on_sample(sample: zenoh.Sample) -> None:
         # Store sample in the custom channel
-        channel.send_sample(sample)
+        channel.send(sample)
 
     return (on_sample, channel)
 
