@@ -59,7 +59,7 @@ class CustomChannel:
             raise StopIteration
         return sample
 
-    def add_sample(self, sample):
+    def send_sample(self, sample):
         """Called by the callback to store samples"""
         with self.condition:
             self.samples.append(sample)
@@ -83,7 +83,7 @@ def create_custom_channel(
 
     def on_sample(sample: zenoh.Sample) -> None:
         # Store sample in the custom channel
-        channel.add_sample(sample)
+        channel.send_sample(sample)
 
     return (on_sample, channel)
 
