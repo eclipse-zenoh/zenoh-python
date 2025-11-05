@@ -444,6 +444,9 @@ methods (for example, :meth:`zenoh.Session.declare_subscriber` and
 By default, the ``handler`` parameter is ``None``, which uses
 :class:`zenoh.handlers.DefaultHandler` (a FIFO channel with default capacity).
 
+Using channels
+~~~~~~~~~~~~~~
+
 When constructed with a :class:`zenoh.handlers.FifoChannel` or :class:`zenoh.handlers.RingChannel`
 as ``handler`` (or using the default one), the returned object is iterable
 and can be used in a ``for`` loop to receive data sequentially. It also provides explicit
@@ -452,13 +455,13 @@ methods such as :meth:`zenoh.Subscriber.recv` to wait for data and
 subscriber (or queryable) is automatically undeclared when the object goes out of scope
 or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
 
-Example: Using channels
-~~~~~~~~~~~~~~~~~~~~~~~
-
 .. literalinclude:: examples/channels.py
    :language: python
    :start-after: [channels]
    :end-before: # [channels]
+
+Simple callback
+~~~~~~~~~~~~~~~
 
 It's possible to pass a callable object as ``handler``. This callable is invoked for each received
 :class:`zenoh.Sample` or :class:`zenoh.Reply`. This also means the subscriber or queryable runs in
@@ -466,13 +469,14 @@ It's possible to pass a callable object as ``handler``. This callable is invoked
 goes out of scope. This allows declaring a subscriber without managing the
 returned object's lifetime.
 
-Example: Simple callback
-~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. literalinclude:: examples/callback_simple.py
    :language: python
    :start-after: [callback_simple]
    :end-before: # [callback_simple]
+
+
+Advanced callback
+~~~~~~~~~~~~~~~~~
 
 For more advanced callback handling, you can use :class:`zenoh.handlers.Callback`
 to create a callback handler with cleanup functionality and
@@ -487,13 +491,14 @@ ensuring the network thread is not blocked.
    execute the Python code in the network thread, which significantly slows down
    the system. But it might be useful for low-latency applications with low traffic.
 
-Example: Advanced callback
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. literalinclude:: examples/callback_advanced.py
    :language: python
    :start-after: [callback_advanced]
    :end-before: # [callback_advanced]
+
+
+Custom channel implementation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For advanced use cases, you can implement your own custom channel in Python and pass
 it in the tuple form ``(callback, handler)`` where ``callback`` is a callable and ``handler``
@@ -526,16 +531,10 @@ to provide the same behavior as built-in channels through the :meth:`zenoh.Subsc
 
    The comments like ``# type: ignore[misc]`` may be used to suppress type checker warnings.
 
-Example: Custom channel implementation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. literalinclude:: examples/custom_channel.py
    :language: python
    :start-after: [custom_channel]
    :end-before: # [custom_channel]
-
-Example: Using the custom channel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: examples/custom_channel.py
    :language: python
