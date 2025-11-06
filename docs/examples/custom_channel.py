@@ -21,9 +21,6 @@ import zenoh
 
 _T = TypeVar("_T")
 
-# Open session
-session = zenoh.open(zenoh.Config())
-
 
 # Test support: send data in background
 def send_data():
@@ -79,18 +76,15 @@ def create_priority_channel(
 # [custom_channel]
 
 # [custom_channel_usage]
-subscriber = session.declare_subscriber(
-    "key/expression", create_priority_channel(maxsize=50)
-)
-sample = subscriber.handler.recv()
-print(f">> Received: {sample.payload.to_string()}")
-# Access to custom channel methods via handler
-print(f">> Samples currently stored in channel: {subscriber.handler.count()}")
-# [custom_channel_usage]
-
-# We consumed 1 sample so should have 1 remaining
-assert subscriber.handler.count() == 1
-
-# Clean up
-subscriber.undeclare()
-session.close()
+with zenoh.open(zenoh.Config()) as session:
+    subscriber = session.declare_subscriber(
+        "key/expression", create_priority_channel(maxsize=50)
+    )
+    sample = subscriber.handler.recv()
+    print(f">> Received: {sample.payload.to_string()}")
+    # Access to custom channel methods via handler
+    print(f">> Samples currently stored in channel: {subscriber.handler.count()}")
+    # [custom_channel_usage]
+    # We consumed 1 sample so should have 1 remaining
+    time.sleep(1)  # Wait to ensure all samples are sent
+    assert subscriber.handler.count() == 1
