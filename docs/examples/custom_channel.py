@@ -63,6 +63,7 @@ class PriorityChannel(Generic[_T]):
         """Return number of stored samples"""
         return self.queue.qsize()
 
+
 def create_priority_channel(
     maxsize: int = 100,
 ) -> tuple[Callable[[zenoh.Sample], None], PriorityChannel[zenoh.Sample]]:
