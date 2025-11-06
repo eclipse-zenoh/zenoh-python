@@ -38,12 +38,12 @@ threading.Thread(target=send_data, daemon=True).start()
 # [custom_channel]
 class PriorityChannel(Generic[_T]):
     def __init__(self, maxsize=100):
-        self.queue: queue.PriorityQueue[tuple[zenoh.Priority, _T]] = (
-            queue.PriorityQueue(maxsize)
-        )
+        self.queue: queue.PriorityQueue = queue.PriorityQueue(maxsize)
+        # Counter to preserve FIFO order for samples with same priority
+        self._counter = 0
 
     def recv(self) -> _T:
-        return self.queue.get()[1]
+        return self.queue.get()[2]
 
     def __iter__(self):
         return self
@@ -56,12 +56,12 @@ class PriorityChannel(Generic[_T]):
 
     def put(self, priority: zenoh.Priority, sample: _T):
         """Called by the callback to store samples"""
-        self.queue.put((priority, sample))
+        self.queue.put((priority, self._counter, sample))
+        self._counter += 1
 
     def count(self) -> int:
         """Return number of stored samples"""
         return self.queue.qsize()
-
 
 def create_priority_channel(
     maxsize: int = 100,
