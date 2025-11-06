@@ -321,7 +321,7 @@ Scouting is performed using the :func:`zenoh.scout` function, which returns a
 discovered Zenoh node.
 
 Scouting is different from :ref:`liveliness <liveliness>` requesting and monitoring. Liveliness
-works on the zenoh-protocol logical level and allows getting information about resources in terms of
+works on the Zenoh protocol logical level and allows getting information about resources in terms of
 :ref:`key expressions <key-expressions>`. On the other hand, :ref:`scouting <scouting>` is about discovering Zenoh nodes visible
 to the local node on the network. The result of scouting is a list of :class:`zenoh.Hello` messages,
 each containing information about a discovered Zenoh node:
@@ -500,41 +500,27 @@ ensuring the network thread is not blocked.
 Custom channel implementation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. caution::
+   The custom channel is significantly slower than built-in channels implemented in Rust.
+   This is not the recommended way to use Zenoh for Python unless you have very specific
+   needs that cannot be met by the built-in channels.
+
 For advanced use cases, you can implement your own custom channel in Python and pass
 it in the tuple form ``(callback, handler)`` where ``callback`` is a callable and ``handler``
 is your custom Python object.
 
-.. caution::
-   The custom channel is significantly slower than built-in channels implemented in Rust.
-   This is **NOT** the recommended way to use Zenoh for Python unless you have very specific
-   needs that cannot be met by the built-in channels.
+The callback is invoked for each received item and stores the data in the custom channel,
+which is accessible via e.g. :meth:`zenoh.Subscriber.handler` property, in the same way
+as in built-in channels cases.
 
-The callback is invoked for each received item, and the handler object is stored
-inside the created object and accessible via e.g. :meth:`zenoh.Subscriber.handler` 
-property. E.g. to receive a sample, you can call ``subscriber.handler.recv()``.
-
-It's recommended to implement the following methods on your custom channel
-to provide the same behavior as built-in channels through the :meth:`zenoh.Subscriber.handler`:
-
-- ``recv()`` - blocking receive
-- ``try_recv()`` - non-blocking receive, returns ``None`` if no data available
-- ``__iter__()`` and ``__next__()`` - iteration support
-
-.. warning::
-   If your channel implements these methods, you can call them also on the subscriber itself,
-   (e.g. ``subscriber.recv()``), as the subscriber internally delegates these calls to the channel.
-
-   This is not recommended though because type checkers like `mypy` will not recognize methods like ``recv()``,
-   ``try_recv()``, and ``__iter__()`` on the subscriber object. The reason is that the type stubs only declare
-   these methods for ``Subscriber[Handler[Sample]]``. This feature may be useful for plugging custom channels
-   into existing code for debugging or testing purposes.
-
-   The comments like ``# type: ignore[misc]`` may be used to suppress type checker warnings.
+**Custom channel with priority queue**
 
 .. literalinclude:: examples/custom_channel.py
    :language: python
    :start-after: [custom_channel]
    :end-before: # [custom_channel]
+
+**Usage of the custom channel**
 
 .. literalinclude:: examples/custom_channel.py
    :language: python

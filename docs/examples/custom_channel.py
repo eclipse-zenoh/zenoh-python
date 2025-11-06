@@ -11,6 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import queue
 import threading
 import time
 from collections.abc import Callable
@@ -27,7 +28,7 @@ session = zenoh.open(zenoh.Config())
 # Test support: send data in background
 def send_data():
     time.sleep(1)
-    for i in range(5):
+    for i in range(2):
         session.put("key/expression", f"sample_{i}")
 
 
@@ -35,23 +36,14 @@ threading.Thread(target=send_data, daemon=True).start()
 
 
 # [custom_channel]
-class CustomChannel(Generic[_T]):
-    def __init__(self, max_size=100):
-        self.samples: list[_T] = []
-        self.max_size = max_size
-        self.condition = threading.Condition()
-
-    def try_recv(self) -> Union[_T, None]:
-        """Non-blocking receive"""
-        with self.condition:
-            return self.samples.pop(0) if self.samples else None
+class PriorityChannel(Generic[_T]):
+    def __init__(self, maxsize=100):
+        self.queue: queue.PriorityQueue[tuple[zenoh.Priority, _T]] = (
+            queue.PriorityQueue(maxsize)
+        )
 
     def recv(self) -> _T:
-        """Blocking receive"""
-        with self.condition:
-            while not self.samples:
-                self.condition.wait()
-            return self.samples.pop(0)
+        return self.queue.get()[1]
 
     def __iter__(self):
         return self
@@ -62,72 +54,41 @@ class CustomChannel(Generic[_T]):
             raise StopIteration
         return sample
 
-    def send(self, sample: _T):
+    def put(self, priority: zenoh.Priority, sample: _T):
         """Called by the callback to store samples"""
-        with self.condition:
-            self.samples.append(sample)
-            # Maintain max size
-            if len(self.samples) > self.max_size:
-                self.samples.pop(0)
-            # Notify one waiting thread that a sample is available
-            self.condition.notify()
+        self.queue.put((priority, sample))
 
     def count(self) -> int:
         """Return number of stored samples"""
-        with self.condition:
-            return len(self.samples)
+        return self.queue.qsize()
 
 
-def create_custom_channel(
-    max_size: int = 100,
-) -> tuple[Callable[[zenoh.Sample], None], CustomChannel[zenoh.Sample]]:
+def create_priority_channel(
+    maxsize: int = 100,
+) -> tuple[Callable[[zenoh.Sample], None], PriorityChannel[zenoh.Sample]]:
     """Factory function that returns (callback, handler) pair"""
-    channel: CustomChannel[zenoh.Sample] = CustomChannel(max_size)
+    channel: PriorityChannel[zenoh.Sample] = PriorityChannel(maxsize)
 
     def on_sample(sample: zenoh.Sample) -> None:
-        # Store sample in the custom channel
-        channel.send(sample)
+        channel.put(sample.priority, sample)
 
     return (on_sample, channel)
 
 
 # [custom_channel]
 
-count = 0
 # [custom_channel_usage]
 subscriber = session.declare_subscriber(
-    "key/expression", create_custom_channel(max_size=50)
+    "key/expression", create_priority_channel(maxsize=50)
 )
-
-# Subscriber delegates to handler's recv() and try_recv() methods via duck typing
-# but it's recommended to access them via handler attribute for type safety
-sample = subscriber.recv()  # type: ignore[misc]
-print(f">> Received via recv(): {sample.payload.to_string()}")
-time.sleep(0.1)  # Give some time for more samples to arrive
-sample = subscriber.handler.try_recv()
-if sample:
-    print(f">> Received via try_recv(): {sample.payload.to_string()}")
-
+sample = subscriber.handler.recv()
+print(f">> Received: {sample.payload.to_string()}")
 # Access to custom channel methods via handler
 print(f">> Samples currently stored in channel: {subscriber.handler.count()}")
+# [custom_channel_usage]
 
-# Iteration also works (demonstrates __iter__ and __next__)
-print(">> Reading remaining samples via iteration:")
-for sample in subscriber.handler:
-    print(f"   - {sample.payload.to_string()}")
-    # [custom_channel_usage]
-    count += 1
-    # Break after reading a few samples to avoid blocking
-    if count >= 2:
-        break
-
-# We consumed 4 samples (1 via try_recv, 1 via recv, 2 via iteration)
-# so should have 1 remaining
-remaining = subscriber.handler.try_recv()
-assert remaining is not None
-print(f">> Remaining sample: {remaining.payload.to_string()}")
-# verify count is zero now
-assert subscriber.handler.count() == 0
+# We consumed 1 sample so should have 1 remaining
+assert subscriber.handler.count() == 1
 
 # Clean up
 subscriber.undeclare()
