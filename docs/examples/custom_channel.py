@@ -27,7 +27,7 @@ session = zenoh.open(zenoh.Config())
 
 # Test support: send data in background
 def send_data():
-    time.sleep(1)
+    time.sleep(3)
     for i in range(2):
         session.put("key/expression", f"sample_{i}")
 
