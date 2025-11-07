@@ -23,7 +23,7 @@ use zenoh::handlers::{CallbackParameter, IntoHandler};
 
 use crate::{
     macros::{import, py_static},
-    utils::{generic, short_type_name, IntoPyErr, IntoPython, IntoRust},
+    utils::{generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust},
     ZError,
 };
 
@@ -283,10 +283,7 @@ fn try_recv<T: IntoPython, E: IntoPyErr + Send>(
     py: Python,
     f: impl FnOnce() -> Result<T, E> + Send,
 ) -> PyResult<PyObject> {
-    match py.allow_threads(f) {
-        Ok(obj) => Ok(obj.into_pyobject(py)),
-        Err(err) => Err(err.into_pyerr()),
-    }
+    Ok(py.allow_threads(f).into_pyres()?.into_pyobject(py))
 }
 
 fn recv<T: IntoPython, E: IntoPyErr + Send>(
@@ -322,7 +319,7 @@ impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<DefaultHandler,
     }
 
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        try_recv(py, || self.handler.try_recv().map_err(DeadlineError::Error))
+        try_recv(py, || self.handler.try_recv())
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
@@ -344,7 +341,7 @@ impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<FifoChannel, T>
     }
 
     fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        try_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
+        try_recv(py, || self.handler.try_recv())
     }
 
     fn recv(&self, py: Python) -> PyResult<PyObject> {
