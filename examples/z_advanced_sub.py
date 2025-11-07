@@ -12,6 +12,7 @@
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
 import time
+from signal import SIGINT
 
 import zenoh
 from zenoh.ext import HistoryConfig, Miss, RecoveryConfig, declare_advanced_subscriber
@@ -50,6 +51,7 @@ def main(conf: zenoh.Config, key: str):
                 time.sleep(1)
         except KeyboardInterrupt:
             print("Interrupted by user. Shutting down...")
+            return -SIGINT  # simulate exit code on SIGINT
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
