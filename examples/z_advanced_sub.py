@@ -45,8 +45,11 @@ def main(conf: zenoh.Config, key: str):
         advanced_sub.sample_miss_listener(miss_listener)
 
         print("Press CTRL-C to quit...")
-        while True:
-            time.sleep(1)
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("Interrupted by user. Shutting down...")
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
