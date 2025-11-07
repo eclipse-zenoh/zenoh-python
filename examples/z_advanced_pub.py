@@ -11,8 +11,8 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from signal import SIGINT
 import time
+from signal import SIGINT
 from typing import Optional
 
 import zenoh
