@@ -51,7 +51,7 @@ def main(conf: zenoh.Config, key: str):
                 time.sleep(1)
         except KeyboardInterrupt:
             print("Interrupted by user. Shutting down...")
-            return -SIGINT  # simulate exit code on SIGINT
+    exit(-SIGINT)  # simulate exit code on SIGINT
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
