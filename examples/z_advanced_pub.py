@@ -11,6 +11,8 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import os
+import signal
 import time
 from signal import SIGINT
 from typing import Optional
@@ -43,7 +45,7 @@ def main(conf: zenoh.Config, key: str, payload: str, history: int):
                 pub.put(buf)
         except KeyboardInterrupt:
             print("Interrupted by user. Shutting down...")
-    exit(-2)  # simulate exit code on SIGINT
+    os.kill(os.getpid(), signal.SIGINT)  # simulate exit code on SIGINT, but after graceful shutdown of zenoh
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
