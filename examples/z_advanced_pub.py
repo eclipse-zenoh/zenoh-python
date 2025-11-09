@@ -43,7 +43,7 @@ def main(conf: zenoh.Config, key: str, payload: str, history: int):
                 pub.put(buf)
         except KeyboardInterrupt:
             print("Interrupted by user. Shutting down...")
-    exit(-int(SIGINT))  # simulate exit code on SIGINT
+    exit(-2)  # simulate exit code on SIGINT
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
