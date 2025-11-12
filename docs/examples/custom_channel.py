@@ -43,9 +43,11 @@ class PriorityChannel:
     def send(self, sample: zenoh.Sample):
         self.queue.put((sample.priority, self._counter, sample))
         self._counter += 1
-# [custom_channel]
+
+    # [custom_channel]
     def count(self) -> int:
         return self.queue.qsize()
+
 
 # [custom_channel_usage]
 with zenoh.open(zenoh.Config()) as session:
@@ -56,4 +58,4 @@ with zenoh.open(zenoh.Config()) as session:
     # [custom_channel_usage]
     # one sample should remain in the channel
     time.sleep(1)  # wait a bit for the background sender
-    assert channel.count() == 1 # verify that one sample is still in the channel
+    assert channel.count() == 1  # verify that one sample is still in the channel
