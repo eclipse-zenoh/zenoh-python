@@ -32,7 +32,7 @@ The file format is documented in the Zenoh Rust API
 .. important::
 
    The recommended way to create a session is using a context manager (``with`` statement).
-   If a session is not explicitly closed or managed with a context manager, on exit, object 
+   If a session is not explicitly closed or managed with a context manager, on exit object 
    finalizers may be called when the library thread has already been killed, which can
    cause the script to hang.
 
@@ -74,12 +74,12 @@ For example:
 - ``robot/**`` matches ``robot/sensor/temp``, ``robot/actuator/motor``, ``robot/status``, etc.
 
 The :class:`zenoh.KeyExpr` class provides validation and operations on key
-expressions. The `KeyExpr` constructor validates the syntax of the provided string
-and raises a :class:`zenoh.ZError` exception if the syntax is invalid (e.g., it contains spaces, other illegal characters, or has empty chunks like `foo//bar` or `/foo`).
+expressions. The :class:`zenoh.KeyExpr` constructor validates the syntax of the provided string
+and raises a :class:`zenoh.ZError` exception if the syntax is invalid (e.g., it contains spaces, other illegal characters, or has empty chunks like ``foo//bar`` or ``/foo``).
 
-The `KeyExpr` constructor raises an exception for key expressions that are valid but not in
+The :class:`zenoh.KeyExpr` constructor raises an exception for key expressions that are valid but not in
 `canonical form <https://github.com/eclipse-zenoh/roadmap/blob/main/rfcs/ALL/Key%20Expressions.md#canon-forms>`_.
-For example, ``robot/sensor/**/*`` is valid but its canonical form is ``robot/sensor/*/**``.
+For example, ``robot/sensor/**/*`` is valid, but its canonical form is ``robot/sensor/*/**``.
 The :meth:`zenoh.KeyExpr.autocanonize` method can accept such key expressions and
 convert them to their canonical form.
 
@@ -482,14 +482,15 @@ For more advanced callback handling, you can use :class:`zenoh.handlers.Callback
 to create a callback handler with cleanup functionality and
 configurable execution mode (direct or indirect).
 
-Direct mode executes callbacks immediately in the context of the Rust library,
-while indirect mode passes data to a separate thread through a channel,
-ensuring the network thread is not blocked.
+By default (``indirect=True``), the callback handler spawns a separate thread for
+each registered callback, ensuring the network thread is not blocked. However, this
+makes the callback API quite heavy in Python, so it's not highly recommended for
+performance-critical applications.
 
-.. caution::
-   Using ``indirect=False`` may significantly reduce throughput as it makes Zenoh
-   execute the Python code in the network thread, which significantly slows down
-   the system. But it might be useful for low-latency applications with low traffic.
+Alternatively, direct mode (``indirect=False``) executes callbacks immediately in
+the context of the Rust library's network thread. This may significantly reduce 
+throughput as it makes Zenoh execute the Python code in the network thread, 
+but it might be useful for low-latency applications with low traffic.
 
 .. literalinclude:: examples/callback_advanced.py
    :language: python
@@ -500,14 +501,10 @@ ensuring the network thread is not blocked.
 Custom channel implementation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. caution::
-   The custom channel is significantly slower than built-in channels implemented in Rust.
-   This is not the recommended way to use Zenoh for Python unless you have very specific
-   needs that cannot be met by the built-in channels.
-
 For advanced use cases, you can implement your own custom channel in Python and pass
 it in the tuple form ``(callback, handler)`` where ``callback`` is a callable and ``handler``
-is your custom Python object.
+is your custom Python object. This solution has the same performance penalties as the
+callback API, but it can be useful in some scenarios.
 
 The callback is invoked for each received item and stores the data in the custom channel,
 which is accessible via e.g. :meth:`zenoh.Subscriber.handler` property, in the same way
