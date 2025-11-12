@@ -19,6 +19,7 @@ from typing import Generic, TypeVar, Union
 
 import zenoh
 
+
 # Test support: send data in background
 def send_data():
     time.sleep(3)
@@ -60,9 +61,7 @@ def create_priority_channel(
 # [custom_channel_usage]
 with zenoh.open(zenoh.Config()) as session:
     channel = PriorityChannel(maxsize=50)
-    subscriber = session.declare_subscriber(
-        "key/expression", (channel.send, channel)
-    )
+    subscriber = session.declare_subscriber("key/expression", (channel.send, channel))
     sample = subscriber.handler.recv()
     print(f">> Received: {sample.payload.to_string()}")
     # [custom_channel_usage]
