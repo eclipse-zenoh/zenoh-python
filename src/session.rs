@@ -21,6 +21,7 @@ use zenoh::{session::EntityId, Wait};
 
 use crate::{
     bytes::{Encoding, ZBytes},
+    cancellation_token::CancellationToken,
     config::{Config, ZenohId},
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
@@ -149,7 +150,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None, allowed_destination = None, source_info = None))]
+    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None, allowed_destination = None, source_info = None, cancellation_token = None))]
     fn get(
         &self,
         py: Python,
@@ -168,6 +169,7 @@ impl Session {
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         allowed_destination: Option<Locality>,
         source_info: Option<SourceInfo>,
+        cancellation_token: Option<CancellationToken>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let (handler, _) = into_handler(py, handler)?;
         let builder = build!(
@@ -183,7 +185,9 @@ impl Session {
             attachment,
             allowed_destination,
             source_info,
+            cancellation_token
         );
+
         wait(py, builder.with(handler)).map_into()
     }
 
