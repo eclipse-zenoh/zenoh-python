@@ -6,6 +6,7 @@ use pyo3::{
 };
 
 use crate::{
+    cancellation_token::CancellationToken,
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{build, option_wrapper},
@@ -47,17 +48,18 @@ impl Liveliness {
         Ok(subscriber.into())
     }
 
-    #[pyo3(signature = (key_expr, handler = None, *, timeout = None))]
+    #[pyo3(signature = (key_expr, handler = None, *, timeout = None, cancellation_token = None))]
     fn get(
         &self,
         py: Python,
         #[pyo3(from_py_with = KeyExpr::from_py)] key_expr: KeyExpr,
         handler: Option<&Bound<PyAny>>,
         #[pyo3(from_py_with = duration)] timeout: Option<Duration>,
+        cancellation_token: Option<CancellationToken>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let (handler, _) = into_handler(py, handler)?;
         let liveliness = self.0.liveliness();
-        let builder = build!(liveliness.get(key_expr), timeout);
+        let builder = build!(liveliness.get(key_expr), timeout, cancellation_token);
         wait(py, builder.with(handler)).map_into()
     }
 }

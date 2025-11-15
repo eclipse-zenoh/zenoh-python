@@ -377,6 +377,7 @@ class Liveliness:
         handler: _RustHandler[Reply] | None = None,
         *,
         timeout: float | int | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> Handler[Reply]:
         """Query liveliness tokens with matching key expressions."""
 
@@ -387,6 +388,7 @@ class Liveliness:
         handler: _PythonHandler[Reply, _H],
         *,
         timeout: float | int | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> _H:
         """Query liveliness tokens with matching key expressions."""
 
@@ -397,6 +399,7 @@ class Liveliness:
         handler: _PythonCallback[Reply],
         *,
         timeout: float | int | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> None:
         """Query liveliness tokens with matching key expressions."""
 
@@ -659,6 +662,7 @@ class Querier:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> Handler[Reply]:
         """Sends a query."""
 
@@ -672,6 +676,7 @@ class Querier:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> _H:
         """Sends a query."""
 
@@ -685,6 +690,7 @@ class Querier:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> None:
         """Send a query."""
 
@@ -944,6 +950,7 @@ class Session:
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -966,6 +973,7 @@ class Session:
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -988,6 +996,7 @@ class Session:
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
         Unless explicitly requested via GetBuilder::accept_replies, replies are guaranteed to have key expressions that match the requested selector.
@@ -1304,3 +1313,20 @@ def scout(
 
     scout spawns a task that periodically sends scout messages and waits for Hello replies.
     Drop the returned Scout to stop the scouting task."""
+
+@_unstable
+@final
+class CancellationToken:
+    """Cancellation token that can be used for interrupting GET queries."""
+
+    def __new__(cls) -> Self: ...
+    def cancel(self):
+        """Interrupts all associated GET queries. If the direct query callback is being executed,
+        the call blocks until execution of callback finishes and its corresponding drop method returns (if any).
+
+        Once token is cancelled, all new associated GET queries will cancel automatically.
+        """
+
+    @property
+    def is_cancelled(self) -> bool:
+        """Return true if token was cancelled, false otherwise."""

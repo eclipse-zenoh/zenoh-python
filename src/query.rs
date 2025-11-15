@@ -21,6 +21,7 @@ use pyo3::{
 
 use crate::{
     bytes::{Encoding, ZBytes},
+    cancellation_token::CancellationToken,
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{build, downcast_or_new, enum_mapper, option_wrapper, wrapper},
@@ -362,7 +363,7 @@ impl Querier {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (handler = None, *, parameters = None, payload = None, encoding = None, attachment = None, source_info = None))]
+    #[pyo3(signature = (handler = None, *, parameters = None, payload = None, encoding = None, attachment = None, source_info = None, cancellation_token = None))]
     fn get(
         &self,
         py: Python,
@@ -372,6 +373,7 @@ impl Querier {
         #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         source_info: Option<SourceInfo>,
+        cancellation_token: Option<CancellationToken>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
         let (handler, _) = into_handler(py, handler)?;
@@ -381,7 +383,8 @@ impl Querier {
             payload,
             encoding,
             attachment,
-            source_info
+            source_info,
+            cancellation_token
         );
         wait(py, builder.with(handler)).map_into()
     }
