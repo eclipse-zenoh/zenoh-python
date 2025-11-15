@@ -11,7 +11,10 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import os
+import signal
 import time
+from signal import SIGINT
 from typing import Optional
 
 import zenoh
@@ -34,11 +37,17 @@ def main(conf: zenoh.Config, key: str, payload: str, history: int):
         )
 
         print("Press CTRL-C to quit...")
-        for idx in itertools.count():
-            time.sleep(1)
-            buf = f"[{idx:4d}] {payload}"
-            print(f"Putting Data ('{key}': '{buf}')...")
-            pub.put(buf)
+        try:
+            for idx in itertools.count():
+                time.sleep(1)
+                buf = f"[{idx:4d}] {payload}"
+                print(f"Putting Data ('{key}': '{buf}')...")
+                pub.put(buf)
+        except KeyboardInterrupt:
+            print("Interrupted by user. Shutting down...")
+    os.kill(
+        os.getpid(), signal.SIGINT
+    )  # simulate exit code on SIGINT, but after graceful shutdown of zenoh
 
 
 # --- Command line argument parsing --- --- --- --- --- ---

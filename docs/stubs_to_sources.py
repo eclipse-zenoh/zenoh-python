@@ -13,20 +13,28 @@
 #
 """Transform Python stubs into Python code.
 
-Rename `*.pyi` to `*.py`. Also, because overloaded functions doesn't render nicely,
+Create `*.py` from `*.pyi`. Also, because overloaded functions doesn't render nicely,
 overloaded functions are rewritten in a non-overloaded form. Handler parameter types
 are merged, and return type is unspecialized, while handler delegated methods are
 kept without the `Never` overload. `serializer`/`deserializer` are kept untouched,
 because it's ok.
 Moreover, all function parameters annotations are stringified in order to allow
-referencing a type not declared yet (i.e. forward reference)."""
+referencing a type not declared yet (i.e. forward reference).
 
+Usage:
+    python stubs_to_sources.py          # Convert stubs to sources
+    python stubs_to_sources.py --recover # Restore original files from backups
+"""
+
+import argparse
 import ast
 import inspect
+import shutil
 from collections import defaultdict
 from pathlib import Path
 
 PACKAGE = (Path(__file__) / "../../zenoh").resolve()
+BACKUP_DIR = Path(__file__).parent / "_stubs_backup"
 
 
 def _unstable(item):
@@ -104,18 +112,92 @@ class Sourcify(ast.NodeTransformer):
         return node
 
 
-def main():
+def backup_files():
+    """Backup .py files that have corresponding .pyi stubs.
+
+    Only backs up .py files that will be overwritten during conversion.
+    """
+    BACKUP_DIR.mkdir(exist_ok=True)
+
+    for pyi_file in PACKAGE.glob("*.pyi"):
+        py_file = PACKAGE / f"{pyi_file.stem}.py"
+        if py_file.exists():
+            backup_path = BACKUP_DIR / py_file.name
+            shutil.copy2(py_file, backup_path)
+            print(f"Backed up: {py_file.name}")
+
+
+def convert_stubs():
+    """Convert stub files to source files for documentation."""
+    print(f"Converting stubs in: {PACKAGE}")
+
+    # First, backup all files
+    backup_files()
+
+    # Now convert stubs
+    print()
     for entry in PACKAGE.glob("*.pyi"):
         # read stub file
         with open(entry) as f:
             stub: ast.Module = ast.parse(f.read())
             # update ast to make it like source
             stub = Sourcify().visit(stub)
+
         # write modified code into source file
-        with open(PACKAGE / f"{entry.stem}.py", "w") as f:
+        target_path = PACKAGE / f"{entry.stem}.py"
+        with open(target_path, "w") as f:
             f.write(ast.unparse(stub))
-        # remove stub file
-        entry.unlink()
+        print(f"Converted: {entry.name} -> {target_path.name}")
+
+    print(f"\nTo restore, run: python {Path(__file__).name} --recover")
+
+
+def recover_files():
+    """Restore original .py files from backup.
+
+    This removes any .py files created from .pyi stubs and restores the originals.
+    """
+    if not BACKUP_DIR.exists():
+        print(f"Error: Backup directory not found: {BACKUP_DIR}")
+        print("Cannot recover - no backups available")
+        return
+
+    print(f"Restoring files from: {BACKUP_DIR}")
+
+    # Remove .py files that were created from .pyi stubs
+    print()
+    for pyi_file in PACKAGE.glob("*.pyi"):
+        py_file = PACKAGE / f"{pyi_file.stem}.py"
+        if py_file.exists():
+            py_file.unlink()
+            print(f"Removed: {py_file.name}")
+
+    # Restore the backed-up .py files
+    print()
+    for backup_file in BACKUP_DIR.glob("*.py"):
+        target_path = PACKAGE / backup_file.name
+        shutil.copy2(backup_file, target_path)
+        print(f"Restored: {backup_file.name}")
+
+    # Clean up backup directory
+    shutil.rmtree(BACKUP_DIR)
+    print(f"\nRemoved backup directory: {BACKUP_DIR}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Convert Python stub files to source files for documentation generation"
+    )
+    parser.add_argument(
+        "--recover", action="store_true", help="Restore original files from backup"
+    )
+
+    args = parser.parse_args()
+
+    if args.recover:
+        recover_files()
+    else:
+        convert_stubs()
 
 
 if __name__ == "__main__":

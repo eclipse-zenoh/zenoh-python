@@ -12,79 +12,42 @@
 ..   ZettaScale Zenoh team, <zenoh@zettascale.tech>
 ..
 
-*******************
-Zenoh API Reference
-*******************
+**************************
+Zenoh Python API Reference
+**************************
 
 `Zenoh <https://zenoh.io>`_ /zeno/ is a stack that unifies data in motion, data at
 rest and computations. It elegantly blends traditional pub/sub with geo distributed
 storage, queries and computations, while retaining a level of time and space efficiency
 that is well beyond any of the mainstream stacks.
 
-Before delving into the examples, we need to introduce few **Zenoh** concepts.
-First off, in Zenoh you will deal with **Resources**, where a resource is made up of a
-key and a value.  The other concept you'll have to familiarize yourself with are
-**key expressions**, such as ``robot/sensor/temp``, ``robot/sensor/*``, ``robot/**``, etc.
-As you can gather, the above key expression denotes set of keys, while the ``*`` and ``**``
-are wildcards representing respectively (1) a single chunk (non-empty sequence of characters that doesn't contain ``/``), and (2) any amount of chunks (including 0).
+The Zenoh protocol allows nodes to form a graph with an arbitrary topology, such as a mesh, 
+a star, or a clique. The zenoh routers keeps the network connected and routes the messages
+between the nodes.
 
-Below are some examples that highlight these key concepts and show how easy it is to get
-started with.
+This documentation provides an overview of the Zenoh concepts and components and a
+reference of the Zenoh python API. For more information about Zenoh, please visit the
+documentation section on the `Zenoh website <https://zenoh.io/docs/getting-started/first-app/>`_.
+It's useful to consult also the `Zenoh Rust API <https://docs.rs/crate/zenoh/latest/>`_ 
+reference since the Python API is a binding over the Rust implementation.
 
-Quick start examples:
-^^^^^^^^^^^^^^^^^^^^^
+All examples presented in this documentation can be found in the examples/ directory of the
+`Zenoh Python GitHub repository <https://github.com/eclipse-zenoh/zenoh-python/tree/main/docs/examples>`_.
 
-Publish a key/value pair onto Zenoh
-"""""""""""""""""""""""""""""""""""
+Documentation Contents
+======================
 
->>> import zenoh
->>> with zenoh.open() as session:
->>>     session.put('demo/example/hello', 'Hello World!')
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
-Subscribe to a set of keys with Zenoh
-"""""""""""""""""""""""""""""""""""""
+   quickstart
+   concepts
+   api_reference
 
->>> import zenoh, time
->>> def listener(sample):
->>>     print(f"{sample.key_expr} => {sample.payload.to_string()}")
->>>
->>> with zenoh.open() as session:
->>>     with session.declare_subscriber('demo/example/**', listener) as subscriber:
->>>         time.sleep(60)
+Indices and Tables
+==================
 
-Get keys/values from zenoh
-""""""""""""""""""""""""""
-
->>> import zenoh
->>> with zenoh.open() as session:
->>>     for response in session.get('demo/example/**'):
->>>         response = response.ok
->>>         print(f"{response.key_expr} => {response.payload.to_string()}")
-
-module zenoh
-============
-
-.. automodule:: zenoh
-    :members:
-    :undoc-members:
-
-module zenoh.handlers
-=====================
-
-.. automodule:: zenoh.handlers
-    :members:
-    :undoc-members:
-
-module zenoh.ext
-================
-
-.. automodule:: zenoh.ext
-    :members:
-    :undoc-members:
-
-module zenoh.shm
-================
-
-.. automodule:: zenoh.shm
-    :members:
-    :undoc-members:
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
