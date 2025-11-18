@@ -149,12 +149,12 @@ class Callback(Generic[_T]):
             primitive is undeclared and the callback handler is being cleaned up.
 
         indirect:
+            *This featue is unstable and may change or be removed in future releases.*
+            
             Controls the threading behavior of callback execution. If `True`
-            (default), the callback is executed in a separate Python thread,
-            allowing for long-running callbacks without blocking Zenoh's internal
-            processing. If `False`, the callback is executed directly in the same
-            thread that receives the data, which is more efficient but requires
-            callbacks to complete quickly to avoid blocking.
+            (default), the callback is executed in a separate Python thread.
+            If `False`, the callback is executed directly in the same
+            thread that receives the data (the zenoh network thread).
     """
 
     def __new__(
@@ -175,4 +175,4 @@ class Callback(Generic[_T]):
 
     @property
     def indirect(self) -> bool:
-        """Whether the callback executes in a separate thread (True) or same thread (False)."""
+        """*Unstable* Whether the callback executes in a separate thread (True) or same thread (False)."""

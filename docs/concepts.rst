@@ -70,6 +70,7 @@ wildcards:
 - ``**`` matches any number of chunks (including zero chunks)
 
 For example:
+
 - ``robot/sensor/*`` matches ``robot/sensor/temp``, ``robot/sensor/humidity``, etc.
 - ``robot/**`` matches ``robot/sensor/temp``, ``robot/actuator/motor``, ``robot/status``, etc.
 
@@ -444,8 +445,8 @@ methods (for example, :meth:`zenoh.Session.declare_subscriber` and
 By default, the ``handler`` parameter is ``None``, which uses
 :class:`zenoh.handlers.DefaultHandler` (a FIFO channel with default capacity).
 
-Using channels
-~~~~~~~~~~~~~~
+Channels
+~~~~~~~~
 
 When constructed with a :class:`zenoh.handlers.FifoChannel` or :class:`zenoh.handlers.RingChannel`
 as ``handler`` (or using the default one), the returned object is iterable
@@ -460,10 +461,16 @@ or when :meth:`zenoh.Subscriber.undeclare` is explicitly called.
    :start-after: [channels]
    :end-before: # [channels]
 
-Simple callback
-~~~~~~~~~~~~~~~
+Callbacks
+~~~~~~~~~
 
-It's possible to pass a callable object as ``handler``. This callable is invoked for each received
+.. caution::
+
+   Calling Zenoh API functions, as well as performing any blocking operations from within a callback is disallowed.
+   Even if this works in some particular cases, it's unsafe and may lead to deadlocks or crashes at any moment or with
+   the future updates of the library.
+
+It is possible to pass a callable object as ``handler``. This callable is invoked for each received
 :class:`zenoh.Sample` or :class:`zenoh.Reply`. This also means the subscriber or queryable runs in
 **background mode**, i.e., it remains active even if the returned object
 goes out of scope. This allows declaring a subscriber without managing the
@@ -475,22 +482,8 @@ returned object's lifetime.
    :end-before: # [callback_simple]
 
 
-Advanced callback
-~~~~~~~~~~~~~~~~~
-
 For more advanced callback handling, you can use :class:`zenoh.handlers.Callback`
-to create a callback handler with cleanup functionality and
-configurable execution mode (direct or indirect).
-
-By default (``indirect=True``), the callback handler spawns a separate thread for
-each registered callback, ensuring the network thread is not blocked. However, this
-makes the callback API quite heavy in Python, so it's not highly recommended for
-performance-critical applications.
-
-Alternatively, direct mode (``indirect=False``) executes callbacks immediately in
-the context of the Rust library's network thread. This may significantly reduce 
-throughput as it makes Zenoh execute the Python code in the network thread, 
-but it might be useful for low-latency applications with low traffic.
+to create a callback handler with cleanup functionality.
 
 .. literalinclude:: examples/callback_advanced.py
    :language: python
@@ -507,8 +500,8 @@ is your custom Python object. This solution has the same performance penalties a
 callback API, but it can be useful in some scenarios.
 
 The callback is invoked for each received item and stores the data in the custom channel,
-which is accessible via e.g. :meth:`zenoh.Subscriber.handler` property, in the same way
-as in built-in channels cases.
+which is accessible via the :meth:`zenoh.Subscriber.handler` property, in the same way
+as with built-in channels.
 
 **Custom channel with priority queue**
 
