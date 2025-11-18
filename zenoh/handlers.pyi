@@ -150,7 +150,7 @@ class Callback(Generic[_T]):
 
         indirect:
             *This feature is unstable and may change or be removed in future releases.*
-            
+
             Controls the threading behavior of callback execution. If `True`
             (default), the callback is executed in a separate Python thread.
             If `False`, the callback is executed directly in the same
