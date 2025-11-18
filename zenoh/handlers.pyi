@@ -149,7 +149,7 @@ class Callback(Generic[_T]):
             primitive is undeclared and the callback handler is being cleaned up.
 
         indirect:
-            *This featue is unstable and may change or be removed in future releases.*
+            *This feature is unstable and may change or be removed in future releases.*
             
             Controls the threading behavior of callback execution. If `True`
             (default), the callback is executed in a separate Python thread.
