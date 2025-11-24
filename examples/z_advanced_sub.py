@@ -11,10 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-import os
-import signal
 import time
-from signal import SIGINT
 
 import zenoh
 from zenoh.ext import HistoryConfig, Miss, RecoveryConfig, declare_advanced_subscriber
@@ -48,14 +45,8 @@ def main(conf: zenoh.Config, key: str):
         advanced_sub.sample_miss_listener(miss_listener)
 
         print("Press CTRL-C to quit...")
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("Interrupted by user. Shutting down...")
-    os.kill(
-        os.getpid(), signal.SIGINT
-    )  # simulate exit code on SIGINT, but after graceful shutdown of zenoh
+        while True:
+            time.sleep(1)
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
