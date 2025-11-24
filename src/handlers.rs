@@ -23,12 +23,17 @@ use zenoh::handlers::{CallbackParameter, IntoHandler};
 
 use crate::{
     macros::{import, py_static},
-    utils::{generic, short_type_name, IntoPyErr, IntoPyResult, IntoPython, IntoRust},
+    utils::{generic, short_type_name, IntoPyResult, IntoPython, IntoRust},
     ZError,
 };
 
 type RustCallback<T> = zenoh::handlers::Callback<T>;
 
+/// See [`Python::check_signals`] documentation.
+///
+/// Signals received by Python interpreter while executing Rust code in `allow_threads`
+/// are not handled and kept as pending. It's Rust code responsibility to regularly check
+/// them. Blocking calls like channel `recv` must then be done in a loop with small timeouts.
 const CHECK_SIGNALS_INTERVAL: Duration = Duration::from_millis(100);
 const DROP_CALLBACK_WARNING: &str = "Passing drop-callback using a tuple \
 `(callback, drop-callback)` no longer works in 1.0;\n\
@@ -279,105 +284,32 @@ where
     _phantom: PhantomData<T>,
 }
 
-fn try_recv<T: IntoPython, E: IntoPyErr + Send>(
-    py: Python,
-    f: impl FnOnce() -> Result<T, E> + Send,
-) -> PyResult<PyObject> {
-    Ok(py.allow_threads(f).into_pyres()?.into_pyobject(py))
-}
+macro_rules! impl_receiver {
+    ($($channel:ident),* $(,)?) => {$(
+        impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<$channel, T> {
+            fn type_name(&self) -> &'static str {
+                short_type_name::<T>()
+            }
 
-fn recv<T: IntoPython, E: IntoPyErr + Send>(
-    py: Python,
-    f: impl Fn() -> Result<T, E> + Sync,
-    is_timeout: impl Fn(&E) -> bool,
-) -> PyResult<PyObject> {
-    loop {
-        match py.allow_threads(&f) {
-            Ok(obj) => return Ok(obj.into_pyobject(py)),
-            Err(err) if is_timeout(&err) => py.check_signals()?,
-            Err(err) => return Err(err.into_pyerr()),
+            fn try_recv(&self, py: Python) -> PyResult<PyObject> {
+                Ok(self.handler.try_recv().into_pyres()?.into_pyobject(py))
+            }
+
+            fn recv(&self, py: Python) -> PyResult<PyObject> {
+                // See `CHECK_SIGNALS_INTERVAL` doc
+                let recv_timeout = || self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL);
+                loop {
+                    match py.allow_threads(recv_timeout).into_pyres()?
+                    {
+                        Some(obj) => return Ok(obj.into_pyobject(py)),
+                        None => py.check_signals()?,
+                    }
+                }
+            }
         }
-    }
+    )*};
 }
-
-enum DeadlineError<E> {
-    Timeout,
-    Error(E),
-}
-impl<E: fmt::Display> fmt::Display for DeadlineError<E> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Error(err) => write!(f, "{err}"),
-            Self::Timeout => unreachable!(),
-        }
-    }
-}
-
-impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<DefaultHandler, T> {
-    fn type_name(&self) -> &'static str {
-        short_type_name::<T>()
-    }
-
-    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        try_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
-    }
-
-    fn recv(&self, py: Python) -> PyResult<PyObject> {
-        recv(
-            py,
-            || match self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL) {
-                Ok(Some(x)) => Ok(x),
-                Ok(None) => Err(DeadlineError::Timeout),
-                Err(err) => Err(DeadlineError::Error(err)),
-            },
-            |err| matches!(err, DeadlineError::Timeout),
-        )
-    }
-}
-
-impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<FifoChannel, T> {
-    fn type_name(&self) -> &'static str {
-        short_type_name::<T>()
-    }
-
-    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        try_recv(py, || PyResult::Ok(self.handler.try_recv().ok()))
-    }
-
-    fn recv(&self, py: Python) -> PyResult<PyObject> {
-        recv(
-            py,
-            || match self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL) {
-                Ok(Some(x)) => Ok(x),
-                Ok(None) => Err(DeadlineError::Timeout),
-                Err(err) => Err(DeadlineError::Error(err)),
-            },
-            |err| matches!(err, DeadlineError::Timeout),
-        )
-    }
-}
-
-impl<T: IntoPython + CallbackParameter> Receiver for RustHandler<RingChannel, T> {
-    fn type_name(&self) -> &'static str {
-        short_type_name::<T>()
-    }
-
-    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
-        try_recv(py, || self.handler.try_recv())
-    }
-
-    fn recv(&self, py: Python) -> PyResult<PyObject> {
-        recv(
-            py,
-            || match self.handler.recv_timeout(CHECK_SIGNALS_INTERVAL) {
-                Ok(Some(x)) => Ok(x),
-                Ok(None) => Err(DeadlineError::Timeout),
-                Err(err) => Err(DeadlineError::Error(err)),
-            },
-            |err| matches!(err, DeadlineError::Timeout),
-        )
-    }
-}
+impl_receiver!(DefaultHandler, FifoChannel, RingChannel);
 
 fn rust_handler<H: IntoRust, T: IntoPython + CallbackParameter>(
     py: Python,
