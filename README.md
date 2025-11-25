@@ -62,42 +62,122 @@ Requirements:
 
 - Python >= 3.8
 - pip >= 19.3.1
-- (Optional) A Python virtual environment (for instance [virtualenv](https://docs.python.org/3.10/tutorial/venv.html) or [miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - [Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html). If you already have the Rust toolchain installed, make sure it is up-to-date with:
 
    ```bash
    rustup update
    ```
 
-Steps:
+### Recommended: Build with Virtual Environment
 
-- Install developments requirements:
+Using a virtual environment is **strongly recommended** to avoid Python version conflicts and dependency issues.
+
+1. Create and activate a virtual environment:
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+2. Install development requirements:
 
    ```bash
    pip install -r requirements-dev.txt
    ```
 
-- Ensure your system can find the building tool `maturin` (installed by previous step).
-  For example, it is placed at _$HOME/.local/bin/maturin_ by default on Ubuntu 20.04.
+3. Build and install in development mode:
+
+   ```bash
+   maturin develop --release
+   ```
+
+4. Run examples:
+
+   ```bash
+   python examples/z_info.py
+   ```
+
+When you're done, deactivate the virtual environment:
+
+```bash
+deactivate
+```
+
+### Alternative: Build without Virtual Environment
+
+If you cannot use a virtual environment, follow these steps carefully:
+
+1. Install development requirements:
+
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+2. Ensure your system can find the building tool `maturin` (installed by previous step).
+   For example, it is placed at _$HOME/.local/bin/maturin_ by default on Ubuntu 20.04.
 
    ```bash
    export PATH="$HOME/.local/bin:$PATH"
    ```
 
-- Build and install zenoh-python:
+3. Build the wheel:
 
-  - With a virtual environment active:
+   ```bash
+   maturin build --release
+   ```
 
-     ```bash
-     maturin develop --release
-     ```
+4. Install the built wheel:
 
-  - Without one:
+   ```bash
+   pip install ./target/wheels/*.whl --break-system-packages
+   ```
 
-     ```bash
-     maturin build --release
-     pip install ./target/wheels/<there should only be one .whl file here>
-     ```
+   :warning: **Important:** Systems may have multiple Python installations. Ensure you use the same `pip` that corresponds to the `python3` you intend to use for running examples. You can verify this with:
+
+   ```bash
+   pip --version      # Shows which Python version pip uses
+   python3 --version  # Shows which Python version python3 uses
+   ```
+
+   If they don't match, use `python3 -m pip install ./target/wheels/*.whl` instead to ensure the package is installed for the correct Python version.
+
+5. Run examples using the same Python:
+
+   ```bash
+   python3 examples/z_info.py
+   ```
+
+-------------------------------
+
+## Building Documentation
+
+To build the documentation locally:
+
+1. Ensure you have zenoh-python installed (follow the build instructions above)
+
+2. Install documentation requirements:
+
+   ```bash
+   pip install -r docs/requirements.txt
+   ```
+
+3. Build the HTML documentation:
+
+   ```bash
+   cd docs
+   make html
+   ```
+
+4. Open the documentation:
+
+   ```bash
+   open _build/html/index.html  # macOS
+   # or
+   xdg-open _build/html/index.html  # Linux
+   # or navigate to docs/_build/html/index.html in your browser
+   ```
+
+The documentation is also available online at [zenoh-python.readthedocs.io](https://zenoh-python.readthedocs.io/).
 
 -------------------------------
 
