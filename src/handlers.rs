@@ -190,28 +190,37 @@ impl Callback {
     }
 }
 
-pub(crate) struct PythonCallback(Callback);
+pub(crate) struct PythonCallback {
+    callback: Callback,
+    _notifier: Option<zenoh::cancellation::SyncGroupNotifier>,
+}
 
 impl PythonCallback {
-    fn new(obj: &Bound<PyAny>) -> Self {
+    fn new(obj: &Bound<PyAny>, notifier: Option<zenoh::cancellation::SyncGroupNotifier>) -> Self {
         if let Ok(cb) = obj.downcast::<Callback>().map(Bound::borrow) {
-            return Self(Callback::new(
-                cb.callback.clone_ref(obj.py()),
-                cb.drop.as_ref().map(|d| d.clone_ref(obj.py())),
-                cb.indirect,
-            ));
+            return Self {
+                callback: Callback::new(
+                    cb.callback.clone_ref(obj.py()),
+                    cb.drop.as_ref().map(|d| d.clone_ref(obj.py())),
+                    cb.indirect,
+                ),
+                _notifier: notifier,
+            };
         }
-        Self(Callback::new(obj.clone().unbind(), None, true))
+        Self {
+            callback: Callback::new(obj.clone().unbind(), None, true),
+            _notifier: notifier,
+        }
     }
 
     fn call<T: IntoPython>(&self, py: Python, t: T) {
-        log_error(py, self.0.callback.call1(py, (t.into_pyobject(py),)));
+        log_error(py, self.callback.callback.call1(py, (t.into_pyobject(py),)));
     }
 }
 
 impl Drop for PythonCallback {
     fn drop(&mut self) {
-        if let Some(drop) = &self.0.drop {
+        if let Some(drop) = &self.callback.drop {
             Python::with_gil(|gil| log_error(gil, drop.call0(gil)));
         }
     }
@@ -331,10 +340,17 @@ where
 
 fn python_callback<T: IntoPython + CallbackParameter>(
     callback: &Bound<PyAny>,
+    cancellation_token: Option<&zenoh::cancellation::CancellationToken>,
 ) -> PyResult<RustCallback<T>> {
     let py = callback.py();
-    let callback = PythonCallback::new(callback);
-    Ok(if callback.0.indirect {
+    let (is_cancelled, notifier) = cancellation_token
+        .map(|ct| {
+            let notifier = ct.notifier();
+            (notifier.is_some(), notifier)
+        })
+        .unwrap_or((false, None));
+    let callback = PythonCallback::new(callback, notifier);
+    Ok(if callback.callback.indirect && !is_cancelled {
         let (rust_callback, receiver) = DefaultHandler.into_rust().into_handler();
         let kwargs = PyDict::new(py);
         let target = PyCFunction::new_closure(py, None, None, move |args, _| {
@@ -358,6 +374,7 @@ fn python_callback<T: IntoPython + CallbackParameter>(
 pub(crate) fn into_handler<T: IntoPython + CallbackParameter>(
     py: Python,
     obj: Option<&Bound<PyAny>>,
+    cancellation_token: Option<&zenoh::cancellation::CancellationToken>,
 ) -> PyResult<(impl IntoHandler<T, Handler = HandlerImpl<T::Into>>, bool)> {
     let mut background = false;
     let Some(obj) = obj else {
@@ -371,7 +388,10 @@ pub(crate) fn into_handler<T: IntoPython + CallbackParameter>(
         rust_handler(py, handler)
     } else if obj.is_callable() {
         background = true;
-        (python_callback(obj)?, HandlerImpl::Python(py.None()))
+        (
+            python_callback(obj, cancellation_token)?,
+            HandlerImpl::Python(py.None()),
+        )
     } else if let Some((cb, handler)) = obj
         .extract::<(Bound<PyAny>, PyObject)>()
         .ok()
@@ -380,7 +400,10 @@ pub(crate) fn into_handler<T: IntoPython + CallbackParameter>(
         if handler.bind(py).is_callable() {
             import!(py, warnings.warn).call1((DROP_CALLBACK_WARNING,))?;
         }
-        (python_callback(&cb)?, HandlerImpl::Python(handler))
+        (
+            python_callback(&cb, cancellation_token)?,
+            HandlerImpl::Python(handler),
+        )
     } else {
         return Err(PyValueError::new_err(format!(
             "Invalid handler type {}",

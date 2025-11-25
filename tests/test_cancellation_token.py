@@ -73,9 +73,7 @@ def test_cancellation_get():
         nonlocal n
         n += 10
 
-    direct_callback = zenoh.handlers.Callback(on_reply, None, indirect=False)
-
-    session2.get(keyexpr, direct_callback, cancellation_token=cancellation_token)
+    session2.get(keyexpr, on_reply, cancellation_token=cancellation_token)
     q = queryable.recv()
     q.reply(keyexpr, "ok")
     q.drop()
@@ -122,9 +120,7 @@ def test_cancellation_querier():
         nonlocal n
         n += 10
 
-    direct_callback = zenoh.handlers.Callback(on_reply, None, indirect=False)
-
-    querier.get(direct_callback, cancellation_token=cancellation_token)
+    querier.get(on_reply, cancellation_token=cancellation_token)
     q = queryable.recv()
     q.reply(keyexpr, "ok")
     q.drop()
@@ -156,11 +152,7 @@ def test_cancellation_liveliness_get():
         nonlocal n
         n += 10
 
-    direct_callback = zenoh.handlers.Callback(on_reply, None, indirect=False)
-
-    session2.liveliness().get(
-        keyexpr, direct_callback, cancellation_token=cancellation_token
-    )
+    session2.liveliness().get(keyexpr, on_reply, cancellation_token=cancellation_token)
     time.sleep(1)
 
     assert not cancellation_token.is_cancelled

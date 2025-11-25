@@ -571,7 +571,7 @@ impl AdvancedSubscriber {
         py: Python,
         handler: Option<&Bound<PyAny>>,
     ) -> PyResult<SampleMissListener> {
-        let (handler, background) = into_handler(py, handler)?;
+        let (handler, background) = into_handler(py, handler, None)?;
         let builder = self.get_ref()?.sample_miss_listener();
         let mut listener = wait(py, builder.with(handler))?;
         if background {
@@ -587,7 +587,7 @@ impl AdvancedSubscriber {
         handler: Option<&Bound<PyAny>>,
         history: Option<bool>,
     ) -> PyResult<Subscriber> {
-        let (handler, background) = into_handler(py, handler)?;
+        let (handler, background) = into_handler(py, handler, None)?;
         let builder = build!(self.get_ref()?.detect_publishers(), history);
         let mut subscriber = wait(py, builder.with(handler))?;
         if background {
@@ -808,7 +808,7 @@ pub(crate) fn declare_advanced_subscriber(
     recovery: Option<RecoveryConfig>,
     subscriber_detection: Option<bool>,
 ) -> PyResult<AdvancedSubscriber> {
-    let (handler, background) = into_handler(py, handler)?;
+    let (handler, background) = into_handler(py, handler, None)?;
     let mut builder = build!(
         session.0.declare_subscriber(key_expr).advanced(),
         allowed_origin,

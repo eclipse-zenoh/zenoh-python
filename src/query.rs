@@ -376,7 +376,7 @@ impl Querier {
         cancellation_token: Option<CancellationToken>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
-        let (handler, _) = into_handler(py, handler)?;
+        let (handler, _) = into_handler(py, handler, cancellation_token.as_ref().map(|ct| &ct.0))?;
         let builder = build!(
             this.get(),
             parameters,
@@ -395,7 +395,7 @@ impl Querier {
         py: Python,
         handler: Option<&Bound<PyAny>>,
     ) -> PyResult<MatchingListener> {
-        let (handler, background) = into_handler(py, handler)?;
+        let (handler, background) = into_handler(py, handler, None)?;
         let mut listener = wait(py, self.get_ref()?.matching_listener().with(handler))?;
         if background {
             listener.set_background(true);

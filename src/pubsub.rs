@@ -123,7 +123,7 @@ impl Publisher {
         py: Python,
         handler: Option<&Bound<PyAny>>,
     ) -> PyResult<MatchingListener> {
-        let (handler, background) = into_handler(py, handler)?;
+        let (handler, background) = into_handler(py, handler, None)?;
         let mut listener = wait(py, self.get_ref()?.matching_listener().with(handler))?;
         if background {
             listener.set_background(true);

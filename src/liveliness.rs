@@ -38,7 +38,7 @@ impl Liveliness {
         handler: Option<&Bound<PyAny>>,
         history: Option<bool>,
     ) -> PyResult<Subscriber> {
-        let (handler, background) = into_handler(py, handler)?;
+        let (handler, background) = into_handler(py, handler, None)?;
         let liveliness = self.0.liveliness();
         let builder = build!(liveliness.declare_subscriber(key_expr), history);
         let mut subscriber = wait(py, builder.with(handler))?;
@@ -57,7 +57,7 @@ impl Liveliness {
         #[pyo3(from_py_with = duration)] timeout: Option<Duration>,
         cancellation_token: Option<CancellationToken>,
     ) -> PyResult<HandlerImpl<Reply>> {
-        let (handler, _) = into_handler(py, handler)?;
+        let (handler, _) = into_handler(py, handler, cancellation_token.as_ref().map(|ct| &ct.0))?;
         let liveliness = self.0.liveliness();
         let builder = build!(liveliness.get(key_expr), timeout, cancellation_token);
         wait(py, builder.with(handler)).map_into()

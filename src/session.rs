@@ -171,7 +171,7 @@ impl Session {
         source_info: Option<SourceInfo>,
         cancellation_token: Option<CancellationToken>,
     ) -> PyResult<HandlerImpl<Reply>> {
-        let (handler, _) = into_handler(py, handler)?;
+        let (handler, _) = into_handler(py, handler, cancellation_token.as_ref().map(|ct| &ct.0))?;
         let builder = build!(
             self.0.get(selector),
             target,
@@ -204,7 +204,7 @@ impl Session {
         handler: Option<&Bound<PyAny>>,
         allowed_origin: Option<Locality>,
     ) -> PyResult<Subscriber> {
-        let (handler, background) = into_handler(py, handler)?;
+        let (handler, background) = into_handler(py, handler, None)?;
         let builder = build!(self.0.declare_subscriber(key_expr), allowed_origin);
         let mut subscriber = wait(py, builder.with(handler))?;
         if background {
@@ -222,7 +222,7 @@ impl Session {
         complete: Option<bool>,
         allowed_origin: Option<Locality>,
     ) -> PyResult<Queryable> {
-        let (handler, background) = into_handler(py, handler)?;
+        let (handler, background) = into_handler(py, handler, None)?;
         let builder = build!(self.0.declare_queryable(key_expr), complete, allowed_origin);
         let mut queryable = wait(py, builder.with(handler))?;
         if background {
