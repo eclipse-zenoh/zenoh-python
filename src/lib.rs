@@ -14,7 +14,7 @@
 // TODO https://github.com/eclipse-zenoh/zenoh-python/pull/235#discussion_r1644498390
 // mod logging;
 mod bytes;
-mod cancellation_token;
+mod cancellation;
 mod config;
 #[cfg(feature = "zenoh-ext")]
 mod ext;
@@ -58,7 +58,7 @@ pub(crate) mod zenoh {
     #[pymodule_export]
     use crate::{
         bytes::{Encoding, ZBytes},
-        cancellation_token::CancellationToken,
+        cancellation::CancellationToken,
         config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
         handlers::Handler,
         key_expr::{KeyExpr, SetIntersectionLevel},

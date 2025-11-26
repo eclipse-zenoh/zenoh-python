@@ -22,6 +22,7 @@ use pyo3::{
 use zenoh::handlers::{CallbackParameter, IntoHandler};
 
 use crate::{
+    cancellation::CancellationToken,
     macros::{import, py_static},
     utils::{generic, short_type_name, IntoPyResult, IntoPython, IntoRust},
     ZError,
@@ -340,12 +341,12 @@ where
 
 fn python_callback<T: IntoPython + CallbackParameter>(
     callback: &Bound<PyAny>,
-    cancellation_token: Option<&zenoh::cancellation::CancellationToken>,
+    cancellation_token: Option<&CancellationToken>,
 ) -> PyResult<RustCallback<T>> {
     let py = callback.py();
     let (is_cancelled, notifier) = cancellation_token
         .map(|ct| {
-            let notifier = ct.notifier();
+            let notifier = ct.0.notifier();
             (notifier.is_some(), notifier)
         })
         .unwrap_or((false, None));
@@ -374,7 +375,7 @@ fn python_callback<T: IntoPython + CallbackParameter>(
 pub(crate) fn into_handler<T: IntoPython + CallbackParameter>(
     py: Python,
     obj: Option<&Bound<PyAny>>,
-    cancellation_token: Option<&zenoh::cancellation::CancellationToken>,
+    cancellation_token: Option<&CancellationToken>,
 ) -> PyResult<(impl IntoHandler<T, Handler = HandlerImpl<T::Into>>, bool)> {
     let mut background = false;
     let Some(obj) = obj else {

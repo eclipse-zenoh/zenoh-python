@@ -21,7 +21,7 @@ use zenoh::{session::EntityId, Wait};
 
 use crate::{
     bytes::{Encoding, ZBytes},
-    cancellation_token::CancellationToken,
+    cancellation::CancellationToken,
     config::{Config, ZenohId},
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
@@ -171,7 +171,7 @@ impl Session {
         source_info: Option<SourceInfo>,
         cancellation_token: Option<CancellationToken>,
     ) -> PyResult<HandlerImpl<Reply>> {
-        let (handler, _) = into_handler(py, handler, cancellation_token.as_ref().map(|ct| &ct.0))?;
+        let (handler, _) = into_handler(py, handler, cancellation_token.as_ref())?;
         let builder = build!(
             self.0.get(selector),
             target,

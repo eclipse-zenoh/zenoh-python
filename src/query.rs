@@ -21,7 +21,7 @@ use pyo3::{
 
 use crate::{
     bytes::{Encoding, ZBytes},
-    cancellation_token::CancellationToken,
+    cancellation::CancellationToken,
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     macros::{build, downcast_or_new, enum_mapper, option_wrapper, wrapper},
@@ -376,7 +376,7 @@ impl Querier {
         cancellation_token: Option<CancellationToken>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
-        let (handler, _) = into_handler(py, handler, cancellation_token.as_ref().map(|ct| &ct.0))?;
+        let (handler, _) = into_handler(py, handler, cancellation_token.as_ref())?;
         let builder = build!(
             this.get(),
             parameters,

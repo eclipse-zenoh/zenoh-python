@@ -55,6 +55,23 @@ class ZError(Exception):
 
     ...
 
+@_unstable
+@final
+class CancellationToken:
+    """Cancellation token that can be used for interrupting GET queries."""
+
+    def __new__(cls) -> Self: ...
+    def cancel(self):
+        """Interrupt all associated GET queries. If the direct query callback is being executed,
+        the call blocks until execution of callback finishes and its corresponding drop method returns (if any).
+
+        Once token is cancelled, all new associated GET queries will cancel automatically.
+        """
+
+    @property
+    def is_cancelled(self) -> bool:
+        """Return true if token was cancelled, false otherwise."""
+
 @final
 class Config:
     """The main configuration structure for Zenoh.
@@ -1962,19 +1979,3 @@ def scout(
     what: _IntoWhatAmIMatcher | None = None,
     config: Config | None = None,
 ) -> Scout[None]: ...
-@_unstable
-@final
-class CancellationToken:
-    """Cancellation token that can be used for interrupting GET queries."""
-
-    def __new__(cls) -> Self: ...
-    def cancel(self):
-        """Interrupt all associated GET queries. If the direct query callback is being executed,
-        the call blocks until execution of callback finishes and its corresponding drop method returns (if any).
-
-        Once token is cancelled, all new associated GET queries will cancel automatically.
-        """
-
-    @property
-    def is_cancelled(self) -> bool:
-        """Return true if token was cancelled, false otherwise."""
