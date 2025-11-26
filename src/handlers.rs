@@ -344,12 +344,8 @@ fn python_callback<T: IntoPython + CallbackParameter>(
     cancellation_token: Option<&CancellationToken>,
 ) -> PyResult<RustCallback<T>> {
     let py = callback.py();
-    let (is_cancelled, notifier) = cancellation_token
-        .map(|ct| {
-            let notifier = ct.0.notifier();
-            (notifier.is_some(), notifier)
-        })
-        .unwrap_or((false, None));
+    let notifier = cancellation_token.and_then(|ct| ct.0.notifier());
+    let is_cancelled = cancellation_token.is_some() && notifier.is_none();
     let callback = PythonCallback::new(callback, notifier);
     Ok(if callback.callback.indirect && !is_cancelled {
         let (rust_callback, receiver) = DefaultHandler.into_rust().into_handler();
