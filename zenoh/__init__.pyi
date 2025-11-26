@@ -55,6 +55,23 @@ class ZError(Exception):
 
     ...
 
+@_unstable
+@final
+class CancellationToken:
+    """Cancellation token that can be used for interrupting GET queries."""
+
+    def __new__(cls) -> Self: ...
+    def cancel(self):
+        """Interrupt all associated GET queries. If the direct query callback is being executed,
+        the call blocks until execution of callback finishes and its corresponding drop method returns (if any).
+
+        Once token is cancelled, all new associated GET queries will cancel automatically.
+        """
+
+    @property
+    def is_cancelled(self) -> bool:
+        """Return true if token was cancelled, false otherwise."""
+
 @final
 class Config:
     """The main configuration structure for Zenoh.
@@ -487,6 +504,7 @@ class Liveliness:
         handler: _RustHandler[Reply] | None = None,
         *,
         timeout: float | int | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> Handler[Reply]:
         """Query :class:`LivelinessToken` with matching key expressions."""
 
@@ -497,6 +515,7 @@ class Liveliness:
         handler: _PythonHandler[Reply, _H],
         *,
         timeout: float | int | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> _H:
         """Query :class:`LivelinessToken` with matching key expressions."""
 
@@ -507,6 +526,7 @@ class Liveliness:
         handler: _PythonCallback[Reply],
         *,
         timeout: float | int | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> None:
         """Query :class:`LivelinessToken` with matching key expressions."""
 
@@ -903,6 +923,7 @@ class Querier:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> Handler[Reply]:
         """Sends a query and returns a channel for processing replies.
 
@@ -918,6 +939,7 @@ class Querier:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> _H:
         """Sends a query and returns a channel for processing replies.
 
@@ -933,6 +955,7 @@ class Querier:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> None:
         """Sends a query and processes replies using the provided callback.
 
@@ -1368,6 +1391,7 @@ class Session:
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
 
@@ -1391,6 +1415,7 @@ class Session:
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
 
@@ -1414,6 +1439,7 @@ class Session:
         attachment: _IntoZBytes | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
+        cancellation_token: CancellationToken | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
 
