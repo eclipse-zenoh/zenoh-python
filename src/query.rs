@@ -190,6 +190,11 @@ impl Query {
         wait(py, build)
     }
 
+    #[getter]
+    fn source_info(&self) -> PyResult<Option<SourceInfo>> {
+        Ok(self.get_ref()?.source_info().cloned().map_into())
+    }
+
     fn drop(&mut self) {
         Python::with_gil(|gil| gil.allow_threads(|| drop(self.0.take())));
     }

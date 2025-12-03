@@ -91,8 +91,8 @@ impl Sample {
     }
 
     #[getter]
-    fn source_info(&self) -> SourceInfo {
-        self.0.source_info().clone().into()
+    fn source_info(&self) -> Option<SourceInfo> {
+        self.0.source_info().cloned().map_into()
     }
 
     fn __repr__(&self) -> String {
@@ -105,20 +105,17 @@ wrapper!(zenoh::sample::SourceInfo: Clone);
 #[pymethods]
 impl SourceInfo {
     #[new]
-    fn new(source_id: Option<EntityGlobalId>, source_sn: Option<SourceSn>) -> Self {
-        Self(zenoh::sample::SourceInfo::new(
-            source_id.map_into(),
-            source_sn,
-        ))
+    fn new(source_id: EntityGlobalId, source_sn: SourceSn) -> Self {
+        Self(zenoh::sample::SourceInfo::new(source_id.into(), source_sn))
     }
 
     #[getter]
-    fn source_id(&self) -> Option<EntityGlobalId> {
-        self.0.source_id().cloned().map_into()
+    fn source_id(&self) -> EntityGlobalId {
+        (*self.0.source_id()).into()
     }
 
     #[getter]
-    fn source_sn(&self) -> Option<SourceSn> {
+    fn source_sn(&self) -> SourceSn {
         self.0.source_sn()
     }
 }
