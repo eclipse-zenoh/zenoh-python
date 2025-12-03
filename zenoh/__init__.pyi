@@ -833,6 +833,11 @@ class Query:
            See the class documentation for important details about which key expression to use for replies.
         """
 
+    @_unstable
+    @property
+    def source_info(self) -> SourceInfo | None:
+        """Gets info on the source of this Query."""
+
     def drop(self):
         """Drop the instance of a query.
         The query will only be finalized when all query instances (one per queryable
@@ -1174,7 +1179,7 @@ class Sample:
 
     @_unstable
     @property
-    def source_info(self) -> SourceInfo:
+    def source_info(self) -> SourceInfo | None:
         """Gets info on the source of this Sample."""
 
 @final
@@ -1635,15 +1640,13 @@ class SourceInfo:
     global identifier and sequence number.
     """
 
-    def __new__(
-        cls, source_id: EntityGlobalId | None = None, source_sn: SourceSn | None = None
-    ) -> Self: ...
+    def __new__(cls, source_id: EntityGlobalId, source_sn: SourceSn) -> Self: ...
     @property
-    def source_id(self) -> EntityGlobalId | None:
+    def source_id(self) -> EntityGlobalId:
         """The EntityGlobalId of the zenoh entity that published the Sample in question."""
 
     @property
-    def source_sn(self) -> SourceSn | None:
+    def source_sn(self) -> SourceSn:
         """The sequence number of the Sample from the source."""
 
 SourceSn = int
