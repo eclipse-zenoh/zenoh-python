@@ -575,6 +575,49 @@ class LivelinessToken:
         """Undeclare the :class:`LivelinessToken`."""
 
 @final
+class NTP64:
+    """A NTP 64-bits format as specified in RFC-5909 <https://tools.ietf.org/html/rfc5905#section-6>
+
+    The 1st 32-bits part is the number of second since the EPOCH of the physical clock,
+    and the 2nd 32-bits part is the fraction of second."""
+
+    def __new__(cls, seconds: int, nanos: int) -> Self: ...
+    def as_secs_f64(self) -> float:
+        """Returns this NTP64 as a f64 in seconds.
+
+        The integer part of the f64 is the NTP64's Seconds part.
+        The decimal part of the f64 is the result of a division of NTP64's Fraction part divided by 2^32.
+        Considering the probable large number of Seconds (for a time relative to UNIX_EPOCH), the precision of the resulting f64 might be in the order of microseconds.
+        Therefore, it should not be used for comparison. Directly comparing [NTP64] objects is preferable.
+        """
+
+    def as_secs(self) -> int:
+        """Returns the 32-bits seconds part."""
+
+    def as_nanos(self) -> int:
+        """Returns the total duration converted to nanoseconds."""
+
+    def subsec_nanos(self) -> int:
+        """Returns the 32-bits fraction of second part converted to nanoseconds."""
+
+    def to_datetime(self) -> datetime:
+        """Returns this NTP64 as a datetime."""
+
+    def to_string_rfc3339_lossy(self) -> str:
+        """Convert to a RFC3339 time representation with nanoseconds precision.
+
+        e.g.: `"2024-07-01T13:51:12.129693000Z"``"""
+
+    @classmethod
+    def parse_rfc3339(cls, s: str) -> Self:
+        """Parse a RFC3339 time representation into a NTP64."""
+
+    def __eq__(self, other: Any) -> bool: ...
+    def __ge__(self, other) -> bool: ...
+    def __hash__(self) -> int: ...
+    def __str__(self) -> str: ...
+
+@final
 class Parameters:
     """A collection of key-value parameters used in query operations.
 
@@ -1723,8 +1766,11 @@ class Timestamp:
     For detailed information about Timestamp, see: https://docs.rs/zenoh/latest/zenoh/time/struct.Timestamp.html
     """
 
-    def __new__(cls, time: datetime, id: _IntoTimestampId) -> Self: ...
+    def __new__(cls, time: datetime | NTP64, id: _IntoTimestampId) -> Self: ...
     def get_time(self) -> datetime:
+        """Returns the time component of the timestamp as a datetime object."""
+
+    def get_time_as_ntp64(self) -> NTP64:
         """Returns the time component of the timestamp as a datetime object."""
 
     def get_id(self) -> TimestampId:

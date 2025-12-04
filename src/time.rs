@@ -17,13 +17,14 @@ use std::{
 };
 
 use pyo3::{
+    exceptions::PyTypeError,
     prelude::*,
-    types::{PyBytes, PyType},
+    types::{PyBytes, PyDateTime, PyType, PyTzInfoAccess},
 };
 
 use crate::{
     macros::{downcast_or_new, wrapper},
-    utils::IntoPyResult,
+    utils::{IntoPyErr, IntoPyResult},
 };
 
 wrapper!(zenoh::time::TimestampId: Copy, Clone, PartialEq, PartialOrd);
@@ -66,15 +67,28 @@ wrapper!(zenoh::time::Timestamp: Clone, PartialEq, PartialOrd, Hash);
 impl Timestamp {
     #[new]
     fn new(
-        time: SystemTime,
+        time: Bound<PyAny>,
         #[pyo3(from_py_with = TimestampId::from_py)] id: TimestampId,
     ) -> PyResult<Self> {
-        let timestamp = time.duration_since(SystemTime::UNIX_EPOCH).into_pyres()?;
-        Ok(Self(zenoh::time::Timestamp::new(timestamp.into(), id.0)))
+        let ntp = if let Ok(time) = time.downcast::<PyDateTime>() {
+            time.extract::<SystemTime>()?
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .into_pyres()?
+                .into()
+        } else if let Ok(ntp) = time.extract::<NTP64>() {
+            ntp.0
+        } else {
+            return Err(PyTypeError::new_err("expected a `datetime` or a `NTP64`"));
+        };
+        Ok(Self(zenoh::time::Timestamp::new(ntp, id.0)))
     }
 
     fn get_time(&self) -> SystemTime {
         self.0.get_time().to_system_time()
+    }
+
+    fn get_time_as_ntp64(&self) -> NTP64 {
+        (*self.0.get_time()).into()
     }
 
     fn get_id(&self) -> TimestampId {
@@ -96,6 +110,72 @@ impl Timestamp {
                 .map_err(|err| err.cause)
                 .into_pyres()?,
         ))
+    }
+
+    fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> bool {
+        match op {
+            pyo3::pyclass::CompareOp::Lt => self < other,
+            pyo3::pyclass::CompareOp::Le => self <= other,
+            pyo3::pyclass::CompareOp::Eq => self == other,
+            pyo3::pyclass::CompareOp::Ne => self != other,
+            pyo3::pyclass::CompareOp::Gt => self > other,
+            pyo3::pyclass::CompareOp::Ge => self >= other,
+        }
+    }
+
+    fn __hash__(&self) -> u64 {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        self.0.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+
+    fn __str__(&self) -> String {
+        format!("{}", self.0)
+    }
+}
+
+wrapper!(zenoh::time::NTP64: Clone, PartialEq, PartialOrd, Hash);
+
+#[pymethods]
+impl NTP64 {
+    #[new]
+    fn new(seconds: u64, nanoseconds: u32) -> Self {
+        Self(Duration::new(seconds, nanoseconds).into())
+    }
+
+    fn as_secs_f64(&self) -> f64 {
+        self.0.as_secs_f64()
+    }
+
+    fn as_secs(&self) -> u32 {
+        self.0.as_secs()
+    }
+
+    fn as_nanos(&self) -> u64 {
+        self.0.as_nanos()
+    }
+
+    fn subsec_nanos(&self) -> u32 {
+        self.0.subsec_nanos()
+    }
+
+    fn to_datetime(&self) -> SystemTime {
+        SystemTime::UNIX_EPOCH + self.0.to_duration()
+    }
+
+    fn to_string_rfc3339_lossy(&self) -> String {
+        self.0.to_string_rfc3339_lossy()
+    }
+
+    #[classmethod]
+    fn parse_rfc3339(_cls: &Bound<PyType>, s: &str) -> PyResult<Self> {
+        zenoh::time::NTP64::parse_rfc3339(s)
+            .map(Self)
+            .map_err(|err| err.cause.into_pyerr())
     }
 
     fn __richcmp__(&self, other: &Self, op: pyo3::pyclass::CompareOp) -> bool {
