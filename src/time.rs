@@ -19,7 +19,7 @@ use std::{
 use pyo3::{
     exceptions::PyTypeError,
     prelude::*,
-    types::{PyBytes, PyDateTime, PyType, PyTzInfoAccess},
+    types::{PyBytes, PyDateTime, PyType},
 };
 
 use crate::{
