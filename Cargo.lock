@@ -251,9 +251,9 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "chrono"
-version = "0.4.42"
+version = "0.4.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "145052bdd345b87320e369255277e3fb5152762ad123a901ef5c262dd38fe8d2"
+checksum = "fac4744fb15ae8337dc853fee7fb3f4e48c0fbaa23d0afe49c447b4fab126118"
 dependencies = [
  "iana-time-zone",
  "num-traits",
@@ -453,9 +453,9 @@ dependencies = [
 
 [[package]]
 name = "data-encoding"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
+checksum = "d7a1e2f27636f116493b8b860f5546edb47c8d8f8ea73e1d2a20be88e28d1fea"
 
 [[package]]
 name = "der"
@@ -573,9 +573,9 @@ dependencies = [
 
 [[package]]
 name = "fastbloom"
-version = "0.14.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18c1ddb9231d8554c2d6bdf4cfaabf0c59251658c68b6c95cd52dd0c513a912a"
+checksum = "4e7f34442dbe69c60fe8eaf58a8cafff81a1f278816d8ab4db255b3bef4ac3c4"
 dependencies = [
  "getrandom 0.3.4",
  "libm",
@@ -603,9 +603,9 @@ checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
 
 [[package]]
 name = "flate2"
-version = "1.1.5"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfe33edd8e85a12a67454e37f8c75e730830d83e313556ab9ebf9ee7fbeb3bfb"
+checksum = "b375d6465b98090a5f25b1c7703f3859783755aa9a80433b36e0379a3ec2f369"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
@@ -751,9 +751,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.16"
+version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "335ff9f135e4384c8150d6f27c6daed433577f86b4750418338c01a1a2528592"
+checksum = "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -1157,9 +1157,9 @@ checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
 name = "js-sys"
-version = "0.3.83"
+version = "0.3.84"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "464a3709c7f55f1f721e5389aa6ea4e3bc6aba669353300af094b29ffbdde1d8"
+checksum = "992dc2f5318945507d390b324ab307c7e7ef69da0002cd14f178a5f37e289dc5"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
@@ -1334,7 +1334,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a51313c5820b0b02bd422f4b44776fbf47961755c74ce64afc73bfad10226c3"
 dependencies = [
- "getrandom 0.2.16",
+ "getrandom 0.2.17",
 ]
 
 [[package]]
@@ -1936,7 +1936,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6db2770f06117d490610c7488547d543617b21bfa07796d7a12f6f1bd53850d1"
 dependencies = [
  "rand_chacha 0.9.0",
- "rand_core 0.9.3",
+ "rand_core 0.9.5",
 ]
 
 [[package]]
@@ -1956,7 +1956,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
 dependencies = [
  "ppv-lite86",
- "rand_core 0.9.3",
+ "rand_core 0.9.5",
 ]
 
 [[package]]
@@ -1965,14 +1965,14 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
- "getrandom 0.2.16",
+ "getrandom 0.2.17",
 ]
 
 [[package]]
 name = "rand_core"
-version = "0.9.3"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
+checksum = "76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c"
 dependencies = [
  "getrandom 0.3.4",
 ]
@@ -2001,7 +2001,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
 dependencies = [
- "getrandom 0.2.16",
+ "getrandom 0.2.17",
  "libredox",
  "thiserror 2.0.17",
 ]
@@ -2051,7 +2051,7 @@ checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
 dependencies = [
  "cc",
  "cfg-if",
- "getrandom 0.2.16",
+ "getrandom 0.2.17",
  "libc",
  "untrusted",
  "windows-sys 0.52.0",
@@ -3215,9 +3215,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.106"
+version = "0.2.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d759f433fa64a2d763d1340820e46e111a7a5ab75f993d1852d70b03dbb80fd"
+checksum = "1310980282a2842658e512a8bd683c962bbf9395e0544fa7bc0509343b8f7d10"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -3228,9 +3228,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.106"
+version = "0.2.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48cb0d2638f8baedbc542ed444afc0644a29166f1595371af4fecf8ce1e7eeb3"
+checksum = "d83321b348310f762bebefa30cd9504f673f3b554a53755eaa93af8272d28f7b"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -3238,9 +3238,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.106"
+version = "0.2.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cefb59d5cd5f92d9dcf80e4683949f15ca4b511f4ac0a6e14d4e1ac60c6ecd40"
+checksum = "6971fd7d06a3063afaaf6b843a2b2b16c3d84b42f4e2ec4e0c8deafbcb179708"
 dependencies = [
  "bumpalo",
  "proc-macro2",
@@ -3251,9 +3251,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.106"
+version = "0.2.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbc538057e648b67f72a982e708d485b2efa771e1ac05fec311f9f63e5800db4"
+checksum = "54d2e1dc11b30bef0c334a34e7c7a1ed57cff1b602ad7eb6e5595e2e1e60bd62"
 dependencies = [
  "unicode-ident",
 ]
@@ -3721,7 +3721,7 @@ dependencies = [
 [[package]]
 name = "zenoh"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "ahash",
  "arc-swap",
@@ -3773,7 +3773,7 @@ dependencies = [
 [[package]]
 name = "zenoh-buffers"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "zenoh-collections",
 ]
@@ -3781,7 +3781,7 @@ dependencies = [
 [[package]]
 name = "zenoh-codec"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "tracing",
  "uhlc",
@@ -3793,7 +3793,7 @@ dependencies = [
 [[package]]
 name = "zenoh-collections"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "ahash",
 ]
@@ -3801,7 +3801,7 @@ dependencies = [
 [[package]]
 name = "zenoh-config"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "json5",
  "nonempty-collections",
@@ -3825,7 +3825,7 @@ dependencies = [
 [[package]]
 name = "zenoh-core"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "lazy_static",
  "tokio",
@@ -3836,7 +3836,7 @@ dependencies = [
 [[package]]
 name = "zenoh-crypto"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "aes",
  "hmac",
@@ -3849,7 +3849,7 @@ dependencies = [
 [[package]]
 name = "zenoh-ext"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "bincode",
@@ -3868,9 +3868,9 @@ dependencies = [
 [[package]]
 name = "zenoh-keyexpr"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
- "getrandom 0.2.16",
+ "getrandom 0.2.17",
  "hashbrown 0.16.1",
  "keyed-set",
  "rand 0.8.5",
@@ -3883,7 +3883,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "zenoh-config",
  "zenoh-link-commons",
@@ -3901,7 +3901,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-commons"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "base64",
@@ -3934,7 +3934,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-quic"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "base64",
@@ -3959,7 +3959,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-quic_datagram"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "quinn",
@@ -3979,7 +3979,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-tcp"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "socket2 0.5.10",
@@ -3996,7 +3996,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-tls"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "base64",
@@ -4025,7 +4025,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-udp"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "libc",
@@ -4046,7 +4046,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-unixsock_stream"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "nix",
@@ -4064,7 +4064,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-ws"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "futures-util",
@@ -4084,7 +4084,7 @@ dependencies = [
 [[package]]
 name = "zenoh-macros"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4095,7 +4095,7 @@ dependencies = [
 [[package]]
 name = "zenoh-plugin-trait"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "git-version",
  "libloading",
@@ -4112,7 +4112,7 @@ dependencies = [
 [[package]]
 name = "zenoh-protocol"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "const_format",
  "rand 0.8.5",
@@ -4120,6 +4120,7 @@ dependencies = [
  "uhlc",
  "zenoh-buffers",
  "zenoh-keyexpr",
+ "zenoh-macros",
  "zenoh-result",
 ]
 
@@ -4136,7 +4137,7 @@ dependencies = [
 [[package]]
 name = "zenoh-result"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "anyhow",
 ]
@@ -4144,7 +4145,7 @@ dependencies = [
 [[package]]
 name = "zenoh-runtime"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "lazy_static",
  "ron",
@@ -4158,7 +4159,7 @@ dependencies = [
 [[package]]
 name = "zenoh-shm"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "advisory-lock",
  "async-trait",
@@ -4187,7 +4188,7 @@ dependencies = [
 [[package]]
 name = "zenoh-stats"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "ahash",
  "prometheus-client",
@@ -4200,7 +4201,7 @@ dependencies = [
 [[package]]
 name = "zenoh-sync"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "arc-swap",
  "event-listener",
@@ -4214,7 +4215,7 @@ dependencies = [
 [[package]]
 name = "zenoh-task"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "futures",
  "tokio",
@@ -4227,7 +4228,7 @@ dependencies = [
 [[package]]
 name = "zenoh-transport"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "crossbeam-utils",
@@ -4262,7 +4263,7 @@ dependencies = [
 [[package]]
 name = "zenoh-util"
 version = "1.7.2"
-source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#76f0784f9023f013bab7656002e3c6c3abf547cb"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#27b07a5fca9cef93bb70dba2d5feac0c6d623d95"
 dependencies = [
  "async-trait",
  "const_format",
@@ -4356,6 +4357,6 @@ dependencies = [
 
 [[package]]
 name = "zmij"
-version = "1.0.12"
+version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fc5a66a20078bf1251bde995aa2fdcc4b800c70b5d92dd2c62abc5c60f679f8"
+checksum = "bd8f3f50b848df28f887acb68e41201b5aea6bc8a8dacc00fb40635ff9a72fea"
