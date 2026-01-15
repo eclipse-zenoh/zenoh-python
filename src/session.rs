@@ -22,8 +22,8 @@ use zenoh::{session::EntityId, Wait};
 use crate::{
     bytes::{Encoding, ZBytes},
     cancellation::CancellationToken,
-    config::{Config, ZenohId},
-    handlers::{into_handler, HandlerImpl},
+    config::{Config, WhatAmI, ZenohId},
+    handlers::{HandlerImpl, into_handler},
     key_expr::KeyExpr,
     liveliness::Liveliness,
     macros::{build, wrapper},
@@ -32,7 +32,7 @@ use crate::{
     query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
     sample::{Locality, SourceInfo},
     time::Timestamp,
-    utils::{duration, wait, IntoPython, MapInto},
+    utils::{IntoPython, MapInto, duration, wait},
 };
 
 #[pyclass]
@@ -307,6 +307,113 @@ pub(crate) fn open(py: Python, config: Config) -> PyResult<Session> {
 
 wrapper!(zenoh::session::SessionInfo);
 
+wrapper!(zenoh::session::Transport);
+
+#[pymethods]
+impl Transport {
+    #[getter]
+    fn zid(&self) -> ZenohId {
+        (*self.0.zid()).into()
+    }
+
+    #[getter]
+    fn whatami(&self) -> WhatAmI {
+        self.0.whatami().into()
+    }
+
+    #[getter]
+    fn is_qos(&self) -> bool {
+        self.0.is_qos()
+    }
+
+    #[cfg(feature = "shared-memory")]
+    #[getter]
+    fn is_shm(&self) -> bool {
+        self.0.is_shm()
+    }
+
+    #[getter]
+    fn is_multicast(&self) -> bool {
+        self.0.is_multicast()
+    }
+
+    fn __eq__(&self, other: &Transport) -> bool {
+        self.0 == other.0
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+}
+
+wrapper!(zenoh::session::Link);
+
+#[pymethods]
+impl Link {
+    #[getter]
+    fn zid(&self) -> ZenohId {
+        (*self.0.zid()).into()
+    }
+
+    #[getter]
+    fn src(&self) -> String {
+        self.0.src().to_string()
+    }
+
+    #[getter]
+    fn dst(&self) -> String {
+        self.0.dst().to_string()
+    }
+
+    #[getter]
+    fn group(&self) -> Option<String> {
+        self.0.group().map(|g| g.to_string())
+    }
+
+    #[getter]
+    fn mtu(&self) -> u16 {
+        self.0.mtu()
+    }
+
+    #[getter]
+    fn is_streamed(&self) -> bool {
+        self.0.is_streamed()
+    }
+
+    #[getter]
+    fn interfaces<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let list = PyList::empty(py);
+        for interface in self.0.interfaces() {
+            list.append(interface)?;
+        }
+        Ok(list)
+    }
+
+    #[getter]
+    fn auth_identifier(&self) -> Option<String> {
+        self.0.auth_identifier().map(|s| s.to_string())
+    }
+
+    #[getter]
+    fn priorities(&self) -> Option<(u8, u8)> {
+        self.0.priorities()
+    }
+
+    #[getter]
+    fn reliability(&self) -> Option<Reliability> {
+        self.0.reliability().map(Into::into)
+    }
+
+    fn __eq__(&self, other: &Link) -> bool {
+        self.0 == other.0
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+
+}
+
 #[pymethods]
 impl SessionInfo {
     fn zid(&self, py: Python) -> ZenohId {
@@ -325,6 +432,22 @@ impl SessionInfo {
         let list = PyList::empty(py);
         for zid in py.allow_threads(|| self.0.peers_zid().wait()) {
             list.append(zid.into_pyobject(py))?;
+        }
+        Ok(list)
+    }
+
+    fn transports<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let list = PyList::empty(py);
+        for transport in py.allow_threads(|| self.0.transports().wait()) {
+            list.append(transport.into_pyobject(py))?;
+        }
+        Ok(list)
+    }
+
+    fn links<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let list = PyList::empty(py);
+        for link in py.allow_threads(|| self.0.links().wait()) {
+            list.append(link.into_pyobject(py))?;
         }
         Ok(list)
     }
