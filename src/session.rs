@@ -23,7 +23,7 @@ use crate::{
     bytes::{Encoding, ZBytes},
     cancellation::CancellationToken,
     config::{Config, WhatAmI, ZenohId},
-    handlers::{HandlerImpl, into_handler},
+    handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     liveliness::Liveliness,
     macros::{build, wrapper},
@@ -32,7 +32,7 @@ use crate::{
     query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
     sample::{Locality, SourceInfo},
     time::Timestamp,
-    utils::{IntoPython, MapInto, duration, wait},
+    utils::{duration, wait, IntoPython, MapInto},
 };
 
 #[pyclass]
@@ -411,7 +411,6 @@ impl Link {
     fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }
-
 }
 
 #[pymethods]

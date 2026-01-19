@@ -72,7 +72,7 @@ pub(crate) mod zenoh {
         },
         sample::{Locality, Sample, SampleKind, SourceInfo},
         scouting::{scout, Hello, Scout},
-        session::{open, EntityGlobalId, Session, SessionInfo, Transport, Link},
+        session::{open, EntityGlobalId, Link, Session, SessionInfo, Transport},
         time::{Timestamp, TimestampId, NTP64},
         ZError,
     };
