@@ -1614,10 +1614,13 @@ class SessionInfo:
     def declare_transport_events_listener(
         self,
         handler: _RustHandler[TransportEvent] | None = None,
+        *,
+        history: bool | None = None,
     ) -> TransportEventsListener[Handler[TransportEvent]]:
         """Declare a listener for transport events (connections opening/closing).
 
         :param handler: The handler for receiving transport events (see :ref:`channels-and-callbacks`).
+        :param history: If True, existing transports will be reported upon declaration.
         :returns: A :class:`TransportEventsListener` that yields :class:`TransportEvent` instances.
         """
 
@@ -1625,11 +1628,15 @@ class SessionInfo:
     def declare_transport_events_listener(
         self,
         handler: _PythonHandler[TransportEvent, _H],
+        *,
+        history: bool | None = None,
     ) -> TransportEventsListener[_H]: ...
     @overload
     def declare_transport_events_listener(
         self,
         handler: _PythonCallback[TransportEvent],
+        *,
+        history: bool | None = None,
     ) -> TransportEventsListener[None]: ...
 
 @final

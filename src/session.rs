@@ -471,15 +471,16 @@ impl SessionInfo {
         Ok(list)
     }
 
-    #[pyo3(signature = (handler = None))]
+    #[pyo3(signature = (handler = None, *, history = None))]
     fn declare_transport_events_listener(
         &self,
         py: Python,
         handler: Option<&Bound<PyAny>>,
+        history: Option<bool>,
     ) -> PyResult<TransportEventsListener> {
         let (handler, background) = into_handler(py, handler, None)?;
-        let mut listener =
-            py.allow_threads(|| self.0.transport_events_listener().with(handler).wait());
+        let builder = build!(self.0.transport_events_listener(), history);
+        let mut listener = py.allow_threads(|| builder.with(handler).wait());
         if background {
             listener.set_background(true);
         }

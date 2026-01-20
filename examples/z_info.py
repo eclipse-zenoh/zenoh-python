@@ -32,7 +32,7 @@ def main(conf: zenoh.Config):
             print(f"  - {l}")
             
         # listen for transport changes
-        transport_event_listener = info.declare_transport_events_listener()
+        transport_event_listener = info.declare_transport_events_listener(history=False)
         print("Listening for transport events...")
         for event in transport_event_listener:
             print(f"Transport event: {event}")
