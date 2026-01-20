@@ -27,6 +27,9 @@ def main(conf: zenoh.Config):
         print("transports:")
         for t in info.transports():
             print(f"  - {t}")
+        print("links:")
+        for l in info.links():
+            print(f"  - {l}")
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
