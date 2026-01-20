@@ -1604,6 +1604,90 @@ class SessionInfo:
     def peers_zid(self) -> list[ZenohId]:
         """Return the :class:`ZenohId` of the zenoh peers this process is currently connected to."""
 
+    def transports(self) -> list[Transport]:
+        """Return the list of :class:`Transport` instances for currently open transports."""
+
+    def links(self) -> list[Link]:
+        """Return the list of :class:`Link` instances for currently open links."""
+
+@final
+class Transport:
+    """Information about a Zenoh transport connection.
+
+    A Transport represents a connection to another Zenoh node (peer or router).
+    It provides information about the remote node and the transport characteristics.
+    """
+
+    @property
+    def zid(self) -> ZenohId:
+        """The :class:`ZenohId` of the remote node."""
+
+    @property
+    def whatami(self) -> WhatAmI:
+        """The :class:`WhatAmI` type of the remote node."""
+
+    @property
+    def is_qos(self) -> bool:
+        """Whether this transport supports QoS (Quality of Service)."""
+
+    @property
+    def is_multicast(self) -> bool:
+        """Whether this is a multicast transport."""
+
+    def __eq__(self, other: Transport) -> bool: ...
+    def __repr__(self) -> str: ...
+
+@final
+class Link:
+    """Information about a Zenoh link within a transport.
+
+    A Link represents a single network connection within a transport.
+    Transports may have multiple links for redundancy or different network paths.
+    """
+
+    @property
+    def zid(self) -> ZenohId:
+        """The :class:`ZenohId` of the remote node."""
+
+    @property
+    def src(self) -> str:
+        """The source locator of this link."""
+
+    @property
+    def dst(self) -> str:
+        """The destination locator of this link."""
+
+    @property
+    def group(self) -> str | None:
+        """The multicast group this link belongs to, if any."""
+
+    @property
+    def mtu(self) -> int:
+        """The Maximum Transmission Unit (MTU) of this link."""
+
+    @property
+    def is_streamed(self) -> bool:
+        """Whether this link uses a streamed protocol (e.g., TCP) or datagram (e.g., UDP)."""
+
+    @property
+    def interfaces(self) -> list[str]:
+        """The network interfaces used by this link."""
+
+    @property
+    def auth_identifier(self) -> str | None:
+        """The authentication identifier for this link, if any."""
+
+    @property
+    def priorities(self) -> tuple[int, int] | None:
+        """The priority range (min, max) for this link, if configured."""
+
+    @property
+    def reliability(self) -> Reliability | None:
+        """The reliability setting for this link, if configured."""
+
+    def __eq__(self, other: Link) -> bool: ...
+    def __repr__(self) -> str: ...
+
 @_unstable
 @final
 class SetIntersectionLevel(Enum):

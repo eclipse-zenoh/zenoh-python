@@ -24,6 +24,9 @@ def main(conf: zenoh.Config):
         print(f"zid: {info.zid()}")
         print(f"routers: {info.routers_zid()}")
         print(f"peers: {info.peers_zid()}")
+        print("transports:")
+        for t in info.transports():
+            print(f"  - {t}")
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
