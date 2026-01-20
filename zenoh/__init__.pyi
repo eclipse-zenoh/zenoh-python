@@ -1610,6 +1610,28 @@ class SessionInfo:
     def links(self) -> list[Link]:
         """Return the list of :class:`Link` instances for currently open links."""
 
+    @overload
+    def declare_transport_events_listener(
+        self,
+        handler: _RustHandler[TransportEvent] | None = None,
+    ) -> TransportEventsListener[Handler[TransportEvent]]:
+        """Declare a listener for transport events (connections opening/closing).
+
+        :param handler: The handler for receiving transport events (see :ref:`channels-and-callbacks`).
+        :returns: A :class:`TransportEventsListener` that yields :class:`TransportEvent` instances.
+        """
+
+    @overload
+    def declare_transport_events_listener(
+        self,
+        handler: _PythonHandler[TransportEvent, _H],
+    ) -> TransportEventsListener[_H]: ...
+    @overload
+    def declare_transport_events_listener(
+        self,
+        handler: _PythonCallback[TransportEvent],
+    ) -> TransportEventsListener[None]: ...
+
 @final
 class Transport:
     """Information about a Zenoh transport connection.
@@ -1687,6 +1709,57 @@ class Link:
 
     def __eq__(self, other: Link) -> bool: ...
     def __repr__(self) -> str: ...
+
+@final
+class TransportEvent:
+    """An event indicating a transport connection was opened or closed.
+
+    TransportEvent is emitted by :class:`TransportEventsListener` when a transport
+    connection to another Zenoh node is established or terminated.
+    """
+
+    @property
+    def kind(self) -> SampleKind:
+        """The kind of event: :attr:`SampleKind.PUT` for opened, :attr:`SampleKind.DELETE` for closed."""
+
+    @property
+    def transport(self) -> Transport:
+        """The :class:`Transport` that was opened or closed."""
+
+    def __repr__(self) -> str: ...
+
+@final
+class TransportEventsListener(Generic[_H]):
+    """A listener that receives notifications when transport connections open or close.
+
+    The listener is created using :meth:`SessionInfo.declare_transport_events_listener` and
+    yields :class:`TransportEvent` instances when connections to other Zenoh nodes are
+    established or terminated.
+    """
+
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *_args, **_kwargs): ...
+    @property
+    def handler(self) -> _H:
+        """The handler associated with this TransportEventsListener instance.
+
+        See :ref:`channels-and-callbacks` for more information on handlers."""
+
+    def undeclare(self):
+        """Stop listening for transport events."""
+
+    def try_recv(
+        self: TransportEventsListener[Handler[TransportEvent]],
+    ) -> TransportEvent | None:
+        """Try to receive a :class:`TransportEvent` without blocking."""
+
+    def recv(self: TransportEventsListener[Handler[TransportEvent]]) -> TransportEvent:
+        """Receive a :class:`TransportEvent`, blocking until one is available."""
+
+    def __iter__(
+        self: TransportEventsListener[Handler[TransportEvent]],
+    ) -> Handler[TransportEvent]:
+        """Iterate over received :class:`TransportEvent` instances."""
 
 @_unstable
 @final

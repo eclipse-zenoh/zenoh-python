@@ -15,7 +15,8 @@ use std::time::Duration;
 
 use pyo3::{
     prelude::*,
-    types::{PyDict, PyList, PyTuple},
+    types::{PyDict, PyIterator, PyList, PyTuple},
+    IntoPyObjectExt,
 };
 use zenoh::{session::EntityId, Wait};
 
@@ -26,11 +27,11 @@ use crate::{
     handlers::{into_handler, HandlerImpl},
     key_expr::KeyExpr,
     liveliness::Liveliness,
-    macros::{build, wrapper},
+    macros::{build, option_wrapper, wrapper},
     pubsub::{Publisher, Subscriber},
     qos::{CongestionControl, Priority, Reliability},
     query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
-    sample::{Locality, SourceInfo},
+    sample::{Locality, SampleKind, SourceInfo},
     time::Timestamp,
     utils::{duration, wait, IntoPython, MapInto},
 };
@@ -413,6 +414,25 @@ impl Link {
     }
 }
 
+wrapper!(zenoh::session::TransportEvent);
+
+#[pymethods]
+impl TransportEvent {
+    #[getter]
+    fn kind(&self) -> SampleKind {
+        self.0.kind().into()
+    }
+
+    #[getter]
+    fn transport(&self) -> Transport {
+        self.0.transport().clone().into()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+}
+
 #[pymethods]
 impl SessionInfo {
     fn zid(&self, py: Python) -> ZenohId {
@@ -451,7 +471,66 @@ impl SessionInfo {
         Ok(list)
     }
 
+    #[pyo3(signature = (handler = None))]
+    fn declare_transport_events_listener(
+        &self,
+        py: Python,
+        handler: Option<&Bound<PyAny>>,
+    ) -> PyResult<TransportEventsListener> {
+        let (handler, background) = into_handler(py, handler, None)?;
+        let mut listener =
+            py.allow_threads(|| self.0.transport_events_listener().with(handler).wait());
+        if background {
+            listener.set_background(true);
+        }
+        Ok(listener.into())
+    }
+
     // TODO __repr__
+}
+
+option_wrapper!(
+    zenoh::session::TransportEventsListener<HandlerImpl<TransportEvent>>,
+    "Undeclared transport events listener"
+);
+
+#[pymethods]
+impl TransportEventsListener {
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> &'a Bound<'py, Self> {
+        this
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?;
+        Ok(py.None())
+    }
+
+    #[getter]
+    fn handler(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().into_py_any(py)
+    }
+
+    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().try_recv(py)
+    }
+
+    fn recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().recv(py)
+    }
+
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        self.handler(py)?.bind(py).try_iter()
+    }
 }
 
 wrapper!(zenoh::session::EntityGlobalId: Clone);

@@ -30,6 +30,12 @@ def main(conf: zenoh.Config):
         print("links:")
         for l in info.links():
             print(f"  - {l}")
+            
+        # listen for transport changes
+        transport_event_listener = info.declare_transport_events_listener()
+        print("Listening for transport events...")
+        for event in transport_event_listener:
+            print(f"Transport event: {event}")
 
 
 # --- Command line argument parsing --- --- --- --- --- ---
