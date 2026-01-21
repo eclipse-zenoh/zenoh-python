@@ -1638,7 +1638,6 @@ class SessionInfo:
         *,
         history: bool | None = None,
     ) -> TransportEventsListener[None]: ...
-
     @overload
     def declare_link_events_listener(
         self,
