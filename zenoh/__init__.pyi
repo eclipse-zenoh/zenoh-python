@@ -1639,6 +1639,35 @@ class SessionInfo:
         history: bool | None = None,
     ) -> TransportEventsListener[None]: ...
 
+    @overload
+    def declare_link_events_listener(
+        self,
+        handler: _RustHandler[LinkEvent] | None = None,
+        *,
+        history: bool | None = None,
+    ) -> LinkEventsListener[Handler[LinkEvent]]:
+        """Declare a listener for link events (links being added/removed).
+
+        :param handler: The handler for receiving link events (see :ref:`channels-and-callbacks`).
+        :param history: If True, existing links will be reported upon declaration.
+        :returns: A :class:`LinkEventsListener` that yields :class:`LinkEvent` instances.
+        """
+
+    @overload
+    def declare_link_events_listener(
+        self,
+        handler: _PythonHandler[LinkEvent, _H],
+        *,
+        history: bool | None = None,
+    ) -> LinkEventsListener[_H]: ...
+    @overload
+    def declare_link_events_listener(
+        self,
+        handler: _PythonCallback[LinkEvent],
+        *,
+        history: bool | None = None,
+    ) -> LinkEventsListener[None]: ...
+
 @final
 class Transport:
     """Information about a Zenoh transport connection.
@@ -1767,6 +1796,57 @@ class TransportEventsListener(Generic[_H]):
         self: TransportEventsListener[Handler[TransportEvent]],
     ) -> Handler[TransportEvent]:
         """Iterate over received :class:`TransportEvent` instances."""
+
+@final
+class LinkEvent:
+    """An event indicating a link was added or removed.
+
+    LinkEvent is emitted by :class:`LinkEventsListener` when a link
+    within a transport is established or terminated.
+    """
+
+    @property
+    def kind(self) -> SampleKind:
+        """The kind of event: :attr:`SampleKind.PUT` for added, :attr:`SampleKind.DELETE` for removed."""
+
+    @property
+    def link(self) -> Link:
+        """The :class:`Link` that was added or removed."""
+
+    def __repr__(self) -> str: ...
+
+@final
+class LinkEventsListener(Generic[_H]):
+    """A listener that receives notifications when links are added or removed.
+
+    The listener is created using :meth:`SessionInfo.declare_link_events_listener` and
+    yields :class:`LinkEvent` instances when links within transports are
+    established or terminated.
+    """
+
+    def __enter__(self) -> Self: ...
+    def __exit__(self, *_args, **_kwargs): ...
+    @property
+    def handler(self) -> _H:
+        """The handler associated with this LinkEventsListener instance.
+
+        See :ref:`channels-and-callbacks` for more information on handlers."""
+
+    def undeclare(self):
+        """Stop listening for link events."""
+
+    def try_recv(
+        self: LinkEventsListener[Handler[LinkEvent]],
+    ) -> LinkEvent | None:
+        """Try to receive a :class:`LinkEvent` without blocking."""
+
+    def recv(self: LinkEventsListener[Handler[LinkEvent]]) -> LinkEvent:
+        """Receive a :class:`LinkEvent`, blocking until one is available."""
+
+    def __iter__(
+        self: LinkEventsListener[Handler[LinkEvent]],
+    ) -> Handler[LinkEvent]:
+        """Iterate over received :class:`LinkEvent` instances."""
 
 @_unstable
 @final

@@ -30,12 +30,28 @@ def main(conf: zenoh.Config):
         print("links:")
         for l in info.links():
             print(f"  - {l}")
-            
-        # listen for transport changes
-        transport_event_listener = info.declare_transport_events_listener(history=False)
-        print("Listening for transport events...")
-        for event in transport_event_listener:
+
+        # listen for transport and link events using callbacks
+        def on_transport_event(event):
             print(f"Transport event: {event}")
+
+        def on_link_event(event):
+            print(f"Link event: {event}")
+
+        transport_listener = info.declare_transport_events_listener(
+            on_transport_event, history=False
+        )
+        link_listener = info.declare_link_events_listener(on_link_event, history=False)
+
+        print("Listening for transport and link events... (press Ctrl+C to exit)")
+        try:
+            while True:
+                pass
+        except KeyboardInterrupt:
+            pass
+
+        transport_listener.undeclare()
+        link_listener.undeclare()
 
 
 # --- Command line argument parsing --- --- --- --- --- ---

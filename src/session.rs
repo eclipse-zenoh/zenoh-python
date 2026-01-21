@@ -433,6 +433,25 @@ impl TransportEvent {
     }
 }
 
+wrapper!(zenoh::session::LinkEvent);
+
+#[pymethods]
+impl LinkEvent {
+    #[getter]
+    fn kind(&self) -> SampleKind {
+        self.0.kind().into()
+    }
+
+    #[getter]
+    fn link(&self) -> Link {
+        self.0.link().clone().into()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
+}
+
 #[pymethods]
 impl SessionInfo {
     fn zid(&self, py: Python) -> ZenohId {
@@ -487,6 +506,22 @@ impl SessionInfo {
         Ok(listener.into())
     }
 
+    #[pyo3(signature = (handler = None, *, history = None))]
+    fn declare_link_events_listener(
+        &self,
+        py: Python,
+        handler: Option<&Bound<PyAny>>,
+        history: Option<bool>,
+    ) -> PyResult<LinkEventsListener> {
+        let (handler, background) = into_handler(py, handler, None)?;
+        let builder = build!(self.0.link_events_listener(), history);
+        let mut listener = wait(py, builder.with(handler))?;
+        if background {
+            listener.set_background(true);
+        }
+        Ok(listener.into())
+    }
+
     // TODO __repr__
 }
 
@@ -497,6 +532,50 @@ option_wrapper!(
 
 #[pymethods]
 impl TransportEventsListener {
+    fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> &'a Bound<'py, Self> {
+        this
+    }
+
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __exit__(
+        &mut self,
+        py: Python,
+        _args: &Bound<PyTuple>,
+        _kwargs: Option<&Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        self.undeclare(py)?;
+        Ok(py.None())
+    }
+
+    #[getter]
+    fn handler(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().into_py_any(py)
+    }
+
+    fn try_recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().try_recv(py)
+    }
+
+    fn recv(&self, py: Python) -> PyResult<PyObject> {
+        self.get_ref()?.handler().recv(py)
+    }
+
+    fn undeclare(&mut self, py: Python) -> PyResult<()> {
+        wait(py, self.take()?.undeclare())
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        self.handler(py)?.bind(py).try_iter()
+    }
+}
+
+option_wrapper!(
+    zenoh::session::LinkEventsListener<HandlerImpl<LinkEvent>>,
+    "Undeclared link events listener"
+);
+
+#[pymethods]
+impl LinkEventsListener {
     fn __enter__<'a, 'py>(this: &'a Bound<'py, Self>) -> &'a Bound<'py, Self> {
         this
     }
