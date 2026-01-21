@@ -480,7 +480,7 @@ impl SessionInfo {
     ) -> PyResult<TransportEventsListener> {
         let (handler, background) = into_handler(py, handler, None)?;
         let builder = build!(self.0.transport_events_listener(), history);
-        let mut listener = py.allow_threads(|| builder.with(handler).wait());
+        let mut listener = wait(py, builder.with(handler))?;
         if background {
             listener.set_background(true);
         }
