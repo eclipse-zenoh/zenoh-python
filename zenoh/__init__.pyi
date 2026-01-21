@@ -1633,10 +1633,7 @@ class SessionInfo:
     ) -> TransportEventsListener[_H]: ...
     @overload
     def declare_transport_events_listener(
-        self,
-        handler: _PythonCallback[TransportEvent],
-        *,
-        history: bool | None = None,
+        self, handler: _PythonCallback[TransportEvent], *, history: bool | None = None
     ) -> TransportEventsListener[None]: ...
     @overload
     def declare_link_events_listener(
@@ -1654,17 +1651,11 @@ class SessionInfo:
 
     @overload
     def declare_link_events_listener(
-        self,
-        handler: _PythonHandler[LinkEvent, _H],
-        *,
-        history: bool | None = None,
+        self, handler: _PythonHandler[LinkEvent, _H], *, history: bool | None = None
     ) -> LinkEventsListener[_H]: ...
     @overload
     def declare_link_events_listener(
-        self,
-        handler: _PythonCallback[LinkEvent],
-        *,
-        history: bool | None = None,
+        self, handler: _PythonCallback[LinkEvent], *, history: bool | None = None
     ) -> LinkEventsListener[None]: ...
 
 @final
@@ -1834,17 +1825,13 @@ class LinkEventsListener(Generic[_H]):
     def undeclare(self):
         """Stop listening for link events."""
 
-    def try_recv(
-        self: LinkEventsListener[Handler[LinkEvent]],
-    ) -> LinkEvent | None:
+    def try_recv(self: LinkEventsListener[Handler[LinkEvent]]) -> LinkEvent | None:
         """Try to receive a :class:`LinkEvent` without blocking."""
 
     def recv(self: LinkEventsListener[Handler[LinkEvent]]) -> LinkEvent:
         """Receive a :class:`LinkEvent`, blocking until one is available."""
 
-    def __iter__(
-        self: LinkEventsListener[Handler[LinkEvent]],
-    ) -> Handler[LinkEvent]:
+    def __iter__(self: LinkEventsListener[Handler[LinkEvent]]) -> Handler[LinkEvent]:
         """Iterate over received :class:`LinkEvent` instances."""
 
 @_unstable
