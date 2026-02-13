@@ -42,8 +42,10 @@ jobs:
       - name: Clippy no-default-features
         run: cargo +stable clippy --no-default-features --all-targets -- --deny warnings
 
-      - name: Clippy
-        run: cargo +stable clippy --all-features --all-targets -- --deny warnings
+      - name: Clippy with all features and without Cargo.lock
+        run: |
+          rm Cargo.lock
+          cargo +stable clippy --all-features --all-targets -- --deny warnings
 
   build:
     needs: check
