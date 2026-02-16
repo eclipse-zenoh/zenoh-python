@@ -168,7 +168,9 @@ def test_cancellation_liveliness_get():
 
     print("Test that cancelled token cancels operation automatically")
     try:
-        replies = session2.liveliness().get(keyexpr, cancellation_token=cancellation_token)
+        replies = session2.liveliness().get(
+            keyexpr, cancellation_token=cancellation_token
+        )
         assert False, "Expected exception"
     except:
         pass
