@@ -188,7 +188,7 @@ def run_session_pubsub(peer01: Session, peer02: Session):
 
 def test_session():
     zenoh.try_init_log_from_env()
-    (peer01, peer02) = open_session(["tcp/127.0.0.1:17447"])
+    peer01, peer02 = open_session(["tcp/127.0.0.1:17447"])
     run_session_qryrep(peer01, peer02)
     run_session_pubsub(peer01, peer02)
     run_session_qrrrep(peer01, peer02)
