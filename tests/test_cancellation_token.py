@@ -85,8 +85,11 @@ def test_cancellation_get():
     assert cancellation_token.is_cancelled
 
     print("Test that cancelled token cancels operation automatically")
-    replies = session2.get(keyexpr, cancellation_token=cancellation_token)
-    assert is_handler_closed(replies)
+    try:
+        replies = session2.get(keyexpr, cancellation_token=cancellation_token)
+        assert False, "Expected exception"
+    except:
+        pass
 
 
 def test_cancellation_querier():
@@ -132,8 +135,11 @@ def test_cancellation_querier():
     assert cancellation_token.is_cancelled
 
     print("Test that cancelled token cancels operation automatically")
-    replies = querier.get(cancellation_token=cancellation_token)
-    assert is_handler_closed(replies)
+    try:
+        replies = querier.get(cancellation_token=cancellation_token)
+        assert False, "Expected exception"
+    except:
+        pass
 
 
 def test_cancellation_liveliness_get():
@@ -161,5 +167,8 @@ def test_cancellation_liveliness_get():
     assert cancellation_token.is_cancelled
 
     print("Test that cancelled token cancels operation automatically")
-    replies = session2.liveliness().get(keyexpr, cancellation_token=cancellation_token)
-    assert is_handler_closed(replies)
+    try:
+        replies = session2.liveliness().get(keyexpr, cancellation_token=cancellation_token)
+        assert False, "Expected exception"
+    except:
+        pass
