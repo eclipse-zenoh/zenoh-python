@@ -853,6 +853,10 @@ class Query:
 
         .. note::
            See the class documentation for important details about which key expression to use for replies.
+
+        .. deprecated::
+           The ``congestion_control`` and ``priority`` parameters are deprecated and will be ignored.
+           Response QoS now automatically matches the original query's QoS to avoid priority inversion.
         """
 
     def reply_err(self, payload: _IntoZBytes, *, encoding: _IntoEncoding | None = None):
@@ -874,6 +878,10 @@ class Query:
 
         .. note::
            See the class documentation for important details about which key expression to use for replies.
+
+        .. deprecated::
+           The ``congestion_control`` and ``priority`` parameters are deprecated and will be ignored.
+           Response QoS now automatically matches the original query's QoS to avoid priority inversion.
         """
 
     @_unstable
