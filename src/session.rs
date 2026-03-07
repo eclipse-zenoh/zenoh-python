@@ -29,7 +29,7 @@ use crate::{
     macros::{build, wrapper},
     pubsub::{Publisher, Subscriber},
     qos::{CongestionControl, Priority, Reliability},
-    query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, Selector},
+    query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, ReplyKeyExpr, Selector},
     sample::{Locality, SourceInfo},
     time::Timestamp,
     utils::{duration, wait, IntoPython, MapInto},
@@ -150,7 +150,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None, allowed_destination = None, source_info = None, cancellation_token = None))]
+    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, accept_replies = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None, allowed_destination = None, source_info = None, cancellation_token = None))]
     fn get(
         &self,
         py: Python,
@@ -160,6 +160,7 @@ impl Session {
         #[pyo3(from_py_with = QueryConsolidation::from_py_opt)] consolidation: Option<
             QueryConsolidation,
         >,
+        accept_replies: Option<ReplyKeyExpr>,
         #[pyo3(from_py_with = duration)] timeout: Option<Duration>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
@@ -176,6 +177,7 @@ impl Session {
             self.0.get(selector),
             target,
             consolidation,
+            accept_replies,
             timeout,
             congestion_control,
             priority,
@@ -257,7 +259,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (key_expr, *, target = None, consolidation = None, timeout = None, congestion_control = None, priority = None, express = None, allowed_destination = None))]
+    #[pyo3(signature = (key_expr, *, target = None, consolidation = None, accept_replies = None, timeout = None, congestion_control = None, priority = None, express = None, allowed_destination = None))]
     fn declare_querier(
         &self,
         py: Python,
@@ -266,6 +268,7 @@ impl Session {
         #[pyo3(from_py_with = QueryConsolidation::from_py_opt)] consolidation: Option<
             QueryConsolidation,
         >,
+        accept_replies: Option<ReplyKeyExpr>,
         #[pyo3(from_py_with = duration)] timeout: Option<Duration>,
         congestion_control: Option<CongestionControl>,
         priority: Option<Priority>,
@@ -276,6 +279,7 @@ impl Session {
             self.0.declare_querier(key_expr),
             target,
             consolidation,
+            accept_replies,
             timeout,
             congestion_control,
             priority,
