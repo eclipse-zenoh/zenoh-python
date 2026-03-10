@@ -42,29 +42,10 @@ jobs:
       - name: Clippy no-default-features
         run: cargo +stable clippy --no-default-features --all-targets -- --deny warnings
 
-      - name: Clippy
-        run: cargo +stable clippy --all-features --all-targets -- --deny warnings
-
-  check_rust:
-    name: Check zenoh-python using Rust 1.75
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-
-    steps:
-      - name: Clone this repository
-        uses: actions/checkout@v4
-
-      - name: Update Rust 1.75.0 toolchain
-        run: rustup update 1.75.0
-
-      - name: Setup rust-cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          cache-bin: false
-
-      - name: Check zenoh with rust 1.75.0
-        run: cargo +1.75.0 check --release --bins --lib
+      - name: Clippy with all features and without Cargo.lock
+        run: |
+          rm Cargo.lock
+          cargo +stable clippy --all-features --all-targets -- --deny warnings
 
   build:
     needs: check
@@ -124,7 +105,7 @@ jobs:
   ci:
     name: CI status checks
     runs-on: ubuntu-latest
-    needs: [check_rust, build, markdown_lint]
+    needs: [build, markdown_lint]
     if: always()
     steps:
       - name: Check whether all jobs pass
