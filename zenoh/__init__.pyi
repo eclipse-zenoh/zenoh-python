@@ -805,7 +805,9 @@ class Query:
         By default, queries only accept replies whose key expression intersects with the query's.
         I.e. it's not possible to send reply with key expression ``foo/bar`` to a query with
         key expression ``baz/*``.
-        The query may contain special unstable parameter ``_anyke`` which enables disjoint replies.
+        To allow disjoint replies, use the ``accept_replies`` parameter with :attr:`ReplyKeyExpr.ANY`
+        in :meth:`Session.get` or :meth:`Session.declare_querier`.
+        Alternatively, the query may contain special parameter ``_anyke`` which also enables disjoint replies.
         See the :class:`Selector` documentation for more information about this parameter.
 
     See :ref:`query-reply` for more information on the query/reply paradigm.
@@ -836,6 +838,10 @@ class Query:
     @property
     def attachment(self) -> ZBytes | None:
         """The attachment of this query, if any."""
+
+    def accepts_replies(self) -> ReplyKeyExpr:
+        """Returns the :class:`ReplyKeyExpr` setting of this query, indicating whether replies
+        must match the query's key expression or can use any key expression."""
 
     def reply(
         self,
@@ -966,6 +972,10 @@ class Querier:
         """Returns the :class:`KeyExpr` this querier sends queries on."""
 
     @property
+    def accept_replies(self) -> ReplyKeyExpr:
+        """Returns the :class:`ReplyKeyExpr` setting of this querier."""
+
+    @property
     def matching_status(self) -> bool:
         """Returns true if there are :class:`Queryable`\\s matching the Querier's key expression and target, false otherwise."""
 
@@ -1091,6 +1101,29 @@ QueryTarget.ALL.__doc__ = (
     """Deliver the query to all queryables matching the query's key expression."""
 )
 QueryTarget.ALL_COMPLETE.__doc__ = """Deliver the query to all queryables matching the query's key expression that are declared as complete."""
+
+@final
+class ReplyKeyExpr(Enum):
+    """Controls whether replies to a query must match the query's key expression.
+
+    :attr:`ReplyKeyExpr.MATCHING_QUERY` (default) means that replies must have a key expression
+    matching the query's key expression.
+    :attr:`ReplyKeyExpr.ANY` allows replies with any key expression, even if it doesn't match the query.
+
+    It is set by the ``accept_replies`` parameter of :meth:`Session.get` or :meth:`Session.declare_querier` methods.
+    """
+
+    ANY = auto()
+    MATCHING_QUERY = auto()
+
+    DEFAULT = MATCHING_QUERY
+
+ReplyKeyExpr.ANY.__doc__ = (
+    """Accept replies whose key expressions may not match the query key expression."""
+)
+ReplyKeyExpr.MATCHING_QUERY.__doc__ = (
+    """Accept replies whose key expressions match the query key expression."""
+)
 
 @final
 @_unstable
@@ -1315,7 +1348,7 @@ class Selector:
     for the exhaustive list):
 
     - ``[unstable]`` ``_time``: used to express interest in only values dated within a certain time range, values for this parameter must be readable by the Zenoh Time DSL for the value to be considered valid.
-    - ``[unstable]`` ``_anyke``: used in queries to express interest in replies coming from any key expression. By default, only replies whose key expression match query's key expression are accepted. ``_anyke`` disables the query-reply key expression matching check.
+    - ``_anyke``: used in queries to express interest in replies coming from any key expression. By default, only replies whose key expression match query's key expression are accepted. ``_anyke`` disables the query-reply key expression matching check. See also :attr:`ReplyKeyExpr.ANY` as the preferred API for this functionality.
 
     See also: :ref:`key-expressions`, :ref:`query-parameters`
     """
@@ -1438,6 +1471,7 @@ class Session:
         *,
         target: QueryTarget | None = None,
         consolidation: _IntoQueryConsolidation | None = None,
+        accept_replies: ReplyKeyExpr | None = None,
         timeout: float | int | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
@@ -1462,6 +1496,7 @@ class Session:
         *,
         target: QueryTarget | None = None,
         consolidation: _IntoQueryConsolidation | None = None,
+        accept_replies: ReplyKeyExpr | None = None,
         timeout: float | int | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
@@ -1486,6 +1521,7 @@ class Session:
         *,
         target: QueryTarget | None = None,
         consolidation: _IntoQueryConsolidation | None = None,
+        accept_replies: ReplyKeyExpr | None = None,
         timeout: float | int | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
@@ -1584,6 +1620,7 @@ class Session:
         *,
         target: QueryTarget | None = None,
         consolidation: _IntoQueryConsolidation | None = None,
+        accept_replies: ReplyKeyExpr | None = None,
         timeout: float | int | None = None,
         congestion_control: CongestionControl | None = None,
         priority: Priority | None = None,
