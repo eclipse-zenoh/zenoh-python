@@ -45,6 +45,17 @@ impl QueryTarget {
     const DEFAULT: Self = Self::BestMatching;
 }
 
+enum_mapper!(zenoh::query::ReplyKeyExpr: u8 {
+    Any,
+    MatchingQuery,
+});
+
+#[pymethods]
+impl ReplyKeyExpr {
+    #[classattr]
+    const DEFAULT: Self = Self::MatchingQuery;
+}
+
 enum_mapper!(zenoh::query::ConsolidationMode: u8 {
     Auto,
     None,
@@ -128,6 +139,10 @@ impl Query {
     #[getter]
     fn attachment(&self) -> PyResult<Option<ZBytes>> {
         Ok(self.get_ref()?.attachment().cloned().map_into())
+    }
+
+    fn accepts_replies(&self) -> PyResult<ReplyKeyExpr> {
+        Ok(self.get_ref()?.accepts_replies().into_pyres()?.into())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -380,6 +395,11 @@ impl Querier {
     #[getter]
     fn key_expr(&self) -> PyResult<KeyExpr> {
         Ok(self.get_ref()?.key_expr().clone().into())
+    }
+
+    #[getter]
+    fn accept_replies(&self) -> PyResult<ReplyKeyExpr> {
+        Ok(self.get_ref()?.accept_replies().into())
     }
 
     #[getter]
