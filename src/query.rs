@@ -142,7 +142,7 @@ impl Query {
     }
 
     fn accepts_replies(&self) -> PyResult<ReplyKeyExpr> {
-        Ok(self.get_ref()?.accepts_replies().into_pyres()?.into())
+        Ok(self.get_ref()?.accepts_replies().into())
     }
 
     #[allow(clippy::too_many_arguments)]
