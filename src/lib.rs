@@ -20,6 +20,7 @@ mod config;
 mod ext;
 mod handlers;
 mod key_expr;
+mod key_expr_format;
 mod liveliness;
 mod macros;
 mod matching;
@@ -62,6 +63,7 @@ pub(crate) mod zenoh {
         config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
         handlers::Handler,
         key_expr::{KeyExpr, SetIntersectionLevel},
+        key_expr_format::{KeFormat, KeFormatter, Parsed},
         liveliness::{Liveliness, LivelinessToken},
         matching::{MatchingListener, MatchingStatus},
         pubsub::{Publisher, Subscriber},
