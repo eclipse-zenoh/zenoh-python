@@ -30,6 +30,7 @@ use crate::{
     sample::SourceInfo,
     session::EntityGlobalId,
     time::Timestamp,
+    timestamp_stack::TimestampStack,
     utils::{generic, wait, IntoPyResult, IntoPython, IntoRust, MapInto},
 };
 
@@ -276,6 +277,14 @@ impl Reply {
         self.0.replier_id().map_into()
     }
 
+    #[getter]
+    fn timestamp_stack(&self) -> Option<TimestampStack> {
+        match self.0.result() {
+            Ok(sample) => sample.timestamp_stack().cloned().map(TimestampStack),
+            Err(err) => err.timestamp_stack().cloned().map(TimestampStack),
+        }
+    }
+
     fn __repr__(&self) -> String {
         format!("{:?}", self.0)
     }
@@ -293,6 +302,11 @@ impl ReplyError {
     #[getter]
     fn encoding(&self) -> Encoding {
         self.0.encoding().clone().into()
+    }
+
+    #[getter]
+    fn timestamp_stack(&self) -> Option<TimestampStack> {
+        self.0.timestamp_stack().cloned().map(TimestampStack)
     }
 
     fn __repr__(&self) -> String {

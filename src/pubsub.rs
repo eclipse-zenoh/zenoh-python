@@ -27,6 +27,7 @@ use crate::{
     sample::{Sample, SourceInfo},
     session::EntityGlobalId,
     time::Timestamp,
+    timestamp_stack::TimestampInstrumentation,
     utils::{generic, wait},
 };
 
@@ -84,7 +85,7 @@ impl Publisher {
         Ok(wait(py, self.get_ref()?.matching_status())?.into())
     }
 
-    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None, source_info = None))]
+    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None, source_info = None, timestamp_instrumentation = None))]
     fn put(
         &self,
         py: Python,
@@ -93,15 +94,13 @@ impl Publisher {
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
         source_info: Option<SourceInfo>,
+        timestamp_instrumentation: Option<TimestampInstrumentation>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
-        let builder = build!(
-            this.put(payload),
-            encoding,
-            attachment,
-            timestamp,
-            source_info
-        );
+        let mut builder = build!(this.put(payload), encoding, attachment, timestamp, source_info);
+        if let Some(instr) = timestamp_instrumentation {
+            builder = builder.timestamp_instrumentation(Some(instr.0));
+        }
         wait(py, builder)
     }
 
