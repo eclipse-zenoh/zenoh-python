@@ -85,6 +85,7 @@ impl Publisher {
         Ok(wait(py, self.get_ref()?.matching_status())?.into())
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None, source_info = None, timestamp_instrumentation = None))]
     fn put(
         &self,
