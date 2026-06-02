@@ -742,6 +742,7 @@ class Publisher:
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
         source_info: SourceInfo | None = None,
+        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ):
         """Publish data to :class:`Subscriber` instances matching this publisher's key expression.
 
@@ -1440,6 +1441,7 @@ class Session:
         timestamp: Timestamp | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
+        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ):
         """Publish data directly from the session.
 
@@ -1482,6 +1484,7 @@ class Session:
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
+        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
 
@@ -1507,6 +1510,7 @@ class Session:
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
+        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
 
@@ -1532,6 +1536,7 @@ class Session:
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
+        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
 
@@ -1611,6 +1616,7 @@ class Session:
         express: bool | None = None,
         reliability: Reliability | None = None,
         allowed_destination: Locality | None = None,
+        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> Publisher:
         """Create a :class:`Publisher` for the given key expression."""
 
