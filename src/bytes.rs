@@ -11,18 +11,115 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::{borrow::Cow, io::Read};
+use std::{
+    any::Any,
+    borrow::Cow,
+    fmt,
+    io::Read,
+    os::raw::{c_int, c_void},
+    ptr, slice,
+    sync::Arc,
+};
 
 use pyo3::{
-    exceptions::{PyTypeError, PyValueError},
+    exceptions::{PyRuntimeError, PyTypeError, PyValueError},
+    ffi,
     prelude::*,
-    types::{PyByteArray, PyBytes, PyString},
+    types::{PyByteArray, PyBytes, PyString, PyTuple},
 };
+use zenoh_buffers::{ZBuf, ZSliceBuffer};
 
 use crate::{
     macros::{downcast_or_new, wrapper},
     utils::{IntoPyResult, MapInto},
 };
+
+unsafe extern "C" {
+    // `PyObject_AsReadBuffer` is part of the stable ABI. Holding a Python
+    // `memoryview` separately gives the acquired exporter resources a clear
+    // lifetime even though this legacy API returns only a pointer and length.
+    #[link_name = "PyObject_AsReadBuffer"]
+    fn py_object_as_read_buffer(
+        obj: *mut ffi::PyObject,
+        buffer: *mut *const c_void,
+        buffer_len: *mut ffi::Py_ssize_t,
+    ) -> c_int;
+}
+
+struct BorrowedPyBufferSlice {
+    _owner: Py<PyAny>,
+    ptr: *const u8,
+    len: usize,
+}
+
+impl BorrowedPyBufferSlice {
+    fn new(buffer: &Bound<PyAny>) -> PyResult<Self> {
+        let mut ptr = ptr::null();
+        let mut len = 0;
+        if unsafe { py_object_as_read_buffer(buffer.as_ptr(), &mut ptr, &mut len) } == -1 {
+            return Err(PyErr::fetch(buffer.py()));
+        }
+        if len < 0 {
+            Err(PyRuntimeError::new_err(
+                "buffer exporter returned a negative length",
+            ))
+        } else if len > 0 && ptr.is_null() {
+            Err(PyRuntimeError::new_err(
+                "buffer exporter returned a null pointer for a non-empty segment",
+            ))
+        } else {
+            Ok(Self {
+                _owner: buffer.clone().unbind(),
+                ptr: ptr.cast(),
+                len: len as usize,
+            })
+        }
+    }
+
+    fn as_bytes(&self) -> &[u8] {
+        if self.len == 0 {
+            &[]
+        } else {
+            // SAFETY: `_owner` retains the validated `memoryview`, which owns
+            // its exporter resources and keeps this contiguous slice valid.
+            unsafe { slice::from_raw_parts(self.ptr, self.len) }
+        }
+    }
+}
+
+// SAFETY: `_owner` retains the validated `memoryview` while this pointer may be
+// read from another thread.
+unsafe impl Send for BorrowedPyBufferSlice {}
+// SAFETY: The `copy=False` contract requires callers not to mutate the
+// exported memory through another alias while Zenoh may reference it.
+unsafe impl Sync for BorrowedPyBufferSlice {}
+
+impl fmt::Debug for BorrowedPyBufferSlice {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("BorrowedPyBufferSlice")
+            .field("len", &self.len)
+            .finish_non_exhaustive()
+    }
+}
+
+impl ZSliceBuffer for BorrowedPyBufferSlice {
+    fn as_slice(&self) -> &[u8] {
+        self.as_bytes()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
+fn py_buffer_zbytes(buffer: BorrowedPyBufferSlice) -> zenoh::bytes::ZBytes {
+    ZBuf::from(Arc::new(buffer)).into()
+}
 
 wrapper!(zenoh::bytes::ZBytes: Clone, Default);
 downcast_or_new!(ZBytes);
@@ -61,6 +158,94 @@ impl ZBytes {
         PyBytes::new_with(py, self.0.len(), |bytes| {
             self.0.reader().read_exact(bytes).into_pyres()
         })
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (segments, *, copy = false, require_contiguous = true))]
+    fn from_segments(
+        segments: &Bound<PyAny>,
+        copy: bool,
+        require_contiguous: bool,
+    ) -> PyResult<Self> {
+        let py = segments.py();
+        let memoryview = py.import("builtins")?.getattr("memoryview")?;
+        let mut writer = zenoh::bytes::ZBytes::writer();
+        for (index, segment) in segments.try_iter()?.enumerate() {
+            let segment = segment?;
+            if !copy {
+                let view = memoryview.call1((&segment,)).map_err(|_| {
+                    PyRuntimeError::new_err(format!(
+                        "zero-copy requires a read-only, C-contiguous, byte-compatible Python \
+                         buffer; segment {index} has type '{}'; use copy=True",
+                        segment.get_type().name().unwrap()
+                    ))
+                })?;
+                if !view.getattr("readonly")?.extract::<bool>()? {
+                    return Err(PyRuntimeError::new_err(format!(
+                        "segment {index} is writable; zero-copy requires a read-only buffer; \
+                         use copy=True"
+                    )));
+                }
+                if !view.getattr("c_contiguous")?.extract::<bool>()? {
+                    return Err(PyRuntimeError::new_err(format!(
+                        "segment {index} is not C-contiguous; zero-copy requires one contiguous \
+                         byte slice; use copy=True"
+                    )));
+                }
+                if view.getattr("itemsize")?.extract::<usize>()? != 1 {
+                    return Err(PyRuntimeError::new_err(format!(
+                        "segment {index} has unsupported item format; zero-copy requires a \
+                         single-byte buffer; use copy=True"
+                    )));
+                }
+                let buffer = BorrowedPyBufferSlice::new(&view)?;
+                writer.append(py_buffer_zbytes(buffer));
+                continue;
+            }
+
+            let view = memoryview.call1((&segment,)).map_err(|_| {
+                PyTypeError::new_err(format!(
+                    "segment {index} does not support the Python buffer protocol"
+                ))
+            })?;
+            if view.getattr("itemsize")?.extract::<usize>()? != 1 {
+                return Err(PyTypeError::new_err(format!(
+                    "segment {index} has unsupported item format; \
+                     expected a byte-compatible buffer"
+                )));
+            }
+            if require_contiguous && !view.getattr("c_contiguous")?.extract::<bool>()? {
+                return Err(PyTypeError::new_err(format!(
+                    "segment {index} is not C-contiguous; use require_contiguous=False"
+                )));
+            }
+            if view.getattr("c_contiguous")?.extract::<bool>()? {
+                writer.append(
+                    BorrowedPyBufferSlice::new(&view)?
+                        .as_bytes()
+                        .to_vec()
+                        .into(),
+                );
+            } else {
+                let bytes = view.call_method0("tobytes")?;
+                writer.append(bytes.downcast::<PyBytes>()?.as_bytes().to_vec().into());
+            }
+        }
+        Ok(Self(writer.finish()))
+    }
+
+    fn segments<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let memoryview = py.import("builtins")?.getattr("memoryview")?;
+        let views = self
+            .0
+            .slices()
+            .map(|slice| memoryview.call1((PyBytes::new(py, slice),)))
+            .collect::<PyResult<Vec<_>>>()?;
+        PyTuple::new(py, views)
+    }
+
+    fn memoryviews<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        self.segments(py)
     }
 
     fn to_string(&self) -> PyResult<Cow<'_, str>> {

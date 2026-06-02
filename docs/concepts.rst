@@ -267,6 +267,62 @@ Example: Using :class:`zenoh.ZBytes`
    :start-after: [raw_data]
    :end-before: # [raw_data]
 
+Scatter-gather payloads
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Use :meth:`zenoh.ZBytes.from_segments` to construct a payload from multiple
+Python buffer protocol objects without first joining them into one large
+``bytes`` value:
+
+.. code-block:: python
+
+   payload = zenoh.ZBytes.from_segments(
+       [header, segment_0, segment_1],
+       copy=True,
+   )
+   publisher.put(payload)
+
+``copy=True`` copies each input buffer into Zenoh-owned memory while preserving
+separate physical slices where possible. C-contiguous, byte-compatible buffers
+are copied directly into Zenoh-owned slices. Set ``require_contiguous=False`` to
+explicitly allow a non-contiguous input buffer to be flattened and copied.
+
+``copy=False`` performs strict zero-copy construction for read-only,
+C-contiguous, single-byte Python buffer exporters. This includes ``bytes``,
+eligible ``memoryview`` objects, and custom exporters such as serialization
+library segment views. Cropped memoryviews are supported if they still describe
+one contiguous slice. ``ZBytes`` retains each exported buffer view until Zenoh
+no longer references the payload.
+
+The read-only flag prevents writes through the exported view but cannot prevent
+writes through every alias to the same backing memory. After passing segments
+to ``copy=False``, the application must treat their backing memory as immutable
+until Zenoh no longer references the payload. Writable buffers, non-contiguous
+buffers, and buffers whose items are not one byte wide raise ``RuntimeError``
+instead of silently falling back to copying. Use ``copy=True`` for those
+buffers.
+
+On the receiving side, :meth:`zenoh.ZBytes.segments` returns a tuple of
+read-only ``memoryview`` objects over the payload's physical slices:
+
+.. code-block:: python
+
+   physical_slices = sample.payload.segments()
+   payload_bytes = b"".join(map(bytes, physical_slices))
+
+The returned memoryviews remain valid after a subscriber callback returns.
+For compatibility with Python 3.9's stable ABI, each physical slice is copied
+into an immutable Python ``bytes`` owner before its memoryview is returned.
+This avoids forcing the entire payload into one large contiguous allocation.
+The :meth:`zenoh.ZBytes.memoryviews` method is an alias for
+:meth:`zenoh.ZBytes.segments`.
+
+Physical slice boundaries are an internal memory layout optimization. They are
+not application-level frames and may differ from sender-side input boundaries
+after routing, fragmentation, or shared-memory conversion. Applications that
+need stable frames, such as Cap'n Proto segments, must encode segment lengths or
+offsets in a payload header and reconstruct logical segments on receipt.
+
 Serialization and deserialization of basic types and structures is provided in the :mod:`zenoh.ext`
 module via :func:`zenoh.ext.z_serialize` and :func:`zenoh.ext.z_deserialize`.
 

@@ -4288,6 +4288,7 @@ dependencies = [
  "paste",
  "pyo3",
  "zenoh",
+ "zenoh-buffers",
  "zenoh-ext",
 ]
 

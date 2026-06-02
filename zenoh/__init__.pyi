@@ -11,7 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from pathlib import Path
@@ -2214,6 +2214,33 @@ class ZBytes:
     def __new__(
         cls, bytes: bytearray | bytes | str | shm.ZShm | shm.ZShmMut | None = None
     ) -> Self: ...
+    @staticmethod
+    def from_segments(
+        segments: Iterable[Any],
+        *,
+        copy: bool = False,
+        require_contiguous: bool = True,
+    ) -> Self:
+        """Build a payload from Python buffer protocol objects.
+
+        ``copy=True`` copies each input buffer into a separate Zenoh-owned segment.
+        ``copy=False`` performs strict zero-copy construction for read-only,
+        C-contiguous, single-byte buffer exporters and raises ``RuntimeError`` for
+        unsupported buffers. The caller must not mutate their backing memory through
+        another alias while Zenoh may still reference the payload.
+        """
+
+    def segments(self) -> tuple[memoryview, ...]:
+        """Return read-only memoryviews for the payload's physical slices.
+
+        The returned views remain valid independently of this ZBytes instance.
+        Physical slice boundaries are an internal memory layout detail and must not
+        be used as application-level framing.
+        """
+
+    def memoryviews(self) -> tuple[memoryview, ...]:
+        """Alias for :meth:`segments`."""
+
     def to_bytes(self) -> bytes:
         """Return the underlying data as bytes.
 

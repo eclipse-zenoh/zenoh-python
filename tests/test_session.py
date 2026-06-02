@@ -11,6 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import gc
 import json
 import time
 from typing import List, Tuple
@@ -147,17 +148,32 @@ def run_session_pubsub(peer01: Session, peer02: Session):
     keyexpr = "test_pub/session"
     msg = "Pub Message".encode()
 
+    def make_payload():
+        return zenoh.ZBytes.from_segments(
+            [
+                memoryview(bytearray(b"Pub ")).toreadonly(),
+                memoryview(bytearray(b"Message")).toreadonly(),
+            ]
+        )
+
+    payload = make_payload()
+    gc.collect()
+
     num_received = 0
     num_errors = 0
+    retained_segments = None
 
     def sub_callback(sample: Sample):
         nonlocal num_received
         nonlocal num_errors
+        nonlocal retained_segments
+        if retained_segments is None:
+            retained_segments = sample.payload.segments()
         if (
             sample.key_expr != keyexpr
             or sample.priority != Priority.DATA_HIGH
             or sample.congestion_control != CongestionControl.BLOCK
-            or bytes(sample.payload) != msg
+            or b"".join(map(bytes, sample.payload.segments())) != msg
         ):
             num_errors += 1
         num_received += 1
@@ -173,12 +189,15 @@ def run_session_pubsub(peer01: Session, peer02: Session):
     time.sleep(SLEEP)
 
     for _ in range(0, MSG_COUNT):
-        publisher.put("Pub Message")
+        publisher.put(payload)
 
     time.sleep(SLEEP)
     print(f"[PS][02d] Received on peer02 session. {num_received}/{MSG_COUNT} msgs.")
     assert num_received == MSG_COUNT
     assert num_errors == 0
+    gc.collect()
+    assert retained_segments is not None
+    assert b"".join(map(bytes, retained_segments)) == msg
 
     print("[PS][03d] Undeclare publisher on peer01 session")
     publisher.undeclare()
