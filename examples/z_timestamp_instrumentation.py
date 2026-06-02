@@ -64,7 +64,8 @@ def example_publisher_default(session):
 
 def example_custom_callback():
     print("\n── session with custom timestamp callback ───────────────────────────")
-    import struct, time as _t
+    import struct
+    import time as _t
 
     def my_clock(ctx):
         # Return a simple 8-byte little-endian nanosecond timestamp.

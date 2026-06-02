@@ -15,6 +15,7 @@ import time
 from typing import List, Optional
 
 import pytest
+
 import zenoh
 from zenoh import InterceptionPoint, TimestampInstrumentation, TimestampStack
 
