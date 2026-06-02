@@ -44,10 +44,10 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 paste = "1.0.14"
 pyo3 = { version = "0.25.1", features = ["abi3-py39", "extension-module"] }
-zenoh = { path = "../../worktree-zenoh/routing-timestamps/zenoh", features = [
+zenoh = { version = "1.9.0", git = "https://github.com/YuanYuYuan/zenoh.git", branch = "feat/routing-timestamps", features = [
   "internal",
   "unstable",
 ], default-features = false }
-zenoh-ext = { path = "../../worktree-zenoh/routing-timestamps/zenoh-ext", features = [
+zenoh-ext = { version = "1.9.0", git = "https://github.com/YuanYuYuan/zenoh.git", branch = "feat/routing-timestamps", features = [
   "internal",
 ], optional = true }
