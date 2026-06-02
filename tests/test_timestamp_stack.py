@@ -46,6 +46,7 @@ def collect_one(key: str, action, timeout: float = SLEEP) -> Optional[zenoh.Samp
 
 def test_no_instrumentation():
     """Without instrumentation the stack should be None."""
+
     def put(session):
         session.put("test/ts/none", b"hello")
 
