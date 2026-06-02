@@ -2266,7 +2266,11 @@ def init_log_from_env_or(level: str):
     For example, `RUST_LOG=debug` will set the log level to DEBUG.
     If `RUST_LOG` is not set, then logging is set to the provided level."""
 
-def open(config: Config) -> Session:
+def open(
+    config: Config,
+    *,
+    timestamp_callback: SessionTimestampCallback | None = None,
+) -> Session:
     """Open a zenoh :class:`zenoh.Session`.
 
     For more information about sessions and configuration, see :ref:`session-and-config`.
