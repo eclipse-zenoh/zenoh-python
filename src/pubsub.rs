@@ -97,7 +97,13 @@ impl Publisher {
         timestamp_instrumentation: Option<TimestampInstrumentation>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
-        let mut builder = build!(this.put(payload), encoding, attachment, timestamp, source_info);
+        let mut builder = build!(
+            this.put(payload),
+            encoding,
+            attachment,
+            timestamp,
+            source_info
+        );
         if let Some(instr) = timestamp_instrumentation {
             builder = builder.timestamp_instrumentation(Some(instr.0));
         }
