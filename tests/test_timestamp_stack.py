@@ -120,8 +120,12 @@ def test_publisher_default():
     received: List[zenoh.Sample] = []
 
     with zenoh.open(peer_config()) as session:
-        with session.declare_subscriber("test/ts/pub_default", lambda s: received.append(s)):
-            with session.declare_publisher("test/ts/pub_default", timestamp_instrumentation=instr) as pub:
+        with session.declare_subscriber(
+            "test/ts/pub_default", lambda s: received.append(s)
+        ):
+            with session.declare_publisher(
+                "test/ts/pub_default", timestamp_instrumentation=instr
+            ) as pub:
                 time.sleep(0.05)
                 pub.put(b"data")
                 time.sleep(SLEEP)
@@ -144,8 +148,12 @@ def test_publisher_per_put_override():
     received: List[zenoh.Sample] = []
 
     with zenoh.open(peer_config()) as session:
-        with session.declare_subscriber("test/ts/pub_override", lambda s: received.append(s)):
-            with session.declare_publisher("test/ts/pub_override", timestamp_instrumentation=default_instr) as pub:
+        with session.declare_subscriber(
+            "test/ts/pub_override", lambda s: received.append(s)
+        ):
+            with session.declare_publisher(
+                "test/ts/pub_override", timestamp_instrumentation=default_instr
+            ) as pub:
                 time.sleep(0.05)
                 pub.put(b"data", timestamp_instrumentation=override_instr)
                 time.sleep(SLEEP)
@@ -204,7 +212,9 @@ def test_custom_callback():
     received: List[zenoh.Sample] = []
 
     with zenoh.open(peer_config(), timestamp_callback=my_callback) as session:
-        with session.declare_subscriber("test/ts/custom_cb", lambda s: received.append(s)):
+        with session.declare_subscriber(
+            "test/ts/custom_cb", lambda s: received.append(s)
+        ):
             time.sleep(0.05)
             session.put("test/ts/custom_cb", b"x", timestamp_instrumentation=instr)
             time.sleep(SLEEP)

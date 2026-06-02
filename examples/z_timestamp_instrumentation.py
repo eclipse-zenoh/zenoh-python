@@ -31,7 +31,9 @@ def print_stack(stack):
         if ts is not None:
             print(f"  {rec.point.name:8s}  hlc={ts}  custom={rec.is_custom}")
         else:
-            print(f"  {rec.point.name:8s}  raw={rec.timestamp().hex()}  custom={rec.is_custom}")
+            print(
+                f"  {rec.point.name:8s}  raw={rec.timestamp().hex()}  custom={rec.is_custom}"
+            )
 
 
 def example_put_subscribe(session):
@@ -51,11 +53,16 @@ def example_publisher_default(session):
     print("\n── publisher with default instrumentation ───────────────────────────")
     instr = TimestampInstrumentation(send=True, receive=True)
     received = []
-    with session.declare_publisher("demo/ts/pub", timestamp_instrumentation=instr) as pub:
+    with session.declare_publisher(
+        "demo/ts/pub", timestamp_instrumentation=instr
+    ) as pub:
         with session.declare_subscriber("demo/ts/pub", lambda s: received.append(s)):
             time.sleep(0.05)
             pub.put(b"message-1")
-            pub.put(b"message-2", timestamp_instrumentation=TimestampInstrumentation(send=True))
+            pub.put(
+                b"message-2",
+                timestamp_instrumentation=TimestampInstrumentation(send=True),
+            )
             time.sleep(0.2)
     for s in received:
         print(f"Received '{s.payload.to_string()}':")
@@ -97,7 +104,9 @@ def main(conf: zenoh.Config):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Zenoh timestamp instrumentation example")
+    parser = argparse.ArgumentParser(
+        description="Zenoh timestamp instrumentation example"
+    )
     parser.add_argument("--config", "-c", type=str, help="Path to zenoh config file")
     args = parser.parse_args()
 
