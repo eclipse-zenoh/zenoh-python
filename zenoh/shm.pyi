@@ -125,7 +125,10 @@ _IntoMemoryLayout = MemoryLayout | tuple[int, AllocAlignment] | int
 @_unstable
 @final
 class ZShm:
-    """A SHM buffer"""
+    """An immutable SHM buffer.
+
+    Implements the Python buffer protocol for read-only memoryviews.
+    """
 
     def is_valid(self) -> bool: ...
     def __bytes__(self) -> bytes: ...

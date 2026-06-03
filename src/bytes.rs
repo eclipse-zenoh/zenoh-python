@@ -11,6 +11,8 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
+#[cfg(feature = "shared-memory")]
+use std::collections::HashSet;
 use std::{
     any::Any,
     borrow::Cow,
@@ -269,6 +271,13 @@ impl ZBytesSegment {
 wrapper!(zenoh::bytes::ZBytes: Clone, Default);
 downcast_or_new!(ZBytes);
 
+enum SegmentAction {
+    Append(zenoh::bytes::ZBytes),
+    Borrow(BorrowedPyBufferSlice),
+    #[cfg(feature = "shared-memory")]
+    MoveShmMut(Py<crate::shm::ZShmMut>),
+}
+
 #[pymethods]
 impl ZBytes {
     #[new]
@@ -314,14 +323,49 @@ impl ZBytes {
     ) -> PyResult<Self> {
         let py = segments.py();
         let memoryview = py.import("builtins")?.getattr("memoryview")?;
-        let mut writer = zenoh::bytes::ZBytes::writer();
+        let mut actions = Vec::new();
+        #[cfg(feature = "shared-memory")]
+        let mut mutable_shm_segments = HashSet::new();
+
         for (index, segment) in segments.try_iter()?.enumerate() {
             let segment = segment?;
             if let Ok(segment) = segment.downcast_exact::<ZBytesSegment>() {
                 if copy {
-                    writer.append(segment.borrow().as_slice().to_vec().into());
+                    actions.push(SegmentAction::Append(
+                        segment.borrow().as_slice().to_vec().into(),
+                    ));
                 } else {
-                    writer.append(segment.borrow().clone_inner());
+                    actions.push(SegmentAction::Append(segment.borrow().clone_inner()));
+                }
+                continue;
+            }
+
+            #[cfg(feature = "shared-memory")]
+            if let Ok(buf) = segment.downcast_exact::<crate::shm::ZShm>() {
+                if copy {
+                    actions.push(SegmentAction::Append(
+                        buf.borrow().0.as_ref().to_vec().into(),
+                    ));
+                } else {
+                    actions.push(SegmentAction::Append(buf.borrow().0.clone().into()));
+                }
+                continue;
+            }
+
+            #[cfg(feature = "shared-memory")]
+            if let Ok(buf) = segment.downcast_exact::<crate::shm::ZShmMut>() {
+                buf.borrow().get()?;
+                if copy {
+                    actions.push(SegmentAction::Append(buf.borrow().get()?.to_vec().into()));
+                } else {
+                    let ptr = segment.as_ptr() as usize;
+                    if !mutable_shm_segments.insert(ptr) {
+                        return Err(PyRuntimeError::new_err(format!(
+                            "segment {index} repeats the same mutable SHM buffer; \
+                             zero-copy would need to consume it more than once"
+                        )));
+                    }
+                    actions.push(SegmentAction::MoveShmMut(buf.clone().unbind()));
                 }
                 continue;
             }
@@ -353,7 +397,7 @@ impl ZBytes {
                     )));
                 }
                 let buffer = BorrowedPyBufferSlice::new(&view)?;
-                writer.append(py_buffer_zbytes(buffer));
+                actions.push(SegmentAction::Borrow(buffer));
                 continue;
             }
 
@@ -374,15 +418,28 @@ impl ZBytes {
                 )));
             }
             if view.getattr("c_contiguous")?.extract::<bool>()? {
-                writer.append(
+                actions.push(SegmentAction::Append(
                     BorrowedPyBufferSlice::new(&view)?
                         .as_bytes()
                         .to_vec()
                         .into(),
-                );
+                ));
             } else {
                 let bytes = view.call_method0("tobytes")?;
-                writer.append(bytes.downcast::<PyBytes>()?.as_bytes().to_vec().into());
+                actions.push(SegmentAction::Append(
+                    bytes.downcast::<PyBytes>()?.as_bytes().to_vec().into(),
+                ));
+            }
+        }
+        let mut writer = zenoh::bytes::ZBytes::writer();
+        for action in actions {
+            match action {
+                SegmentAction::Append(zbytes) => writer.append(zbytes),
+                SegmentAction::Borrow(buffer) => writer.append(py_buffer_zbytes(buffer)),
+                #[cfg(feature = "shared-memory")]
+                SegmentAction::MoveShmMut(buf) => {
+                    writer.append(buf.bind(py).borrow_mut().take()?.into());
+                }
             }
         }
         Ok(Self(writer.finish()))

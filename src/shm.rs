@@ -1,7 +1,14 @@
-use std::{num::NonZeroUsize, str, sync::Arc};
+use std::{
+    ffi::CString,
+    num::NonZeroUsize,
+    os::raw::{c_int, c_void},
+    ptr, slice, str,
+    sync::Arc,
+};
 
 use pyo3::{
-    exceptions::{PyTypeError, PyValueError},
+    exceptions::{PyBufferError, PyTypeError, PyValueError},
+    ffi,
     prelude::*,
     types::{PyByteArray, PyBytes, PySlice, PyString, PyType},
 };
@@ -212,6 +219,47 @@ impl ShmProvider {
 
 wrapper!(zenoh::shm::ZShm);
 
+unsafe fn fill_readonly_u8_buffer(
+    owner: Bound<'_, PyAny>,
+    data: &[u8],
+    view: *mut ffi::Py_buffer,
+    flags: c_int,
+) -> PyResult<()> {
+    if view.is_null() {
+        return Err(PyBufferError::new_err("view is null"));
+    }
+    if flags & ffi::PyBUF_WRITABLE == ffi::PyBUF_WRITABLE {
+        return Err(PyBufferError::new_err("object is not writable"));
+    }
+
+    unsafe {
+        (*view).obj = owner.into_ptr();
+        (*view).buf = data.as_ptr() as *mut c_void;
+        (*view).len = data.len() as ffi::Py_ssize_t;
+        (*view).readonly = 1;
+        (*view).itemsize = 1;
+        (*view).format = if flags & ffi::PyBUF_FORMAT == ffi::PyBUF_FORMAT {
+            CString::new("B").unwrap().into_raw()
+        } else {
+            ptr::null_mut()
+        };
+        (*view).ndim = 1;
+        (*view).shape = if flags & ffi::PyBUF_ND == ffi::PyBUF_ND {
+            &mut (*view).len
+        } else {
+            ptr::null_mut()
+        };
+        (*view).strides = if flags & ffi::PyBUF_STRIDES == ffi::PyBUF_STRIDES {
+            &mut (*view).itemsize
+        } else {
+            ptr::null_mut()
+        };
+        (*view).suboffsets = ptr::null_mut();
+        (*view).internal = ptr::null_mut();
+    }
+    Ok(())
+}
+
 #[pymethods]
 impl ZShm {
     fn is_valid(&self) -> bool {
@@ -225,6 +273,34 @@ impl ZShm {
     fn __bytes__<'py>(&self, py: Python<'py>) -> Bound<'py, PyBytes> {
         PyBytes::new(py, &self.0)
     }
+
+    unsafe fn __getbuffer__(
+        slf: Bound<'_, Self>,
+        view: *mut ffi::Py_buffer,
+        flags: c_int,
+    ) -> PyResult<()> {
+        let (ptr, len) = {
+            let shm = slf.borrow();
+            let bytes: &[u8] = shm.0.as_ref();
+            (bytes.as_ptr(), bytes.len())
+        };
+        let bytes = if len == 0 {
+            &[]
+        } else {
+            // SAFETY: `slf` owns the ZShm handle and keeps the mapped SHM
+            // buffer alive for at least as long as the exported buffer.
+            unsafe { slice::from_raw_parts(ptr, len) }
+        };
+        unsafe { fill_readonly_u8_buffer(slf.into_any(), bytes, view, flags) }
+    }
+
+    unsafe fn __releasebuffer__(&self, view: *mut ffi::Py_buffer) {
+        unsafe {
+            if !view.is_null() && !(*view).format.is_null() {
+                drop(CString::from_raw((*view).format));
+            }
+        }
+    }
 }
 
 #[pyclass]
@@ -233,7 +309,7 @@ pub(crate) struct ZShmMut {
 }
 
 impl ZShmMut {
-    fn get(&self) -> PyResult<&zenoh::shm::ZShmMut> {
+    pub(crate) fn get(&self) -> PyResult<&zenoh::shm::ZShmMut> {
         self.buf
             .as_ref()
             .ok_or_else(|| zerror!("ZShmMut has been consumed by ZBytes conversion"))

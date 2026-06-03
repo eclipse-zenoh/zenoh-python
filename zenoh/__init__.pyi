@@ -2241,6 +2241,10 @@ class ZBytes:
         C-contiguous, single-byte buffer exporters and raises ``RuntimeError`` for
         unsupported buffers. The caller must not mutate their backing memory through
         another alias while Zenoh may still reference the payload.
+
+        With shared-memory enabled, ``copy=False`` preserves ``shm.ZShm`` and
+        consumes ``shm.ZShmMut`` segments. Generic memoryviews are treated as raw
+        borrowed buffers, not as shared-memory descriptors.
         """
 
     def segments(self) -> tuple[ZBytesSegment, ...]:

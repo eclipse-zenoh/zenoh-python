@@ -291,8 +291,11 @@ explicitly allow a non-contiguous input buffer to be flattened and copied.
 C-contiguous, single-byte Python buffer exporters. This includes ``bytes``,
 eligible ``memoryview`` objects, and custom exporters such as serialization
 library segment views. Cropped memoryviews are supported if they still describe
-one contiguous slice. ``ZBytes`` retains each exported buffer view until Zenoh
-no longer references the payload.
+one contiguous slice. With shared memory enabled, ``shm.ZShm`` segments are
+preserved without copying, and ``shm.ZShmMut`` segments are consumed just like
+passing them directly to ``ZBytes``. Generic ``memoryview`` objects are treated
+as raw borrowed buffers and do not carry shared-memory identity. ``ZBytes``
+retains each exported buffer view until Zenoh no longer references the payload.
 
 The read-only flag prevents writes through the exported view but cannot prevent
 writes through every alias to the same backing memory. After passing segments

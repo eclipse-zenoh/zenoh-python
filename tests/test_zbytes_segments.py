@@ -220,3 +220,99 @@ def test_from_segments_copies_zbytes_segment():
     payload = ZBytes.from_segments([segment], copy=True)
 
     assert bytes(payload) == b"hello"
+
+
+def test_from_segments_accepts_shm_mut_zero_copy_when_available():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"hello"
+
+    payload = ZBytes.from_segments([buf], copy=False)
+
+    assert bytes(payload) == b"hello"
+    assert payload.as_shm() is not None
+    with pytest.raises(Exception, match="consumed"):
+        bytes(buf)
+
+
+def test_from_segments_accepts_shm_zero_copy_when_available():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"hello"
+    original = ZBytes(buf).as_shm()
+
+    payload = ZBytes.from_segments([original], copy=False)
+
+    assert bytes(payload) == b"hello"
+    assert payload.as_shm() is not None
+
+
+def test_from_segments_accepts_mixed_shm_segments_when_available():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"frame"
+
+    payload = ZBytes.from_segments([b"h", buf, b"t"], copy=False)
+
+    assert bytes(payload) == b"hframet"
+    assert payload.as_shm() is None
+    segments = payload.segments()
+    assert tuple(map(bytes, segments)) == (b"h", b"frame", b"t")
+    assert segments[1].as_shm() is not None
+
+
+def test_from_segments_copies_shm_mut_without_consuming_when_available():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"hello"
+
+    payload = ZBytes.from_segments([buf], copy=True)
+
+    assert bytes(payload) == b"hello"
+    assert payload.as_shm() is None
+    assert bytes(buf) == b"hello"
+
+
+def test_from_segments_does_not_partially_consume_shm_mut_on_validation_error():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"hello"
+
+    with pytest.raises(RuntimeError, match="segment 1.*use copy=True"):
+        ZBytes.from_segments([buf, bytearray(b"mutable")], copy=False)
+
+    assert bytes(buf) == b"hello"
+
+
+def test_from_segments_rejects_repeated_shm_mut_when_available():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"hello"
+
+    with pytest.raises(RuntimeError, match="repeats the same mutable SHM"):
+        ZBytes.from_segments([buf, buf], copy=False)
+
+    assert bytes(buf) == b"hello"
+
+
+def test_zshm_and_shm_segment_export_readonly_memoryview_when_available():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"hello"
+    payload = ZBytes.from_segments([buf], copy=False)
+    zshm = payload.as_shm()
+
+    shm_view = memoryview(zshm)
+    segment_view = memoryview(payload.segments()[0])
+
+    assert shm_view.readonly
+    assert segment_view.readonly
+    assert bytes(shm_view) == b"hello"
+    assert bytes(segment_view) == b"hello"
