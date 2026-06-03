@@ -51,6 +51,7 @@ unsafe extern "C" {
 
 struct BorrowedPyBufferSlice {
     _owner: Py<PyAny>,
+    _lease: Option<Arc<LeaseGuard>>,
     ptr: *const u8,
     len: usize,
 }
@@ -73,10 +74,16 @@ impl BorrowedPyBufferSlice {
         } else {
             Ok(Self {
                 _owner: buffer.clone().unbind(),
+                _lease: None,
                 ptr: ptr.cast(),
                 len: len as usize,
             })
         }
+    }
+
+    fn with_lease(mut self, lease: Option<Arc<LeaseGuard>>) -> Self {
+        self._lease = lease;
+        self
     }
 
     fn as_bytes(&self) -> &[u8] {
@@ -87,6 +94,55 @@ impl BorrowedPyBufferSlice {
             // its exporter resources and keeps this contiguous slice valid.
             unsafe { slice::from_raw_parts(self.ptr, self.len) }
         }
+    }
+}
+
+struct LeaseState {
+    sink: Py<PyAny>,
+    lease_id: Py<PyAny>,
+}
+
+impl LeaseState {
+    fn new(lease: &Bound<PyAny>) -> PyResult<Self> {
+        let sink = lease
+            .getattr("sink")
+            .map_err(|_| PyTypeError::new_err("lease must provide a 'sink' attribute"))?;
+        let release = sink
+            .getattr("release")
+            .map_err(|_| PyTypeError::new_err("lease.sink must provide a 'release' method"))?;
+        if !release.is_callable() {
+            return Err(PyTypeError::new_err("lease.sink.release must be callable"));
+        }
+        let lease_id = lease
+            .getattr("lease_id")
+            .map_err(|_| PyTypeError::new_err("lease must provide a 'lease_id' attribute"))?;
+        Ok(Self {
+            sink: sink.unbind(),
+            lease_id: lease_id.unbind(),
+        })
+    }
+
+    fn into_guard(self) -> Arc<LeaseGuard> {
+        Arc::new(LeaseGuard {
+            sink: self.sink,
+            lease_id: self.lease_id,
+        })
+    }
+}
+
+struct LeaseGuard {
+    sink: Py<PyAny>,
+    lease_id: Py<PyAny>,
+}
+
+impl Drop for LeaseGuard {
+    fn drop(&mut self) {
+        Python::with_gil(|py| {
+            let sink = self.sink.bind(py);
+            if let Err(err) = sink.call_method1("release", (self.lease_id.bind(py),)) {
+                err.write_unraisable(py, Some(sink));
+            }
+        });
     }
 }
 
@@ -315,15 +371,23 @@ impl ZBytes {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (segments, *, copy = false, require_contiguous = true))]
+    #[pyo3(signature = (segments, *, copy = false, require_contiguous = true, lease = None))]
     fn from_segments(
         segments: &Bound<PyAny>,
         copy: bool,
         require_contiguous: bool,
+        lease: Option<&Bound<PyAny>>,
     ) -> PyResult<Self> {
         let py = segments.py();
+        let lease = lease.map(LeaseState::new).transpose()?;
+        if lease.is_some() && copy {
+            return Err(PyRuntimeError::new_err(
+                "lease can only be used with copy=False",
+            ));
+        }
         let memoryview = py.import("builtins")?.getattr("memoryview")?;
         let mut actions = Vec::new();
+        let mut has_nonempty_raw_borrow = false;
         #[cfg(feature = "shared-memory")]
         let mut mutable_shm_segments = HashSet::new();
 
@@ -342,6 +406,11 @@ impl ZBytes {
 
             #[cfg(feature = "shared-memory")]
             if let Ok(buf) = segment.downcast_exact::<crate::shm::ZShm>() {
+                if lease.is_some() {
+                    return Err(PyRuntimeError::new_err(
+                        "lease cannot be used with shared-memory segments",
+                    ));
+                }
                 if copy {
                     actions.push(SegmentAction::Append(
                         buf.borrow().0.as_ref().to_vec().into(),
@@ -354,6 +423,11 @@ impl ZBytes {
 
             #[cfg(feature = "shared-memory")]
             if let Ok(buf) = segment.downcast_exact::<crate::shm::ZShmMut>() {
+                if lease.is_some() {
+                    return Err(PyRuntimeError::new_err(
+                        "lease cannot be used with shared-memory segments",
+                    ));
+                }
                 buf.borrow().get()?;
                 if copy {
                     actions.push(SegmentAction::Append(buf.borrow().get()?.to_vec().into()));
@@ -397,6 +471,7 @@ impl ZBytes {
                     )));
                 }
                 let buffer = BorrowedPyBufferSlice::new(&view)?;
+                has_nonempty_raw_borrow |= buffer.len > 0;
                 actions.push(SegmentAction::Borrow(buffer));
                 continue;
             }
@@ -431,11 +506,23 @@ impl ZBytes {
                 ));
             }
         }
+        let lease = if let Some(lease) = lease {
+            if !has_nonempty_raw_borrow {
+                return Err(PyRuntimeError::new_err(
+                    "lease requires at least one non-empty ordinary Python zero-copy buffer segment",
+                ));
+            }
+            Some(lease.into_guard())
+        } else {
+            None
+        };
         let mut writer = zenoh::bytes::ZBytes::writer();
         for action in actions {
             match action {
                 SegmentAction::Append(zbytes) => writer.append(zbytes),
-                SegmentAction::Borrow(buffer) => writer.append(py_buffer_zbytes(buffer)),
+                SegmentAction::Borrow(buffer) => {
+                    writer.append(py_buffer_zbytes(buffer.with_lease(lease.clone())))
+                }
                 #[cfg(feature = "shared-memory")]
                 SegmentAction::MoveShmMut(buf) => {
                     writer.append(buf.bind(py).borrow_mut().take()?.into());

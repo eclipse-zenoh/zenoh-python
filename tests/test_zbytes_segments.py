@@ -17,6 +17,28 @@ import pytest
 from zenoh import ZBytes, ZBytesSegment
 
 
+class RecordingLeaseSink:
+    def __init__(self, *, raise_on_release=False):
+        self.raise_on_release = raise_on_release
+        self.released = []
+
+    def release(self, lease_id):
+        self.released.append(lease_id)
+        if self.raise_on_release:
+            raise RuntimeError("release failed")
+
+
+class LeaseState:
+    def __init__(self, sink, lease_id):
+        self.sink = sink
+        self.lease_id = lease_id
+
+
+def make_lease(lease_id="lease-1", *, raise_on_release=False):
+    sink = RecordingLeaseSink(raise_on_release=raise_on_release)
+    return sink, LeaseState(sink, lease_id)
+
+
 @pytest.mark.parametrize(
     "segments",
     [
@@ -93,6 +115,71 @@ def test_zero_copy_payload_keeps_readonly_buffer_export_alive():
     assert owner == b"hello!"
 
 
+def test_zero_copy_payload_lease_releases_after_payload_drop():
+    sink, lease = make_lease("slot-1")
+    payload = ZBytes.from_segments([b"hello"], lease=lease)
+
+    assert sink.released == []
+
+    del payload
+    gc.collect()
+
+    assert sink.released == ["slot-1"]
+
+
+def test_zero_copy_payload_lease_is_shared_by_multiple_segments():
+    sink, lease = make_lease("slot-2")
+    payload = ZBytes.from_segments([b"hello", memoryview(b"world")], lease=lease)
+
+    assert bytes(payload) == b"helloworld"
+    del payload
+    gc.collect()
+
+    assert sink.released == ["slot-2"]
+
+
+@pytest.mark.parametrize(
+    "view_factory",
+    [
+        lambda payload: payload.segments(),
+        lambda payload: payload.memoryviews(),
+    ],
+)
+def test_zero_copy_payload_lease_waits_for_derived_views(view_factory):
+    sink, lease = make_lease("slot-3")
+    payload = ZBytes.from_segments([b"hello", b"world"], lease=lease)
+    views = view_factory(payload)
+
+    del payload
+    gc.collect()
+    assert sink.released == []
+
+    assert b"".join(map(bytes, views)) == b"helloworld"
+    del views
+    gc.collect()
+
+    assert sink.released == ["slot-3"]
+
+
+def test_zero_copy_payload_lease_release_error_is_unraisable(monkeypatch):
+    captured = []
+
+    def hook(args):
+        captured.append(args)
+
+    monkeypatch.setattr(sys, "unraisablehook", hook)
+    sink, lease = make_lease("slot-error", raise_on_release=True)
+    payload = ZBytes.from_segments([b"hello"], lease=lease)
+
+    del payload
+    gc.collect()
+
+    assert sink.released == ["slot-error"]
+    assert len(captured) == 1
+    assert isinstance(captured[0].exc_value, RuntimeError)
+    assert captured[0].object is sink
+
+
 @pytest.mark.parametrize(
     "segment",
     [
@@ -122,6 +209,41 @@ def test_from_segments_rejects_non_contiguous_segment_by_default():
 
     with pytest.raises(TypeError, match="segment 0 is not C-contiguous"):
         ZBytes.from_segments([segment], copy=True)
+
+
+def test_from_segments_rejects_lease_with_copy():
+    sink, lease = make_lease("slot-copy")
+
+    with pytest.raises(RuntimeError, match="lease can only be used with copy=False"):
+        ZBytes.from_segments([b"hello"], copy=True, lease=lease)
+
+    assert sink.released == []
+
+
+@pytest.mark.parametrize("segments", [[], [b""]])
+def test_from_segments_rejects_lease_without_nonempty_raw_borrow(segments):
+    sink, lease = make_lease("slot-empty")
+
+    with pytest.raises(RuntimeError, match="lease requires at least one non-empty"):
+        ZBytes.from_segments(segments, lease=lease)
+
+    assert sink.released == []
+
+
+def test_from_segments_rejects_lease_with_zbytes_segment_only():
+    source = ZBytes.from_segments([b"hello"], copy=True)
+    (segment,) = source.segments()
+    sink, lease = make_lease("slot-segment")
+
+    with pytest.raises(RuntimeError, match="lease requires at least one non-empty"):
+        ZBytes.from_segments([segment], lease=lease)
+
+    assert sink.released == []
+
+
+def test_from_segments_rejects_invalid_lease_interface():
+    with pytest.raises(TypeError, match="lease must provide a 'sink' attribute"):
+        ZBytes.from_segments([b"hello"], lease=object())
 
 
 def test_from_segments_can_copy_non_contiguous_segment_explicitly():
@@ -236,6 +358,20 @@ def test_from_segments_accepts_shm_mut_zero_copy_when_available():
         bytes(buf)
 
 
+def test_from_segments_rejects_lease_with_shm_mut_when_available():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"hello"
+    sink, lease = make_lease("slot-shm-mut")
+
+    with pytest.raises(RuntimeError, match="lease cannot be used with shared-memory"):
+        ZBytes.from_segments([buf], copy=False, lease=lease)
+
+    assert bytes(buf) == b"hello"
+    assert sink.released == []
+
+
 def test_from_segments_accepts_shm_zero_copy_when_available():
     shm = pytest.importorskip("zenoh.shm")
     provider = shm.ShmProvider.default_backend(4096)
@@ -247,6 +383,20 @@ def test_from_segments_accepts_shm_zero_copy_when_available():
 
     assert bytes(payload) == b"hello"
     assert payload.as_shm() is not None
+
+
+def test_from_segments_rejects_lease_with_shm_when_available():
+    shm = pytest.importorskip("zenoh.shm")
+    provider = shm.ShmProvider.default_backend(4096)
+    buf = provider.alloc(5)
+    buf[:] = b"hello"
+    original = ZBytes(buf).as_shm()
+    sink, lease = make_lease("slot-shm")
+
+    with pytest.raises(RuntimeError, match="lease cannot be used with shared-memory"):
+        ZBytes.from_segments([original], copy=False, lease=lease)
+
+    assert sink.released == []
 
 
 def test_from_segments_accepts_mixed_shm_segments_when_available():

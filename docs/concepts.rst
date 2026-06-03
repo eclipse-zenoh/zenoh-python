@@ -297,6 +297,29 @@ passing them directly to ``ZBytes``. Generic ``memoryview`` objects are treated
 as raw borrowed buffers and do not carry shared-memory identity. ``ZBytes``
 retains each exported buffer view until Zenoh no longer references the payload.
 
+External buffer pools can attach a lease token to a raw borrowed zero-copy
+payload. The lease object must provide ``sink`` and ``lease_id`` attributes.
+When Zenoh releases its last borrowed-buffer reference, zenoh-python only
+notifies the sink by calling ``lease.sink.release(lease.lease_id)``; the
+provider decides how to enqueue, deduplicate, or process that release event:
+
+.. code-block:: python
+
+   class LeaseState:
+       def __init__(self, sink, lease_id):
+           self.sink = sink
+           self.lease_id = lease_id
+
+   payload = zenoh.ZBytes.from_segments(
+       [header_view, body_view],
+       copy=False,
+       lease=LeaseState(pool_release_sink, slot_id),
+   )
+
+The sink's ``release`` method should be non-blocking or return quickly. Shared
+memory buffers have their own lifecycle management, so ``lease`` cannot be used
+with ``shm.ZShm`` or ``shm.ZShmMut`` segments.
+
 The read-only flag prevents writes through the exported view but cannot prevent
 writes through every alias to the same backing memory. After passing segments
 to ``copy=False``, the application must treat their backing memory as immutable

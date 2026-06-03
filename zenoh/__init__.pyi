@@ -2233,6 +2233,7 @@ class ZBytes:
         *,
         copy: bool = False,
         require_contiguous: bool = True,
+        lease: Any | None = None,
     ) -> Self:
         """Build a payload from Python buffer protocol objects.
 
@@ -2245,6 +2246,14 @@ class ZBytes:
         With shared-memory enabled, ``copy=False`` preserves ``shm.ZShm`` and
         consumes ``shm.ZShmMut`` segments. Generic memoryviews are treated as raw
         borrowed buffers, not as shared-memory descriptors.
+
+        ``lease`` may be used with ``copy=False`` raw borrowed buffers to bind an
+        external pool lease to Zenoh's internal payload lifetime. The object must
+        provide ``lease.sink`` and ``lease.lease_id``; when Zenoh releases the last
+        borrowed buffer reference, it calls ``lease.sink.release(lease.lease_id)``.
+        The release method should be non-blocking or return quickly. Shared-memory
+        segments have their own lifetime management and cannot be combined with a
+        custom lease.
         """
 
     def segments(self) -> tuple[ZBytesSegment, ...]:
