@@ -13,6 +13,7 @@
 //
 // TODO https://github.com/eclipse-zenoh/zenoh-python/pull/235#discussion_r1644498390
 // mod logging;
+mod buffer;
 mod bytes;
 mod cancellation;
 mod config;

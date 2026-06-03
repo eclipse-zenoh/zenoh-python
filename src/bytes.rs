@@ -16,7 +16,6 @@ use std::collections::HashSet;
 use std::{
     any::Any,
     borrow::Cow,
-    ffi::CString,
     fmt,
     io::Read,
     os::raw::{c_int, c_void},
@@ -25,7 +24,7 @@ use std::{
 };
 
 use pyo3::{
-    exceptions::{PyBufferError, PyRuntimeError, PyTypeError, PyValueError},
+    exceptions::{PyRuntimeError, PyTypeError, PyValueError},
     ffi,
     prelude::*,
     types::{PyByteArray, PyBytes, PyMemoryView, PyString, PyTuple},
@@ -33,6 +32,7 @@ use pyo3::{
 use zenoh_buffers::{ZBuf, ZSliceBuffer};
 
 use crate::{
+    buffer::{fill_readonly_u8_buffer, release_u8_buffer},
     macros::{downcast_or_new, wrapper},
     utils::{IntoPyResult, MapInto},
 };
@@ -205,47 +205,6 @@ fn copied_memoryviews<'py>(
     PyTuple::new(py, views)
 }
 
-unsafe fn fill_readonly_u8_buffer(
-    owner: Bound<'_, PyAny>,
-    data: &[u8],
-    view: *mut ffi::Py_buffer,
-    flags: c_int,
-) -> PyResult<()> {
-    if view.is_null() {
-        return Err(PyBufferError::new_err("view is null"));
-    }
-    if flags & ffi::PyBUF_WRITABLE == ffi::PyBUF_WRITABLE {
-        return Err(PyBufferError::new_err("object is not writable"));
-    }
-
-    unsafe {
-        (*view).obj = owner.into_ptr();
-        (*view).buf = data.as_ptr() as *mut c_void;
-        (*view).len = data.len() as ffi::Py_ssize_t;
-        (*view).readonly = 1;
-        (*view).itemsize = 1;
-        (*view).format = if flags & ffi::PyBUF_FORMAT == ffi::PyBUF_FORMAT {
-            CString::new("B").unwrap().into_raw()
-        } else {
-            ptr::null_mut()
-        };
-        (*view).ndim = 1;
-        (*view).shape = if flags & ffi::PyBUF_ND == ffi::PyBUF_ND {
-            &mut (*view).len
-        } else {
-            ptr::null_mut()
-        };
-        (*view).strides = if flags & ffi::PyBUF_STRIDES == ffi::PyBUF_STRIDES {
-            &mut (*view).itemsize
-        } else {
-            ptr::null_mut()
-        };
-        (*view).suboffsets = ptr::null_mut();
-        (*view).internal = ptr::null_mut();
-    }
-    Ok(())
-}
-
 #[pyclass]
 #[derive(Clone)]
 pub(crate) struct ZBytesSegment {
@@ -316,11 +275,7 @@ impl ZBytesSegment {
     }
 
     unsafe fn __releasebuffer__(&self, view: *mut ffi::Py_buffer) {
-        unsafe {
-            if !view.is_null() && !(*view).format.is_null() {
-                drop(CString::from_raw((*view).format));
-            }
-        }
+        unsafe { release_u8_buffer(view) }
     }
 }
 
@@ -428,10 +383,10 @@ impl ZBytes {
                         "lease cannot be used with shared-memory segments",
                     ));
                 }
-                buf.borrow().get()?;
                 if copy {
                     actions.push(SegmentAction::Append(buf.borrow().get()?.to_vec().into()));
                 } else {
+                    buf.borrow().get()?;
                     let ptr = segment.as_ptr() as usize;
                     if !mutable_shm_segments.insert(ptr) {
                         return Err(PyRuntimeError::new_err(format!(
@@ -446,10 +401,14 @@ impl ZBytes {
 
             if !copy {
                 let view = memoryview.call1((&segment,)).map_err(|_| {
+                    let type_name = segment
+                        .get_type()
+                        .name()
+                        .map(|name| name.to_string())
+                        .unwrap_or_else(|_| "<unknown>".to_string());
                     PyRuntimeError::new_err(format!(
                         "zero-copy requires a read-only, C-contiguous, byte-compatible Python \
-                         buffer; segment {index} has type '{}'; use copy=True",
-                        segment.get_type().name().unwrap()
+                         buffer; segment {index} has type '{type_name}'; use copy=True"
                     ))
                 })?;
                 if !view.getattr("readonly")?.extract::<bool>()? {
@@ -487,12 +446,13 @@ impl ZBytes {
                      expected a byte-compatible buffer"
                 )));
             }
-            if require_contiguous && !view.getattr("c_contiguous")?.extract::<bool>()? {
+            let c_contiguous = view.getattr("c_contiguous")?.extract::<bool>()?;
+            if require_contiguous && !c_contiguous {
                 return Err(PyTypeError::new_err(format!(
                     "segment {index} is not C-contiguous; use require_contiguous=False"
                 )));
             }
-            if view.getattr("c_contiguous")?.extract::<bool>()? {
+            if c_contiguous {
                 actions.push(SegmentAction::Append(
                     BorrowedPyBufferSlice::new(&view)?
                         .as_bytes()

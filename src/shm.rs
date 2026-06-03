@@ -1,13 +1,12 @@
 use std::{
-    ffi::CString,
     num::NonZeroUsize,
-    os::raw::{c_int, c_void},
-    ptr, slice, str,
+    os::raw::c_int,
+    slice, str,
     sync::Arc,
 };
 
 use pyo3::{
-    exceptions::{PyBufferError, PyTypeError, PyValueError},
+    exceptions::{PyTypeError, PyValueError},
     ffi,
     prelude::*,
     types::{PyByteArray, PyBytes, PySlice, PyString, PyType},
@@ -15,6 +14,7 @@ use pyo3::{
 use zenoh::shm::{ChunkAllocResult, PosixShmProviderBackend, ShmBuf};
 
 use crate::{
+    buffer::{fill_readonly_u8_buffer, release_u8_buffer},
     macros::{downcast_or_new, wrapper, zerror},
     utils::{wait, IntoPyResult, MapInto},
 };
@@ -219,47 +219,6 @@ impl ShmProvider {
 
 wrapper!(zenoh::shm::ZShm);
 
-unsafe fn fill_readonly_u8_buffer(
-    owner: Bound<'_, PyAny>,
-    data: &[u8],
-    view: *mut ffi::Py_buffer,
-    flags: c_int,
-) -> PyResult<()> {
-    if view.is_null() {
-        return Err(PyBufferError::new_err("view is null"));
-    }
-    if flags & ffi::PyBUF_WRITABLE == ffi::PyBUF_WRITABLE {
-        return Err(PyBufferError::new_err("object is not writable"));
-    }
-
-    unsafe {
-        (*view).obj = owner.into_ptr();
-        (*view).buf = data.as_ptr() as *mut c_void;
-        (*view).len = data.len() as ffi::Py_ssize_t;
-        (*view).readonly = 1;
-        (*view).itemsize = 1;
-        (*view).format = if flags & ffi::PyBUF_FORMAT == ffi::PyBUF_FORMAT {
-            CString::new("B").unwrap().into_raw()
-        } else {
-            ptr::null_mut()
-        };
-        (*view).ndim = 1;
-        (*view).shape = if flags & ffi::PyBUF_ND == ffi::PyBUF_ND {
-            &mut (*view).len
-        } else {
-            ptr::null_mut()
-        };
-        (*view).strides = if flags & ffi::PyBUF_STRIDES == ffi::PyBUF_STRIDES {
-            &mut (*view).itemsize
-        } else {
-            ptr::null_mut()
-        };
-        (*view).suboffsets = ptr::null_mut();
-        (*view).internal = ptr::null_mut();
-    }
-    Ok(())
-}
-
 #[pymethods]
 impl ZShm {
     fn is_valid(&self) -> bool {
@@ -295,11 +254,7 @@ impl ZShm {
     }
 
     unsafe fn __releasebuffer__(&self, view: *mut ffi::Py_buffer) {
-        unsafe {
-            if !view.is_null() && !(*view).format.is_null() {
-                drop(CString::from_raw((*view).format));
-            }
-        }
+        unsafe { release_u8_buffer(view) }
     }
 }
 
