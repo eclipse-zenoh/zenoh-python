@@ -2194,6 +2194,19 @@ class WhatAmIMatcher:
 _IntoWhatAmIMatcher = WhatAmIMatcher | str
 
 @final
+class ZBytesSegment:
+    """A zero-copy view over one physical ZBytes slice."""
+
+    @_unstable
+    def as_shm(self) -> shm.ZShm | None: ...
+    def to_bytes(self) -> bytes:
+        """Copy this segment into a Python bytes object."""
+
+    def __bool__(self) -> bool: ...
+    def __len__(self) -> int: ...
+    def __bytes__(self) -> bytes: ...
+
+@final
 class ZBytes:
     """ZBytes represents raw bytes data that can be interpreted as strings or byte arrays.
 
@@ -2230,16 +2243,19 @@ class ZBytes:
         another alias while Zenoh may still reference the payload.
         """
 
-    def segments(self) -> tuple[memoryview, ...]:
-        """Return read-only memoryviews for the payload's physical slices.
+    def segments(self) -> tuple[ZBytesSegment, ...]:
+        """Return zero-copy views for the payload's physical slices.
 
-        The returned views remain valid independently of this ZBytes instance.
+        The returned segment views keep their backing payload memory alive.
         Physical slice boundaries are an internal memory layout detail and must not
         be used as application-level framing.
         """
 
     def memoryviews(self) -> tuple[memoryview, ...]:
-        """Alias for :meth:`segments`."""
+        """Return zero-copy memoryviews for the payload's physical slices."""
+
+    def copied_memoryviews(self) -> tuple[memoryview, ...]:
+        """Return memoryviews backed by copied Python bytes for each physical slice."""
 
     def to_bytes(self) -> bytes:
         """Return the underlying data as bytes.

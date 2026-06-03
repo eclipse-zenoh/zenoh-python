@@ -14,7 +14,7 @@ from array import array
 
 import pytest
 
-from zenoh import ZBytes
+from zenoh import ZBytes, ZBytesSegment
 
 
 @pytest.mark.parametrize(
@@ -136,7 +136,7 @@ def test_from_segments_can_copy_non_contiguous_segment_explicitly():
     assert bytes(payload) == b"hlo"
 
 
-def test_segments_return_readonly_memoryviews_with_independent_lifetimes():
+def test_segments_return_zero_copy_segment_views_with_independent_lifetimes():
     payload = ZBytes.from_segments([b"hello", b"world"], copy=True)
     segments = payload.segments()
 
@@ -144,19 +144,41 @@ def test_segments_return_readonly_memoryviews_with_independent_lifetimes():
     gc.collect()
 
     assert isinstance(segments, tuple)
-    assert all(isinstance(segment, memoryview) for segment in segments)
-    assert all(segment.readonly for segment in segments)
+    assert all(isinstance(segment, ZBytesSegment) for segment in segments)
+    assert all(memoryview(segment).readonly for segment in segments)
     assert b"".join(map(bytes, segments)) == b"helloworld"
     with pytest.raises(TypeError):
-        segments[0][0] = 0
+        memoryview(segments[0])[0] = 0
 
 
-def test_memoryviews_is_an_alias_for_segments():
+def test_memoryviews_are_zero_copy_views_over_segments():
     payload = ZBytes.from_segments([b"hello", b"world"], copy=True)
+    views = payload.memoryviews()
 
-    assert tuple(map(bytes, payload.memoryviews())) == tuple(
-        map(bytes, payload.segments())
-    )
+    assert all(isinstance(view, memoryview) for view in views)
+    assert all(view.readonly for view in views)
+    assert tuple(map(bytes, views)) == tuple(map(bytes, payload.segments()))
+
+
+def test_memoryviews_keep_segment_owner_alive():
+    payload = ZBytes.from_segments([b"hello", b"world"], copy=True)
+    views = payload.memoryviews()
+
+    del payload
+    gc.collect()
+
+    assert tuple(map(bytes, views)) == (b"hello", b"world")
+
+
+def test_copied_memoryviews_preserve_old_copy_out_behavior():
+    payload = ZBytes.from_segments([b"hello", b"world"], copy=True)
+    views = payload.copied_memoryviews()
+
+    del payload
+    gc.collect()
+
+    assert all(isinstance(view, memoryview) for view in views)
+    assert tuple(map(bytes, views)) == (b"hello", b"world")
 
 
 def test_from_segments_copies_large_payload_without_joining_inputs():
@@ -180,3 +202,21 @@ def test_from_segments_accepts_readonly_numpy_uint8_zero_copy_when_available():
     segment.flags.writeable = False
 
     assert bytes(ZBytes.from_segments([segment])) == b"\x01\x02\x03"
+
+
+def test_from_segments_accepts_zbytes_segment_without_copy():
+    source = ZBytes.from_segments([b"hello", b"world"], copy=True)
+    hello, world = source.segments()
+
+    payload = ZBytes.from_segments([world, hello], copy=False)
+
+    assert bytes(payload) == b"worldhello"
+
+
+def test_from_segments_copies_zbytes_segment():
+    source = ZBytes.from_segments([bytearray(b"hello")], copy=True)
+    (segment,) = source.segments()
+
+    payload = ZBytes.from_segments([segment], copy=True)
+
+    assert bytes(payload) == b"hello"

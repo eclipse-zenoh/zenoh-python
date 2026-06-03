@@ -303,19 +303,27 @@ instead of silently falling back to copying. Use ``copy=True`` for those
 buffers.
 
 On the receiving side, :meth:`zenoh.ZBytes.segments` returns a tuple of
-read-only ``memoryview`` objects over the payload's physical slices:
+zero-copy :class:`zenoh.ZBytesSegment` views over the payload's physical slices:
 
 .. code-block:: python
 
    physical_slices = sample.payload.segments()
    payload_bytes = b"".join(map(bytes, physical_slices))
 
-The returned memoryviews remain valid after a subscriber callback returns.
-For compatibility with Python 3.9's stable ABI, each physical slice is copied
-into an immutable Python ``bytes`` owner before its memoryview is returned.
-This avoids forcing the entire payload into one large contiguous allocation.
-The :meth:`zenoh.ZBytes.memoryviews` method is an alias for
-:meth:`zenoh.ZBytes.segments`.
+The returned segments remain valid after a subscriber callback returns. Each
+segment implements the Python buffer protocol, so consumers that accept buffer
+objects can use the segments directly or explicitly create ``memoryview``
+objects:
+
+.. code-block:: python
+
+   views = sample.payload.memoryviews()
+   first = memoryview(sample.payload.segments()[0])
+
+``bytes(segment)`` copies one segment. ``bytes(payload)`` or
+``payload.to_bytes()`` copies the whole payload. If you need the previous
+copy-out behavior where each returned memoryview is backed by a new Python
+``bytes`` object, use :meth:`zenoh.ZBytes.copied_memoryviews`.
 
 Physical slice boundaries are an internal memory layout optimization. They are
 not application-level frames and may differ from sender-side input boundaries

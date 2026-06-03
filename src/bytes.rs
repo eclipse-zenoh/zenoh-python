@@ -14,6 +14,7 @@
 use std::{
     any::Any,
     borrow::Cow,
+    ffi::CString,
     fmt,
     io::Read,
     os::raw::{c_int, c_void},
@@ -22,10 +23,10 @@ use std::{
 };
 
 use pyo3::{
-    exceptions::{PyRuntimeError, PyTypeError, PyValueError},
+    exceptions::{PyBufferError, PyRuntimeError, PyTypeError, PyValueError},
     ffi,
     prelude::*,
-    types::{PyByteArray, PyBytes, PyString, PyTuple},
+    types::{PyByteArray, PyBytes, PyMemoryView, PyString, PyTuple},
 };
 use zenoh_buffers::{ZBuf, ZSliceBuffer};
 
@@ -121,6 +122,150 @@ fn py_buffer_zbytes(buffer: BorrowedPyBufferSlice) -> zenoh::bytes::ZBytes {
     ZBuf::from(Arc::new(buffer)).into()
 }
 
+fn single_slice_zbytes(slice: zenoh_buffers::ZSlice) -> zenoh::bytes::ZBytes {
+    let mut zbuf = ZBuf::empty();
+    zbuf.push_zslice(slice);
+    zbuf.into()
+}
+
+fn physical_segment_zbytes(
+    zbytes: &zenoh::bytes::ZBytes,
+) -> impl Iterator<Item = zenoh::bytes::ZBytes> {
+    let zbuf: ZBuf = zbytes.clone().into();
+    zbuf.into_zslices().map(single_slice_zbytes)
+}
+
+fn copied_memoryviews<'py>(
+    zbytes: &zenoh::bytes::ZBytes,
+    py: Python<'py>,
+) -> PyResult<Bound<'py, PyTuple>> {
+    let memoryview = py.import("builtins")?.getattr("memoryview")?;
+    let views = zbytes
+        .slices()
+        .map(|slice| memoryview.call1((PyBytes::new(py, slice),)))
+        .collect::<PyResult<Vec<_>>>()?;
+    PyTuple::new(py, views)
+}
+
+unsafe fn fill_readonly_u8_buffer(
+    owner: Bound<'_, PyAny>,
+    data: &[u8],
+    view: *mut ffi::Py_buffer,
+    flags: c_int,
+) -> PyResult<()> {
+    if view.is_null() {
+        return Err(PyBufferError::new_err("view is null"));
+    }
+    if flags & ffi::PyBUF_WRITABLE == ffi::PyBUF_WRITABLE {
+        return Err(PyBufferError::new_err("object is not writable"));
+    }
+
+    unsafe {
+        (*view).obj = owner.into_ptr();
+        (*view).buf = data.as_ptr() as *mut c_void;
+        (*view).len = data.len() as ffi::Py_ssize_t;
+        (*view).readonly = 1;
+        (*view).itemsize = 1;
+        (*view).format = if flags & ffi::PyBUF_FORMAT == ffi::PyBUF_FORMAT {
+            CString::new("B").unwrap().into_raw()
+        } else {
+            ptr::null_mut()
+        };
+        (*view).ndim = 1;
+        (*view).shape = if flags & ffi::PyBUF_ND == ffi::PyBUF_ND {
+            &mut (*view).len
+        } else {
+            ptr::null_mut()
+        };
+        (*view).strides = if flags & ffi::PyBUF_STRIDES == ffi::PyBUF_STRIDES {
+            &mut (*view).itemsize
+        } else {
+            ptr::null_mut()
+        };
+        (*view).suboffsets = ptr::null_mut();
+        (*view).internal = ptr::null_mut();
+    }
+    Ok(())
+}
+
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct ZBytesSegment {
+    inner: zenoh::bytes::ZBytes,
+}
+
+impl ZBytesSegment {
+    fn new(inner: zenoh::bytes::ZBytes) -> Self {
+        Self { inner }
+    }
+
+    fn as_slice(&self) -> &[u8] {
+        self.inner.slices().next().unwrap_or(&[])
+    }
+
+    fn clone_inner(&self) -> zenoh::bytes::ZBytes {
+        self.inner.clone()
+    }
+}
+
+#[pymethods]
+impl ZBytesSegment {
+    fn to_bytes<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        PyBytes::new_with(py, self.inner.len(), |bytes| {
+            self.inner.reader().read_exact(bytes).into_pyres()
+        })
+    }
+
+    #[cfg(feature = "shared-memory")]
+    fn as_shm(&self) -> Option<crate::shm::ZShm> {
+        self.inner.as_shm().map(ToOwned::to_owned).map_into()
+    }
+
+    fn __len__(&self) -> usize {
+        self.inner.len()
+    }
+
+    fn __bool__(&self) -> bool {
+        !self.inner.is_empty()
+    }
+
+    fn __bytes__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        self.to_bytes(py)
+    }
+
+    fn __repr__(&self) -> String {
+        format!("ZBytesSegment({:?})", self.inner)
+    }
+
+    unsafe fn __getbuffer__(
+        slf: Bound<'_, Self>,
+        view: *mut ffi::Py_buffer,
+        flags: c_int,
+    ) -> PyResult<()> {
+        let (ptr, len) = {
+            let segment = slf.borrow();
+            let bytes = segment.as_slice();
+            (bytes.as_ptr(), bytes.len())
+        };
+        let bytes = if len == 0 {
+            &[]
+        } else {
+            // SAFETY: `slf` owns the single-slice ZBytes that keeps the backing
+            // storage alive for at least as long as the exported buffer.
+            unsafe { slice::from_raw_parts(ptr, len) }
+        };
+        unsafe { fill_readonly_u8_buffer(slf.into_any(), bytes, view, flags) }
+    }
+
+    unsafe fn __releasebuffer__(&self, view: *mut ffi::Py_buffer) {
+        unsafe {
+            if !view.is_null() && !(*view).format.is_null() {
+                drop(CString::from_raw((*view).format));
+            }
+        }
+    }
+}
+
 wrapper!(zenoh::bytes::ZBytes: Clone, Default);
 downcast_or_new!(ZBytes);
 
@@ -172,6 +317,15 @@ impl ZBytes {
         let mut writer = zenoh::bytes::ZBytes::writer();
         for (index, segment) in segments.try_iter()?.enumerate() {
             let segment = segment?;
+            if let Ok(segment) = segment.downcast_exact::<ZBytesSegment>() {
+                if copy {
+                    writer.append(segment.borrow().as_slice().to_vec().into());
+                } else {
+                    writer.append(segment.borrow().clone_inner());
+                }
+                continue;
+            }
+
             if !copy {
                 let view = memoryview.call1((&segment,)).map_err(|_| {
                     PyRuntimeError::new_err(format!(
@@ -235,17 +389,24 @@ impl ZBytes {
     }
 
     fn segments<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        let memoryview = py.import("builtins")?.getattr("memoryview")?;
-        let views = self
-            .0
-            .slices()
-            .map(|slice| memoryview.call1((PyBytes::new(py, slice),)))
+        let segments = physical_segment_zbytes(&self.0)
+            .map(|inner| Py::new(py, ZBytesSegment::new(inner)))
+            .collect::<PyResult<Vec<_>>>()?;
+        PyTuple::new(py, segments)
+    }
+
+    fn memoryviews<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let views = physical_segment_zbytes(&self.0)
+            .map(|inner| {
+                let segment = Py::new(py, ZBytesSegment::new(inner))?;
+                PyMemoryView::from(segment.bind(py).as_any()).map(|view| view.unbind())
+            })
             .collect::<PyResult<Vec<_>>>()?;
         PyTuple::new(py, views)
     }
 
-    fn memoryviews<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        self.segments(py)
+    fn copied_memoryviews<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        copied_memoryviews(&self.0, py)
     }
 
     fn to_string(&self) -> PyResult<Cow<'_, str>> {

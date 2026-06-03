@@ -57,7 +57,7 @@ pub(crate) mod zenoh {
 
     #[pymodule_export]
     use crate::{
-        bytes::{Encoding, ZBytes},
+        bytes::{Encoding, ZBytes, ZBytesSegment},
         cancellation::CancellationToken,
         config::{Config, WhatAmI, WhatAmIMatcher, ZenohId},
         handlers::Handler,
