@@ -205,6 +205,46 @@ jobs:
           name: wheels-linux-armv6
           path: dist
 
+  build-debian:
+    needs: [tag, build-linux, build-linux-aarch64]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - artifact: wheels-linux-x86_64
+            arch: amd64
+          - artifact: wheels-linux-i686
+            arch: i386
+          - artifact: wheels-linux-armv7
+            arch: armhf
+          - artifact: wheels-linux-aarch64
+            arch: arm64
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.branch }}
+
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist
+
+      - name: Convert wheel to Debian package
+        run: |
+          bash ci/scripts/wheel-to-deb.sh \
+            dist/eclipse_zenoh-*.whl \
+            python3-eclipse-zenoh \
+            ${{ needs.tag.outputs.version }} \
+            ${{ matrix.arch }}
+
+      - name: Upload Debian package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.arch }}
+          path: "*.deb"
+
   publish-pypi:
     needs:
       [
@@ -253,3 +293,21 @@ jobs:
           branch: ${{ needs.tag.outputs.branch }}
           github-token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
           archive-patterns: "^$"
+
+  publish-debian-github:
+    needs: [tag, build-debian, publish-github]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Debian packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: deb-*
+          path: debs
+          merge-multiple: true
+
+      - name: Upload Debian packages to GitHub release
+        if: ${{ inputs.live-run || false }}
+        run: gh release upload ${{ needs.tag.outputs.version }} debs/*.deb --clobber
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN_WORKFLOW }}
+          GH_REPO: ${{ github.repository }}
