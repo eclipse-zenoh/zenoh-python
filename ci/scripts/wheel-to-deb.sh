@@ -41,10 +41,14 @@ mkdir -p "$DIST_PKG"
 cp -r "$WORKDIR/contents/zenoh" "$DIST_PKG/"
 
 # Copy dist-info for importlib.metadata compatibility, omitting stale RECORD
-DIST_INFO=$(find "$WORKDIR/contents" -maxdepth 1 -name "*.dist-info" -type d)
-if [[ -n "$DIST_INFO" ]]; then
-    cp -r "$DIST_INFO" "$DIST_PKG/"
-    rm -f "$DIST_PKG/$(basename "$DIST_INFO")/RECORD"
+mapfile -t DIST_INFO_DIRS < <(find "$WORKDIR/contents" -maxdepth 1 -name "*.dist-info" -type d)
+if [[ ${#DIST_INFO_DIRS[@]} -gt 1 ]]; then
+    echo "Expected at most one dist-info directory, found: ${DIST_INFO_DIRS[*]}" >&2
+    exit 1
+fi
+if [[ ${#DIST_INFO_DIRS[@]} -eq 1 ]]; then
+    cp -r "${DIST_INFO_DIRS[0]}" "$DIST_PKG/"
+    rm -f "$DIST_PKG/$(basename "${DIST_INFO_DIRS[0]}")/RECORD"
 fi
 
 mkdir -p "$WORKDIR/deb/DEBIAN"

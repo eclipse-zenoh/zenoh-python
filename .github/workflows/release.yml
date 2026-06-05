@@ -233,9 +233,10 @@ jobs:
 
       - name: Convert wheel to Debian package
         run: |
+          shopt -s nullglob
           wheels=(dist/eclipse_zenoh-*.whl)
           if [[ ${#wheels[@]} -ne 1 ]]; then
-            echo "Expected exactly one wheel, found: ${wheels[*]}" >&2
+            echo "Expected exactly one wheel, found: ${#wheels[@]} (${wheels[*]})" >&2
             exit 1
           fi
           bash ci/scripts/wheel-to-deb.sh \
