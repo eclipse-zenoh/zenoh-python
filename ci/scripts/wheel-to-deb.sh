@@ -48,6 +48,8 @@ if [[ ${#DIST_INFO_DIRS[@]} -gt 1 ]]; then
 fi
 if [[ ${#DIST_INFO_DIRS[@]} -eq 1 ]]; then
     cp -r "${DIST_INFO_DIRS[0]}" "$DIST_PKG/"
+    # Mark as dpkg-managed so pip does not attempt to uninstall these files
+    echo "dpkg" > "$DIST_PKG/$(basename "${DIST_INFO_DIRS[0]}")/INSTALLER"
 fi
 
 # Derive minimum glibc version from the manylinux tag in the wheel filename

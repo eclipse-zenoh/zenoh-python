@@ -242,8 +242,8 @@ jobs:
           bash ci/scripts/wheel-to-deb.sh \
             "${wheels[0]}" \
             python3-eclipse-zenoh \
-            ${{ needs.tag.outputs.version }} \
-            ${{ matrix.arch }}
+            "${{ needs.tag.outputs.version }}" \
+            "${{ matrix.arch }}"
 
       - name: Upload Debian package artifact
         uses: actions/upload-artifact@v4
@@ -313,7 +313,7 @@ jobs:
 
       - name: Upload Debian packages to GitHub release
         if: ${{ inputs.live-run || false }}
-        run: gh release upload ${{ needs.tag.outputs.version }} debs/*.deb --clobber
+        run: gh release upload "${{ needs.tag.outputs.version }}" debs/*.deb --clobber
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN_WORKFLOW }}
           GH_REPO: ${{ github.repository }}
