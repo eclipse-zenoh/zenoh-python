@@ -19,6 +19,12 @@
 
 set -euo pipefail
 
+if [[ $# -ne 4 ]]; then
+    echo "Usage: $0 <wheel_file> <package_name> <version> <debian_arch>" >&2
+    echo "Example: $0 eclipse_zenoh-1.0.0-cp39-abi3-manylinux_2_17_x86_64.whl python3-eclipse-zenoh 1.0.0 amd64" >&2
+    exit 1
+fi
+
 WHEEL=$1
 PKG=$2
 VER=$3
@@ -33,6 +39,13 @@ DIST_PKG="$WORKDIR/deb/usr/lib/python3/dist-packages"
 mkdir -p "$DIST_PKG"
 
 cp -r "$WORKDIR/contents/zenoh" "$DIST_PKG/"
+
+# Copy dist-info for importlib.metadata compatibility, omitting stale RECORD
+DIST_INFO=$(find "$WORKDIR/contents" -maxdepth 1 -name "*.dist-info" -type d)
+if [[ -n "$DIST_INFO" ]]; then
+    cp -r "$DIST_INFO" "$DIST_PKG/"
+    rm -f "$DIST_PKG/$(basename "$DIST_INFO")/RECORD"
+fi
 
 mkdir -p "$WORKDIR/deb/DEBIAN"
 cat > "$WORKDIR/deb/DEBIAN/control" <<CTRL
