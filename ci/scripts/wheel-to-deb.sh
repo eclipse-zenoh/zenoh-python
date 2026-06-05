@@ -40,7 +40,7 @@ mkdir -p "$DIST_PKG"
 
 cp -r "$WORKDIR/contents/zenoh" "$DIST_PKG/"
 
-# Copy dist-info for importlib.metadata compatibility, omitting stale RECORD
+# Copy dist-info for importlib.metadata and pip compatibility
 mapfile -t DIST_INFO_DIRS < <(find "$WORKDIR/contents" -maxdepth 1 -name "*.dist-info" -type d)
 if [[ ${#DIST_INFO_DIRS[@]} -gt 1 ]]; then
     echo "Expected at most one dist-info directory, found: ${DIST_INFO_DIRS[*]}" >&2
@@ -48,7 +48,13 @@ if [[ ${#DIST_INFO_DIRS[@]} -gt 1 ]]; then
 fi
 if [[ ${#DIST_INFO_DIRS[@]} -eq 1 ]]; then
     cp -r "${DIST_INFO_DIRS[0]}" "$DIST_PKG/"
-    rm -f "$DIST_PKG/$(basename "${DIST_INFO_DIRS[0]}")/RECORD"
+fi
+
+# Derive minimum glibc version from the manylinux tag in the wheel filename
+# e.g. manylinux_2_17 -> libc6 (>= 2.17), manylinux_2_28 -> libc6 (>= 2.28)
+LIBC6_DEP="libc6"
+if [[ "$WHEEL" =~ manylinux_([0-9]+)_([0-9]+) ]]; then
+    LIBC6_DEP="libc6 (>= ${BASH_REMATCH[1]}.${BASH_REMATCH[2]})"
 fi
 
 mkdir -p "$WORKDIR/deb/DEBIAN"
@@ -57,7 +63,7 @@ Package: $PKG
 Version: $VER
 Architecture: $ARCH
 Maintainer: ZettaScale Zenoh Team <zenoh@zettascale.tech>
-Depends: python3 (>= 3.9), libc6
+Depends: python3 (>= 3.9), $LIBC6_DEP
 Section: python
 Priority: optional
 Homepage: https://zenoh.io
