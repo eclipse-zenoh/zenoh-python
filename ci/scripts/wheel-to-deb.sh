@@ -50,8 +50,7 @@ Description: Eclipse Zenoh Python bindings
  This package provides the Python bindings for Eclipse Zenoh, enabling
  pub/sub, queryable and geo-distributed storage in Python.
  .
- Built from manylinux wheels; requires Ubuntu 22.04+, Debian 12+,
- or any distribution with glibc >= 2.17.
+ Built from manylinux wheels.
 CTRL
 
 dpkg-deb --build --root-owner-group "$WORKDIR/deb" "${PKG}_${VER}_${ARCH}.deb"
