@@ -213,12 +213,16 @@ jobs:
         include:
           - artifact: wheels-linux-x86_64
             arch: amd64
+            target: x86_64-unknown-linux-gnu
           - artifact: wheels-linux-i686
             arch: i386
+            target: i686-unknown-linux-gnu
           - artifact: wheels-linux-armv7
             arch: armhf
+            target: armv7-unknown-linux-gnueabihf
           - artifact: wheels-linux-aarch64
             arch: arm64
+            target: aarch64-unknown-linux-gnu
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
@@ -248,7 +252,7 @@ jobs:
       - name: Upload Debian package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deb-${{ matrix.arch }}
+          name: zenoh-python-${{ needs.tag.outputs.version }}-${{ matrix.target }}-debian.zip
           path: "*.deb"
 
   publish-pypi:
@@ -300,20 +304,14 @@ jobs:
           github-token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
           archive-patterns: "^$"
 
-  publish-debian-github:
-    needs: [tag, build-debian, publish-github]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Debian packages
-        uses: actions/download-artifact@v4
-        with:
-          pattern: deb-*
-          path: debs
-          merge-multiple: true
-
-      - name: Upload Debian packages to GitHub release
-        if: ${{ inputs.live-run || false }}
-        run: gh release upload "${{ needs.tag.outputs.version }}" debs/*.deb --clobber
-        env:
-          GH_TOKEN: ${{ secrets.BOT_TOKEN_WORKFLOW }}
-          GH_REPO: ${{ github.repository }}
+  publish-debian:
+    needs: [tag, build-debian]
+    name: Publish Debian packages
+    uses: eclipse-zenoh/ci/.github/workflows/release-crates-debian.yml@main
+    with:
+      no-build: true
+      live-run: ${{ inputs.live-run || false }}
+      version: ${{ needs.tag.outputs.version }}
+      repo: ${{ github.repository }}
+      branch: ${{ needs.tag.outputs.branch }}
+    secrets: inherit
