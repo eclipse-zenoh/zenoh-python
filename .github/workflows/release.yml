@@ -205,6 +205,60 @@ jobs:
           name: wheels-linux-armv6
           path: dist
 
+  build-debian:
+    needs: [tag, build-linux, build-linux-aarch64]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - artifact: wheels-linux-x86_64
+            arch: amd64
+            target: x86_64-unknown-linux-gnu
+          - artifact: wheels-linux-i686
+            arch: i386
+            target: i686-unknown-linux-gnu
+          - artifact: wheels-linux-armv7
+            arch: armhf
+            target: armv7-unknown-linux-gnueabihf
+          - artifact: wheels-linux-aarch64
+            arch: arm64
+            target: aarch64-unknown-linux-gnu
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.branch }}
+
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist
+
+      - name: Convert wheel to Debian package
+        run: |
+          shopt -s nullglob
+          wheels=(dist/eclipse_zenoh-*.whl)
+          if [[ ${#wheels[@]} -ne 1 ]]; then
+            echo "Expected exactly one wheel, found: ${#wheels[@]} (${wheels[*]})" >&2
+            exit 1
+          fi
+          bash ci/scripts/wheel-to-deb.sh \
+            "${wheels[0]}" \
+            python3-eclipse-zenoh \
+            "${{ needs.tag.outputs.version }}" \
+            "${{ matrix.arch }}"
+
+      - name: Package Debian artifact as zip
+        run: |
+          zip "zenoh-python-${{ needs.tag.outputs.version }}-${{ matrix.target }}-debian.zip" *.deb
+
+      - name: Upload Debian package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zenoh-python-${{ needs.tag.outputs.version }}-${{ matrix.target }}-debian.zip
+          path: "zenoh-python-${{ needs.tag.outputs.version }}-${{ matrix.target }}-debian.zip"
+
   publish-pypi:
     needs:
       [
@@ -253,3 +307,15 @@ jobs:
           branch: ${{ needs.tag.outputs.branch }}
           github-token: ${{ secrets.BOT_TOKEN_WORKFLOW }}
           archive-patterns: "^$"
+
+  publish-debian:
+    needs: [tag, build-debian]
+    name: Publish Debian packages
+    uses: eclipse-zenoh/ci/.github/workflows/release-crates-debian.yml@main
+    with:
+      no-build: true
+      live-run: ${{ inputs.live-run || false }}
+      version: ${{ needs.tag.outputs.version }}
+      repo: ${{ github.repository }}
+      branch: ${{ needs.tag.outputs.branch }}
+    secrets: inherit
