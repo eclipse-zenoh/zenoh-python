@@ -249,11 +249,15 @@ jobs:
             "${{ needs.tag.outputs.version }}" \
             "${{ matrix.arch }}"
 
+      - name: Package Debian artifact as zip
+        run: |
+          zip "zenoh-python-${{ needs.tag.outputs.version }}-${{ matrix.target }}-debian.zip" *.deb
+
       - name: Upload Debian package artifact
         uses: actions/upload-artifact@v4
         with:
           name: zenoh-python-${{ needs.tag.outputs.version }}-${{ matrix.target }}-debian.zip
-          path: "*.deb"
+          path: "zenoh-python-${{ needs.tag.outputs.version }}-${{ matrix.target }}-debian.zip"
 
   publish-pypi:
     needs:
