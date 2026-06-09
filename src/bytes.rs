@@ -29,12 +29,16 @@ use pyo3::{
     prelude::*,
     types::{PyByteArray, PyBytes, PyMemoryView, PyString, PyTuple},
 };
+#[cfg(feature = "shared-memory")]
+use zenoh_buffers::ZSlice;
 use zenoh_buffers::{ZBuf, ZSliceBuffer};
+#[cfg(feature = "shared-memory")]
+use zenoh_shm::ShmBufInner;
 
 use crate::{
     buffer::{fill_readonly_u8_buffer, release_u8_buffer},
     macros::{downcast_or_new, wrapper},
-    utils::{IntoPyResult, MapInto},
+    utils::{IntoPyResult, IntoPython, IntoRust, MapInto},
 };
 
 unsafe extern "C" {
@@ -186,6 +190,70 @@ fn single_slice_zbytes(slice: zenoh_buffers::ZSlice) -> zenoh::bytes::ZBytes {
     zbuf.into()
 }
 
+#[cfg(feature = "shared-memory")]
+struct CudaRegistrationOwner(
+    #[allow(dead_code)] Vec<crate::cuda_shm::CudaRegisteredMemory>,
+);
+
+#[cfg(feature = "shared-memory")]
+struct CudaPinnedShmSlice {
+    // Drop registrations before the SHM clone so cuMemHostUnregister runs
+    // while the mapping is still alive.
+    _cuda_owner: Arc<CudaRegistrationOwner>,
+    inner: ShmBufInner,
+}
+
+#[cfg(feature = "shared-memory")]
+impl fmt::Debug for CudaPinnedShmSlice {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CudaPinnedShmSlice")
+            .field("len", &self.inner.as_ref().len())
+            .finish_non_exhaustive()
+    }
+}
+
+#[cfg(feature = "shared-memory")]
+impl ZSliceBuffer for CudaPinnedShmSlice {
+    fn as_slice(&self) -> &[u8] {
+        self.inner.as_ref()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        &self.inner
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.inner
+    }
+}
+
+#[cfg(feature = "shared-memory")]
+fn attach_cuda_registrations(
+    inner: zenoh::bytes::ZBytes,
+    cuda_registrations: Vec<crate::cuda_shm::CudaRegisteredMemory>,
+) -> zenoh::bytes::ZBytes {
+    if cuda_registrations.is_empty() {
+        return inner;
+    }
+
+    let owner = Arc::new(CudaRegistrationOwner(cuda_registrations));
+    let mut zbuf = ZBuf::empty();
+    for zslice in ZBuf::from(inner).into_zslices() {
+        if let Some(shm) = zslice.downcast_ref::<ShmBufInner>() {
+            let mut wrapped = ZSlice::from(CudaPinnedShmSlice {
+                _cuda_owner: owner.clone(),
+                inner: shm.clone(),
+            });
+            wrapped.kind = zslice.kind;
+            zbuf.push_zslice(wrapped);
+        } else {
+            zbuf.push_zslice(zslice);
+        }
+    }
+    zbuf.into()
+}
+
 fn physical_segment_zbytes(
     zbytes: &zenoh::bytes::ZBytes,
 ) -> impl Iterator<Item = zenoh::bytes::ZBytes> {
@@ -279,7 +347,87 @@ impl ZBytesSegment {
     }
 }
 
-wrapper!(zenoh::bytes::ZBytes: Clone, Default);
+#[pyclass]
+#[derive(Clone)]
+pub(crate) struct ZBytes {
+    // Drop CUDA registrations before the ZBytes inner so cuMemHostUnregister
+    // runs while the SHM mapping is still alive.
+    #[cfg(feature = "shared-memory")]
+    #[allow(dead_code)]
+    cuda_registrations: Vec<crate::cuda_shm::CudaRegisteredMemory>,
+    pub(crate) inner: zenoh::bytes::ZBytes,
+}
+
+impl Default for ZBytes {
+    fn default() -> Self {
+        Self {
+            #[cfg(feature = "shared-memory")]
+            cuda_registrations: Vec::new(),
+            inner: zenoh::bytes::ZBytes::default(),
+        }
+    }
+}
+
+impl ZBytes {
+    #[cfg(feature = "shared-memory")]
+    pub(crate) fn with_cuda_registrations(
+        inner: zenoh::bytes::ZBytes,
+        cuda_registrations: Vec<crate::cuda_shm::CudaRegisteredMemory>,
+    ) -> Self {
+        Self {
+            cuda_registrations: Vec::new(),
+            inner: attach_cuda_registrations(inner, cuda_registrations),
+        }
+    }
+}
+
+impl From<zenoh::bytes::ZBytes> for ZBytes {
+    fn from(inner: zenoh::bytes::ZBytes) -> Self {
+        Self {
+            #[cfg(feature = "shared-memory")]
+            cuda_registrations: Vec::new(),
+            inner,
+        }
+    }
+}
+
+impl From<ZBytes> for zenoh::bytes::ZBytes {
+    fn from(value: ZBytes) -> Self {
+        #[cfg(feature = "shared-memory")]
+        {
+            return attach_cuda_registrations(value.inner, value.cuda_registrations);
+        }
+        #[cfg(not(feature = "shared-memory"))]
+        {
+            return value.inner;
+        }
+    }
+}
+
+impl IntoRust for ZBytes {
+    type Into = zenoh::bytes::ZBytes;
+
+    fn into_rust(self) -> Self::Into {
+        self.into()
+    }
+}
+
+impl IntoPython for zenoh::bytes::ZBytes {
+    type Into = ZBytes;
+
+    fn into_python(self) -> Self::Into {
+        self.into()
+    }
+}
+
+impl IntoPython for ZBytes {
+    type Into = ZBytes;
+
+    fn into_python(self) -> Self::Into {
+        self
+    }
+}
+
 downcast_or_new!(ZBytes);
 
 enum SegmentAction {
@@ -297,19 +445,25 @@ impl ZBytes {
             return Ok(Self::default());
         };
         if let Ok(bytes) = obj.downcast::<PyByteArray>() {
-            Ok(Self(bytes.to_vec().into()))
+            Ok(Self::from(zenoh::bytes::ZBytes::from(bytes.to_vec())))
         } else if let Ok(bytes) = obj.downcast::<PyBytes>() {
-            Ok(Self(bytes.as_bytes().into()))
+            Ok(Self::from(zenoh::bytes::ZBytes::from(
+                bytes.as_bytes().to_vec(),
+            )))
         } else if let Ok(string) = obj.downcast::<PyString>() {
-            Ok(Self(string.to_string().into()))
+            Ok(Self::from(zenoh::bytes::ZBytes::from(string.to_string())))
         } else {
             #[cfg(feature = "shared-memory")]
             if let Ok(buf) = obj.downcast_exact::<crate::shm::ZShmMut>() {
-                return Ok(Self(buf.borrow_mut().take()?.into()));
+                return Ok(Self::from(zenoh::bytes::ZBytes::from(
+                    buf.borrow_mut().take()?,
+                )));
             }
             #[cfg(feature = "shared-memory")]
             if let Ok(buf) = obj.downcast_exact::<crate::shm::ZShm>() {
-                return Ok(Self(buf.borrow().0.clone().into()));
+                return Ok(Self::from(zenoh::bytes::ZBytes::from(
+                    buf.borrow().0.clone(),
+                )));
             }
             Err(PyTypeError::new_err(format!(
                 "expected bytes/str type, found '{}'",
@@ -320,8 +474,8 @@ impl ZBytes {
 
     fn to_bytes<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
         // Not using `ZBytes::to_bytes`
-        PyBytes::new_with(py, self.0.len(), |bytes| {
-            self.0.reader().read_exact(bytes).into_pyres()
+        PyBytes::new_with(py, self.inner.len(), |bytes| {
+            self.inner.reader().read_exact(bytes).into_pyres()
         })
     }
 
@@ -489,18 +643,18 @@ impl ZBytes {
                 }
             }
         }
-        Ok(Self(writer.finish()))
+        Ok(Self::from(writer.finish()))
     }
 
     fn segments<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        let segments = physical_segment_zbytes(&self.0)
+        let segments = physical_segment_zbytes(&self.inner)
             .map(|inner| Py::new(py, ZBytesSegment::new(inner)))
             .collect::<PyResult<Vec<_>>>()?;
         PyTuple::new(py, segments)
     }
 
     fn memoryviews<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        let views = physical_segment_zbytes(&self.0)
+        let views = physical_segment_zbytes(&self.inner)
             .map(|inner| {
                 let segment = Py::new(py, ZBytesSegment::new(inner))?;
                 PyMemoryView::from(segment.bind(py).as_any()).map(|view| view.unbind())
@@ -510,26 +664,26 @@ impl ZBytes {
     }
 
     fn copied_memoryviews<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        copied_memoryviews(&self.0, py)
+        copied_memoryviews(&self.inner, py)
     }
 
     fn to_string(&self) -> PyResult<Cow<'_, str>> {
-        self.0
+        self.inner
             .try_to_string()
             .map_err(|_| PyValueError::new_err("not an UTF8 error"))
     }
 
     #[cfg(feature = "shared-memory")]
     fn as_shm(&self) -> Option<crate::shm::ZShm> {
-        self.0.as_shm().map(ToOwned::to_owned).map_into()
+        self.inner.as_shm().map(ToOwned::to_owned).map_into()
     }
 
     fn __len__(&self) -> usize {
-        self.0.len()
+        self.inner.len()
     }
 
     fn __bool__(&self) -> bool {
-        !self.0.is_empty()
+        !self.inner.is_empty()
     }
 
     fn __bytes__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
@@ -541,7 +695,7 @@ impl ZBytes {
     }
 
     fn __eq__(&self, #[pyo3(from_py_with = Self::from_py)] other: Self) -> bool {
-        self.0 == other.0
+        self.inner == other.inner
     }
 
     fn __hash__(&self, py: Python) -> PyResult<isize> {
@@ -549,7 +703,7 @@ impl ZBytes {
     }
 
     fn __repr__(&self) -> String {
-        format!("{:?}", self.0)
+        format!("{:?}", self.inner)
     }
 }
 
@@ -694,4 +848,41 @@ impl Encoding {
     const VIDEO_VP8: Self = Self(zenoh::bytes::Encoding::VIDEO_VP8);
     #[classattr]
     const VIDEO_VP9: Self = Self(zenoh::bytes::Encoding::VIDEO_VP9);
+}
+
+#[cfg(all(test, feature = "shared-memory"))]
+mod tests {
+    use super::*;
+    use crate::cuda_shm::test_support::{fake_driver, take_events, test_lock, Event};
+    use zenoh::{
+        shm::{PosixShmProviderBackend, ShmProviderBuilder},
+        Wait,
+    };
+
+    #[test]
+    fn cuda_registration_survives_conversion_into_rust_zbytes() {
+        let _guard = test_lock();
+        let backend = PosixShmProviderBackend::builder(4096).wait().unwrap();
+        let provider = ShmProviderBuilder::backend(backend).wait();
+        let layout = provider.alloc_layout(16).unwrap();
+        let mut shm = layout.alloc().wait().unwrap();
+        shm.as_mut().copy_from_slice(b"cuda-pinned-shm!");
+        let ptr = shm.as_ref().as_ptr() as usize;
+
+        let registration = fake_driver()
+            .register(ptr as *mut u8, shm.as_ref().len())
+            .unwrap();
+        let page = ptr - (ptr % 4096);
+        assert_eq!(take_events(), vec![Event::Register(page, 4096)]);
+
+        let py_zbytes = ZBytes::with_cuda_registrations(shm.into(), vec![registration]);
+        let rust_zbytes: zenoh::bytes::ZBytes = py_zbytes.into();
+
+        assert_eq!(rust_zbytes.to_bytes().as_ref(), b"cuda-pinned-shm!");
+        assert!(rust_zbytes.as_shm().is_some());
+        assert_eq!(take_events(), Vec::<Event>::new());
+
+        drop(rust_zbytes);
+        assert_eq!(take_events(), vec![Event::Unregister(page)]);
+    }
 }

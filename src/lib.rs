@@ -17,6 +17,8 @@ mod buffer;
 mod bytes;
 mod cancellation;
 mod config;
+#[cfg(feature = "shared-memory")]
+mod cuda_shm;
 #[cfg(feature = "zenoh-ext")]
 mod ext;
 mod handlers;
@@ -107,7 +109,7 @@ pub(crate) mod zenoh {
         #[pymodule_export]
         use crate::shm::{
             AllocAlignment, BlockOn, Deallocate, Defragment, GarbageCollect, JustAlloc,
-            MemoryLayout, ShmProvider, ZShm, ZShmMut,
+            MemoryLayout, ShmProvider, ZShm, ZShmMut, ZShmPool, ZShmPoolBuf,
         };
     }
 

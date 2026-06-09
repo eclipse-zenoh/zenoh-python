@@ -4290,6 +4290,7 @@ dependencies = [
  "zenoh",
  "zenoh-buffers",
  "zenoh-ext",
+ "zenoh-shm",
 ]
 
 [[package]]

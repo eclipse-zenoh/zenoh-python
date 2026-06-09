@@ -320,6 +320,64 @@ The sink's ``release`` method should be non-blocking or return quickly. Shared
 memory buffers have their own lifecycle management, so ``lease`` cannot be used
 with ``shm.ZShm`` or ``shm.ZShmMut`` segments.
 
+Pool-owned shared memory payloads
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use :class:`zenoh.shm.ZShmPool` when an external writer needs a mutable Python
+buffer first, and Zenoh should publish the result as a real shared-memory
+payload:
+
+.. code-block:: python
+
+   import zenoh
+
+   pool = zenoh.shm.ZShmPool(
+       pool_size=256 * 1024 * 1024,
+       cuda_pinned=True,
+       cuda_device=0,
+       alignment=zenoh.shm.AllocAlignment(12),
+   )
+
+   buf = pool.alloc(1024)
+   memoryview(buf)[:] = b"\0" * 1024
+
+   payload = pool.seal_to_zbytes([buf])
+   publisher.put(payload)
+
+``ZShmPool`` is a generic shared-memory pool. It does not know about any
+particular serialization format, and it is not a strict singleton; create
+explicit pool instances for workloads with different sizes, alignments, CUDA
+pinning requirements, or devices.
+
+``ZShmPoolBuf`` implements the writable Python buffer protocol until it is
+sealed. :meth:`zenoh.shm.ZShmPool.seal_to_zbytes` accepts only buffers allocated
+by the same pool, consumes them, and returns :class:`zenoh.ZBytes` preserving the
+Zenoh SHM descriptor. Arbitrary ``memoryview`` objects should continue to use
+:meth:`zenoh.ZBytes.from_segments`; those are raw borrowed buffers and do not
+carry SHM identity.
+
+By default, :meth:`zenoh.shm.ZShmPool.seal_to_zbytes` refuses to seal a buffer
+while active Python buffer exports exist. The explicit
+:meth:`zenoh.shm.ZShmPool.seal_to_zbytes_unchecked` path skips that check for
+advanced integrations such as torch or capnp, where the exporter object may
+outlive the write phase. This is unsafe: before calling it, the application must
+guarantee that all CPU and GPU writers have completed and that no existing
+``memoryview``, torch tensor, capnp view, or other alias will write to the
+buffer afterwards. Otherwise those writes can race with Zenoh reads or sends and
+produce torn payload contents. Keep the returned :class:`zenoh.ZBytes` alive
+until any pre-existing aliases are released.
+
+When ``cuda_pinned=True``, zenoh-python loads ``libcuda.so.1`` through the CUDA
+Driver API and registers allocated SHM host memory for CUDA-aware writers. When
+``cuda_pinned=False``, no CUDA library is loaded.
+
+The current Zenoh SHM allocation API does not expose the full backing pool
+segment base and length to zenoh-python. CUDA pinning therefore uses a
+per-driver page registry: overlapping allocations in the same pool share page
+registrations and a page is unregistered only after the last owning
+``ZShmPoolBuf`` or sealed ``ZBytes`` is dropped. The residual limitation is that
+the whole pool is not pinned eagerly as one segment.
+
 The read-only flag prevents writes through the exported view but cannot prevent
 writes through every alias to the same backing memory. After passing segments
 to ``copy=False``, the application must treat their backing memory as immutable

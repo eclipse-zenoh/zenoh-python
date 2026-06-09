@@ -67,11 +67,56 @@ pub(crate) unsafe fn fill_readonly_u8_buffer(
     Ok(())
 }
 
-/// Release the format string allocated by [`fill_readonly_u8_buffer`].
+/// Populate `view` as a writable, single-byte, C-contiguous buffer over `data`.
+///
+/// # Safety
+/// `data` must remain valid for as long as `owner` keeps the buffer alive, and
+/// callers must ensure there is no conflicting mutable access while the Python
+/// buffer export exists.
+#[cfg(feature = "shared-memory")]
+pub(crate) unsafe fn fill_writable_u8_buffer(
+    owner: Bound<'_, PyAny>,
+    data: &mut [u8],
+    view: *mut ffi::Py_buffer,
+    flags: c_int,
+) -> PyResult<()> {
+    if view.is_null() {
+        return Err(PyBufferError::new_err("view is null"));
+    }
+
+    unsafe {
+        (*view).obj = owner.into_ptr();
+        (*view).buf = data.as_mut_ptr() as *mut c_void;
+        (*view).len = data.len() as ffi::Py_ssize_t;
+        (*view).readonly = 0;
+        (*view).itemsize = 1;
+        (*view).format = if flags & ffi::PyBUF_FORMAT == ffi::PyBUF_FORMAT {
+            CString::new("B").unwrap().into_raw()
+        } else {
+            ptr::null_mut()
+        };
+        (*view).ndim = 1;
+        (*view).shape = if flags & ffi::PyBUF_ND == ffi::PyBUF_ND {
+            &mut (*view).len
+        } else {
+            ptr::null_mut()
+        };
+        (*view).strides = if flags & ffi::PyBUF_STRIDES == ffi::PyBUF_STRIDES {
+            &mut (*view).itemsize
+        } else {
+            ptr::null_mut()
+        };
+        (*view).suboffsets = ptr::null_mut();
+        (*view).internal = ptr::null_mut();
+    }
+    Ok(())
+}
+
+/// Release the format string allocated by the u8 buffer helpers.
 ///
 /// # Safety
 /// `view` must be a `Py_buffer` previously populated by
-/// [`fill_readonly_u8_buffer`].
+/// [`fill_readonly_u8_buffer`] or the shared-memory writable helper.
 pub(crate) unsafe fn release_u8_buffer(view: *mut ffi::Py_buffer) {
     unsafe {
         if !view.is_null() && !(*view).format.is_null() {

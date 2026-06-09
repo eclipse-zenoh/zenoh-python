@@ -11,7 +11,11 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from typing import Self, TypeVar, final, overload
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Self, TypeVar, final, overload
+
+if TYPE_CHECKING:
+    from . import ZBytes
 
 _T = TypeVar("_T")
 
@@ -121,6 +125,68 @@ class ShmProvider:
         """Bytes available for use"""
 
 _IntoMemoryLayout = MemoryLayout | tuple[int, AllocAlignment] | int
+
+@_unstable
+@final
+class ZShmPool:
+    """Explicit shared-memory pool for creating writable SHM payload buffers.
+
+    When ``cuda_pinned`` is true, allocations are additionally registered with
+    the CUDA Driver API so CUDA-aware writers can treat the host memory as
+    pinned. Overlapping allocations share page registrations within the pool.
+    CUDA libraries are not required when ``cuda_pinned`` is false.
+    """
+
+    def __new__(
+        cls,
+        pool_size: int = 268435456,
+        *,
+        cuda_pinned: bool = False,
+        cuda_device: int = 0,
+        alignment: AllocAlignment | None = None,
+    ) -> Self: ...
+    def alloc(self, size: int, alignment: AllocAlignment | None = None) -> ZShmPoolBuf:
+        """Allocate a pool-owned mutable SHM buffer."""
+
+    def seal_to_zbytes(self, buffers: Iterable[ZShmPoolBuf]) -> "ZBytes":
+        """Consume pool-owned buffers and return a true SHM-backed ZBytes.
+
+        Fails if any buffer still has active Python buffer exports.
+        """
+
+    def seal_to_zbytes_unchecked(self, buffers: Iterable[ZShmPoolBuf]) -> "ZBytes":
+        """Consume pool-owned buffers even when active buffer exports exist.
+
+        Danger: the caller must guarantee all CPU/GPU writers have completed
+        and no existing memoryview, torch tensor, capnp view, or other alias
+        will write after this call. Violating that guarantee can race with
+        Zenoh reads/sends and produce torn payload contents. Keep the returned
+        ZBytes alive until any pre-existing aliases are released.
+        """
+
+    @property
+    def cuda_pinned(self) -> bool: ...
+
+@_unstable
+@final
+class ZShmPoolBuf:
+    """A mutable buffer allocated by :class:`ZShmPool`.
+
+    It implements the writable Python buffer protocol until sealed.
+    """
+
+    @property
+    def ptr(self) -> int: ...
+    @property
+    def is_sealed(self) -> bool: ...
+    def is_valid(self) -> bool: ...
+    def __len__(self) -> int: ...
+    def __bytes__(self) -> bytes: ...
+    def __str__(self) -> str: ...
+    @overload
+    def __setitem__(self, item: int, value: int): ...
+    @overload
+    def __setitem__(self, item: slice, value: bytes | bytearray): ...
 
 @_unstable
 @final

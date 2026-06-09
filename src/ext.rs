@@ -170,7 +170,7 @@ fn serialize_impl(
         Ok(())
     };
     match tp {
-        SupportedType::ZBytes => serializer.serialize(obj.extract::<ZBytes>()?.0),
+        SupportedType::ZBytes => serializer.serialize(obj.extract::<ZBytes>()?.inner),
         // SAFETY: bytes are immediately copied
         SupportedType::ByteArray => {
             serializer.serialize(unsafe { obj.downcast::<PyByteArray>()?.as_bytes() })
@@ -322,7 +322,10 @@ fn deserialize_impl(
     };
     Ok(match tp {
         SupportedType::ZBytes => {
-            ZBytes(deserializer.deserialize::<Vec<u8>>()?.into()).into_py_any(py)?
+            ZBytes::from(zenoh::bytes::ZBytes::from(
+                deserializer.deserialize::<Vec<u8>>()?,
+            ))
+            .into_py_any(py)?
         }
         SupportedType::ByteArray => {
             PyByteArray::new(py, &deserializer.deserialize::<Vec<u8>>()?).into_py_any(py)?
@@ -441,7 +444,7 @@ fn deserialize_collection(
 
 #[pyfunction]
 pub(crate) fn z_deserialize(tp: &Bound<PyAny>, zbytes: &ZBytes) -> PyResult<PyObject> {
-    let mut deserializer = ZDeserializer::new(&zbytes.0);
+    let mut deserializer = ZDeserializer::new(&zbytes.inner);
     deserialize(&mut deserializer, tp).map_err(|err| err.0)
 }
 
