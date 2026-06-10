@@ -30,6 +30,7 @@ use crate::{
     sample::SourceInfo,
     session::EntityGlobalId,
     time::Timestamp,
+    timestamp_stack::{TimestampInstrumentation, TimestampStack},
     utils::{generic, wait, IntoPyResult, IntoPython, IntoRust, MapInto},
 };
 
@@ -230,6 +231,11 @@ impl Query {
         Ok(self.get_ref()?.source_info().cloned().map_into())
     }
 
+    #[getter]
+    fn timestamp_stack(&self) -> PyResult<Option<TimestampStack>> {
+        Ok(self.get_ref()?.timestamp_stack().cloned().map_into())
+    }
+
     fn drop(&mut self) {
         Python::with_gil(|gil| gil.allow_threads(|| drop(self.0.take())));
     }
@@ -293,6 +299,11 @@ impl ReplyError {
     #[getter]
     fn encoding(&self) -> Encoding {
         self.0.encoding().clone().into()
+    }
+
+    #[getter]
+    fn timestamp_stack(&self) -> Option<TimestampStack> {
+        self.0.timestamp_stack().cloned().map_into()
     }
 
     fn __repr__(&self) -> String {
@@ -408,7 +419,7 @@ impl Querier {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (handler = None, *, parameters = None, payload = None, encoding = None, attachment = None, source_info = None, cancellation_token = None))]
+    #[pyo3(signature = (handler = None, *, parameters = None, payload = None, encoding = None, attachment = None, source_info = None, cancellation_token = None, timestamp_instrumentation = None))]
     fn get(
         &self,
         py: Python,
@@ -419,6 +430,7 @@ impl Querier {
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         source_info: Option<SourceInfo>,
         cancellation_token: Option<CancellationToken>,
+        timestamp_instrumentation: Option<TimestampInstrumentation>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let this = self.get_ref()?;
         let (handler, _) = into_handler(py, handler, cancellation_token.as_ref())?;
@@ -429,7 +441,8 @@ impl Querier {
             encoding,
             attachment,
             source_info,
-            cancellation_token
+            cancellation_token,
+            timestamp_instrumentation
         );
         wait(py, builder.with(handler)).map_into()
     }

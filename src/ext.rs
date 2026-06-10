@@ -24,6 +24,7 @@ use crate::{
     sample::{Locality, Sample},
     session::{EntityGlobalId, Session},
     time::Timestamp,
+    timestamp_stack::TimestampInstrumentation,
     utils::{duration, generic, wait, MapInto},
     ZDeserializeError,
 };
@@ -492,7 +493,7 @@ impl AdvancedPublisher {
         Ok(self.get_ref()?.priority().into())
     }
 
-    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None))]
+    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None, timestamp_instrumentation = None))]
     fn put(
         &self,
         py: Python,
@@ -500,22 +501,24 @@ impl AdvancedPublisher {
         #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
+        timestamp_instrumentation: Option<TimestampInstrumentation>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
         wait(
             py,
-            build!(this.put(payload), encoding, attachment, timestamp),
+            build!(this.put(payload), encoding, attachment, timestamp, timestamp_instrumentation),
         )
     }
 
-    #[pyo3(signature = (*, attachment = None, timestamp = None))]
+    #[pyo3(signature = (*, attachment = None, timestamp = None, timestamp_instrumentation = None))]
     fn delete(
         &self,
         py: Python,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
+        timestamp_instrumentation: Option<TimestampInstrumentation>,
     ) -> PyResult<()> {
-        wait(py, build!(self.get_ref()?.delete(), attachment, timestamp))
+        wait(py, build!(self.get_ref()?.delete(), attachment, timestamp, timestamp_instrumentation))
     }
 
     fn undeclare(&mut self, py: Python) -> PyResult<()> {
