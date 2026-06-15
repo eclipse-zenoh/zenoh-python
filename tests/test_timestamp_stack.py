@@ -21,6 +21,7 @@ from zenoh import (
     TimestampInstrumentation,
     TimestampInstrumentationBuilder,
     TimestampStack,
+    TsStackContext,
 )
 
 SLEEP = 1
@@ -302,3 +303,87 @@ def test_querier_get_timestamp_stack():
     querier.undeclare()
     queryable.undeclare()
     close_session(peer01, peer02)
+
+
+def test_timestamp_callback():
+    """Test Session open with a timestamp callback."""
+    zenoh.try_init_log_from_env()
+
+    contexts = []
+    custom_timestamp = b"\xde\xad\xbe\xef"
+
+    def timestamp_callback(ctx: TsStackContext):
+        contexts.append(
+            {
+                "zid": str(ctx.zid),
+                "whatami": ctx.whatami,
+                "interception_point": ctx.interception_point,
+            }
+        )
+        return custom_timestamp
+
+    conf = zenoh.Config()
+    conf.insert_json5("listen/endpoints", json.dumps(["tcp/127.0.0.1:17453"]))
+    conf.insert_json5("scouting/multicast/enabled", "false")
+    peer01 = zenoh.open(conf, timestamp_callback=timestamp_callback)
+
+    conf = zenoh.Config()
+    conf.insert_json5("connect/endpoints", json.dumps(["tcp/127.0.0.1:17453"]))
+    conf.insert_json5("scouting/multicast/enabled", "false")
+    peer02 = zenoh.open(conf)
+
+    keyexpr = "test/timestamp_callback"
+    msg = b"hello with custom timestamps"
+
+    received_sample = None
+
+    def sub_callback(sample: Sample):
+        nonlocal received_sample
+        received_sample = sample
+
+    publisher = peer01.declare_publisher(keyexpr)
+    subscriber = peer02.declare_subscriber(keyexpr, sub_callback)
+    time.sleep(SLEEP)
+
+    instr = (
+        TimestampInstrumentationBuilder()
+        .set_send(True)
+        .set_receive(True)
+        .build()
+    )
+    publisher.put(msg, timestamp_instrumentation=instr)
+
+    time.sleep(SLEEP)
+    assert received_sample is not None
+    assert received_sample.timestamp_stack is not None
+    assert isinstance(received_sample.timestamp_stack, TimestampStack)
+
+    stack = received_sample.timestamp_stack
+    assert stack.instrumentation is not None
+    assert stack.instrumentation.is_instrumented(InterceptionPoint.SEND)
+    assert stack.instrumentation.is_instrumented(InterceptionPoint.RECEIVE)
+
+    assert len(stack.records) > 0
+
+    # The callback was set on peer01, so timestamps generated on peer01
+    # (Send and possibly Route) must be custom. The Receive timestamp is
+    # generated on peer02, which has no callback, so it remains UHLC.
+    custom_records = [r for r in stack.records if r.is_custom()]
+    assert len(custom_records) > 0
+    for record in custom_records:
+        assert record.timestamp() == custom_timestamp
+
+    # The callback should have been invoked once per custom timestamp.
+    assert len(contexts) >= len(custom_records)
+    for ctx in contexts:
+        assert ctx["whatami"] == zenoh.WhatAmI.PEER
+        assert ctx["interception_point"] in [
+            InterceptionPoint.SEND,
+            InterceptionPoint.ROUTE,
+            InterceptionPoint.RECEIVE,
+        ]
+
+    publisher.undeclare()
+    subscriber.undeclare()
+    peer01.close()
+    peer02.close()

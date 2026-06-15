@@ -313,8 +313,19 @@ impl Drop for Session {
 }
 
 #[pyfunction]
-pub(crate) fn open(py: Python, config: Config) -> PyResult<Session> {
-    wait(py, zenoh::open(config)).map(Session)
+#[pyo3(signature = (config, *, timestamp_callback=None))]
+pub(crate) fn open(
+    py: Python,
+    config: Config,
+    timestamp_callback: Option<Py<PyAny>>,
+) -> PyResult<Session> {
+    let builder = zenoh::open(config);
+    let builder = if let Some(callback) = timestamp_callback {
+        builder.with_timestamp_callback(crate::timestamp_stack::create_timestamp_callback(callback))
+    } else {
+        builder
+    };
+    wait(py, builder).map(Session)
 }
 
 wrapper!(zenoh::session::SessionInfo);

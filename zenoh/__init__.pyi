@@ -2176,6 +2176,29 @@ class InterceptionPoint(Enum):
 
 @_unstable
 @final
+class TsStackContext:
+    """Context passed to the timestamp callback.
+
+    Provides information about the current Zenoh node and the interception
+    point at which a timestamp is being generated.
+    """
+
+    @property
+    def zid(self) -> ZenohId:
+        """The Zenoh ID of the current node."""
+
+    @property
+    def whatami(self) -> WhatAmI:
+        """The mode of the current node (router, peer, or client)."""
+
+    @property
+    def interception_point(self) -> InterceptionPoint:
+        """The interception point at which the timestamp is being generated."""
+
+    def __repr__(self) -> str: ...
+
+@_unstable
+@final
 class TimestampInstrumentationBuilder:
     """Builder for creating :class:`TimestampInstrumentation` instances.
 
@@ -2391,10 +2414,18 @@ def init_log_from_env_or(level: str):
     For example, `RUST_LOG=debug` will set the log level to DEBUG.
     If `RUST_LOG` is not set, then logging is set to the provided level."""
 
-def open(config: Config) -> Session:
+def open(
+    config: Config, *, timestamp_callback: Callable[[TsStackContext], bytes] | None = None
+) -> Session:
     """Open a zenoh :class:`zenoh.Session`.
 
     For more information about sessions and configuration, see :ref:`session-and-config`.
+
+    Args:
+        config: The configuration for the session.
+        timestamp_callback: An optional callback invoked at each interception point
+            (Send, Route, Receive) when timestamp stack instrumentation is enabled.
+            The callback receives a :class:`TsStackContext` and must return ``bytes``.
     """
 
 # Common docstring for all scout function overloads

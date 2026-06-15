@@ -506,7 +506,13 @@ impl AdvancedPublisher {
         let this = self.get_ref()?;
         wait(
             py,
-            build!(this.put(payload), encoding, attachment, timestamp, timestamp_instrumentation),
+            build!(
+                this.put(payload),
+                encoding,
+                attachment,
+                timestamp,
+                timestamp_instrumentation
+            ),
         )
     }
 
@@ -518,7 +524,15 @@ impl AdvancedPublisher {
         timestamp: Option<Timestamp>,
         timestamp_instrumentation: Option<TimestampInstrumentation>,
     ) -> PyResult<()> {
-        wait(py, build!(self.get_ref()?.delete(), attachment, timestamp, timestamp_instrumentation))
+        wait(
+            py,
+            build!(
+                self.get_ref()?.delete(),
+                attachment,
+                timestamp,
+                timestamp_instrumentation
+            ),
+        )
     }
 
     fn undeclare(&mut self, py: Python) -> PyResult<()> {

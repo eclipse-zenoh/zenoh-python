@@ -117,7 +117,13 @@ impl Publisher {
         timestamp_instrumentation: Option<TimestampInstrumentation>,
         source_info: Option<SourceInfo>,
     ) -> PyResult<()> {
-        let builder = build!(self.get_ref()?.delete(), attachment, timestamp, timestamp_instrumentation, source_info);
+        let builder = build!(
+            self.get_ref()?.delete(),
+            attachment,
+            timestamp,
+            timestamp_instrumentation,
+            source_info
+        );
         wait(py, builder)
     }
 
