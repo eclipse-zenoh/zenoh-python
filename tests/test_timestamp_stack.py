@@ -66,12 +66,7 @@ def test_timestamp_instrumentation_builder():
     assert not instr2.is_instrumented(InterceptionPoint.RECEIVE)
 
     # Build with only route and receive
-    instr3 = (
-        TimestampInstrumentationBuilder()
-        .set_route(True)
-        .set_receive(True)
-        .build()
-    )
+    instr3 = TimestampInstrumentationBuilder().set_route(True).set_receive(True).build()
     assert not instr3.is_instrumented(InterceptionPoint.SEND)
     assert instr3.is_instrumented(InterceptionPoint.ROUTE)
     assert instr3.is_instrumented(InterceptionPoint.RECEIVE)
@@ -105,12 +100,7 @@ def test_pubsub_timestamp_stack():
     time.sleep(SLEEP)
 
     # Test with timestamp_instrumentation
-    instr = (
-        TimestampInstrumentationBuilder()
-        .set_send(True)
-        .set_receive(True)
-        .build()
-    )
+    instr = TimestampInstrumentationBuilder().set_send(True).set_receive(True).build()
     publisher.put(msg, timestamp_instrumentation=instr)
 
     time.sleep(SLEEP)
@@ -168,12 +158,7 @@ def test_session_put_timestamp_stack():
     subscriber = peer02.declare_subscriber(keyexpr, sub_callback)
     time.sleep(SLEEP)
 
-    instr = (
-        TimestampInstrumentationBuilder()
-        .set_send(True)
-        .set_receive(True)
-        .build()
-    )
+    instr = TimestampInstrumentationBuilder().set_send(True).set_receive(True).build()
     peer01.put(keyexpr, msg, timestamp_instrumentation=instr)
 
     time.sleep(SLEEP)
@@ -199,12 +184,7 @@ def test_session_get_timestamp_stack():
     queryable = peer01.declare_queryable(keyexpr, queryable_callback)
     time.sleep(SLEEP)
 
-    instr = (
-        TimestampInstrumentationBuilder()
-        .set_send(True)
-        .set_receive(True)
-        .build()
-    )
+    instr = TimestampInstrumentationBuilder().set_send(True).set_receive(True).build()
     replies = peer02.get(keyexpr, timestamp_instrumentation=instr)
     for reply in replies:
         sample = reply.ok
@@ -239,12 +219,7 @@ def test_delete_timestamp_stack():
     subscriber = peer02.declare_subscriber(keyexpr, sub_callback)
     time.sleep(SLEEP)
 
-    instr = (
-        TimestampInstrumentationBuilder()
-        .set_send(True)
-        .set_receive(True)
-        .build()
-    )
+    instr = TimestampInstrumentationBuilder().set_send(True).set_receive(True).build()
     publisher.delete(timestamp_instrumentation=instr)
 
     time.sleep(SLEEP)
@@ -274,12 +249,7 @@ def test_querier_get_timestamp_stack():
     querier = peer02.declare_querier(keyexpr)
     time.sleep(SLEEP)
 
-    instr = (
-        TimestampInstrumentationBuilder()
-        .set_send(True)
-        .set_receive(True)
-        .build()
-    )
+    instr = TimestampInstrumentationBuilder().set_send(True).set_receive(True).build()
     replies = querier.get(timestamp_instrumentation=instr)
     for reply in replies:
         sample = reply.ok
@@ -345,12 +315,7 @@ def test_timestamp_callback():
     subscriber = peer02.declare_subscriber(keyexpr, sub_callback)
     time.sleep(SLEEP)
 
-    instr = (
-        TimestampInstrumentationBuilder()
-        .set_send(True)
-        .set_receive(True)
-        .build()
-    )
+    instr = TimestampInstrumentationBuilder().set_send(True).set_receive(True).build()
     publisher.put(msg, timestamp_instrumentation=instr)
 
     time.sleep(SLEEP)

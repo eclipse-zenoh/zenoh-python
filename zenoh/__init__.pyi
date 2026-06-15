@@ -2415,7 +2415,9 @@ def init_log_from_env_or(level: str):
     If `RUST_LOG` is not set, then logging is set to the provided level."""
 
 def open(
-    config: Config, *, timestamp_callback: Callable[[TsStackContext], bytes] | None = None
+    config: Config,
+    *,
+    timestamp_callback: Callable[[TsStackContext], bytes] | None = None,
 ) -> Session:
     """Open a zenoh :class:`zenoh.Session`.
 
