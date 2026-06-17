@@ -137,10 +137,12 @@ wrapper!(zenoh::timestamp_stack::TimestampStackRecord: Clone);
 
 #[pymethods]
 impl TimestampStackRecord {
+    #[getter]
     fn point(&self) -> InterceptionPoint {
         self.0.point().into()
     }
 
+    #[getter]
     fn is_custom(&self) -> bool {
         self.0.is_custom()
     }

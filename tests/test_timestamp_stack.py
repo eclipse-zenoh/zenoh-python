@@ -116,7 +116,7 @@ def test_pubsub_timestamp_stack():
 
     assert len(stack.records) > 0
     for record in stack.records:
-        assert record.point() in [
+        assert record.point in [
             InterceptionPoint.SEND,
             InterceptionPoint.ROUTE,
             InterceptionPoint.RECEIVE,
@@ -124,7 +124,7 @@ def test_pubsub_timestamp_stack():
         # timestamp() returns either Timestamp or bytes
         ts = record.timestamp()
         assert ts is not None
-        if record.is_custom():
+        if record.is_custom:
             assert isinstance(ts, bytes)
         else:
             assert isinstance(ts, zenoh.Timestamp)
@@ -333,13 +333,13 @@ def test_timestamp_callback():
     # The callback was set on peer01, so timestamps generated on peer01
     # (Send and possibly Route) must be custom. The Receive timestamp is
     # generated on peer02, which has no callback, so it remains UHLC.
-    custom_records = [r for r in stack.records if r.is_custom()]
+    custom_records = [r for r in stack.records if r.is_custom]
     assert len(custom_records) > 0
     for record in custom_records:
         assert record.timestamp() == custom_timestamp
 
     # The callback should have been invoked once per custom timestamp.
-    assert len(contexts) >= len(custom_records)
+    assert len(contexts) == len(custom_records)
     for ctx in contexts:
         assert ctx["whatami"] == zenoh.WhatAmI.PEER
         assert ctx["interception_point"] in [
