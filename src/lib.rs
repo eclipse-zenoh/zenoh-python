@@ -32,6 +32,7 @@ mod session;
 #[cfg(feature = "shared-memory")]
 mod shm;
 mod time;
+mod timestamp_stack;
 mod utils;
 
 use pyo3::prelude::*;
@@ -77,6 +78,10 @@ pub(crate) mod zenoh {
             Transport, TransportEvent, TransportEventsListener,
         },
         time::{Timestamp, TimestampId, NTP64},
+        timestamp_stack::{
+            InterceptionPoint, TimestampContext, TimestampInstrumentation,
+            TimestampInstrumentationBuilder, TimestampStack, TimestampStackRecord,
+        },
         ZError,
     };
 
