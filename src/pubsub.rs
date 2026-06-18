@@ -27,7 +27,6 @@ use crate::{
     sample::{Sample, SourceInfo},
     session::EntityGlobalId,
     time::Timestamp,
-    timestamp_stack::TimestampInstrumentation,
     utils::{generic, wait},
 };
 
@@ -85,8 +84,7 @@ impl Publisher {
         Ok(wait(py, self.get_ref()?.matching_status())?.into())
     }
 
-    #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None, timestamp_instrumentation = None, source_info = None))]
+    #[pyo3(signature = (payload, *, encoding = None, attachment = None, timestamp = None, source_info = None))]
     fn put(
         &self,
         py: Python,
@@ -94,7 +92,6 @@ impl Publisher {
         #[pyo3(from_py_with = Encoding::from_py_opt)] encoding: Option<Encoding>,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
-        timestamp_instrumentation: Option<TimestampInstrumentation>,
         source_info: Option<SourceInfo>,
     ) -> PyResult<()> {
         let this = self.get_ref()?;
@@ -103,28 +100,20 @@ impl Publisher {
             encoding,
             attachment,
             timestamp,
-            timestamp_instrumentation,
             source_info
         );
         wait(py, builder)
     }
 
-    #[pyo3(signature = (*, attachment = None, timestamp = None, timestamp_instrumentation = None, source_info = None))]
+    #[pyo3(signature = (*, attachment = None, timestamp = None, source_info = None))]
     fn delete(
         &self,
         py: Python,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
-        timestamp_instrumentation: Option<TimestampInstrumentation>,
         source_info: Option<SourceInfo>,
     ) -> PyResult<()> {
-        let builder = build!(
-            self.get_ref()?.delete(),
-            attachment,
-            timestamp,
-            timestamp_instrumentation,
-            source_info
-        );
+        let builder = build!(self.get_ref()?.delete(), attachment, timestamp, source_info);
         wait(py, builder)
     }
 
