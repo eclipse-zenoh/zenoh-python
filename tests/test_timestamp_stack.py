@@ -21,7 +21,7 @@ from zenoh import (
     TimestampInstrumentation,
     TimestampInstrumentationBuilder,
     TimestampStack,
-    TsStackContext,
+    TimestampContext,
 )
 
 SLEEP = 1
@@ -282,12 +282,11 @@ def test_timestamp_callback():
     contexts = []
     custom_timestamp = b"\xde\xad\xbe\xef"
 
-    def timestamp_callback(ctx: TsStackContext):
+    def timestamp_callback(ctx: TimestampContext):
         contexts.append(
             {
                 "zid": str(ctx.zid),
                 "whatami": ctx.whatami,
-                "interception_point": ctx.interception_point,
             }
         )
         return custom_timestamp
@@ -342,11 +341,6 @@ def test_timestamp_callback():
     assert len(contexts) == len(custom_records)
     for ctx in contexts:
         assert ctx["whatami"] == zenoh.WhatAmI.PEER
-        assert ctx["interception_point"] in [
-            InterceptionPoint.SEND,
-            InterceptionPoint.ROUTE,
-            InterceptionPoint.RECEIVE,
-        ]
 
     publisher.undeclare()
     subscriber.undeclare()

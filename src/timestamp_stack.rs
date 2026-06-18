@@ -11,8 +11,6 @@
 // Contributors:
 //   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 //
-use std::sync::Arc;
-
 use pyo3::{prelude::*, types::PyBytes};
 
 use crate::{
@@ -28,10 +26,10 @@ enum_mapper!(zenoh::timestamp_stack::InterceptionPoint: u8 {
 });
 
 #[pyclass]
-pub(crate) struct TsStackContext(pub(crate) zenoh::timestamp_stack::TsStackContext);
+pub(crate) struct TimestampContext(pub(crate) zenoh::timestamp_stack::TimestampContext);
 
 #[pymethods]
-impl TsStackContext {
+impl TimestampContext {
     #[getter]
     fn zid(&self) -> ZenohId {
         ZenohId(self.0.zid)
@@ -42,15 +40,10 @@ impl TsStackContext {
         self.0.whatami.into()
     }
 
-    #[getter]
-    fn interception_point(&self) -> InterceptionPoint {
-        self.0.interception_point.into()
-    }
-
     fn __repr__(&self) -> String {
         format!(
-            "TsStackContext(zid={}, whatami={:?}, interception_point={:?})",
-            self.0.zid, self.0.whatami, self.0.interception_point
+            "TimestampContext(zid={}, whatami={:?})",
+            self.0.zid, self.0.whatami
         )
     }
 }
@@ -65,30 +58,28 @@ fn log_timestamp_callback_error(py: Python, err: PyErr) {
 
 pub(crate) fn create_timestamp_callback(
     callback: Py<PyAny>,
-) -> zenoh::timestamp_stack::GetTimestampCallback {
-    Arc::new(
-        move |ctx: zenoh::timestamp_stack::TsStackContext| -> Vec<u8> {
-            Python::with_gil(|py| {
-                let py_ctx = match Py::new(py, TsStackContext(ctx)) {
-                    Ok(ctx) => ctx,
-                    Err(e) => {
-                        log_timestamp_callback_error(py, e);
-                        return Vec::new();
-                    }
-                };
-                match callback.call1(py, (py_ctx,)) {
-                    Ok(result) => result.extract::<Vec<u8>>(py).unwrap_or_else(|e| {
-                        log_timestamp_callback_error(py, e);
-                        Vec::new()
-                    }),
-                    Err(e) => {
-                        log_timestamp_callback_error(py, e);
-                        Vec::new()
-                    }
+) -> impl Fn(zenoh::timestamp_stack::TimestampContext) -> Vec<u8> + Send + Sync + 'static {
+    move |ctx: zenoh::timestamp_stack::TimestampContext| -> Vec<u8> {
+        Python::with_gil(|py| {
+            let py_ctx = match Py::new(py, TimestampContext(ctx)) {
+                Ok(ctx) => ctx,
+                Err(e) => {
+                    log_timestamp_callback_error(py, e);
+                    return Vec::new();
                 }
-            })
-        },
-    )
+            };
+            match callback.call1(py, (py_ctx,)) {
+                Ok(result) => result.extract::<Vec<u8>>(py).unwrap_or_else(|e| {
+                    log_timestamp_callback_error(py, e);
+                    Vec::new()
+                }),
+                Err(e) => {
+                    log_timestamp_callback_error(py, e);
+                    Vec::new()
+                }
+            }
+        })
+    }
 }
 
 wrapper!(zenoh::timestamp_stack::TimestampInstrumentation: Clone, Copy, PartialEq, Eq);
