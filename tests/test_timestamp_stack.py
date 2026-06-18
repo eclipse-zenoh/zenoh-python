@@ -18,10 +18,10 @@ import zenoh
 from zenoh import (
     InterceptionPoint,
     Sample,
+    TimestampContext,
     TimestampInstrumentation,
     TimestampInstrumentationBuilder,
     TimestampStack,
-    TimestampContext,
 )
 
 SLEEP = 1
@@ -283,12 +283,7 @@ def test_timestamp_callback():
     custom_timestamp = b"\xde\xad\xbe\xef"
 
     def timestamp_callback(ctx: TimestampContext):
-        contexts.append(
-            {
-                "zid": str(ctx.zid),
-                "whatami": ctx.whatami,
-            }
-        )
+        contexts.append({"zid": str(ctx.zid), "whatami": ctx.whatami})
         return custom_timestamp
 
     conf = zenoh.Config()
