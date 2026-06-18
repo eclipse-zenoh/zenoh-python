@@ -2245,9 +2245,11 @@ class TimestampStackRecord:
     along a message's path through the network.
     """
 
+    @property
     def point(self) -> InterceptionPoint:
         """The interception point where this record was captured."""
 
+    @property
     def is_custom(self) -> bool:
         """Whether the timestamp was produced by a user-defined callback.
 
