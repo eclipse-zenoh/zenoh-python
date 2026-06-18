@@ -741,7 +741,6 @@ class Publisher:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
         source_info: SourceInfo | None = None,
     ):
         """Publish data to :class:`Subscriber` instances matching this publisher's key expression.
@@ -755,7 +754,6 @@ class Publisher:
         *,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
         source_info: SourceInfo | None = None,
     ):
         """Declare that data associated with this publisher's key expression is deleted.
@@ -897,15 +895,6 @@ class Query:
     def source_info(self) -> SourceInfo | None:
         """Gets info on the source of this Query."""
 
-    @_unstable
-    @property
-    def timestamp_stack(self) -> TimestampStack | None:
-        """Gets the timestamp stack of this Query.
-
-        The timestamp stack carries interception records (Send, Route, Receive)
-        collected along the message's path through the network.
-        """
-
     def drop(self):
         """Drop the instance of a query.
         The query will only be finalized when all query instances (one per queryable
@@ -1001,7 +990,6 @@ class Querier:
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> Handler[Reply]:
         """Sends a query and returns a channel for processing replies.
 
@@ -1018,7 +1006,6 @@ class Querier:
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> _H:
         """Sends a query and returns a channel for processing replies.
 
@@ -1035,7 +1022,6 @@ class Querier:
         attachment: _IntoZBytes | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> None:
         """Sends a query and processes replies using the provided callback.
 
@@ -1219,15 +1205,6 @@ class ReplyError:
     def encoding(self) -> Encoding:
         """Gets the encoding of this `ReplyError`."""
 
-    @_unstable
-    @property
-    def timestamp_stack(self) -> TimestampStack | None:
-        """Gets the timestamp stack of this ReplyError.
-
-        The timestamp stack carries interception records (Send, Route, Receive)
-        collected along the message's path through the network.
-        """
-
 @final
 class SampleKind(Enum):
     """The kind of a :class:`Sample`, indicating whether it contains data or indicates deletion."""
@@ -1288,15 +1265,6 @@ class Sample:
     @property
     def source_info(self) -> SourceInfo | None:
         """Gets info on the source of this Sample."""
-
-    @_unstable
-    @property
-    def timestamp_stack(self) -> TimestampStack | None:
-        """Gets the timestamp stack of this Sample.
-
-        The timestamp stack carries interception records (Send, Route, Receive)
-        collected along the message's path through the network.
-        """
 
 @final
 class Scout(Generic[_H]):
@@ -1470,7 +1438,6 @@ class Session:
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
     ):
@@ -1488,7 +1455,6 @@ class Session:
         express: bool | None = None,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
     ):
@@ -1516,7 +1482,6 @@ class Session:
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> Handler[Reply]:
         """Query data from the matching queryables in the system.
 
@@ -1542,7 +1507,6 @@ class Session:
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> _H:
         """Query data from the matching queryables in the system.
 
@@ -1568,7 +1532,6 @@ class Session:
         allowed_destination: Locality | None = None,
         source_info: SourceInfo | None = None,
         cancellation_token: CancellationToken | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ) -> None:
         """Query data from the matching queryables in the system.
 
@@ -2165,120 +2128,6 @@ Used in :meth:`Timestamp.__new__` to accept various byte representations
 that can be converted to a :class:`TimestampId`.
 """
 
-@_unstable
-@final
-class InterceptionPoint(Enum):
-    """Identifies which interception point a timestamp record was captured at."""
-
-    SEND = auto()
-    ROUTE = auto()
-    RECEIVE = auto()
-
-@_unstable
-@final
-class TimestampContext:
-    """Context passed to the timestamp callback.
-
-    Provides information about the current Zenoh node.
-    """
-
-    @property
-    def zid(self) -> ZenohId:
-        """The Zenoh ID of the current node."""
-
-    @property
-    def whatami(self) -> WhatAmI:
-        """The mode of the current node (router, peer, or client)."""
-
-    def __repr__(self) -> str: ...
-
-@_unstable
-@final
-class TimestampInstrumentationBuilder:
-    """Builder for creating :class:`TimestampInstrumentation` instances.
-
-    Used to configure which interception points (Send, Route, Receive)
-    should record timestamps in the timestamp stack.
-    """
-
-    def __new__(cls) -> Self: ...
-    def set_send(self, enabled: bool) -> Self:
-        """Enable or disable recording timestamps at the Send point."""
-
-    def set_route(self, enabled: bool) -> Self:
-        """Enable or disable recording timestamps at the Route point."""
-
-    def set_receive(self, enabled: bool) -> Self:
-        """Enable or disable recording timestamps at the Receive point."""
-
-    def build(self) -> TimestampInstrumentation:
-        """Build the :class:`TimestampInstrumentation` configuration.
-
-        Raises:
-            ZError: If no interception points are enabled.
-        """
-
-@_unstable
-@final
-class TimestampInstrumentation:
-    """Configuration for which interception points are active in timestamp stack instrumentation.
-
-    Build via :class:`TimestampInstrumentationBuilder`.
-    """
-
-    def is_instrumented(self, point: InterceptionPoint) -> bool:
-        """Check if the given interception point is instrumented."""
-
-    def __repr__(self) -> str: ...
-
-@_unstable
-@final
-class TimestampStackRecord:
-    """A single interception record in a timestamp stack.
-
-    Represents one timestamp captured at a specific interception point
-    along a message's path through the network.
-    """
-
-    @property
-    def point(self) -> InterceptionPoint:
-        """The interception point where this record was captured."""
-
-    @property
-    def is_custom(self) -> bool:
-        """Whether the timestamp was produced by a user-defined callback.
-
-        Returns ``True`` for custom timestamps, ``False`` for standard UHLC timestamps.
-        """
-
-    def timestamp(self) -> Timestamp | bytes:
-        """The timestamp value.
-
-        Returns a :class:`Timestamp` for UHLC timestamps, or ``bytes`` for custom timestamps.
-        Use :meth:`is_custom` to determine which type to expect.
-        """
-
-    def __repr__(self) -> str: ...
-
-@_unstable
-@final
-class TimestampStack:
-    """The complete timestamp stack carried by a received message.
-
-    Contains the instrumentation configuration and the ordered list of
-    interception records collected as the message traversed the network.
-    """
-
-    @property
-    def instrumentation(self) -> TimestampInstrumentation:
-        """The instrumentation configuration for this stack."""
-
-    @property
-    def records(self) -> list[TimestampStackRecord]:
-        """The ordered list of interception records."""
-
-    def __repr__(self) -> str: ...
-
 @final
 class WhatAmI(Enum):
     """The type of the node in the Zenoh network.
@@ -2411,20 +2260,10 @@ def init_log_from_env_or(level: str):
     For example, `RUST_LOG=debug` will set the log level to DEBUG.
     If `RUST_LOG` is not set, then logging is set to the provided level."""
 
-def open(
-    config: Config,
-    *,
-    timestamp_callback: Callable[[TimestampContext], bytes] | None = None,
-) -> Session:
+def open(config: Config) -> Session:
     """Open a zenoh :class:`zenoh.Session`.
 
     For more information about sessions and configuration, see :ref:`session-and-config`.
-
-    Args:
-        config: The configuration for the session.
-        timestamp_callback: An optional callback invoked at each interception point
-            (Send, Route, Receive) when timestamp stack instrumentation is enabled.
-            The callback receives a :class:`TimestampContext` and must return ``bytes``.
     """
 
 # Common docstring for all scout function overloads

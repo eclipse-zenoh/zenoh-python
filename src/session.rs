@@ -33,7 +33,6 @@ use crate::{
     query::{Querier, QueryConsolidation, QueryTarget, Queryable, Reply, ReplyKeyExpr, Selector},
     sample::{Locality, SampleKind, SourceInfo},
     time::Timestamp,
-    timestamp_stack::TimestampInstrumentation,
     utils::{duration, wait, IntoPython, MapInto},
 };
 
@@ -95,7 +94,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None, attachment = None, timestamp = None, timestamp_instrumentation = None, allowed_destination = None, source_info = None))]
+    #[pyo3(signature = (key_expr, payload, *, encoding = None, congestion_control = None, priority = None, express = None, attachment = None, timestamp = None, allowed_destination = None, source_info = None))]
     fn put(
         &self,
         py: Python,
@@ -107,7 +106,6 @@ impl Session {
         express: Option<bool>,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
-        timestamp_instrumentation: Option<TimestampInstrumentation>,
         allowed_destination: Option<Locality>,
         source_info: Option<SourceInfo>,
     ) -> PyResult<()> {
@@ -119,7 +117,6 @@ impl Session {
             express,
             attachment,
             timestamp,
-            timestamp_instrumentation,
             allowed_destination,
             source_info,
         );
@@ -127,7 +124,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None, timestamp = None, timestamp_instrumentation = None, allowed_destination = None, source_info = None))]
+    #[pyo3(signature = (key_expr, *, congestion_control = None, priority = None, express = None, attachment = None, timestamp = None, allowed_destination = None, source_info = None))]
     fn delete(
         &self,
         py: Python,
@@ -137,7 +134,6 @@ impl Session {
         express: Option<bool>,
         #[pyo3(from_py_with = ZBytes::from_py_opt)] attachment: Option<ZBytes>,
         timestamp: Option<Timestamp>,
-        timestamp_instrumentation: Option<TimestampInstrumentation>,
         allowed_destination: Option<Locality>,
         source_info: Option<SourceInfo>,
     ) -> PyResult<()> {
@@ -148,7 +144,6 @@ impl Session {
             express,
             attachment,
             timestamp,
-            timestamp_instrumentation,
             allowed_destination,
             source_info
         );
@@ -156,7 +151,7 @@ impl Session {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, accept_replies = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None, allowed_destination = None, source_info = None, cancellation_token = None, timestamp_instrumentation = None))]
+    #[pyo3(signature = (selector, handler = None, *, target = None, consolidation = None, accept_replies = None, timeout = None, congestion_control = None, priority = None, express = None, payload = None, encoding = None, attachment = None, allowed_destination = None, source_info = None, cancellation_token = None))]
     fn get(
         &self,
         py: Python,
@@ -177,7 +172,6 @@ impl Session {
         allowed_destination: Option<Locality>,
         source_info: Option<SourceInfo>,
         cancellation_token: Option<CancellationToken>,
-        timestamp_instrumentation: Option<TimestampInstrumentation>,
     ) -> PyResult<HandlerImpl<Reply>> {
         let (handler, _) = into_handler(py, handler, cancellation_token.as_ref())?;
         let builder = build!(
@@ -194,8 +188,7 @@ impl Session {
             attachment,
             allowed_destination,
             source_info,
-            cancellation_token,
-            timestamp_instrumentation
+            cancellation_token
         );
 
         wait(py, builder.with(handler)).map_into()
@@ -313,19 +306,8 @@ impl Drop for Session {
 }
 
 #[pyfunction]
-#[pyo3(signature = (config, *, timestamp_callback=None))]
-pub(crate) fn open(
-    py: Python,
-    config: Config,
-    timestamp_callback: Option<Py<PyAny>>,
-) -> PyResult<Session> {
-    let builder = zenoh::open(config);
-    let builder = if let Some(callback) = timestamp_callback {
-        builder.with_timestamp_callback(crate::timestamp_stack::create_timestamp_callback(callback))
-    } else {
-        builder
-    };
-    wait(py, builder).map(Session)
+pub(crate) fn open(py: Python, config: Config) -> PyResult<Session> {
+    wait(py, zenoh::open(config)).map(Session)
 }
 
 wrapper!(zenoh::session::SessionInfo);

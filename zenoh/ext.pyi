@@ -27,7 +27,6 @@ from zenoh import (
     Session,
     Subscriber,
     Timestamp,
-    TimestampInstrumentation,
     ZBytes,
     handlers,
 )
@@ -165,7 +164,6 @@ class AdvancedPublisher:
         encoding: _IntoEncoding | None = None,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ):
         """Publish data to the key expression. See :meth:`zenoh.Publisher.put`."""
 
@@ -174,7 +172,6 @@ class AdvancedPublisher:
         *,
         attachment: _IntoZBytes | None = None,
         timestamp: Timestamp | None = None,
-        timestamp_instrumentation: TimestampInstrumentation | None = None,
     ):
         """Delete the value associated with the key expression. See :meth:`zenoh.Publisher.delete`."""
 
