@@ -2422,9 +2422,10 @@ def open(
 
     Args:
         config: The configuration for the session.
+
         timestamp_callback: An optional callback invoked at each interception point
-            (Send, Route, Receive) when timestamp stack instrumentation is enabled.
-            The callback receives a :class:`TimestampContext` and must return ``bytes``.
+        (Send, Route, Receive) when timestamp stack instrumentation is enabled.
+        The callback receives a :class:`TimestampContext` and must return ``bytes``.
     """
 
 # Common docstring for all scout function overloads
@@ -2436,8 +2437,10 @@ or by letting the :class:`zenoh.Scout` object go out of scope (dropping it).
 
 Args:
     handler: Optional handler for processing received :class:`zenoh.Hello` messages.
+
     what: Optional :class:`zenoh.WhatAmIMatcher` or string specifying which node types to scout for
     (e.g., "peer|router"). If None, scouts for all node types.
+
     config: Optional :class:`zenoh.Config` for the scouting session.
 
 For more information about scouting, see :ref:`scouting`.
