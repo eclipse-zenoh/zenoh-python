@@ -1256,6 +1256,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
+name = "lru"
+version = "0.16.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f66e8d5d03f609abc3a39e6f08e4164ebf1447a732906d39eb9b99b7919ef39"
+dependencies = [
+ "hashbrown 0.16.1",
+]
+
+[[package]]
 name = "lru-slab"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2065,6 +2074,15 @@ checksum = "8d3e7aa0a681b232e7cd7f856a53b10603df88ca74b79a8d8088845185492e35"
 dependencies = [
  "array-init",
  "crossbeam",
+]
+
+[[package]]
+name = "rlimit"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7043b63bd0cd1aaa628e476b80e6d4023a3b50eb32789f2728908107bd0c793a"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -3886,7 +3904,7 @@ dependencies = [
 [[package]]
 name = "zenoh"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "ahash",
  "arc-swap",
@@ -3937,7 +3955,7 @@ dependencies = [
 [[package]]
 name = "zenoh-buffers"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "zenoh-collections",
 ]
@@ -3945,7 +3963,7 @@ dependencies = [
 [[package]]
 name = "zenoh-codec"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "tracing",
  "uhlc",
@@ -3957,7 +3975,7 @@ dependencies = [
 [[package]]
 name = "zenoh-collections"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "ahash",
 ]
@@ -3965,7 +3983,7 @@ dependencies = [
 [[package]]
 name = "zenoh-config"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "json5",
  "nonempty-collections",
@@ -3990,7 +4008,7 @@ dependencies = [
 [[package]]
 name = "zenoh-core"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "lazy_static",
  "tokio",
@@ -4001,7 +4019,7 @@ dependencies = [
 [[package]]
 name = "zenoh-crypto"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "aes",
  "hmac",
@@ -4014,15 +4032,16 @@ dependencies = [
 [[package]]
 name = "zenoh-ext"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
- "async-trait",
  "bincode",
  "flume",
  "futures",
  "leb128",
+ "lru",
  "serde",
  "tokio",
+ "tokio-util",
  "tracing",
  "uhlc",
  "zenoh",
@@ -4033,7 +4052,7 @@ dependencies = [
 [[package]]
 name = "zenoh-keyexpr"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "getrandom 0.2.17",
  "hashbrown 0.16.1",
@@ -4048,7 +4067,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "zenoh-config",
  "zenoh-link-commons",
@@ -4066,7 +4085,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-commons"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "base64",
@@ -4102,7 +4121,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-quic"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "rustls-webpki",
@@ -4118,7 +4137,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-quic_datagram"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "rustls-webpki",
@@ -4134,7 +4153,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-tcp"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "socket2 0.5.10",
@@ -4151,7 +4170,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-tls"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "base64",
@@ -4180,7 +4199,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-udp"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "libc",
@@ -4202,7 +4221,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-unixsock_stream"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "nix",
@@ -4220,7 +4239,7 @@ dependencies = [
 [[package]]
 name = "zenoh-link-ws"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "futures-util",
@@ -4240,7 +4259,7 @@ dependencies = [
 [[package]]
 name = "zenoh-macros"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4251,7 +4270,7 @@ dependencies = [
 [[package]]
 name = "zenoh-plugin-trait"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "git-version",
  "libloading",
@@ -4268,7 +4287,7 @@ dependencies = [
 [[package]]
 name = "zenoh-protocol"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "const_format",
  "rand 0.8.5",
@@ -4293,7 +4312,7 @@ dependencies = [
 [[package]]
 name = "zenoh-result"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "anyhow",
 ]
@@ -4301,7 +4320,7 @@ dependencies = [
 [[package]]
 name = "zenoh-runtime"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "lazy_static",
  "ron",
@@ -4315,17 +4334,17 @@ dependencies = [
 [[package]]
 name = "zenoh-shm"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "advisory-lock",
  "async-trait",
  "buddy_system_allocator",
- "cfg_aliases 0.2.1",
  "crossbeam-channel",
  "crossbeam-queue",
  "nix",
  "num-traits",
  "rand 0.8.5",
+ "rlimit",
  "stabby",
  "static_assertions",
  "static_init",
@@ -4344,7 +4363,7 @@ dependencies = [
 [[package]]
 name = "zenoh-stats"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "ahash",
  "prometheus-client",
@@ -4357,7 +4376,7 @@ dependencies = [
 [[package]]
 name = "zenoh-sync"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "arc-swap",
  "event-listener",
@@ -4371,7 +4390,7 @@ dependencies = [
 [[package]]
 name = "zenoh-task"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "futures",
  "tokio",
@@ -4384,7 +4403,7 @@ dependencies = [
 [[package]]
 name = "zenoh-transport"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "crossbeam-utils",
@@ -4420,7 +4439,7 @@ dependencies = [
 [[package]]
 name = "zenoh-util"
 version = "1.9.0"
-source = "git+https://github.com/zettascalelabs/zenoh.git?branch=feat%2Frouting-timestamps#16d4621697b57b56a970fcf7e169d868e68d0cb0"
+source = "git+https://github.com/eclipse-zenoh/zenoh.git?branch=main#89ab32cb5303af32ca96c7218f6b0e2637946aad"
 dependencies = [
  "async-trait",
  "const_format",
