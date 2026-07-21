@@ -21,6 +21,7 @@ use crate::{
     qos::{CongestionControl, Priority},
     session::EntityGlobalId,
     time::Timestamp,
+    timestamp_stack::TimestampStack,
     utils::MapInto,
 };
 
@@ -93,6 +94,11 @@ impl Sample {
     #[getter]
     fn source_info(&self) -> Option<SourceInfo> {
         self.0.source_info().cloned().map_into()
+    }
+
+    #[getter]
+    fn timestamp_stack(&self) -> Option<TimestampStack> {
+        self.0.timestamp_stack().cloned().map_into()
     }
 
     fn __repr__(&self) -> String {
