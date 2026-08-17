@@ -481,6 +481,66 @@ class KeyExpr:
 
     def __str__(self) -> str: ...
 
+
+@final
+class KeFormat:
+    """Key expression format with path parameters (named chunks).
+
+    Similar to REST API path templates (e.g. ``/users/{id}``), KeFormat lets you define
+    key expression patterns with named parameters. Use :meth:`formatter` to build key
+    expressions by setting parameter values, or :meth:`parse` to extract parameter
+    values from a key expression.
+
+    Format syntax extends key expressions with specification chunks:
+    ``${id:pattern}``, ``${id:pattern#default}``, ``$#{id:pattern}#``, etc.
+    For example: ``robot/${sensor_id:*}/reading``.
+    """
+
+    def __new__(cls, format_spec: str) -> Self:
+        """Creates a new KeFormat from a format specification string.
+        Raises :exc:`ZError` if the format_spec is invalid.
+        """
+
+    def formatter(self) -> KeFormatter:
+        """Constructs a new formatter for building key expressions from this format."""
+
+    def parse(self, key_expr: _IntoKeyExpr) -> Parsed:
+        """Parses a key expression according to this format and returns the extracted parameter values.
+        Raises :exc:`ZError` if the key expression does not match the format."""
+
+    def __str__(self) -> str: ...
+
+
+@final
+class KeFormatter:
+    """Builder for key expressions from a :class:`KeFormat`.
+    Set parameter values with :meth:`set`, then call :meth:`build` to produce a :class:`KeyExpr`."""
+
+    def set(self, id: str, value: str) -> None:
+        """Sets the value for the given parameter id.
+        Raises :exc:`ZError` if the value does not match the parameter pattern."""
+
+    def get(self, id: str) -> str | None:
+        """Returns the current value for the given parameter id, or None if not set."""
+
+    def build(self) -> KeyExpr:
+        """Builds a KeyExpr from the format and the currently set parameter values.
+        Raises :exc:`ZError` if any required parameter is missing or a value is invalid."""
+
+    def clear(self) -> None:
+        """Clears all set parameter values from this formatter."""
+
+
+@final
+class Parsed:
+    """Result of parsing a key expression with :meth:`KeFormat.parse`.
+    Holds the extracted parameter values."""
+
+    def get(self, id: str) -> str:
+        """Returns the value for the given parameter id.
+        Raises :exc:`ZError` if id is not a parameter in the format."""
+
+
 _IntoKeyExpr = KeyExpr | str
 
 @final
