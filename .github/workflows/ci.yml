@@ -17,6 +17,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     steps:
       - name: Clone this repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -30,6 +32,12 @@ jobs:
         uses: psf/black@87928e6d6761a4a6d22250e1fee5601b3998086e  # v26.5.1
         with:
           options: "--check --diff -C"
+
+      - name: Cache Rust dependencies and build artifacts
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6  # v2.9.2
+        with:
+          workspaces: ". -> target"
+          shared-key: linux-zenoh-python
 
       - name: Run rustfmt
         run: cargo fmt --check -- --config "unstable_features=true,imports_granularity=Crate,group_imports=StdExternalCrate"
@@ -67,16 +75,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache Cargo
-        uses: actions/cache@0057852bfaa89a56745cba8c7299d2fc39830  # v4.3.0
+      - name: Cache Rust dependencies and build artifacts
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6  # v2.9.2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml', 'Cargo.toml', 'Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-cargo-
+          workspaces: ". -> target"
+          shared-key: linux-zenoh-python
 
       - name: Build zenoh-python
         uses: messense/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b  # v1.51.0
