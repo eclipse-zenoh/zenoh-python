@@ -45,6 +45,8 @@ jobs:
   build:
     needs: check
     runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     strategy:
       fail-fast: false
       matrix:
@@ -64,6 +66,17 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Cache Cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7299d2fc39830  # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('rust-toolchain.toml', 'Cargo.toml', 'Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-cargo-
 
       - name: Build zenoh-python
         uses: messense/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b  # v1.51.0
