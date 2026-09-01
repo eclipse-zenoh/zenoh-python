@@ -19,15 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone this repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           submodules: true
 
       - name: Run isort
-        uses: isort/isort-action@v1
+        uses: isort/isort-action@24d8a7a51d33ca7f36c3f23598dafa33f7071326  # v1.1.1
 
       - name: Run black
-        uses: psf/black@stable
+        uses: psf/black@87928e6d6761a4a6d22250e1fee5601b3998086e  # v26.5.1
         with:
           options: "--check --diff -C"
 
@@ -63,17 +63,17 @@ jobs:
           - "3.13-dev"
     steps:
       - name: Clone this repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           submodules: true
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Build zenoh-python
-        uses: messense/maturin-action@v1
+        uses: messense/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b  # v1.51.0
 
       - name: Install zenoh-python
         run: pip3 install ./target/wheels/*.whl
@@ -93,8 +93,8 @@ jobs:
   markdown_lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: DavidAnson/markdownlint-cli2-action@v18
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff  # v24.2.0
         with:
           config: '.markdownlint.yaml'
           globs: '**/README.md'
