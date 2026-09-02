@@ -14,7 +14,7 @@
 import zenoh
 
 
-def main(conf: zenoh.Config, payload_size: int):
+def main(conf: zenoh.Config, key: str, payload_size: int):
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
@@ -25,9 +25,7 @@ def main(conf: zenoh.Config, payload_size: int):
     congestion_control = zenoh.CongestionControl.BLOCK
 
     with zenoh.open(conf) as session:
-        pub = session.declare_publisher(
-            "test/thr", congestion_control=congestion_control
-        )
+        pub = session.declare_publisher(key, congestion_control=congestion_control)
 
         print("Press CTRL-C to quit...")
         while True:
@@ -46,10 +44,17 @@ if __name__ == "__main__":
     )
     common.add_config_arguments(parser)
     parser.add_argument(
+        "--key",
+        "-k",
+        default="test/thr",
+        type=str,
+        help="The key expression to publish onto.",
+    )
+    parser.add_argument(
         "payload_size", type=int, help="Sets the size of the payload to publish."
     )
 
     args = parser.parse_args()
     conf = common.get_config_from_args(args)
 
-    main(conf, args.payload_size)
+    main(conf, args.key, args.payload_size)

@@ -21,13 +21,10 @@ import zenoh
 
 
 # Test support: send data in background
-def send_data():
+def send_data(session: zenoh.Session):
     time.sleep(3)
     for i in range(2):
         session.put("key/expression", f"sample_{i}")
-
-
-threading.Thread(target=send_data, daemon=True).start()
 
 
 # [custom_channel]
@@ -53,9 +50,17 @@ class PriorityChannel:
 with zenoh.open(zenoh.Config()) as session:
     channel = PriorityChannel(maxsize=50)
     subscriber = session.declare_subscriber("key/expression", (channel.send, channel))
+    # Start publishing only after the session and subscriber are ready.
+    sender = threading.Thread(target=send_data, args=(session,))
+    sender.start()
     sample = subscriber.handler.recv()
     print(f">> Received: {sample.payload.to_string()}")
     # [custom_channel_usage]
-    # one sample should remain in the channel
-    time.sleep(1)  # wait a bit for the background sender
+    # One sample should remain in the channel. Wait for asynchronous delivery
+    # instead of relying on a fixed sleep.
+    deadline = time.monotonic() + 5
+    while channel.count() < 1 and time.monotonic() < deadline:
+        time.sleep(0.01)
     assert channel.count() == 1  # verify that one sample is still in the channel
+    sender.join(timeout=5)
+    assert not sender.is_alive()
