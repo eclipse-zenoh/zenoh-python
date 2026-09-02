@@ -21,7 +21,7 @@ start = None
 global_start = None
 
 
-def main(conf: zenoh.Config, number: int):
+def main(conf: zenoh.Config, key: str, number: int):
     def listener(_sample: zenoh.Sample):
         global count, batch_count, start, global_start
         if count == 0:
@@ -49,9 +49,7 @@ def main(conf: zenoh.Config, number: int):
     zenoh.init_log_from_env_or("error")
 
     with zenoh.open(conf) as session:
-        session.declare_subscriber(
-            "test/thr", zenoh.handlers.Callback(listener, report)
-        )
+        session.declare_subscriber(key, zenoh.handlers.Callback(listener, report))
 
         print("Press CTRL-C to quit...")
         while True:
@@ -69,6 +67,7 @@ if __name__ == "__main__":
         prog="z_sub_thr", description="zenoh throughput sub example"
     )
     common.add_config_arguments(parser)
+    parser.add_argument("--key", "-k", dest="key", default="test/thr", type=str)
     parser.add_argument(
         "--number",
         "-n",
@@ -82,4 +81,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     conf = common.get_config_from_args(args)
 
-    main(conf, args.number)
+    main(conf, args.key, args.number)
