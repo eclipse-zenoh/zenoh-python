@@ -4,6 +4,7 @@ import time
 import uuid
 from glob import glob
 from os import getpgid, killpg, path
+from select import select
 from signal import SIGINT, SIGKILL
 from subprocess import PIPE, Popen, TimeoutExpired
 
@@ -36,7 +37,7 @@ class Pyrun(fixtures.Fixture):
         self.timeout = timeout
         print(f"starting {self.name}")
         self.process: Popen = Popen(
-            ["python3", path.join(basedir, p), *args],
+            [sys.executable, "-u", path.join(basedir, p), *args],
             stdout=PIPE,
             stderr=PIPE,
             start_new_session=True,
@@ -106,6 +107,24 @@ class Pyrun(fixtures.Fixture):
         # Send SIGINT to the isolated process group, then reap it.
         self._interrupt_group()
         return self.status(SIGINT)
+
+    def wait_for_output(self, text, timeout=10):
+        """Wait until a child emits text, preserving consumed stdout lines."""
+        deadline = time.monotonic() + timeout
+        while True:
+            if any(text in line for line in self._stdouts):
+                return
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(f"{self.name} did not emit {text!r}")
+            if not select([self.process.stdout], [], [], remaining)[0]:
+                raise TimeoutError(f"{self.name} did not emit {text!r}")
+
+            line = self.process.stdout.readline()
+            if not line:
+                raise RuntimeError(f"{self.name} exited before emitting {text!r}")
+            self._stdouts.append(line.decode("utf8"))
 
     @property
     def stdout(self):
@@ -302,13 +321,15 @@ def test_z_pull_z_sub_queued():
     ## Run z_pull and z_sub_queued
     key = f"demo/example/pull/{uuid.uuid4().hex}"
     sub_queued = Pyrun("z_sub_queued.py", ["--key", key])
-    time.sleep(3)
+    sub_queued.wait_for_output("Press CTRL-C to quit...")
+    # Wait for the pull subscriber to finish declaring before publishing.
     # The first poll must happen after the publisher has completed both puts.
     # Use a unique key as well, so unrelated samples cannot overwrite the ring.
     pull = Pyrun("z_pull.py", ["--key", key, "--size=1", "--interval=5"])
-    time.sleep(3)
+    pull.wait_for_output("Press CTRL-C to quit...")
     ## z_pub: Put two messages (to storage & sub)
-    pub = Pyrun("z_pub.py", ["--key", key, "--iter=2", "--interval=0"])
+    # z_pub waits before its first put, giving the publisher time to match.
+    pub = Pyrun("z_pub.py", ["--key", key, "--iter=2", "--interval=1"])
     if error := pub.status():
         pub.dbg()
         pub.errors.append(error)
