@@ -115,6 +115,40 @@ Example: Declaring key expressions
    :start-after: [keyexpr_declare]
    :end-before: # [keyexpr_declare]
 
+.. _path-parameters:
+
+Path Parameters
+~~~~~~~~~~~~~~~
+
+:class:`zenoh.KeFormat` lets you define key expression patterns with named path parameters,
+similar to REST API path templates (e.g. ``/users/{id}``). You can build key expressions by
+setting parameter values with a :class:`zenoh.KeFormatter`, or parse key expressions to extract
+parameter values.
+
+The format syntax extends key expressions with specification chunks: ``${id:pattern}``,
+``${id:pattern#default}``, and similar. For example, ``robot/${sensor_id:*}/reading`` defines
+a format with a single parameter ``sensor_id`` that matches any single chunk (``*``).
+
+Example: Building and parsing key expressions with path parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: examples/keyexpr_format.py
+   :language: python
+   :start-after: [keyexpr_format]
+   :end-before: # [keyexpr_format]
+
+Example: Using KeFormat with pub/sub
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In pub/sub, the publisher can build key expressions with :class:`zenoh.KeFormatter`, and the
+subscriber can parse received :attr:`zenoh.Sample.key_expr` with :meth:`zenoh.KeFormat.parse`
+to obtain the path parameter values:
+
+.. literalinclude:: examples/keyexpr_format_pubsub.py
+   :language: python
+   :start-after: [keyexpr_format_pubsub]
+   :end-before: # [keyexpr_format_pubsub]
+
 .. _publish-subscribe:
 
 Publish/Subscribe
