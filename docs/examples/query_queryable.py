@@ -34,19 +34,20 @@ send_thread.start()
 # Queryable that replies with temperature data for a given day
 queryable = session.declare_queryable("room/temperature/history")
 query_count = 0
-for query in queryable:
-    if "day" in query.selector.parameters:
-        day = query.selector.parameters["day"]
-        if day in temperature_data:
-            query.reply("room/temperature/history", temperature_data[day])
+while True:
+    with queryable.recv() as query:
+        if "day" in query.selector.parameters:
+            day = query.selector.parameters["day"]
+            if day in temperature_data:
+                query.reply("room/temperature/history", temperature_data[day])
+            else:
+                query.reply_del("room/temperature/history")
         else:
-            query.reply_del("room/temperature/history")
-    else:
-        query.reply_err("missing day parameter")
-    # [query_queryable]
-    query_count += 1
-    if query_count >= 3:  # Exit after handling all 3 queries
-        break
+            query.reply_err("missing day parameter")
+        # [query_queryable]
+        query_count += 1
+        if query_count >= 3:  # Exit after handling all 3 queries
+            break
 
 send_thread.join()
 session.close()
