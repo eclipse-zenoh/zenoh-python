@@ -731,8 +731,8 @@ class Publisher:
         """The reliability applied when routing data."""
 
     @property
-    def matching_status(self) -> bool:
-        """Whether there are subscribers matching this publisher's key expression."""
+    def matching_status(self) -> MatchingStatus:
+        """Returns the matching status of this Publisher."""
 
     def put(
         self,
@@ -987,8 +987,8 @@ class Querier:
         """Returns the :class:`ReplyKeyExpr` setting of this querier."""
 
     @property
-    def matching_status(self) -> bool:
-        """Returns true if there are :class:`Queryable`\\s matching the Querier's key expression and target, false otherwise."""
+    def matching_status(self) -> MatchingStatus:
+        """Returns the matching status of this Querier."""
 
     @overload
     def get(
