@@ -54,6 +54,7 @@ default_serializer_tests = [
     (dict[str, str], {"foo": "bar"}),
     (set[int], {0, 1, 2}),
     (frozenset[int], frozenset([0, 1, 2])),
+    (frozenset[Int32], frozenset([Int32(0), Int32(1), Int32(2)])),
     (list[tuple[float, Float32]], [(0.0, Float32(0.5)), (1.5, Float32(2))]),
 ]
 
@@ -61,4 +62,6 @@ default_serializer_tests = [
 @pytest.mark.parametrize("tp, value", default_serializer_tests)
 def test_default_serializer(tp, value):
     zbytes = z_serialize(value)
-    assert z_deserialize(tp, zbytes) == value
+    deserialized = z_deserialize(tp, zbytes)
+    assert deserialized == value
+    assert type(deserialized) is type(value)
