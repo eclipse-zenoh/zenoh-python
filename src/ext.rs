@@ -400,7 +400,7 @@ fn deserialize_collection(
         Ok(match tp {
             SupportedType::List => PyList::new(py, vec)?.into_py_any(py)?,
             SupportedType::Set => PySet::new(py, vec)?.into_py_any(py)?,
-            SupportedType::FrozenSet => PySet::new(py, vec)?.into_py_any(py)?,
+            SupportedType::FrozenSet => PyFrozenSet::new(py, vec)?.into_py_any(py)?,
             _ => unreachable!(),
         })
     }
