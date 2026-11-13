@@ -11,28 +11,10 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-import json
 import time
-from typing import List, Tuple, TypeVar
 
 import zenoh
-from zenoh import CancellationToken, Reply, Session
-
-
-def open_sessions(endpoints: List[str]) -> Tuple[Session, Session]:
-    # listen peer
-    conf = zenoh.Config()
-    conf.insert_json5("listen/endpoints", json.dumps(endpoints))
-    conf.insert_json5("scouting/multicast/enabled", "false")
-    peer01 = zenoh.open(conf)
-
-    # connect peer
-    conf = zenoh.Config()
-    conf.insert_json5("connect/endpoints", json.dumps(endpoints))
-    conf.insert_json5("scouting/multicast/enabled", "false")
-    peer02 = zenoh.open(conf)
-
-    return (peer01, peer02)
+from zenoh import CancellationToken, Reply
 
 
 def is_handler_closed(handler: zenoh.Handler[Reply]) -> bool:
@@ -43,9 +25,9 @@ def is_handler_closed(handler: zenoh.Handler[Reply]) -> bool:
         return True
 
 
-def test_cancellation_get():
+def test_cancellation_get(session_pair):
     keyexpr = "test/query_cancellation"
-    session1, session2 = open_sessions(["tcp/127.0.0.1:50001"])
+    session1, session2 = session_pair()
     queryable = session1.declare_queryable(keyexpr)
     time.sleep(1)
 
@@ -92,9 +74,9 @@ def test_cancellation_get():
         pass
 
 
-def test_cancellation_querier():
+def test_cancellation_querier(session_pair):
     keyexpr = "test/query_cancellation"
-    session1, session2 = open_sessions(["tcp/127.0.0.1:50002"])
+    session1, session2 = session_pair()
     queryable = session1.declare_queryable(keyexpr)
     querier = session2.declare_querier(keyexpr)
     time.sleep(1)
@@ -142,9 +124,9 @@ def test_cancellation_querier():
         pass
 
 
-def test_cancellation_liveliness_get():
+def test_cancellation_liveliness_get(session_pair):
     keyexpr = "test/liveliness_query_cancellation"
-    session1, session2 = open_sessions(["tcp/127.0.0.1:50003"])
+    session1, session2 = session_pair()
     token = session1.liveliness().declare_token(keyexpr)
     time.sleep(1)
 

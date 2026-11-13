@@ -1,4 +1,5 @@
 # Copyright (c) 2017, 2022 ZettaScale Technology Inc.
+import re
 import sys
 import time
 import uuid
@@ -9,6 +10,10 @@ from signal import SIGINT, SIGKILL
 from subprocess import PIPE, Popen, TimeoutExpired
 
 import fixtures
+import pytest
+from common.testing import discovery_config, isolated_config, open_listener
+
+import zenoh
 
 # Contributors:
 #   ZettaScale Zenoh team, <zenoh@zettascale.tech>
@@ -28,11 +33,28 @@ ret = "\r\n"
 
 
 class Pyrun(fixtures.Fixture):
-    def __init__(self, p, args=None, basedir=None, timeout=30) -> None:
+    def __init__(self, p, args=None, basedir=None, timeout=30, network=None) -> None:
         if args is None:
             args = []
         if basedir is None:
             basedir = examples
+        if network is not None:
+            args = [
+                *args,
+                "--mode",
+                "client",
+                "--no-multicast-scouting",
+                "--cfg",
+                "scouting/gossip/enabled:false",
+                "--cfg",
+                "listen/endpoints:[]",
+                "--cfg",
+                "connect/timeout_ms:5000",
+                "--cfg",
+                "connect/exit_on_failure:true",
+                "--connect",
+                network,
+            ]
         self.name = p
         self.timeout = timeout
         print(f"starting {self.name}")
@@ -145,9 +167,27 @@ class Pyrun(fixtures.Fixture):
         return None if self.end is None else (self.end - self.start)
 
 
-def test_z_bytes():
+@pytest.fixture
+def pyrun(request):
+    endpoint = None
+
+    def run(p, args=None, basedir=None, timeout=30, network=True):
+        nonlocal endpoint
+        if network and endpoint is None:
+            config = isolated_config()
+            config.insert_json5("mode", '"router"')
+            router, endpoint = open_listener(config)
+            request.addfinalizer(router.close)
+        example = Pyrun(p, args, basedir, timeout, endpoint if network else None)
+        request.addfinalizer(example._cleanup)
+        return example
+
+    return run
+
+
+def test_z_bytes(pyrun):
     """Test z_bytes."""
-    z_bytes = Pyrun("z_bytes.py")
+    z_bytes = pyrun("z_bytes.py", network=False)
     if sys.version_info >= (3, 9):
         if error := z_bytes.status():
             z_bytes.dbg()
@@ -156,28 +196,38 @@ def test_z_bytes():
     assert not z_bytes.errors
 
 
-def test_z_info_z_scout():
-    z_info = Pyrun("z_info.py")
-    z_scout = Pyrun("z_scout.py")
-    if error := z_info.status():
-        z_info.dbg()
-        z_info.errors.append(error)
+def test_z_info_z_scout(pyrun, tmp_path):
+    config = discovery_config()
+    with zenoh.open(config) as discovery_session:
+        config_path = tmp_path / "scouting.json5"
+        config_path.write_text(str(config))
+        z_info = pyrun("z_info.py")
+        z_scout = pyrun("z_scout.py", ["--config", str(config_path)], network=False)
+        for example in (z_scout, z_info):
+            if error := example.status():
+                example.dbg()
+                pytest.fail(error)
+        output = "".join(z_scout.stdout)
+        discovered = set()
+        for line in output.splitlines():
+            if not line.startswith("Hello"):
+                continue
+            hello = re.fullmatch(r"Hello \{ zid: ([0-9a-f]+), .* \}", line)
+            assert hello is not None, output
+            discovered.add(hello[1])
+        expected = str(discovery_session.info.zid())
+        assert discovered <= {expected}, output
+        if expected not in discovered:
+            pytest.skip("No Hello received over loopback multicast")
 
-    if error := z_scout.status():
-        z_scout.dbg()
-        z_scout.errors.append(error)
 
-    assert not z_info.errors
-    assert not z_scout.errors
-
-
-def test_z_get_z_queryable():
+def test_z_get_z_queryable(pyrun):
     """Test z_get & z_queryable"""
     key = f"demo/example/query/{uuid.uuid4().hex}"
-    z_queryable = Pyrun("z_queryable.py", [f"-k={key}"])
+    z_queryable = pyrun("z_queryable.py", [f"-k={key}"])
     time.sleep(3)
     ## z_get: Able to get reply from queryable
-    z_get = Pyrun("z_get.py", [f"-s={key}"])
+    z_get = pyrun("z_get.py", [f"-s={key}"])
     if error := z_get.status():
         z_get.dbg()
         z_get.errors.append(error)
@@ -198,13 +248,13 @@ def test_z_get_z_queryable():
     assert not z_queryable.errors
 
 
-def test_z_querier_z_queryable():
+def test_z_querier_z_queryable(pyrun):
     """Test z_querier & z_queryable"""
     key = f"demo/example/querier/{uuid.uuid4().hex}"
-    z_queryable = Pyrun("z_queryable.py", [f"-k={key}"])
+    z_queryable = pyrun("z_queryable.py", [f"-k={key}"])
     time.sleep(3)
     ## z_querier: Able to get reply from queryable
-    z_querier = Pyrun("z_querier.py", [f"-s={key}", "-p=value"])
+    z_querier = pyrun("z_querier.py", [f"-s={key}", "-p=value"])
     time.sleep(5)
     z_queryable.interrupt()
     z_querier.interrupt()
@@ -227,20 +277,20 @@ def test_z_querier_z_queryable():
     assert not z_queryable.errors
 
 
-def test_z_storage_z_sub():
+def test_z_storage_z_sub(pyrun):
     """Test z_storage & z_sub."""
     key = f"demo/example/storage/{uuid.uuid4().hex}"
     pub_key = f"{key}/pub"
-    z_storage = Pyrun("z_storage.py", ["--key", f"{key}/**"])
-    z_sub = Pyrun("z_sub.py", ["--key", f"{key}/**"])
+    z_storage = pyrun("z_storage.py", ["--key", f"{key}/**"])
+    z_sub = pyrun("z_sub.py", ["--key", f"{key}/**"])
     time.sleep(3)
     ## z_put: Put one message (to storage & sub)
-    z_put = Pyrun("z_put.py", ["--key", key])
+    z_put = pyrun("z_put.py", ["--key", key])
     time.sleep(1)
     ## z_pub: Put two messages (to storage & sub)
-    pub = Pyrun("z_pub.py", ["--key", pub_key, "--iter=2"])
+    pub = pyrun("z_pub.py", ["--key", pub_key, "--iter=2"])
     time.sleep(1)
-    z_get = Pyrun("z_get.py", [f"-s={key}"])
+    z_get = pyrun("z_get.py", [f"-s={key}"])
     if error := z_put.status():
         z_put.dbg()
         z_put.errors.append(error)
@@ -256,14 +306,14 @@ def test_z_storage_z_sub():
         z_get.dbg()
     time.sleep(1)
 
-    z_delete = Pyrun("z_delete.py", ["--key", key])
+    z_delete = pyrun("z_delete.py", ["--key", key])
     if error := z_delete.status():
         z_delete.dbg()
         z_delete.errors.append(error)
     time.sleep(1)
 
     ## z_get: Unable to get put from storage
-    z_get = Pyrun("z_get.py", [f"-s={key}"])
+    z_get = pyrun("z_get.py", [f"-s={key}"])
     if error := z_get.status():
         z_get.dbg()
         z_get.errors.append(error)
@@ -316,20 +366,20 @@ def test_z_storage_z_sub():
     assert not z_get.errors
 
 
-def test_z_pull_z_sub_queued():
+def test_z_pull_z_sub_queued(pyrun):
     """Test z_pull & z_sub_queued."""
     ## Run z_pull and z_sub_queued
     key = f"demo/example/pull/{uuid.uuid4().hex}"
-    sub_queued = Pyrun("z_sub_queued.py", ["--key", key])
+    sub_queued = pyrun("z_sub_queued.py", ["--key", key])
     sub_queued.wait_for_output("Press CTRL-C to quit...")
     # Wait for the pull subscriber to finish declaring before publishing.
     # The first poll must happen after the publisher has completed both puts.
     # Use a unique key as well, so unrelated samples cannot overwrite the ring.
-    pull = Pyrun("z_pull.py", ["--key", key, "--size=1", "--interval=5"])
+    pull = pyrun("z_pull.py", ["--key", key, "--size=1", "--interval=5"])
     pull.wait_for_output("Press CTRL-C to quit...")
     ## z_pub: Put two messages (to storage & sub)
     # z_pub waits before its first put, giving the publisher time to match.
-    pub = Pyrun("z_pub.py", ["--key", key, "--iter=2", "--interval=1"])
+    pub = pyrun("z_pub.py", ["--key", key, "--iter=2", "--interval=1"])
     if error := pub.status():
         pub.dbg()
         pub.errors.append(error)
@@ -370,11 +420,11 @@ def test_z_pull_z_sub_queued():
     assert not pull.errors
 
 
-def test_z_sub_thr_z_pub_thr():
+def test_z_sub_thr_z_pub_thr(pyrun):
     """Test z_sub_thr & z_pub_thr."""
     key = f"test/thr/{uuid.uuid4().hex}"
-    sub_thr = Pyrun("z_sub_thr.py", ["--key", key])
-    pub_thr = Pyrun("z_pub_thr.py", ["--key", key, "128"])
+    sub_thr = pyrun("z_sub_thr.py", ["--key", key])
+    pub_thr = pyrun("z_pub_thr.py", ["--key", key, "128"])
     time.sleep(5)
     # Stop the publisher first.  Leaving a high-rate publisher running while
     # the subscriber callback handler is being torn down can keep the callback
@@ -390,14 +440,14 @@ def test_z_sub_thr_z_pub_thr():
     assert not pub_thr.errors
 
 
-def test_z_advanced_pub_z_advanced_sub():
+def test_z_advanced_pub_z_advanced_sub(pyrun):
     """Test z_advanced_pub & z_advanced_sub."""
     ## Run z_advanced_pub and z_advanced_sub
     key = f"demo/example/advanced/{uuid.uuid4().hex}"
     ## z_advanced_pub: Start publishing messages
-    pub = Pyrun("z_advanced_pub.py", ["--key", key, "--history=10"])
+    pub = pyrun("z_advanced_pub.py", ["--key", key, "--history=10"])
     time.sleep(5)  # wait 5 seconds to ensure that we miss few messages
-    sub = Pyrun("z_advanced_sub.py", ["--key", f"{key}/**"])
+    sub = pyrun("z_advanced_sub.py", ["--key", f"{key}/**"])
     time.sleep(5)
 
     if error := pub.interrupt():
@@ -420,14 +470,14 @@ def test_z_advanced_pub_z_advanced_sub():
     assert not sub.errors
 
 
-def test_z_pub_shm():
+def test_z_pub_shm(pyrun):
     """Test z_pub_shm."""
     ## Run z_sub
     key = f"demo/example/shm/{uuid.uuid4().hex}"
-    sub = Pyrun("z_sub.py", ["--key", f"{key}/**"])
+    sub = pyrun("z_sub.py", ["--key", f"{key}/**"])
     time.sleep(3)
     ## z_pub: Put two messages (to storage & sub)
-    pub = Pyrun("z_pub.py", ["--key", key, "--iter=1", "--interval=0"])
+    pub = pyrun("z_pub.py", ["--key", key, "--iter=1", "--interval=0"])
     if error := pub.status():
         pub.dbg()
         pub.errors.append(error)
@@ -443,18 +493,22 @@ def test_z_pub_shm():
     assert not sub.errors
 
 
-def test_docs_examples():
-    """Test all docs/examples - run each one and verify no timeout or non-zero exit."""
-    example_files = glob(path.join(docs_examples, "*.py"))
-    errors = []
-
-    for example_file in example_files:
-        example_name = path.basename(example_file)
-        print(f"\nTesting docs example: {example_name}")
-
-        example = Pyrun(example_name, basedir=docs_examples)
-        if error := example.status():
-            example.dbg()
-            errors.append(f"{example_name}: {error}")
-
-    assert not errors, f"Docs examples failed: {errors}"
+@pytest.mark.parametrize(
+    "example_file",
+    sorted(
+        p
+        for p in glob(path.join(docs_examples, "*.py"))
+        if not path.basename(p).startswith("_")
+    ),
+    ids=path.basename,
+)
+def test_docs_examples(pyrun, example_file):
+    """Run each documentation example in its own isolated network."""
+    example_name = path.basename(example_file)
+    example = pyrun(example_name, basedir=docs_examples, network=False)
+    code = example.wait()
+    if code == 77 and example_name == "scouting.py":
+        pytest.skip("No Hello received over loopback multicast")
+    if error := example.status():
+        example.dbg()
+        pytest.fail(error)

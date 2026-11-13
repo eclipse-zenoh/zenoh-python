@@ -1,7 +1,11 @@
+from _test_support import isolated_config
+
 import zenoh
 
+config = isolated_config()
+
 # Open session
-session = zenoh.open(zenoh.Config())
+session = zenoh.open(config)
 
 import threading
 

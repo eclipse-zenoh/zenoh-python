@@ -18,6 +18,9 @@ Quick Start Examples
 Below are some examples that highlight these key concepts and show how easy it is to get
 started with. The more detailed documentation is available in the other sections.
 
+The snippets use a configuration named ``config``, which you can create with
+``config = zenoh.Config()`` or load from a configuration file.
+
 Publish a key/value pair onto Zenoh
 -----------------------------------
 

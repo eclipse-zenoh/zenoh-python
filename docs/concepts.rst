@@ -42,6 +42,9 @@ The file format is documented in the Zenoh Rust API
 Example: Creating a session with context manager
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+These examples use a configuration named ``config``, created with
+``config = zenoh.Config()`` or loaded from a configuration file.
+
 .. literalinclude:: examples/session_config.py
    :language: python
    :start-after: [session_context_manager]
@@ -335,6 +338,10 @@ See more details at `scouting documentation <https://zenoh.io/docs/getting-start
 
 Example: Scouting for Zenoh nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here ``config`` is a :class:`zenoh.Config` instance, such as
+``config = zenoh.Config()``. The ``config`` argument to :func:`zenoh.scout` is
+optional; omit it to use the default scouting settings.
 
 .. literalinclude:: examples/scouting.py
    :language: python
