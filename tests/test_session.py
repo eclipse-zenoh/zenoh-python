@@ -11,9 +11,7 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-import json
 import time
-from typing import List, Tuple
 
 import zenoh
 from zenoh import CongestionControl, Priority, Query, Sample, Session
@@ -21,31 +19,6 @@ from zenoh import CongestionControl, Priority, Query, Sample, Session
 SLEEP = 1
 MSG_COUNT = 1_000
 MSG_SIZE = [1_024, 131_072]
-
-
-def open_session(endpoints: List[str]) -> Tuple[Session, Session]:
-    # listen peer
-    conf = zenoh.Config()
-    conf.insert_json5("listen/endpoints", json.dumps(endpoints))
-    conf.insert_json5("scouting/multicast/enabled", "false")
-    print("[  ][01a] Opening peer01 session")
-    peer01 = zenoh.open(conf)
-
-    # connect peer
-    conf = zenoh.Config()
-    conf.insert_json5("connect/endpoints", json.dumps(endpoints))
-    conf.insert_json5("scouting/multicast/enabled", "false")
-    print("[  ][02a] Opening peer02 session")
-    peer02 = zenoh.open(conf)
-
-    return (peer01, peer02)
-
-
-def close_session(peer01: Session, peer02: Session):
-    print("[  ][01e] Closing peer01 session")
-    peer01.close()
-    print("[  ][02e] Closing peer02 session")
-    peer02.close()
 
 
 def run_session_qryrep(peer01: Session, peer02: Session):
@@ -186,10 +159,9 @@ def run_session_pubsub(peer01: Session, peer02: Session):
     subscriber.undeclare()
 
 
-def test_session():
+def test_session(session_pair):
     zenoh.try_init_log_from_env()
-    peer01, peer02 = open_session(["tcp/127.0.0.1:17447"])
+    peer01, peer02 = session_pair()
     run_session_qryrep(peer01, peer02)
     run_session_pubsub(peer01, peer02)
     run_session_qrrrep(peer01, peer02)
-    close_session(peer01, peer02)

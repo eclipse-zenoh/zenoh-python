@@ -1,7 +1,11 @@
+from _test_support import isolated_config
+
 import zenoh
 
+config = isolated_config()
+
 # Open session
-session = zenoh.open(zenoh.Config())
+session = zenoh.open(config)
 
 # Sample data
 temperature_data = {"2023-03-15": "22.5°C", "2023-03-16": "23.1°C"}

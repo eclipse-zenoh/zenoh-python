@@ -1,8 +1,12 @@
+from _test_support import isolated_config
+
 import zenoh
+
+config = isolated_config()
 
 # Open session
 # [session_creation]
-session = zenoh.open(zenoh.Config())
+session = zenoh.open(config)
 # [session_creation]
 
 # [keyexpr_declare]
