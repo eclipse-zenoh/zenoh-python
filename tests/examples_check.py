@@ -40,6 +40,8 @@ class Pyrun(fixtures.Fixture):
             [sys.executable, "-u", path.join(basedir, p), *args],
             stdout=PIPE,
             stderr=PIPE,
+            # Keep select() in wait_for_output in sync with unread pipe data.
+            bufsize=0,
             start_new_session=True,
         )
         self.start = time.time()
@@ -227,43 +229,64 @@ def test_z_querier_z_queryable():
     assert not z_queryable.errors
 
 
-def test_z_storage_z_sub():
+def test_z_storage_z_sub(request):
     """Test z_storage & z_sub."""
     key = f"demo/example/storage/{uuid.uuid4().hex}"
     pub_key = f"{key}/pub"
-    z_storage = Pyrun("z_storage.py", ["--key", f"{key}/**"])
-    z_sub = Pyrun("z_sub.py", ["--key", f"{key}/**"])
-    time.sleep(3)
+    # Use explicit loopback TCP connections instead of multicast discovery.
+    endpoint = "tcp/127.0.0.1:17454"
+    clients = ["--mode", "client", "--connect", endpoint, "--no-multicast-scouting"]
+    z_storage = Pyrun(
+        "z_storage.py",
+        ["--key", f"{key}/**", "--listen", endpoint, "--no-multicast-scouting"],
+    )
+    request.addfinalizer(z_storage._cleanup)
+    z_storage.wait_for_output("Press CTRL-C to quit...")
+    z_sub = Pyrun("z_sub.py", [*clients, "--key", f"{key}/**"])
+    request.addfinalizer(z_sub._cleanup)
+    z_sub.wait_for_output("Press CTRL-C to quit...")
     ## z_put: Put one message (to storage & sub)
-    z_put = Pyrun("z_put.py", ["--key", key])
-    time.sleep(1)
-    ## z_pub: Put two messages (to storage & sub)
-    pub = Pyrun("z_pub.py", ["--key", pub_key, "--iter=2"])
-    time.sleep(1)
-    z_get = Pyrun("z_get.py", [f"-s={key}"])
+    z_put = Pyrun("z_put.py", [*clients, "--key", key])
     if error := z_put.status():
         z_put.dbg()
         z_put.errors.append(error)
 
-    if error := z_get.status():
-        z_get.dbg()
-        z_get.errors.append(error)
+    z_storage.wait_for_output(f"Received SampleKind.PUT ('{key}': 'Put from Python!')")
+    z_sub.wait_for_output(f"Received SampleKind.PUT ('{key}': 'Put from Python!')")
+    ## z_pub: Put two messages (to storage & sub)
+    pub = Pyrun("z_pub.py", [*clients, "--key", pub_key, "--iter=2"])
+    if error := pub.status():
+        pub.dbg()
+        pub.errors.append(error)
+    z_storage.wait_for_output(
+        f"Received SampleKind.PUT ('{pub_key}': '[   1] Pub from Python!')"
+    )
+    z_sub.wait_for_output(
+        f"Received SampleKind.PUT ('{pub_key}': '[   1] Pub from Python!')"
+    )
+    z_get_before = Pyrun("z_get.py", [*clients, f"-s={key}"])
 
-    if not (f"Received ('{key}': 'Put from Python!')" in "".join(z_get.stdout)):
-        z_get.dbg()
-        z_get.errors.append("z_get didn't get a response from z_storage about put")
-    if any(("z_get" in error) for error in z_get.errors):
-        z_get.dbg()
-    time.sleep(1)
+    if error := z_get_before.status():
+        z_get_before.dbg()
+        z_get_before.errors.append(error)
 
-    z_delete = Pyrun("z_delete.py", ["--key", key])
+    if not (f"Received ('{key}': 'Put from Python!')" in "".join(z_get_before.stdout)):
+        z_get_before.dbg()
+        z_get_before.errors.append(
+            "z_get_before didn't get a response from z_storage about put"
+        )
+    if any(("z_get_before" in error) for error in z_get_before.errors):
+        z_get_before.dbg()
+
+    z_delete = Pyrun("z_delete.py", [*clients, "--key", key])
     if error := z_delete.status():
         z_delete.dbg()
         z_delete.errors.append(error)
-    time.sleep(1)
+    z_storage.wait_for_output(f"Received SampleKind.DELETE ('{key}': '')")
+    z_sub.wait_for_output(f"Received SampleKind.DELETE ('{key}': '')")
 
     ## z_get: Unable to get put from storage
-    z_get = Pyrun("z_get.py", [f"-s={key}"])
+    z_get = Pyrun("z_get.py", [*clients, f"-s={key}"])
     if error := z_get.status():
         z_get.dbg()
         z_get.errors.append(error)
@@ -274,7 +297,6 @@ def test_z_storage_z_sub():
         )
     if any(("z_get" in error) for error in z_get.errors):
         z_get.dbg()
-    time.sleep(1)
 
     ## z_sub: Should receive put, pub and delete
     if error := z_sub.interrupt():
@@ -311,6 +333,10 @@ def test_z_storage_z_sub():
     if any(("z_storage" in error) for error in z_storage.errors):
         z_storage.dbg()
 
+    assert not z_put.errors
+    assert not pub.errors
+    assert not z_delete.errors
+    assert not z_get_before.errors
     assert not z_sub.errors
     assert not z_storage.errors
     assert not z_get.errors
