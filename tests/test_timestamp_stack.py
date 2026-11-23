@@ -11,7 +11,9 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import gc
 import time
+import weakref
 
 import zenoh
 from zenoh import (
@@ -248,6 +250,24 @@ def test_querier_get_timestamp_stack(session_pair):
 
     querier.undeclare()
     queryable.undeclare()
+
+
+def test_close_releases_timestamp_callback_owner(session_pair):
+    class CallbackOwner:
+        def timestamp(self, _context: TimestampContext) -> bytes:
+            return b"timestamp"
+
+    owner = CallbackOwner()
+    owner_ref = weakref.ref(owner)
+
+    session, _ = session_pair(timestamp_callback=owner.timestamp)
+    with session:
+        del owner
+        assert owner_ref() is not None
+
+    assert session.is_closed()
+    gc.collect()
+    assert owner_ref() is None
 
 
 def test_timestamp_callback(session_pair):
