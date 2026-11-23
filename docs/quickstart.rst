@@ -34,7 +34,6 @@ Subscribe to a set of keys with Zenoh
 
 .. literalinclude:: examples/quickstart_sub.py
    :language: python
-   :dedent: 4
    :start-after: # DOC_EXAMPLE_START
    :end-before: # DOC_EXAMPLE_END
 

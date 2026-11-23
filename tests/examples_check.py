@@ -5,13 +5,20 @@ import time
 import uuid
 from glob import glob
 from os import getpgid, killpg, path
+from pathlib import Path
 from select import select
 from signal import SIGINT, SIGKILL
 from subprocess import PIPE, Popen, TimeoutExpired
+from threading import Event
 
 import fixtures
 import pytest
-from common.testing import discovery_config, isolated_config, open_listener
+from common.testing import (
+    connecting_config,
+    discovery_config,
+    isolated_config,
+    open_listener,
+)
 
 import zenoh
 
@@ -495,12 +502,45 @@ def test_z_pub_shm(pyrun):
     assert not sub.errors
 
 
+def test_docs_quickstart_sub(pyrun, tmp_path):
+    example = Path(docs_examples) / "quickstart_sub.py"
+    _, _, body = example.read_text(encoding="utf-8").partition("# DOC_EXAMPLE_START")
+    snippet, end, _ = body.partition("# DOC_EXAMPLE_END")
+    assert end and snippet.strip(), "Subscriber quickstart snippet is missing"
+
+    key = "demo/example/foo/bar"
+    matched = Event()
+
+    def on_matching(status):
+        if status.matching:
+            matched.set()
+
+    listener, endpoint = open_listener()
+    with listener, listener.declare_publisher(key) as publisher:
+        config = connecting_config(endpoint)
+        script = tmp_path / example.name
+        script.write_text(
+            f"import zenoh\nconfig = zenoh.Config.from_json5({str(config)!r})\n"
+            f"{snippet}",
+            encoding="utf-8",
+        )
+        with publisher.declare_matching_listener(on_matching):
+            subscriber = pyrun(script.name, basedir=tmp_path, network=False)
+            assert matched.wait(5), "Quickstart subscriber did not match"
+            publisher.put("test data")
+        subscriber.wait_for_output(f"{key} => test data")
+        if error := subscriber.interrupt():
+            subscriber.dbg()
+            pytest.fail(error)
+
+
 @pytest.mark.parametrize(
     "example_file",
     sorted(
         p
         for p in glob(path.join(docs_examples, "*.py"))
         if not path.basename(p).startswith("_")
+        and path.basename(p) != "quickstart_sub.py"
     ),
     ids=path.basename,
 )
