@@ -62,6 +62,8 @@ class Pyrun(fixtures.Fixture):
             [sys.executable, "-u", path.join(basedir, p), *args],
             stdout=PIPE,
             stderr=PIPE,
+            # Keep select() in wait_for_output in sync with unread pipe data.
+            bufsize=0,
             start_new_session=True,
         )
         self.start = time.time()
@@ -441,14 +443,13 @@ def test_z_sub_thr_z_pub_thr(pyrun):
 
 
 def test_z_advanced_pub_z_advanced_sub(pyrun):
-    """Test z_advanced_pub & z_advanced_sub."""
-    ## Run z_advanced_pub and z_advanced_sub
+    """Test that z_advanced_sub replays the publisher's cached history."""
     key = f"demo/example/advanced/{uuid.uuid4().hex}"
-    ## z_advanced_pub: Start publishing messages
-    pub = pyrun("z_advanced_pub.py", ["--key", key, "--history=10"])
-    time.sleep(5)  # wait 5 seconds to ensure that we miss few messages
-    sub = pyrun("z_advanced_sub.py", ["--key", f"{key}/**"])
-    time.sleep(5)
+    pub = pyrun("z_advanced_pub.py", ["--key", key, "--history=32"])
+    # The publisher has cached samples 0–3 before it logs that it is sending 4.
+    pub.wait_for_output(f"Putting Data ('{key}': '[   4] Pub from Python!')")
+    sub = pyrun("z_advanced_sub.py", ["--key", key])
+    sub.wait_for_output(f"Received SampleKind.PUT ('{key}': '[   7] Pub from Python!')")
 
     if error := pub.interrupt():
         pub.dbg()
@@ -458,16 +459,17 @@ def test_z_advanced_pub_z_advanced_sub(pyrun):
         sub.errors.append(error)
 
     sub_out = "".join(sub.stdout)
-    for i in range(0, 8):
-        if not (
-            f"Received SampleKind.PUT ('{key}': '[   {i}] Pub from Python!')" in sub_out
+    for i in range(8):
+        if (
+            f"Received SampleKind.PUT ('{key}': '[{i:4d}] Pub from Python!')"
+            not in sub_out
         ):
             sub.errors.append(
                 f"z_advanced_sub didn't catch the {i}-th z_advanced_pub message"
             )
 
     assert not pub.errors
-    assert not sub.errors
+    assert not sub.errors, sub_out
 
 
 def test_z_pub_shm(pyrun):
