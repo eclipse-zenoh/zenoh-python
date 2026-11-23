@@ -27,10 +27,9 @@ affected by unrelated sessions.
   `docs/examples/_test_support.py`. Most only need an isolated local session;
   the subscriber quickstart uses an explicit loopback listener and connector.
 - Tests that exercise discovery use `discovery_config()`: multicast stays on,
-  restricted to loopback with a separate multicast group and port. Verify the
-  expected session's identity rather than accepting arbitrary discovered peers.
-  The two-network regression test skips only if both scouts receive no Hello
-  and a separate UDP probe cannot use loopback multicast.
+  restricted to loopback with a separate multicast group and port. The
+  two-network regression test requires each scout to discover exactly its
+  own session.
 
 With a built binding installed in the active Python environment:
 

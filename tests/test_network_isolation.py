@@ -121,28 +121,6 @@ def test_windows_port_collision_is_retried(monkeypatch):
         assert attempts >= 2
 
 
-def loopback_multicast_error():
-    """Probe the loopback interface independently of Zenoh scouting."""
-    group = "239.255.0.1"
-    interface = socket.inet_aton("127.0.0.1")
-    membership = socket.inet_aton(group) + interface
-    with ExitStack() as stack:
-        receiver = stack.enter_context(socket.socket(socket.AF_INET, socket.SOCK_DGRAM))
-        sender = stack.enter_context(socket.socket(socket.AF_INET, socket.SOCK_DGRAM))
-        receiver.bind(("", 0))
-        receiver.settimeout(1)
-        port = receiver.getsockname()[1]
-        try:
-            receiver.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, membership)
-            sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, interface)
-            sender.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
-            sender.sendto(b"probe", (group, port))
-            assert receiver.recv(64) == b"probe"
-        except OSError as error:
-            return str(error)
-    return None
-
-
 def test_discovery_networks_do_not_mix():
     first_config = testing.discovery_config()
     second_config = testing.discovery_config()
@@ -163,8 +141,5 @@ def test_discovery_networks_do_not_mix():
             first_scout.stop()
         expected_first = str(first.info.zid())
         expected_second = str(second.info.zid())
-        if not first_ids and not second_ids:
-            if (error := loopback_multicast_error()) is not None:
-                pytest.skip(f"Loopback multicast probe failed: {error}")
         assert first_ids == {expected_first}
         assert second_ids == {expected_second}
