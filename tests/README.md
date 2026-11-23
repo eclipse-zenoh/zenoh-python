@@ -29,8 +29,8 @@ affected by unrelated sessions.
 - Tests that exercise discovery use `discovery_config()`: multicast stays on,
   restricted to loopback with a separate multicast group and port. Verify the
   expected session's identity rather than accepting arbitrary discovered peers.
-  Discovery checks skip when loopback multicast cannot return the test session's
-  Hello, as in the C++ locator tests.
+  The two-network regression test skips only if both scouts receive no Hello
+  and a separate UDP probe cannot use loopback multicast.
 
 With a built binding installed in the active Python environment:
 
