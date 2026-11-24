@@ -11,16 +11,8 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-import sys
-from pathlib import Path
-
 import pytest
-
-# Share configuration with executable examples without importing the source
-# tree's zenoh package in place of the installed extension.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
-
-from common.testing import open_session_pair
+from network_config import open_session_pair
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@
 
 # Test networks
 
-Network tests use the helpers in `examples/common/testing.py`, following the
+Network tests use the helpers in `tests/network_config.py`, following the
 Zenoh C and C++ test harnesses. Keep each test on its own network, even when it
 uses a unique key: matching, discovery, and peer-information checks can also be
 affected by unrelated sessions.
@@ -23,9 +23,9 @@ affected by unrelated sessions.
   network, and the scout example uses a dedicated discovery configuration
   instead. Child process groups are stopped
   and reaped during teardown.
-- Documentation examples share the same configuration helpers through
-  `docs/examples/_test_support.py`. Most only need an isolated local session;
-  the subscriber quickstart uses an explicit loopback listener and connector.
+- The test runner supplies private configurations to documentation and scouting
+  examples. Most documentation examples use an isolated local session. The
+  subscriber quickstart uses an explicit loopback listener and connector.
 - Tests that exercise discovery use `discovery_config()`: multicast stays on,
   restricted to loopback with a separate multicast group and port. The
   two-network regression test requires each scout to discover exactly its

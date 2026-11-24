@@ -13,7 +13,7 @@ from threading import Event
 
 import fixtures
 import pytest
-from common.testing import (
+from network_config import (
     connecting_config,
     discovery_config,
     isolated_config,
@@ -33,14 +33,17 @@ import zenoh
 # SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
 
 
-examples = path.realpath(__file__).split("/tests")[0] + "/examples/"
-docs_examples = path.realpath(__file__).split("/tests")[0] + "/docs/examples/"
+tests_dir = Path(__file__).resolve().parent
+examples = tests_dir.parent / "examples"
+docs_examples = tests_dir.parent / "docs" / "examples"
 tab = "\t"
 ret = "\r\n"
 
 
 class Pyrun(fixtures.Fixture):
-    def __init__(self, p, args=None, basedir=None, timeout=30, network=None) -> None:
+    def __init__(
+        self, p, args=None, basedir=None, timeout=30, network=None, example_config=None
+    ) -> None:
         if args is None:
             args = []
         if basedir is None:
@@ -62,11 +65,14 @@ class Pyrun(fixtures.Fixture):
                 "--connect",
                 network,
             ]
+        command = [path.join(basedir, p), *args]
+        if example_config is not None:
+            command = [tests_dir / "run_example.py", str(example_config), *command]
         self.name = p
         self.timeout = timeout
         print(f"starting {self.name}")
         self.process: Popen = Popen(
-            [sys.executable, "-u", path.join(basedir, p), *args],
+            [sys.executable, "-u", *command],
             stdout=PIPE,
             stderr=PIPE,
             # Keep select() in wait_for_output in sync with unread pipe data.
@@ -180,14 +186,17 @@ class Pyrun(fixtures.Fixture):
 def pyrun(request):
     endpoint = None
 
-    def run(p, args=None, basedir=None, timeout=30, network=True):
+    def run(p, args=None, basedir=None, timeout=30, network=True, example_config=None):
         nonlocal endpoint
+        network = network and example_config is None
         if network and endpoint is None:
             config = isolated_config()
             config.insert_json5("mode", '"router"')
             router, endpoint = open_listener(config)
             request.addfinalizer(router.close)
-        example = Pyrun(p, args, basedir, timeout, endpoint if network else None)
+        example = Pyrun(
+            p, args, basedir, timeout, endpoint if network else None, example_config
+        )
         request.addfinalizer(example._cleanup)
         return example
 
@@ -205,29 +214,32 @@ def test_z_bytes(pyrun):
     assert not z_bytes.errors
 
 
-def test_z_info_z_scout(pyrun, tmp_path):
+def check_scout(example, expected):
+    if error := example.status():
+        example.dbg()
+        pytest.fail(error)
+    output = "".join(example.stdout)
+    discovered = set()
+    for line in output.splitlines():
+        if not line.startswith("Hello"):
+            continue
+        hello = re.fullmatch(r"Hello \{ zid: ([0-9a-f]+), .* \}", line)
+        assert hello is not None, output
+        discovered.add(hello[1])
+    assert discovered <= {expected}, output
+    if expected not in discovered:
+        pytest.skip("No Hello received over loopback multicast")
+
+
+def test_z_info_z_scout(pyrun):
     config = discovery_config()
     with zenoh.open(config) as discovery_session:
-        config_path = tmp_path / "scouting.json5"
-        config_path.write_text(str(config))
         z_info = pyrun("z_info.py")
-        z_scout = pyrun("z_scout.py", ["--config", str(config_path)], network=False)
-        for example in (z_scout, z_info):
-            if error := example.status():
-                example.dbg()
-                pytest.fail(error)
-        output = "".join(z_scout.stdout)
-        discovered = set()
-        for line in output.splitlines():
-            if not line.startswith("Hello"):
-                continue
-            hello = re.fullmatch(r"Hello \{ zid: ([0-9a-f]+), .* \}", line)
-            assert hello is not None, output
-            discovered.add(hello[1])
-        expected = str(discovery_session.info.zid())
-        assert discovered <= {expected}, output
-        if expected not in discovered:
-            pytest.skip("No Hello received over loopback multicast")
+        z_scout = pyrun("z_scout.py", example_config=config)
+        if error := z_info.status():
+            z_info.dbg()
+            pytest.fail(error)
+        check_scout(z_scout, str(discovery_session.info.zid()))
 
 
 def test_z_get_z_queryable(pyrun):
@@ -517,15 +529,14 @@ def test_docs_quickstart_sub(pyrun, tmp_path):
 
     listener, endpoint = open_listener()
     with listener, listener.declare_publisher(key) as publisher:
-        config = connecting_config(endpoint)
         script = tmp_path / example.name
-        script.write_text(
-            f"import zenoh\nconfig = zenoh.Config.from_json5({str(config)!r})\n"
-            f"{snippet}",
-            encoding="utf-8",
-        )
+        script.write_text(f"import zenoh\n{snippet}", encoding="utf-8")
         with publisher.declare_matching_listener(on_matching):
-            subscriber = pyrun(script.name, basedir=tmp_path, network=False)
+            subscriber = pyrun(
+                script.name,
+                basedir=tmp_path,
+                example_config=connecting_config(endpoint),
+            )
             assert matched.wait(5), "Quickstart subscriber did not match"
             publisher.put("test data")
         subscriber.wait_for_output(f"{key} => test data")
@@ -547,10 +558,16 @@ def test_docs_quickstart_sub(pyrun, tmp_path):
 def test_docs_examples(pyrun, example_file):
     """Run each documentation example in its own isolated network."""
     example_name = path.basename(example_file)
-    example = pyrun(example_name, basedir=docs_examples, network=False)
-    code = example.wait()
-    if code == 77 and example_name == "scouting.py":
-        pytest.skip("No Hello received over loopback multicast")
+    if example_name == "scouting.py":
+        config = discovery_config()
+        with zenoh.open(config) as discovery_session:
+            example = pyrun(example_name, basedir=docs_examples, example_config=config)
+            check_scout(example, str(discovery_session.info.zid()))
+        return
+
+    example = pyrun(
+        example_name, basedir=docs_examples, example_config=isolated_config()
+    )
     if error := example.status():
         example.dbg()
         pytest.fail(error)

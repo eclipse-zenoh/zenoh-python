@@ -16,8 +16,8 @@ import socket
 import time
 from contextlib import ExitStack
 
+import network_config as testing
 import pytest
-from common import testing
 
 import zenoh
 

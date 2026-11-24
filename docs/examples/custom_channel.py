@@ -17,11 +17,7 @@ import time
 from collections.abc import Callable
 from typing import Generic, TypeVar, Union
 
-from _test_support import isolated_config
-
 import zenoh
-
-config = isolated_config()
 
 
 # Test support: send data in background
@@ -51,7 +47,7 @@ class PriorityChannel:
 
 
 # [custom_channel_usage]
-with zenoh.open(config) as session:
+with zenoh.open(zenoh.Config()) as session:
     channel = PriorityChannel(maxsize=50)
     subscriber = session.declare_subscriber("key/expression", (channel.send, channel))
     # Start publishing only after the session and subscriber are ready.

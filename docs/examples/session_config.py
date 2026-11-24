@@ -11,16 +11,12 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-from _test_support import isolated_config
-
 import zenoh
-
-config = isolated_config()
 
 # [session_context_manager]
 # Recommended: Using context manager
 # The session is automatically closed when exiting the 'with' block
-with zenoh.open(config) as session:
+with zenoh.open(zenoh.Config()) as session:
     # Use the session
     session.put("demo/example/hello", "Hello World!")
 # [session_context_manager]
@@ -28,7 +24,7 @@ with zenoh.open(config) as session:
 # [session_explicit_close]
 # Alternative: Explicit open and close
 # You must explicitly close the session before script exit
-session = zenoh.open(config)
+session = zenoh.open(zenoh.Config())
 try:
     # Use the session
     session.put("demo/example/hello", "Hello World!")

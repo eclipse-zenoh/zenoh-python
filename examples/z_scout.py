@@ -16,12 +16,12 @@ import threading
 import zenoh
 
 
-def main(conf: zenoh.Config):
+def main():
     # initiate logging
     zenoh.init_log_from_env_or("error")
 
     print("Scouting...")
-    scout = zenoh.scout(config=conf, what="peer|router")
+    scout = zenoh.scout(what="peer|router")
     threading.Timer(1.0, lambda: scout.stop()).start()
 
     for hello in scout:
@@ -29,11 +29,4 @@ def main(conf: zenoh.Config):
 
 
 if __name__ == "__main__":
-    import argparse
-
-    import common
-
-    parser = argparse.ArgumentParser(prog="z_scout", description="zenoh scout example")
-    common.add_config_arguments(parser)
-    args = parser.parse_args()
-    main(common.get_config_from_args(args))
+    main()

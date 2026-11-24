@@ -14,14 +14,10 @@
 import threading
 import time
 
-from _test_support import isolated_config
-
 import zenoh
 
-config = isolated_config()
-
 # Open session
-session = zenoh.open(config)
+session = zenoh.open(zenoh.Config())
 
 # [channels]
 # Default channel
