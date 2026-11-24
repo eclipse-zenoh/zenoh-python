@@ -11,7 +11,6 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
-import json
 import time
 
 import zenoh
@@ -25,25 +24,6 @@ from zenoh import (
 )
 
 SLEEP = 1
-
-
-def open_session(endpoints: list[str]) -> tuple[zenoh.Session, zenoh.Session]:
-    conf = zenoh.Config()
-    conf.insert_json5("listen/endpoints", json.dumps(endpoints))
-    conf.insert_json5("scouting/multicast/enabled", "false")
-    peer01 = zenoh.open(conf)
-
-    conf = zenoh.Config()
-    conf.insert_json5("connect/endpoints", json.dumps(endpoints))
-    conf.insert_json5("scouting/multicast/enabled", "false")
-    peer02 = zenoh.open(conf)
-
-    return (peer01, peer02)
-
-
-def close_session(peer01: zenoh.Session, peer02: zenoh.Session):
-    peer01.close()
-    peer02.close()
 
 
 def test_timestamp_instrumentation_builder():
@@ -81,10 +61,10 @@ def test_timestamp_instrumentation_builder_empty():
         pass
 
 
-def test_pubsub_timestamp_stack():
+def test_pubsub_timestamp_stack(session_pair):
     """Test publishing with timestamp_instrumentation and reading from sample."""
     zenoh.try_init_log_from_env()
-    peer01, peer02 = open_session(["tcp/127.0.0.1:17448"])
+    peer01, peer02 = session_pair()
 
     keyexpr = "test/timestamp_stack"
     msg = b"hello with timestamps"
@@ -138,13 +118,12 @@ def test_pubsub_timestamp_stack():
 
     publisher.undeclare()
     subscriber.undeclare()
-    close_session(peer01, peer02)
 
 
-def test_session_put_timestamp_stack():
+def test_session_put_timestamp_stack(session_pair):
     """Test Session.put() with timestamp_instrumentation."""
     zenoh.try_init_log_from_env()
-    peer01, peer02 = open_session(["tcp/127.0.0.1:17449"])
+    peer01, peer02 = session_pair()
 
     keyexpr = "test/session_timestamp_stack"
     msg = b"session put with timestamps"
@@ -167,13 +146,12 @@ def test_session_put_timestamp_stack():
     assert isinstance(received_sample.timestamp_stack, TimestampStack)
 
     subscriber.undeclare()
-    close_session(peer01, peer02)
 
 
-def test_session_get_timestamp_stack():
+def test_session_get_timestamp_stack(session_pair):
     """Test Session.get() with timestamp_instrumentation."""
     zenoh.try_init_log_from_env()
-    peer01, peer02 = open_session(["tcp/127.0.0.1:17450"])
+    peer01, peer02 = session_pair()
 
     keyexpr = "test/get_timestamp_stack"
 
@@ -199,13 +177,12 @@ def test_session_get_timestamp_stack():
             assert len(stack.records) == 4
 
     queryable.undeclare()
-    close_session(peer01, peer02)
 
 
-def test_delete_timestamp_stack():
+def test_delete_timestamp_stack(session_pair):
     """Test Publisher.delete() with timestamp_instrumentation."""
     zenoh.try_init_log_from_env()
-    peer01, peer02 = open_session(["tcp/127.0.0.1:17451"])
+    peer01, peer02 = session_pair()
 
     keyexpr = "test/delete_timestamp_stack"
 
@@ -230,13 +207,12 @@ def test_delete_timestamp_stack():
 
     publisher.undeclare()
     subscriber.undeclare()
-    close_session(peer01, peer02)
 
 
-def test_querier_get_timestamp_stack():
+def test_querier_get_timestamp_stack(session_pair):
     """Test Querier.get() with timestamp_instrumentation."""
     zenoh.try_init_log_from_env()
-    peer01, peer02 = open_session(["tcp/127.0.0.1:17452"])
+    peer01, peer02 = session_pair()
 
     keyexpr = "test/querier_timestamp_stack"
 
@@ -272,10 +248,9 @@ def test_querier_get_timestamp_stack():
 
     querier.undeclare()
     queryable.undeclare()
-    close_session(peer01, peer02)
 
 
-def test_timestamp_callback():
+def test_timestamp_callback(session_pair):
     """Test Session open with a timestamp callback."""
     zenoh.try_init_log_from_env()
 
@@ -286,15 +261,7 @@ def test_timestamp_callback():
         contexts.append({"zid": str(ctx.zid), "whatami": ctx.whatami})
         return custom_timestamp
 
-    conf = zenoh.Config()
-    conf.insert_json5("listen/endpoints", json.dumps(["tcp/127.0.0.1:17453"]))
-    conf.insert_json5("scouting/multicast/enabled", "false")
-    peer01 = zenoh.open(conf, timestamp_callback=timestamp_callback)
-
-    conf = zenoh.Config()
-    conf.insert_json5("connect/endpoints", json.dumps(["tcp/127.0.0.1:17453"]))
-    conf.insert_json5("scouting/multicast/enabled", "false")
-    peer02 = zenoh.open(conf)
+    peer01, peer02 = session_pair(timestamp_callback=timestamp_callback)
 
     keyexpr = "test/timestamp_callback"
     msg = b"hello with custom timestamps"
@@ -339,5 +306,3 @@ def test_timestamp_callback():
 
     publisher.undeclare()
     subscriber.undeclare()
-    peer01.close()
-    peer02.close()
