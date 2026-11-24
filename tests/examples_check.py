@@ -3,7 +3,6 @@ import re
 import sys
 import time
 import uuid
-from glob import glob
 from os import getpgid, killpg, path
 from pathlib import Path
 from select import select
@@ -227,8 +226,7 @@ def check_scout(example, expected):
         assert hello is not None, output
         discovered.add(hello[1])
     assert discovered <= {expected}, output
-    if expected not in discovered:
-        pytest.skip("No Hello received over loopback multicast")
+    return expected in discovered
 
 
 def test_z_info_z_scout(pyrun):
@@ -239,7 +237,8 @@ def test_z_info_z_scout(pyrun):
         if error := z_info.status():
             z_info.dbg()
             pytest.fail(error)
-        check_scout(z_scout, str(discovery_session.info.zid()))
+        if not check_scout(z_scout, str(discovery_session.info.zid())):
+            pytest.skip("No Hello received over loopback multicast")
 
 
 def test_z_get_z_queryable(pyrun):
@@ -514,7 +513,7 @@ def test_z_pub_shm(pyrun):
     assert not sub.errors
 
 
-def test_docs_quickstart_sub(pyrun, tmp_path):
+def check_docs_quickstart_sub(pyrun, tmp_path):
     example = Path(docs_examples) / "quickstart_sub.py"
     _, _, body = example.read_text(encoding="utf-8").partition("# DOC_EXAMPLE_START")
     snippet, end, _ = body.partition("# DOC_EXAMPLE_END")
@@ -545,29 +544,28 @@ def test_docs_quickstart_sub(pyrun, tmp_path):
             pytest.fail(error)
 
 
-@pytest.mark.parametrize(
-    "example_file",
-    sorted(
-        p
-        for p in glob(path.join(docs_examples, "*.py"))
-        if not path.basename(p).startswith("_")
-        and path.basename(p) != "quickstart_sub.py"
-    ),
-    ids=path.basename,
-)
-def test_docs_examples(pyrun, example_file):
-    """Run each documentation example in its own isolated network."""
-    example_name = path.basename(example_file)
-    if example_name == "scouting.py":
-        config = discovery_config()
-        with zenoh.open(config) as discovery_session:
-            example = pyrun(example_name, basedir=docs_examples, example_config=config)
-            check_scout(example, str(discovery_session.info.zid()))
-        return
+def test_docs_examples(pyrun, tmp_path):
+    """Run the documentation examples with private configurations."""
+    errors = []
+    for example_file in sorted(docs_examples.glob("*.py")):
+        example_name = example_file.name
+        print(f"\nTesting docs example: {example_name}")
+        if example_name == "quickstart_sub.py":
+            check_docs_quickstart_sub(pyrun, tmp_path)
+        elif example_name == "scouting.py":
+            config = discovery_config()
+            with zenoh.open(config) as discovery_session:
+                example = pyrun(
+                    example_name, basedir=docs_examples, example_config=config
+                )
+                if not check_scout(example, str(discovery_session.info.zid())):
+                    print("No Hello received over loopback multicast")
+        else:
+            example = pyrun(
+                example_name, basedir=docs_examples, example_config=isolated_config()
+            )
+            if error := example.status():
+                example.dbg()
+                errors.append(f"{example_name}: {error}")
 
-    example = pyrun(
-        example_name, basedir=docs_examples, example_config=isolated_config()
-    )
-    if error := example.status():
-        example.dbg()
-        pytest.fail(error)
+    assert not errors, f"Docs examples failed: {errors}"

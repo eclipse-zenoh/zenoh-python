@@ -27,9 +27,7 @@ affected by unrelated sessions.
   examples. Most documentation examples use an isolated local session. The
   subscriber quickstart uses an explicit loopback listener and connector.
 - Tests that exercise discovery use `discovery_config()`: multicast stays on,
-  restricted to loopback with a separate multicast group and port. The
-  two-network regression test requires each scout to discover exactly its
-  own session.
+  restricted to loopback with a separate multicast group and port.
 
 With a built binding installed in the active Python environment:
 
@@ -37,7 +35,3 @@ With a built binding installed in the active Python environment:
 pytest -n auto --import-mode=append
 pytest tests/examples_check.py -n 4 -v --import-mode=append
 ```
-
-The isolation regression tests deliberately reuse keys across independent
-networks, check the peer identities, exercise occupied-port recovery and bounded
-failure, and check that two discovery domains see only their own session.
