@@ -11,7 +11,9 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import gc
 import time
+import weakref
 
 import zenoh
 from zenoh import CongestionControl, Priority, Query, Sample, Session
@@ -19,6 +21,18 @@ from zenoh import CongestionControl, Priority, Query, Sample, Session
 SLEEP = 1
 MSG_COUNT = 1_000
 MSG_SIZE = [1_024, 131_072]
+
+
+def assert_callback_released(callback_ref, session: Session):
+    deadline = time.monotonic() + 3
+    while True:
+        # The callback worker may leave a Python decref queued on exit.
+        session.is_closed()
+        gc.collect()
+        if callback_ref() is None:
+            return
+        assert time.monotonic() < deadline, "Callback retained after undeclare"
+        time.sleep(0.01)
 
 
 def run_session_qryrep(peer01: Session, peer02: Session):
@@ -38,6 +52,9 @@ def run_session_qryrep(peer01: Session, peer02: Session):
         queryable = peer01.declare_queryable(
             keyexpr, queryable_callback, complete=False
         )
+        queryable_callback.resources = (peer01, queryable)
+        callback_ref = weakref.ref(queryable_callback)
+        del queryable_callback
 
         time.sleep(SLEEP)
 
@@ -63,7 +80,9 @@ def run_session_qryrep(peer01: Session, peer02: Session):
         assert num_errors == 0
 
         print("[QR][03c] Unqueryable on peer01 session")
+        assert callback_ref() is not None
         queryable.undeclare()
+        assert_callback_released(callback_ref, peer01)
 
 
 def run_session_qrrrep(peer01: Session, peer02: Session):
@@ -143,6 +162,9 @@ def run_session_pubsub(peer01: Session, peer02: Session):
 
     print(f"[PS][02d] Subscriber on peer02 session. {MSG_COUNT} msgs.")
     subscriber = peer02.declare_subscriber(keyexpr, sub_callback)
+    sub_callback.resources = (peer02, subscriber)
+    callback_ref = weakref.ref(sub_callback)
+    del sub_callback
     time.sleep(SLEEP)
 
     for _ in range(0, MSG_COUNT):
@@ -156,7 +178,9 @@ def run_session_pubsub(peer01: Session, peer02: Session):
     print("[PS][03d] Undeclare publisher on peer01 session")
     publisher.undeclare()
     print("[PS][04d] Undeclare subscriber on peer02 session")
+    assert callback_ref() is not None
     subscriber.undeclare()
+    assert_callback_released(callback_ref, peer02)
 
 
 def test_session(session_pair):

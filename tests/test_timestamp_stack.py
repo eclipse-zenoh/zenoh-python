@@ -252,24 +252,6 @@ def test_querier_get_timestamp_stack(session_pair):
     queryable.undeclare()
 
 
-def test_close_releases_timestamp_callback_owner(session_pair):
-    class CallbackOwner:
-        def timestamp(self, _context: TimestampContext) -> bytes:
-            return b"timestamp"
-
-    owner = CallbackOwner()
-    owner_ref = weakref.ref(owner)
-
-    session, _ = session_pair(timestamp_callback=owner.timestamp)
-    with session:
-        del owner
-        assert owner_ref() is not None
-
-    assert session.is_closed()
-    gc.collect()
-    assert owner_ref() is None
-
-
 def test_timestamp_callback(session_pair):
     """Test Session open with a timestamp callback."""
     zenoh.try_init_log_from_env()
@@ -282,6 +264,9 @@ def test_timestamp_callback(session_pair):
         return custom_timestamp
 
     peer01, peer02 = session_pair(timestamp_callback=timestamp_callback)
+    timestamp_callback.session = peer01
+    callback_ref = weakref.ref(timestamp_callback)
+    del timestamp_callback
 
     keyexpr = "test/timestamp_callback"
     msg = b"hello with custom timestamps"
@@ -326,3 +311,8 @@ def test_timestamp_callback(session_pair):
 
     publisher.undeclare()
     subscriber.undeclare()
+    assert callback_ref() is not None
+    peer01.close()
+    assert peer01.is_closed()
+    gc.collect()
+    assert callback_ref() is None, "Timestamp callback retained after close"

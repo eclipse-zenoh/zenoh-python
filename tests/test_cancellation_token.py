@@ -11,7 +11,9 @@
 # Contributors:
 #   ZettaScale Zenoh Team, <zenoh@zettascale.tech>
 #
+import gc
 import time
+import weakref
 
 import zenoh
 from zenoh import CancellationToken, Reply
@@ -55,7 +57,11 @@ def test_cancellation_get(session_pair):
         nonlocal n
         n += 10
 
+    on_reply.session = session2
+    callback_ref = weakref.ref(on_reply)
     session2.get(keyexpr, on_reply, cancellation_token=cancellation_token)
+    del on_reply
+    assert callback_ref() is not None
     q = queryable.recv()
     q.reply(keyexpr, "ok")
     q.drop()
@@ -65,6 +71,8 @@ def test_cancellation_get(session_pair):
     cancellation_token.cancel()
     assert n == 10
     assert cancellation_token.is_cancelled
+    gc.collect()
+    assert callback_ref() is None, "Reply callback retained after cancellation"
 
     print("Test that cancelled token cancels operation automatically")
     try:
@@ -105,7 +113,11 @@ def test_cancellation_querier(session_pair):
         nonlocal n
         n += 10
 
+    on_reply.resources = (session2, querier)
+    callback_ref = weakref.ref(on_reply)
     querier.get(on_reply, cancellation_token=cancellation_token)
+    del on_reply
+    assert callback_ref() is not None
     q = queryable.recv()
     q.reply(keyexpr, "ok")
     q.drop()
@@ -115,6 +127,8 @@ def test_cancellation_querier(session_pair):
     cancellation_token.cancel()
     assert n == 10
     assert cancellation_token.is_cancelled
+    gc.collect()
+    assert callback_ref() is None, "Querier callback retained after cancellation"
 
     print("Test that cancelled token cancels operation automatically")
     try:
@@ -140,13 +154,19 @@ def test_cancellation_liveliness_get(session_pair):
         nonlocal n
         n += 10
 
+    on_reply.session = session2
+    callback_ref = weakref.ref(on_reply)
     session2.liveliness().get(keyexpr, on_reply, cancellation_token=cancellation_token)
+    del on_reply
+    assert callback_ref() is not None
     time.sleep(1)
 
     assert not cancellation_token.is_cancelled
     cancellation_token.cancel()
     assert n == 10
     assert cancellation_token.is_cancelled
+    gc.collect()
+    assert callback_ref() is None, "Liveliness callback retained after cancellation"
 
     print("Test that cancelled token cancels operation automatically")
     try:
